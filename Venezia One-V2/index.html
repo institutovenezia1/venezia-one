@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VENEZIA ONE | Sistema Central de Operaciones Venezia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css?v=20260324b" />
+  </head>
+  <body>
+    <section class="login-shell" id="loginShell">
+      <div class="login-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Acceso interno</p>
+          <h3>Ingreso a Venezia One</h3>
+        </div>
+
+        <form id="internalLoginForm" class="prospect-form">
+          <label>
+            <span>Usuario</span>
+            <input id="internalLoginUser" name="login" type="text" required />
+          </label>
+
+          <label>
+            <span>Contraseña</span>
+            <input id="internalLoginPassword" name="password" type="password" required />
+          </label>
+
+          <div class="form-actions full-width">
+            <button class="primary-btn" type="submit">Ingresar</button>
+            <button class="secondary-btn" type="button" id="openStudentPortalButton">Acceder a Mi Venezia</button>
+          </div>
+        </form>
+
+        <div id="internalLoginError" class="web-alert" hidden>
+          Usuario o contraseña incorrectos.
+        </div>
+
+        <div class="info-list">
+          <div class="info-item">
+            <strong>Acceso separado para alumnas</strong>
+            <span>Mi Venezia se mantiene independiente del login interno y sólo permite acceso a información personal de la alumna.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 88 88" role="presentation" focusable="false">
+              <defs>
+                <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#e2c86b" />
+                  <stop offset="55%" stop-color="#c9a227" />
+                  <stop offset="100%" stop-color="#9f7d14" />
+                </linearGradient>
+              </defs>
+              <ellipse cx="44" cy="44" rx="31" ry="35" class="logo-frame" />
+              <path
+                class="logo-stem"
+                d="M44 22 C39 31, 34 42, 30 58"
+              />
+              <path
+                class="logo-stem mirrored"
+                d="M44 22 C49 31, 54 42, 58 58"
+              />
+              <path
+                class="logo-petal"
+                d="M27 36 C31 29, 39 28, 44 34"
+              />
+              <path
+                class="logo-petal mirrored"
+                d="M61 36 C57 29, 49 28, 44 34"
+              />
+              <path
+                class="logo-bloom"
+                d="M35 56 C39 49, 49 49, 53 56"
+              />
+            </svg>
+          </div>
+          <h1>VENEZIA ONE</h1>
+          <p class="brand-caption">Sistema Central de Operaciones</p>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Navegacion principal">
+          <button class="nav-item" type="button" data-module="dashboard">Dashboard</button>
+          <button class="nav-item active" type="button" data-module="crm-prospectos">CRM Prospectos</button>
+          <button class="nav-item" type="button" data-module="altas">Altas</button>
+          <button class="nav-item" type="button" data-module="asistencias">Asistencias</button>
+          <button class="nav-item" type="button" data-module="pagos">Pagos</button>
+          <button class="nav-item" type="button" data-module="finanzas">Finanzas</button>
+          <button class="nav-item" type="button" data-module="usuarios-accesos">Usuarios y accesos</button>
+          <button class="nav-item" type="button" data-module="personal">Personal</button>
+          <button class="nav-item" type="button" data-module="mi-venezia">Mi Venezia</button>
+          <button class="nav-item" type="button" data-module="web-venezia">Web Venezia</button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Dashboard CRM</p>
+            <h2>VENEZIA ONE</h2>
+            <p class="subtitle">Sistema Central de Operaciones Venezia</p>
+          </div>
+          <div class="topbar-actions">
+            <label class="month-filter">
+              <span>Mes</span>
+              <input id="monthFilter" type="month" />
+            </label>
+            <div class="topbar-badge" id="userBadge" hidden>Sin sesión</div>
+            <div class="topbar-badge" id="moduleBadge">CRM Prospectos</div>
+            <button class="secondary-btn" type="button" id="internalLogoutButton" hidden>Cerrar sesión</button>
+          </div>
+        </header>
+
+        <section class="module-section" id="dashboardSection">
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Control central</p>
+              <h3>Dashboard General</h3>
+            </div>
+
+            <div class="prospect-form attendance-filters">
+              <label>
+                <span>Sucursal</span>
+                <select id="dashboardBranchFilter">
+                  <option value="">Todas</option>
+                  <option>Tlaxcala</option>
+                  <option>Puebla</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="stats-grid" aria-label="Metricas principales">
+            <article class="stat-card">
+              <p>Prospectos del mes</p>
+              <strong id="statProspectos">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Informaciones del mes</p>
+              <strong id="statInformaciones">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Inscritas del mes</p>
+              <strong id="statInscritas">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Alumnas activas</p>
+              <strong id="statAlumnasActivas">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Pagos pendientes</p>
+              <strong id="statPagosPendientesDashboard">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Ingresos del mes</p>
+              <strong id="statIngresosDashboard">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Egresos del mes</p>
+              <strong id="statEgresosDashboard">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Balance del mes</p>
+              <strong id="statBalanceDashboard">$0</strong>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Prospección</p>
+                <h3>Prospectos por origen</h3>
+              </div>
+              <div id="dashboardOriginList" class="info-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Inscripción</p>
+                <h3>Inscripciones por asesor</h3>
+              </div>
+              <div id="dashboardAdvisorList" class="info-list"></div>
+            </section>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Finanzas</p>
+              <h3>Ingresos por sucursal</h3>
+            </div>
+            <div id="dashboardIncomeBranchList" class="info-list"></div>
+          </section>
+        </section>
+
+        <section class="module-section active" id="crmSection">
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Captura</p>
+                <h3>Añadir nuevo prospecto</h3>
+              </div>
+
+              <form id="prospectForm" class="prospect-form">
+                <input type="hidden" id="prospectId" />
+
+                <label>
+                  <span>Nombre completo</span>
+                  <input id="nombre" name="nombre" type="text" required />
+                </label>
+
+                <label>
+                  <span>Teléfono</span>
+                  <input id="telefono" name="telefono" type="tel" required />
+                </label>
+
+                <label>
+                  <span>Fecha de contacto</span>
+                  <input id="fechaContacto" name="fechaContacto" type="date" required />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <input id="sucursal" name="sucursal" type="text" required />
+                </label>
+
+                <label>
+                  <span>Curso</span>
+                  <input id="curso" name="curso" type="text" required />
+                </label>
+
+                <label>
+                  <span>Origen del prospecto</span>
+                  <select id="origen" name="origen" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Redes sociales</option>
+                    <option>Referido</option>
+                    <option>Pagina web</option>
+                    <option>Web</option>
+                    <option>Evento</option>
+                    <option>Walk-in</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Medio de contacto</span>
+                  <select id="medio" name="medio" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>WhatsApp</option>
+                    <option>Llamada</option>
+                    <option>Facebook Messenger</option>
+                    <option>Instagram DM</option>
+                    <option>Formulario web</option>
+                    <option>Presencial</option>
+                    <option>Otro</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Información enviada</span>
+                  <select id="informacion" name="informacion" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Pendiente de enviar</option>
+                    <option>Información enviada</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Estado</span>
+                  <select id="estado" name="estado" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Nuevo</option>
+                    <option>Nuevo prospecto</option>
+                    <option>Cita agendada</option>
+                    <option>Inscripción web pendiente</option>
+                    <option>Seguimiento</option>
+                    <option>Interesado</option>
+                    <option>Inscrita</option>
+                    <option>Alta completada</option>
+                    <option>No interesado</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Atendió primer contacto</span>
+                  <select id="contacto" name="contacto" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Si</option>
+                    <option>No</option>
+                    <option>Web</option>
+                    <option>Pendiente</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Notas</span>
+                  <textarea id="notas" name="notas" rows="4"></textarea>
+                </label>
+
+                <label class="full-width">
+                  <span>Acceso de interés</span>
+                  <select id="accesoInteres" name="accesoInteres">
+                    <option value="">Selecciona una opcion</option>
+                    <option>Platinum</option>
+                    <option>Oro</option>
+                    <option>Plata</option>
+                  </select>
+                </label>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="submitButton">
+                    Guardar prospecto
+                  </button>
+                  <button class="secondary-btn" type="button" id="clearButton">
+                    Limpiar
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Seguimiento</p>
+                <h3>Gestión de prospectos</h3>
+              </div>
+
+              <div class="table-toolbar">
+                <input
+                  id="searchInput"
+                  type="search"
+                  placeholder="Buscar por nombre, curso o sucursal"
+                  aria-label="Buscar prospecto"
+                />
+                <select id="crmAccessFilter" aria-label="Filtrar por acceso de interes">
+                  <option value="">Todos los accesos</option>
+                  <option>Platinum</option>
+                  <option>Oro</option>
+                  <option>Plata</option>
+                </select>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Prospecto</th>
+                      <th>Contacto</th>
+                      <th>Sucursal</th>
+                      <th>Curso</th>
+                      <th>Acceso</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="prospectsTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="emptyState" class="empty-state">
+                No hay prospectos registrados todavia.
+              </p>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="altasSection">
+          <section class="content-grid">
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Altas</p>
+                <h3>Prospectas inscritas pendientes de alta</h3>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Prospecta</th>
+                      <th>Teléfono</th>
+                      <th>Sucursal</th>
+                      <th>Curso</th>
+                      <th>Acceso</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pendingAltasTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="pendingAltasEmptyState" class="empty-state">
+                No hay prospectas inscritas pendientes de alta.
+              </p>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Registro</p>
+                <h3>Formulario de alta de alumna</h3>
+              </div>
+
+              <form id="altaForm" class="prospect-form">
+                <input type="hidden" id="altaProspectId" />
+
+                <label>
+                  <span>Nombre completo</span>
+                  <input id="altaNombre" name="nombre" type="text" required />
+                </label>
+
+                <label>
+                  <span>Teléfono</span>
+                  <input id="altaTelefono" name="telefono" type="tel" required />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <input id="altaSucursal" name="sucursal" type="text" required />
+                </label>
+
+                <label>
+                  <span>Curso</span>
+                  <input id="altaCurso" name="curso" type="text" required />
+                </label>
+
+                <label>
+                  <span>Acceso elegido</span>
+                  <select id="altaAccesoElegido" name="accesoElegido" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Platinum</option>
+                    <option>Oro</option>
+                    <option>Plata</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Horario</span>
+                  <input id="altaHorario" name="horario" type="text" required />
+                </label>
+
+                <label>
+                  <span>Fecha de inicio</span>
+                  <input id="altaFechaInicio" name="fechaInicio" type="date" required />
+                </label>
+
+                <label>
+                  <span>Inscripción pagada</span>
+                  <select id="altaInscripcionPagada" name="inscripcionPagada" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Si</option>
+                    <option>No</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Colegiatura</span>
+                  <input id="altaColegiatura" name="colegiatura" type="text" required />
+                </label>
+
+                <label>
+                  <span>Promoción aplicada</span>
+                  <input id="altaPromocion" name="promocion" type="text" />
+                </label>
+
+                <label>
+                  <span>Documentos entregados</span>
+                  <select id="altaDocumentos" name="documentos" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Completos</option>
+                    <option>Parciales</option>
+                    <option>Pendientes</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Observaciones</span>
+                  <textarea id="altaObservaciones" name="observaciones" rows="4"></textarea>
+                </label>
+
+                <label class="full-width">
+                  <span>Usuario que dio de alta</span>
+                  <input id="altaUsuario" name="usuarioAlta" type="text" required />
+                </label>
+
+                <label class="full-width">
+                  <span>Contraseña de acceso Mi Venezia</span>
+                  <input id="altaPassword" name="portalPassword" type="text" placeholder="Si se deja vacío se genera una temporal" />
+                </label>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit">Confirmar alta</button>
+                  <button class="secondary-btn" type="button" id="clearAltaButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="asistenciasSection">
+          <section class="stats-grid" aria-label="Resumen de asistencias">
+            <article class="stat-card">
+              <p>Total asistencias</p>
+              <strong id="attendanceAsistencias">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total faltas</p>
+              <strong id="attendanceFaltas">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total retardos</p>
+              <strong id="attendanceRetardos">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total recuperaciones</p>
+              <strong id="attendanceRecuperaciones">0</strong>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading">
+              <p class="eyebrow">Control</p>
+              <h3>Asistencias</h3>
+            </div>
+
+            <div class="prospect-form attendance-filters">
+              <label>
+                <span>Sucursal</span>
+                <select id="attendanceSucursalFilter">
+                  <option value="">Todas</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Curso</span>
+                <select id="attendanceCursoFilter">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Horario</span>
+                <select id="attendanceHorarioFilter">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Fecha</span>
+                <input id="attendanceDate" type="date" />
+              </label>
+            </div>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Listado</p>
+              <h3>Alumnas activas</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre completo</th>
+                    <th>Sucursal</th>
+                    <th>Curso</th>
+                    <th>Horario</th>
+                    <th>Fecha</th>
+                    <th>Estado de asistencia</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="attendanceEmptyState" class="empty-state">
+              No hay alumnas activas para los filtros seleccionados.
+            </p>
+          </section>
+
+          <section class="panel" id="attendanceHistoryPanel" hidden>
+            <div class="section-heading">
+              <p class="eyebrow">Historial</p>
+              <h3 id="attendanceHistoryTitle">Ver historial</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceHistoryBody"></tbody>
+              </table>
+            </div>
+
+            <p id="attendanceHistoryEmptyState" class="empty-state">
+              Esta alumna no tiene asistencias registradas.
+            </p>
+          </section>
+        </section>
+
+        <section class="module-section" id="pagosSection">
+          <section class="stats-grid" aria-label="Resumen de pagos">
+            <article class="stat-card">
+              <p>Total alumnas con pagos registrados</p>
+              <strong id="paymentsRegisteredCount">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total pagos pendientes</p>
+              <strong id="paymentsPendingCount">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total mensualidades pagadas</p>
+              <strong id="paymentsMensualidadesPaid">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total certificados pagados</p>
+              <strong id="paymentsCertificadosPaid">0</strong>
+            </article>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Control</p>
+              <h3>Pagos de alumnas</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre completo</th>
+                    <th>Sucursal</th>
+                    <th>Curso</th>
+                    <th>Horario</th>
+                    <th>Mensualidad pactada</th>
+                    <th>Certificado P1</th>
+                    <th>Certificado P2</th>
+                    <th>1ra mensualidad</th>
+                    <th>2da mensualidad</th>
+                    <th>3ra mensualidad</th>
+                    <th>4ta mensualidad</th>
+                    <th>5ta mensualidad</th>
+                    <th>Pagos pendientes</th>
+                    <th>Método de pago</th>
+                    <th>Reportes</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsEmptyState" class="empty-state">
+              No hay alumnas activas con alta completada para registrar pagos.
+            </p>
+          </section>
+        </section>
+
+        <section class="module-section" id="finanzasSection">
+          <section class="stats-grid" aria-label="Resumen de finanzas">
+            <article class="stat-card">
+              <p>Total ingresos del mes</p>
+              <strong id="financeIngresos">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total egresos del mes</p>
+              <strong id="financeEgresos">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Balance del mes</p>
+              <strong id="financeBalance">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Movimientos registrados</p>
+              <strong id="financeMovimientos">0</strong>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Registro</p>
+                <h3>Finanzas por sucursal</h3>
+              </div>
+
+              <form id="financeForm" class="prospect-form">
+                <input type="hidden" id="financeId" />
+
+                <label>
+                  <span>Fecha</span>
+                  <input id="financeFecha" name="fecha" type="date" required />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="financeSucursal" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Tipo de movimiento</span>
+                  <select id="financeTipo" name="tipo" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Ingreso</option>
+                    <option>Egreso</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Categoría</span>
+                  <select id="financeCategoria" name="categoria" required>
+                    <option value="">Selecciona una opcion</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Concepto</span>
+                  <input id="financeConcepto" name="concepto" type="text" required />
+                </label>
+
+                <label>
+                  <span>Monto</span>
+                  <input id="financeMonto" name="monto" type="number" min="0" step="0.01" required />
+                </label>
+
+                <label>
+                  <span>Método de pago</span>
+                  <select id="financeMetodoPago" name="metodoPago" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Transferencia</option>
+                    <option>Efectivo</option>
+                    <option>Tarjeta</option>
+                    <option>Mixto</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Observaciones</span>
+                  <textarea id="financeObservaciones" name="observaciones" rows="3"></textarea>
+                </label>
+
+                <label class="full-width">
+                  <span>Usuario que registró</span>
+                  <input id="financeUsuario" name="usuario" type="text" required />
+                </label>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="financeSubmitButton">Guardar movimiento</button>
+                  <button class="secondary-btn" type="button" id="financeClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Consulta</p>
+                <h3>Movimientos financieros</h3>
+              </div>
+
+              <div class="prospect-form attendance-filters">
+                <label>
+                  <span>Mes</span>
+                  <input id="financeMonthFilter" type="month" />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="financeBranchFilter">
+                    <option value="">Todas</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Sucursal</th>
+                      <th>Tipo</th>
+                      <th>Categoría</th>
+                      <th>Concepto</th>
+                      <th>Monto</th>
+                      <th>Método de pago</th>
+                      <th>Usuario</th>
+                      <th>Observaciones</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="financeTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="financeEmptyState" class="empty-state">
+                No hay movimientos registrados para los filtros seleccionados.
+              </p>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="usersAccessSection">
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Control</p>
+                <h3>Usuarios y accesos</h3>
+              </div>
+
+              <form id="internalUserForm" class="prospect-form">
+                <input type="hidden" id="internalUserId" />
+
+                <label>
+                  <span>Nombre completo</span>
+                  <input id="internalUserNombre" name="nombre" type="text" required />
+                </label>
+
+                <label>
+                  <span>Usuario o teléfono</span>
+                  <input id="internalUserLogin" name="login" type="text" required />
+                </label>
+
+                <label>
+                  <span>Contraseña</span>
+                  <input id="internalUserPassword" name="password" type="text" required />
+                </label>
+
+                <label>
+                  <span>Rol</span>
+                  <select id="internalUserRol" name="rol" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Director General</option>
+                    <option>Gerente</option>
+                    <option>Director de sucursal</option>
+                    <option>Asesora</option>
+                    <option>Maestra</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="internalUserSucursal" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Todas</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Estado</span>
+                  <select id="internalUserEstado" name="estado" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Activo</option>
+                    <option>Inactivo</option>
+                  </select>
+                </label>
+
+                <fieldset class="permissions-field full-width">
+                  <legend>Permisos de módulos</legend>
+                  <div class="permissions-grid">
+                    <label><input type="checkbox" name="permissions" value="dashboard" /> Dashboard</label>
+                    <label><input type="checkbox" name="permissions" value="crm-prospectos" /> CRM Prospectos</label>
+                    <label><input type="checkbox" name="permissions" value="altas" /> Altas</label>
+                    <label><input type="checkbox" name="permissions" value="asistencias" /> Asistencias</label>
+                    <label><input type="checkbox" name="permissions" value="pagos" /> Pagos</label>
+                    <label><input type="checkbox" name="permissions" value="finanzas" /> Finanzas</label>
+                    <label><input type="checkbox" name="permissions" value="web-venezia" /> Web Venezia</label>
+                    <label><input type="checkbox" name="permissions" value="mi-venezia" /> Mi Venezia</label>
+                    <label><input type="checkbox" name="permissions" value="usuarios-accesos" /> Usuarios y accesos</label>
+                    <label><input type="checkbox" name="permissions" value="personal" /> Personal</label>
+                  </div>
+                </fieldset>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="internalUserSubmitButton">Guardar usuario</button>
+                  <button class="secondary-btn" type="button" id="internalUserClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Directorio</p>
+                <h3>Usuarios internos</h3>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                      <th>Sucursal</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="internalUsersTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="internalUsersEmptyState" class="empty-state">
+                No hay usuarios internos registrados.
+              </p>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="personalSection">
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Directorio</p>
+                <h3>Personal</h3>
+              </div>
+
+              <form id="staffForm" class="prospect-form">
+                <input type="hidden" id="staffId" />
+
+                <label>
+                  <span>Nombre completo</span>
+                  <input id="staffNombre" name="nombre" type="text" required />
+                </label>
+
+                <label>
+                  <span>Teléfono</span>
+                  <input id="staffTelefono" name="telefono" type="tel" required />
+                </label>
+
+                <label>
+                  <span>Puesto</span>
+                  <select id="staffPuesto" name="puesto" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Asesora</option>
+                    <option>Gerente</option>
+                    <option>Director de sucursal</option>
+                    <option>Maestra</option>
+                    <option>Administración</option>
+                    <option>Otro</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Área</span>
+                  <select id="staffArea" name="area" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Ventas</option>
+                    <option>Académica</option>
+                    <option>Dirección</option>
+                    <option>Administración</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="staffSucursal" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Fecha de ingreso</span>
+                  <input id="staffFechaIngreso" name="fechaIngreso" type="date" required />
+                </label>
+
+                <label>
+                  <span>Estado</span>
+                  <select id="staffEstado" name="estado" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Activo</option>
+                    <option>Inactivo</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Usuario vinculado</span>
+                  <select id="staffLinkedUser" name="linkedUserId">
+                    <option value="">Sin vincular</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Observaciones</span>
+                  <textarea id="staffObservaciones" name="observaciones" rows="4"></textarea>
+                </label>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="staffSubmitButton">Guardar personal</button>
+                  <button class="secondary-btn" type="button" id="staffClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Listado</p>
+                <h3>Directorio de personal</h3>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Teléfono</th>
+                      <th>Puesto</th>
+                      <th>Área</th>
+                      <th>Sucursal</th>
+                      <th>Fecha de ingreso</th>
+                      <th>Estado</th>
+                      <th>Usuario vinculado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="staffEmptyState" class="empty-state">
+                No hay personal registrado.
+              </p>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="miVeneziaSection">
+          <section class="panel" id="miVeneziaLoginPanel">
+            <div class="section-heading">
+              <p class="eyebrow">Portal</p>
+              <h3>Mi Venezia - Portal de Alumnas</h3>
+            </div>
+
+            <form id="miVeneziaLoginForm" class="prospect-form">
+              <label>
+                <span>Número de teléfono</span>
+                <input id="miVeneziaTelefono" name="telefono" type="tel" required />
+              </label>
+
+              <label>
+                <span>Contraseña</span>
+                <input id="miVeneziaPassword" name="password" type="password" required />
+              </label>
+
+              <div class="form-actions full-width">
+                <button class="primary-btn" type="submit">Ingresar</button>
+              </div>
+            </form>
+
+            <p class="empty-state">
+              Contraseña inicial: <strong>la definida en Altas</strong>. Si no se capturó, usa <strong><code>venezia</code> + últimos 4 dígitos del teléfono</strong>.
+            </p>
+          </section>
+
+          <section class="module-section-inner" id="miVeneziaDashboard" hidden>
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Cuenta</p>
+                <h3>Mi Venezia - Portal de Alumnas</h3>
+              </div>
+
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="miVeneziaLogoutButton">Cerrar sesión</button>
+              </div>
+            </section>
+
+            <section class="content-grid">
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Perfil</p>
+                  <h3>Mi perfil</h3>
+                </div>
+                <div id="miVeneziaPerfil" class="info-list"></div>
+              </section>
+
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Pagos</p>
+                  <h3>Mis pagos</h3>
+                </div>
+                <div id="miVeneziaPagos" class="info-list"></div>
+              </section>
+            </section>
+
+            <section class="content-grid">
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Asistencia</p>
+                  <h3>Mis asistencias</h3>
+                </div>
+                <div id="miVeneziaResumenAsistencias" class="info-list"></div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody id="miVeneziaAsistenciasBody"></tbody>
+                  </table>
+                </div>
+                <p id="miVeneziaAsistenciasEmptyState" class="empty-state">
+                  No hay asistencias registradas para esta alumna.
+                </p>
+              </section>
+
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Avance</p>
+                  <h3>Mi avance</h3>
+                </div>
+                <div id="miVeneziaAvance" class="info-list"></div>
+              </section>
+            </section>
+          </section>
+        </section>
+
+        <section class="module-section" id="webVeneziaSection">
+          <div class="web-sales-shell">
+            <section class="web-sales-section web-hero-panel">
+              <div class="web-hero-copy">
+                <p class="eyebrow">Web Venezia</p>
+                <h2 class="web-display-title">Aprende belleza, transforma tu historia y empieza a generar ingresos con tus manos.</h2>
+                <p class="web-lead">
+                  En Venezia encuentras formación práctica, acompañamiento cercano y una ruta real para construir independencia, seguridad y un futuro con más oportunidades.
+                </p>
+                <div class="web-hero-points">
+                  <span>Formación desde cero</span>
+                  <span>Horarios flexibles</span>
+                  <span>Enfoque para emprender</span>
+                </div>
+                <div class="form-actions">
+                  <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Hablar por WhatsApp</a>
+                  <button class="secondary-btn" type="button" data-web-scroll="leadForm">Dejar mis datos / Agendar visita</button>
+                </div>
+              </div>
+
+              <aside class="web-hero-highlight">
+                <p class="eyebrow">Tu siguiente paso</p>
+                <strong>Conviértete en prospecta Venezia</strong>
+                <span>Solicita información, agenda tu visita y conoce el programa ideal para iniciar tu formación en belleza.</span>
+                <div class="web-highlight-metrics">
+                  <div>
+                    <strong>Práctico</strong>
+                    <span>Aprendes haciendo desde las primeras clases.</span>
+                  </div>
+                  <div>
+                    <strong>Rentable</strong>
+                    <span>Enfocado en habilidades con potencial de ingresos.</span>
+                  </div>
+                </div>
+              </aside>
+            </section>
+
+            <section class="web-sales-section">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Por qué Venezia</p>
+                <h3>Para mujeres que quieren más ingresos, más independencia y un mejor futuro.</h3>
+              </div>
+
+              <div class="web-transformation-grid">
+                <article class="web-copy-card">
+                  <strong>Lo que muchas viven hoy</strong>
+                  <p>Querer salir adelante, pero sentir que el tiempo, el dinero o la falta de experiencia te frenan.</p>
+                </article>
+                <article class="web-copy-card">
+                  <strong>Lo que puedes construir aquí</strong>
+                  <p>Aprender una habilidad de belleza con aplicación real, ganar confianza y abrir una nueva fuente de ingresos.</p>
+                </article>
+                <article class="web-copy-card">
+                  <strong>Cómo te acompañamos</strong>
+                  <p>Con formación cercana, práctica y clara para que no solo estudies, sino que te visualices trabajando y creciendo.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="web-sales-section">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Cursos</p>
+                <h3>Programas diseñados para aprender, practicar y empezar a producir.</h3>
+              </div>
+              <div class="web-course-grid" id="webCoursesGrid"></div>
+            </section>
+
+            <section class="web-sales-section">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Beneficios</p>
+                <h3>Estudiar en Venezia significa avanzar con respaldo.</h3>
+              </div>
+              <div class="web-benefits-grid">
+                <article class="web-benefit-card">
+                  <strong>Horarios flexibles</strong>
+                  <p>Opciones pensadas para combinar estudio, familia y trabajo.</p>
+                </article>
+                <article class="web-benefit-card">
+                  <strong>Aprendizaje práctico</strong>
+                  <p>Menos teoría suelta, más práctica enfocada en resultados reales.</p>
+                </article>
+                <article class="web-benefit-card">
+                  <strong>Apoyo con materiales</strong>
+                  <p>Guía y acompañamiento para que inicies con mejores herramientas.</p>
+                </article>
+                <article class="web-benefit-card">
+                  <strong>Certificación</strong>
+                  <p>Tu formación cuenta con respaldo Venezia al concluir tu programa.</p>
+                </article>
+                <article class="web-benefit-card">
+                  <strong>Ruta para generar ingresos</strong>
+                  <p>Programas pensados para convertir habilidad en oportunidad económica.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="web-sales-section">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Testimonios</p>
+                <h3>Historias que inspiran confianza y decisión.</h3>
+              </div>
+              <div class="web-testimonial-grid">
+                <article class="web-testimonial-card">
+                  <p>"Entré buscando un ingreso extra y hoy ya tengo clientas cada semana. Venezia me ayudó a creer que sí podía."</p>
+                  <strong>Fernanda M.</strong>
+                  <span>Programa de Uñas</span>
+                </article>
+                <article class="web-testimonial-card">
+                  <p>"Me gustó que aprendí practicando. No solo estudié, salí con seguridad para empezar a cobrar por mi trabajo."</p>
+                  <strong>Daniela R.</strong>
+                  <span>Programa de Pestañas</span>
+                </article>
+                <article class="web-testimonial-card">
+                  <p>"Sentí acompañamiento desde el inicio. Ahora veo la belleza como una oportunidad real para crecer."</p>
+                  <strong>Mariana C.</strong>
+                  <span>Programa de Maquillaje</span>
+                </article>
+              </div>
+            </section>
+
+            <section class="web-sales-section web-promo-panel">
+              <div class="web-promo-copy">
+                <p class="eyebrow">Beca / Promoción</p>
+                <h3>Hay cupos limitados para nuevo ingreso y la mejor opción puede cerrarse pronto.</h3>
+                <p>Escríbenos hoy y revisa si todavía alcanzas lugar, promoción activa o apoyo disponible para tu inscripción.</p>
+              </div>
+              <div class="web-promo-card" id="webScholarshipCard"></div>
+            </section>
+
+            <section class="web-sales-section" id="leadForm">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Contacto</p>
+                <h3>Déjanos tus datos y conecta directo con el flujo de prospectos.</h3>
+              </div>
+
+              <div id="webSuccessAlert" class="web-alert web-alert-success" hidden>
+                Tu información fue enviada correctamente a Venezia. Una asesora dará seguimiento.
+              </div>
+
+              <div id="webErrorAlert" class="web-alert web-alert-error" hidden>
+                No se pudo guardar tu solicitud en este momento. Intenta nuevamente o contáctanos por WhatsApp.
+              </div>
+
+              <div class="web-form-layout">
+                <div class="web-form-copy">
+                  <strong>Agenda información o visita</strong>
+                  <p>Completa el formulario para registrar tu interés en CRM Prospectos y recibir seguimiento real.</p>
+                  <a class="secondary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Prefiero WhatsApp</a>
+                </div>
+
+                <form id="webLeadForm" class="prospect-form web-lead-form">
+                  <label>
+                    <span>Nombre completo</span>
+                    <input id="webNombre" name="nombre" type="text" required />
+                  </label>
+
+                  <label>
+                    <span>Teléfono</span>
+                    <input id="webTelefono" name="telefono" type="tel" required />
+                  </label>
+
+                  <label>
+                    <span>Sucursal de interés</span>
+                    <select id="webSucursal" name="sucursal" required>
+                      <option value="">Selecciona una opcion</option>
+                      <option>Tlaxcala</option>
+                      <option>Puebla</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Curso de interés</span>
+                    <select id="webCurso" name="curso" required>
+                      <option value="">Selecciona una opcion</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Acceso de interés</span>
+                    <select id="webAcceso" name="accesoInteres">
+                      <option value="">Quiero que me asesoren</option>
+                      <option>Platinum</option>
+                      <option>Oro</option>
+                      <option>Plata</option>
+                    </select>
+                  </label>
+
+                  <label id="webHorarioCitaField">
+                    <span>Horario de cita</span>
+                    <select id="webHorarioCita" name="horarioCita">
+                      <option value="">Selecciona una opcion</option>
+                      <option>11:00 AM</option>
+                      <option>1:00 PM</option>
+                      <option>3:00 PM</option>
+                      <option>Otro horario</option>
+                    </select>
+                  </label>
+
+                  <label id="webHoraSugeridaField" hidden>
+                    <span>Hora sugerida</span>
+                    <input id="webHoraSugerida" name="horaSugerida" type="text" />
+                    <small>Disponible solo entre 10:00 AM y 5:00 PM</small>
+                  </label>
+
+                  <label class="full-width">
+                    <span>Tipo de solicitud</span>
+                    <select id="webTipoSolicitud" name="tipoSolicitud" required>
+                      <option value="">Selecciona una opcion</option>
+                      <option>Agendar visita para inscribirme</option>
+                      <option>Agendar visita para aplicar a una beca</option>
+                      <option>Solicitar información</option>
+                      <option>Inscribirme en línea</option>
+                    </select>
+                  </label>
+
+                  <div class="form-actions full-width">
+                    <button class="primary-btn" type="submit" form="webLeadForm" id="webLeadSubmitButton">Enviar solicitud</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section class="web-sales-section web-final-cta">
+              <div>
+                <p class="eyebrow">Tu momento</p>
+                <h3>Si quieres un cambio real, este puede ser el inicio de tu nueva etapa.</h3>
+                <p>Escríbenos, agenda tu visita y descubre cómo empezar en belleza con una opción pensada para ti.</p>
+              </div>
+              <div class="form-actions">
+                <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Quiero hablar por WhatsApp</a>
+                <button class="secondary-btn" type="button" data-web-scroll="leadForm">Quiero dejar mis datos</button>
+              </div>
+            </section>
+
+            <a class="web-floating-whatsapp web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
+              WhatsApp
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js?v=20260324c"></script>
+    <script src="dataService.js?v=20260324c"></script>
+    <script src="app.js?v=20260324c"></script>
+  </body>
+</html>
