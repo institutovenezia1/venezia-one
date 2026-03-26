@@ -2063,6 +2063,11 @@ function renderWebScholarshipSection() {
       </article>
     </div>
     <div class="web-access-footer">
+      <div class="web-access-copy">
+        <p class="eyebrow">Accesos Venezia</p>
+        <h3>Elige el acceso que mejor se adapta a ti</h3>
+        <p>En Instituto Venezia creemos que cada alumna merece una oportunidad real de aprender y crecer. Por eso contamos con diferentes accesos según tus metas, tu presupuesto y el nivel de acompañamiento que buscas.</p>
+      </div>
       <p>¿No sabes cuál acceso te conviene más? Escríbenos por WhatsApp y te orientamos según tu meta, tu tiempo y tu presupuesto.</p>
       <div class="form-actions">
         <a class="primary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre los accesos Venezia y saber cuál me conviene más."))}" target="_blank" rel="noopener">Quiero información</a>

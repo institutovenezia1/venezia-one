@@ -782,9 +782,9 @@ td select {
 
 .web-promo-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+  grid-template-columns: 1fr;
   gap: 1rem;
-  align-items: center;
+  align-items: stretch;
   background:
     radial-gradient(circle at top right, rgba(201, 162, 39, 0.18), transparent 25%),
     linear-gradient(135deg, #fff8f0 0%, #fffdfb 100%);
@@ -804,9 +804,13 @@ td select {
   gap: 0.7rem;
 }
 
+.web-promo-card-wide {
+  width: 100%;
+}
+
 .web-access-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -853,6 +857,23 @@ td select {
   display: grid;
   gap: 1rem;
   margin-top: 0.6rem;
+}
+
+.web-access-copy {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.web-access-copy h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.98;
+  color: #7c5814;
+}
+
+.web-access-copy p {
+  margin: 0;
 }
 
 .web-access-footer p {
@@ -993,7 +1014,7 @@ body.public-mode .module-section.active {
   }
 
   .web-access-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1044,6 +1065,10 @@ body.public-mode .module-section.active {
   .web-utility-actions,
   .web-sales-footer {
     flex-direction: column;
+  }
+
+  .web-access-grid {
+    grid-template-columns: 1fr;
   }
 
   .web-utility-link,
