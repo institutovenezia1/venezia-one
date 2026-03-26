@@ -1103,7 +1103,7 @@ function updateWebAppointmentFields() {
 
 function getWebWhatsAppUrl(message) {
   const encodedMessage = encodeURIComponent(
-    message || "Hola, quiero información sobre los cursos de Venezia."
+    message || "Hola, quiero información sobre los cursos y saber si aún hay becas disponibles 🙏"
   );
   return `https://wa.me/${WEB_DEFAULT_WHATSAPP_NUMBER}?text=${encodedMessage}`;
 }
@@ -1170,7 +1170,7 @@ function renderWebCourses() {
 
 function renderWebWhatsappLinks() {
   webWhatsappLinks.forEach((link) => {
-    link.href = getWebWhatsAppUrl("Hola, quiero información sobre Venezia.");
+    link.href = getWebWhatsAppUrl("Hola, quiero información sobre los cursos y saber si aún hay becas disponibles 🙏");
   });
 }
 
@@ -2614,7 +2614,7 @@ webVeneziaSection.addEventListener("click", (event) => {
 
   const whatsappLink = event.target.closest(".web-whatsapp-link");
   if (whatsappLink) {
-    whatsappLink.href = getWebWhatsAppUrl("Hola, quiero información sobre Venezia.");
+    whatsappLink.href = getWebWhatsAppUrl("Hola, quiero información sobre los cursos y saber si aún hay becas disponibles 🙏");
   }
 });
 
