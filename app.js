@@ -208,19 +208,23 @@ const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
 const WEB_DEFAULT_COURSES = [
   {
     name: "Uñas",
-    description: "Aprende una habilidad con alta demanda para empezar a atender clientas y generar ingresos con tus propias manos.",
+    description: "Aprende una habilidad con alta demanda y empieza a generar ingresos desde tus primeras clientas.",
+    statusLabel: "Curso activo y disponible",
   },
   {
     name: "Pestañas",
-    description: "Especialízate en una técnica muy buscada para ofrecer servicios con valor, detalle y acabado premium.",
+    description: "Especialízate en una técnica altamente rentable y crea servicios premium que te permitan cobrar más.",
+    statusLabel: "Curso activo y disponible",
   },
   {
     name: "Barbería",
-    description: "Desarrolla técnica, seguridad y servicio profesional para convertir tu talento en una oportunidad constante.",
+    description: "Desarrolla técnica, seguridad y conviértete en un barbero o lady barber con ingresos constantes.",
+    statusLabel: "Curso activo y disponible",
   },
   {
     name: "Maquillaje",
-    description: "Domina maquillaje con enfoque práctico para eventos, clientas y una ruta real para empezar a cobrar.",
+    description: "Domina el maquillaje profesional para eventos y clientas.",
+    statusLabel: "No disponible temporalmente",
   },
 ];
 
@@ -1123,24 +1127,7 @@ Quiero recibir informacion y revisar si todavia hay beca o apoyo disponible.
 }
 
 function getWebCourseCatalog() {
-  const courseMap = new Map(
-    WEB_DEFAULT_COURSES.map((course) => [course.name, { ...course }])
-  );
-  const systemCourses = prospects
-    .map((prospect) => prospect.curso)
-    .concat(students.map((student) => student.curso))
-    .filter(Boolean);
-
-  systemCourses.forEach((courseName) => {
-    if (!courseMap.has(courseName)) {
-      courseMap.set(courseName, {
-        name: courseName,
-        description: "Conoce este programa y recibe asesoría para elegir la mejor ruta para tu formación.",
-      });
-    }
-  });
-
-  return [...courseMap.values()];
+  return WEB_DEFAULT_COURSES.map((course) => ({ ...course }));
 }
 
 function renderWebCourses() {
@@ -1151,7 +1138,7 @@ function renderWebCourses() {
       .map(
         (course) => `
           <article class="web-course-card">
-            <span class="web-course-tag">Belleza</span>
+            <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
             <strong>${escapeHtml(course.name)}</strong>
             <p>${escapeHtml(course.description)}</p>
             <button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>
