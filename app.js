@@ -64,6 +64,11 @@ const appShell = document.getElementById("appShell");
 const internalLoginForm = document.getElementById("internalLoginForm");
 const internalLoginError = document.getElementById("internalLoginError");
 const openStudentPortalButton = document.getElementById("openStudentPortalButton");
+const closeLoginPanelButton = document.getElementById("closeLoginPanelButton");
+const publicInternalAccessButton = document.getElementById("publicInternalAccessButton");
+const publicStudentAccessButton = document.getElementById("publicStudentAccessButton");
+const footerInternalAccessButton = document.getElementById("footerInternalAccessButton");
+const footerStudentAccessButton = document.getElementById("footerStudentAccessButton");
 const internalLogoutButton = document.getElementById("internalLogoutButton");
 const userBadge = document.getElementById("userBadge");
 const clearButton = document.getElementById("clearButton");
@@ -203,19 +208,19 @@ const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
 const WEB_DEFAULT_COURSES = [
   {
     name: "Uñas",
-    description: "Aprende técnicas rentables para ofrecer servicios con alta demanda y construir tus primeras clientas.",
+    description: "Aprende una habilidad con alta demanda para empezar a atender clientas y generar ingresos con tus propias manos.",
   },
   {
     name: "Pestañas",
-    description: "Especialízate en diseño y aplicación para brindar experiencias premium con valor comercial.",
+    description: "Especialízate en una técnica muy buscada para ofrecer servicios con valor, detalle y acabado premium.",
   },
   {
     name: "Barbería",
-    description: "Domina corte, estilo y servicio profesional para convertir habilidad en ingresos constantes.",
+    description: "Desarrolla técnica, seguridad y servicio profesional para convertir tu talento en una oportunidad constante.",
   },
   {
     name: "Maquillaje",
-    description: "Desarrolla técnica, seguridad y visión de negocio para eventos, sesiones y servicio social.",
+    description: "Domina maquillaje con enfoque práctico para eventos, clientas y una ruta real para empezar a cobrar.",
   },
 ];
 
@@ -243,6 +248,7 @@ let selectedAttendanceStudentId = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
+let publicAccessPanelOpen = false;
 
 monthFilter.value = selectedMonth;
 attendanceDate.value = formatDateForInput(new Date());
@@ -820,11 +826,11 @@ function getDefaultModuleForCurrentContext() {
     return "mi-venezia";
   }
 
-  const user = getCurrentInternalUser();
-  if (!user) {
-    return "crm-prospectos";
+  if (currentAccessMode !== "internal") {
+    return "web-venezia";
   }
 
+  const user = getCurrentInternalUser();
   return ALL_MODULE_PERMISSIONS.find((module) => hasInternalAccess(module)) || "crm-prospectos";
 }
 
@@ -844,11 +850,13 @@ function applyRoleToSidebar() {
 function updateSessionUI() {
   const user = getCurrentInternalUser();
   const inApp = currentAccessMode === "internal" || currentAccessMode === "student";
+  const publicMode = !inApp;
 
-  loginShell.hidden = inApp;
-  appShell.hidden = !inApp;
-  loginShell.style.display = inApp ? "none" : "grid";
-  appShell.style.display = inApp ? "grid" : "none";
+  document.body.classList.toggle("public-mode", publicMode);
+  loginShell.hidden = inApp || !publicAccessPanelOpen;
+  appShell.hidden = false;
+  loginShell.style.display = inApp || !publicAccessPanelOpen ? "none" : "grid";
+  appShell.style.display = "grid";
 
   if (currentAccessMode === "internal" && user) {
     userBadge.hidden = false;
@@ -866,6 +874,17 @@ function updateSessionUI() {
   }
 
   applyRoleToSidebar();
+}
+
+function openPublicAccessPanel() {
+  publicAccessPanelOpen = true;
+  updateSessionUI();
+}
+
+function closePublicAccessPanel() {
+  publicAccessPanelOpen = false;
+  internalLoginError.hidden = true;
+  updateSessionUI();
 }
 
 function applyBranchRestrictionsToUI() {
@@ -894,6 +913,7 @@ function logoutInternalSession() {
   currentInternalUserId = "";
   currentAccessMode = "logged-out";
   currentPortalStudentId = "";
+  publicAccessPanelOpen = false;
   // Still local/session-backed through dataService sessions.
   dataService.sessions.clearInternal();
   dataService.sessions.clearStudent();
@@ -1029,18 +1049,7 @@ async function resolveLinkedInternalUserId(selectedId) {
 function getWebLeadFormData() {
   const formData = new FormData(webLeadForm);
   const today = formatDateForInput(new Date());
-  const tipoSolicitud = String(formData.get("tipoSolicitud") || "").trim();
-  const accesoInteres = String(formData.get("accesoInteres") || "").trim();
-  const horarioCita = String(formData.get("horarioCita") || "").trim();
-  const horaSugerida = String(formData.get("horaSugerida") || "").trim();
-  const notes = [
-    `Solicitud desde Web Venezia: ${tipoSolicitud || "Solicitar información"}`,
-    accesoInteres ? `Acceso de interés: ${accesoInteres}` : "",
-    horarioCita ? `Horario de cita: ${horarioCita}` : "",
-    horaSugerida ? `Hora sugerida: ${horaSugerida}` : "",
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  const notes = "Lead captado desde Web Venezia.";
 
   return {
     id: crypto.randomUUID(),
@@ -1055,16 +1064,20 @@ function getWebLeadFormData() {
     estado: "Nuevo",
     contacto: "Web",
     notas: notes,
-    accesoInteres,
-    horarioCita,
-    horaSugerida,
-    tipoSolicitud: tipoSolicitud || "Solicitar información",
+    accesoInteres: "",
+    horarioCita: "",
+    horaSugerida: "",
+    tipoSolicitud: "",
     inscribio: "Pendiente",
     createdAt: new Date().toISOString(),
   };
 }
 
 function updateWebAppointmentFields() {
+  if (!webTipoSolicitud || !webHorarioCitaField || !webHorarioCita || !webHoraSugeridaField || !webHoraSugerida) {
+    return;
+  }
+
   const tipoSolicitud = webTipoSolicitud.value;
   const requiresAppointment =
     tipoSolicitud === "Agendar visita para inscribirme" ||
@@ -1097,13 +1110,13 @@ function getWebWhatsAppUrl(message) {
 
 function getWebLeadWhatsAppRedirectUrl({ fullName, courseInterest, branchInterest }) {
   const message = encodeURIComponent(
-    `Hola 👋 acabo de registrarme en Instituto Venezia 💜
+    `Hola, acabo de registrarme en Instituto Venezia.
 
 Mi nombre es ${fullName}
 Me interesa el curso de ${courseInterest} en ${branchInterest}
 
-Quiero aprovechar la beca disponible 🙋🏻‍♀️✨  
-¿Me puedes dar la información para inscribirme?`
+Quiero recibir informacion y revisar si todavia hay beca o apoyo disponible.
+¿Me puedes compartir la informacion para empezar?`
   );
 
   return `https://wa.me/${WEB_DEFAULT_WHATSAPP_NUMBER}?text=${message}`;
@@ -2017,9 +2030,9 @@ function renderInfoList(container, items) {
 function renderWebScholarshipSection() {
   if (webSettings.scholarshipActive) {
     webScholarshipCard.innerHTML = `
-      <strong>${escapeHtml(webSettings.title)}</strong>
-      <span>${escapeHtml(webSettings.description)}</span>
-      <small>${escapeHtml(webSettings.availability)}</small>
+      <strong>Apoyo sujeto a disponibilidad real</strong>
+      <span>Las becas y lugares disponibles cambian por sucursal y temporada. Si quieres saber si todavía alcanzas apoyo para inscripción, escríbenos hoy.</span>
+      <small>${escapeHtml(webSettings.availability || "Consulta disponibilidad actual con una asesora.")}</small>
       <div class="form-actions">
         <button class="primary-btn web-course-btn" type="button" data-course="Aplicar a beca">Aplicar a beca</button>
         <a class="secondary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre becas o promociones de Venezia."))}" target="_blank" rel="noopener">WhatsApp</a>
@@ -2028,7 +2041,7 @@ function renderWebScholarshipSection() {
   } else {
     webScholarshipCard.innerHTML = `
       <strong>Por el momento no hay becas activas</strong>
-      <span>Conoce nuestros accesos disponibles y solicita información sobre la mejor opción para ti.</span>
+      <span>Escríbenos para conocer cursos, lugares disponibles y la mejor opción para empezar hoy.</span>
       <a class="secondary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre opciones de ingreso en Venezia."))}" target="_blank" rel="noopener">Hablar por WhatsApp</a>
     `;
   }
@@ -2232,7 +2245,7 @@ function setActiveModule(module) {
         ? hasInternalAccess(module)
           ? module
           : getDefaultModuleForCurrentContext()
-        : module;
+        : "web-venezia";
 
   activeModule = allowedModule;
 
@@ -2382,6 +2395,7 @@ internalLoginForm.addEventListener("submit", async (event) => {
 
   currentInternalUserId = user.id;
   currentAccessMode = "internal";
+  publicAccessPanelOpen = false;
   dataService.sessions.setInternal(user.id);
   updateSessionUI();
   renderAll();
@@ -2437,6 +2451,7 @@ staffForm.addEventListener("submit", async (event) => {
 openStudentPortalButton.addEventListener("click", () => {
   currentInternalUserId = "";
   currentAccessMode = "student";
+  publicAccessPanelOpen = false;
   internalLoginError.hidden = true;
   dataService.sessions.clearInternal();
   updateSessionUI();
@@ -2469,26 +2484,7 @@ async function handleWebLeadSubmit(event) {
   updateWebAppointmentFields();
   const leadData = getWebLeadFormData();
   const { successAlert, errorAlert, submitButton } = getWebLeadUiElements();
-  const webLeadPayload = {
-    full_name: leadData.nombre || "",
-    phone: leadData.telefono || "",
-    contact_date: leadData.fechaContacto || "",
-    branch_interest: leadData.sucursal || "",
-    course_interest: leadData.curso || "",
-    origin: leadData.origen || "Web",
-    contact_channel: leadData.medio || "Formulario web",
-    info_status: leadData.informacion || "Pendiente de enviar",
-    prospect_status: leadData.estado || "Nuevo",
-    notes: leadData.notas || "",
-    access_interest: leadData.accesoInteres || "",
-    enrolled_by: leadData.inscribio || "",
-    appointment_time: leadData.horarioCita || "",
-    suggested_time: leadData.horaSugerida || "",
-    request_type: leadData.tipoSolicitud || "",
-    created_at: leadData.createdAt || "",
-  };
-
-  console.log("WEB lead payload", webLeadPayload);
+  console.log("WEB lead payload", leadData);
   if (successAlert) {
     successAlert.hidden = true;
   }
@@ -2519,7 +2515,7 @@ async function handleWebLeadSubmit(event) {
   updateWebAppointmentFields();
   setWebLeadFeedback({
     success: true,
-    message: "Tu información fue enviada correctamente. Ya quedó registrada como prospecta en Venezia.",
+    message: "Tu información fue enviada correctamente. Una asesora te contactará para compartirte opciones y apoyos disponibles.",
   });
   const whatsappRedirectUrl = getWebLeadWhatsAppRedirectUrl({
     fullName: leadData.nombre || "",
@@ -2543,6 +2539,28 @@ if (webLeadSubmitButton) {
     if (webLeadSubmitButton.form !== webLeadForm && webLeadForm) {
       webLeadForm.requestSubmit();
     }
+  });
+}
+
+[publicInternalAccessButton, footerInternalAccessButton]
+  .filter(Boolean)
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      openPublicAccessPanel();
+    });
+  });
+
+[publicStudentAccessButton, footerStudentAccessButton]
+  .filter(Boolean)
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      openPublicAccessPanel();
+    });
+  });
+
+if (closeLoginPanelButton) {
+  closeLoginPanelButton.addEventListener("click", () => {
+    closePublicAccessPanel();
   });
 }
 
@@ -2576,14 +2594,6 @@ internalLoginForm.addEventListener("input", () => {
   internalLoginError.hidden = true;
 });
 
-webAccessButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const webAcceso = document.getElementById("webAcceso");
-    webAcceso.value = button.dataset.access;
-    document.getElementById("leadForm").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-});
-
 webVeneziaSection.addEventListener("click", (event) => {
   const courseButton = event.target.closest(".web-course-btn");
   if (courseButton) {
@@ -2593,9 +2603,8 @@ webVeneziaSection.addEventListener("click", (event) => {
 
     if (availableCourses.includes(course)) {
       webCurso.value = course;
-      webTipoSolicitud.value = "Solicitar información";
-    } else if (course === "Aplicar a beca") {
-      webTipoSolicitud.value = "Agendar visita para aplicar a una beca";
+    } else if (course === "Aplicar a beca" && webCurso) {
+      webCurso.value = "";
     }
 
     updateWebAppointmentFields();
@@ -2609,8 +2618,13 @@ webVeneziaSection.addEventListener("click", (event) => {
   }
 });
 
-webTipoSolicitud.addEventListener("change", updateWebAppointmentFields);
-webHorarioCita.addEventListener("change", updateWebAppointmentFields);
+if (webTipoSolicitud) {
+  webTipoSolicitud.addEventListener("change", updateWebAppointmentFields);
+}
+
+if (webHorarioCita) {
+  webHorarioCita.addEventListener("change", updateWebAppointmentFields);
+}
 
 webScrollButtons.forEach((button) => {
   button.addEventListener("click", () => {

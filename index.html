@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VENEZIA ONE | Sistema Central de Operaciones Venezia</title>
+    <title>Instituto Venezia | Belleza, independencia y nuevas oportunidades</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,8 +13,13 @@
     <link rel="stylesheet" href="style.css?v=20260324b" />
   </head>
   <body>
-    <section class="login-shell" id="loginShell">
+    <section class="login-shell" id="loginShell" hidden>
       <div class="login-panel">
+        <div class="login-panel-header">
+          <button class="login-close-btn" type="button" id="closeLoginPanelButton" aria-label="Cerrar accesos">
+            Cerrar
+          </button>
+        </div>
         <div class="section-heading">
           <p class="eyebrow">Acceso interno</p>
           <h3>Ingreso a Venezia One</h3>
@@ -33,7 +38,7 @@
 
           <div class="form-actions full-width">
             <button class="primary-btn" type="submit">Ingresar</button>
-            <button class="secondary-btn" type="button" id="openStudentPortalButton">Acceder a Mi Venezia</button>
+            <button class="secondary-btn" type="button" id="openStudentPortalButton">Entrar a Mi Venezia</button>
           </div>
         </form>
 
@@ -1143,34 +1148,44 @@
           <div class="web-sales-shell">
             <section class="web-sales-section web-hero-panel">
               <div class="web-hero-copy">
+                <div class="web-utility-row">
+                  <div>
+                    <p class="eyebrow">Instituto Venezia</p>
+                    <p class="web-utility-copy">Formación en belleza con enfoque en independencia e ingresos.</p>
+                  </div>
+                  <div class="web-utility-actions">
+                    <button class="web-utility-link" type="button" id="publicStudentAccessButton">Mi Venezia</button>
+                    <button class="web-utility-link" type="button" id="publicInternalAccessButton">Acceso interno</button>
+                  </div>
+                </div>
                 <p class="eyebrow">Web Venezia</p>
-                <h2 class="web-display-title">Aprende belleza, transforma tu historia y empieza a generar ingresos con tus manos.</h2>
+                <h2 class="web-display-title">Aprende belleza y empieza a generar ingresos con tus propias manos</h2>
                 <p class="web-lead">
-                  En Venezia encuentras formación práctica, acompañamiento cercano y una ruta real para construir independencia, seguridad y un futuro con más oportunidades.
+                  Aunque hoy sientas que no tienes tiempo, experiencia o apoyo, en Instituto Venezia puedes dar el primer paso hacia una vida con más independencia, seguridad y oportunidades.
                 </p>
                 <div class="web-hero-points">
-                  <span>Formación desde cero</span>
+                  <span>Empieza desde cero</span>
                   <span>Horarios flexibles</span>
-                  <span>Enfoque para emprender</span>
+                  <span>Enfoque para generar ingresos</span>
                 </div>
                 <div class="form-actions">
-                  <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Hablar por WhatsApp</a>
-                  <button class="secondary-btn" type="button" data-web-scroll="leadForm">Dejar mis datos / Agendar visita</button>
+                  <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/522463831375" target="_blank" rel="noopener">Quiero información por WhatsApp</a>
+                  <button class="secondary-btn" type="button" data-web-scroll="leadForm">Quiero aplicar a una beca</button>
                 </div>
               </div>
 
               <aside class="web-hero-highlight">
                 <p class="eyebrow">Tu siguiente paso</p>
-                <strong>Conviértete en prospecta Venezia</strong>
-                <span>Solicita información, agenda tu visita y conoce el programa ideal para iniciar tu formación en belleza.</span>
+                <strong>Da el primer paso sin hacerlo sola</strong>
+                <span>Recibe orientación para elegir tu curso, conocer apoyos disponibles y empezar con una ruta real hacia una mejor oportunidad para ti.</span>
                 <div class="web-highlight-metrics">
                   <div>
                     <strong>Práctico</strong>
                     <span>Aprendes haciendo desde las primeras clases.</span>
                   </div>
                   <div>
-                    <strong>Rentable</strong>
-                    <span>Enfocado en habilidades con potencial de ingresos.</span>
+                    <strong>Posible</strong>
+                    <span>Con opciones pensadas para estudiar y seguir con tu vida.</span>
                   </div>
                 </div>
               </aside>
@@ -1178,22 +1193,44 @@
 
             <section class="web-sales-section">
               <div class="section-heading web-section-heading">
-                <p class="eyebrow">Por qué Venezia</p>
-                <h3>Para mujeres que quieren más ingresos, más independencia y un mejor futuro.</h3>
+                <p class="eyebrow">Identificación</p>
+                <h3>Tal vez hoy te pasa esto:</h3>
               </div>
 
               <div class="web-transformation-grid">
                 <article class="web-copy-card">
-                  <strong>Lo que muchas viven hoy</strong>
-                  <p>Querer salir adelante, pero sentir que el tiempo, el dinero o la falta de experiencia te frenan.</p>
+                  <strong>Te esfuerzas y aun así no alcanza</strong>
+                  <p>Sientes que trabajas mucho y aun así no te alcanza, y eso te hace pensar que salir adelante cada vez cuesta más.</p>
                 </article>
                 <article class="web-copy-card">
-                  <strong>Lo que puedes construir aquí</strong>
-                  <p>Aprender una habilidad de belleza con aplicación real, ganar confianza y abrir una nueva fuente de ingresos.</p>
+                  <strong>Tus metas siempre se van para después</strong>
+                  <p>Quieres superarte, pero entre el tiempo, la familia y los gastos, parece que siempre tienes que dejar tus metas para después.</p>
                 </article>
                 <article class="web-copy-card">
-                  <strong>Cómo te acompañamos</strong>
-                  <p>Con formación cercana, práctica y clara para que no solo estudies, sino que te visualices trabajando y creciendo.</p>
+                  <strong>No necesitas llegar sabiendo</strong>
+                  <p>Aunque hoy tengas miedo, dudas o sientas que no tienes experiencia, todavía puedes empezar a construir algo distinto.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="web-sales-section">
+              <div class="section-heading web-section-heading">
+                <p class="eyebrow">Transformación</p>
+                <h3>En Venezia no vienes solo a estudiar. Vienes a aprender una habilidad que puede ayudarte a ganar dinero, elevar tu confianza y construir algo propio.</h3>
+              </div>
+
+              <div class="web-transformation-grid">
+                <article class="web-copy-card">
+                  <strong>Una escuela con propósito real</strong>
+                  <p>Aquí la formación está pensada para que lo que aprendas sí te sirva afuera: con clientas, servicios, práctica y seguridad para empezar.</p>
+                </article>
+                <article class="web-copy-card">
+                  <strong>Más independencia</strong>
+                  <p>Cuando desarrollas una habilidad útil, también cambian tus opciones: puedes cobrar por tu trabajo, crecer y depender menos de otros.</p>
+                </article>
+                <article class="web-copy-card">
+                  <strong>Más confianza en ti</strong>
+                  <p>No se trata solo de técnica. Se trata de volver a sentir que sí puedes avanzar, aprender algo valioso y abrirte una oportunidad nueva.</p>
                 </article>
               </div>
             </section>
@@ -1201,7 +1238,7 @@
             <section class="web-sales-section">
               <div class="section-heading web-section-heading">
                 <p class="eyebrow">Cursos</p>
-                <h3>Programas diseñados para aprender, practicar y empezar a producir.</h3>
+                <h3>Programas pensados para aprender, practicar y convertir tu talento en una oportunidad real.</h3>
               </div>
               <div class="web-course-grid" id="webCoursesGrid"></div>
             </section>
@@ -1209,28 +1246,28 @@
             <section class="web-sales-section">
               <div class="section-heading web-section-heading">
                 <p class="eyebrow">Beneficios</p>
-                <h3>Estudiar en Venezia significa avanzar con respaldo.</h3>
+                <h3>Lo que buscas para empezar con más confianza, respaldo y claridad.</h3>
               </div>
               <div class="web-benefits-grid">
                 <article class="web-benefit-card">
                   <strong>Horarios flexibles</strong>
-                  <p>Opciones pensadas para combinar estudio, familia y trabajo.</p>
+                  <p>Opciones para que estudiar sí sea posible aunque también trabajes, cuides a tu familia o tengas poco tiempo.</p>
                 </article>
                 <article class="web-benefit-card">
                   <strong>Aprendizaje práctico</strong>
-                  <p>Menos teoría suelta, más práctica enfocada en resultados reales.</p>
+                  <p>Aprendes con práctica real desde etapas tempranas para que ganes seguridad y avances más rápido.</p>
                 </article>
                 <article class="web-benefit-card">
                   <strong>Apoyo con materiales</strong>
-                  <p>Guía y acompañamiento para que inicies con mejores herramientas.</p>
+                  <p>Recibes orientación para arrancar con mejores herramientas y no sentirte perdida al comenzar.</p>
                 </article>
                 <article class="web-benefit-card">
                   <strong>Certificación</strong>
-                  <p>Tu formación cuenta con respaldo Venezia al concluir tu programa.</p>
+                  <p>Tu formación cuenta con respaldo para que cierres tu proceso con mayor seguridad y formalidad.</p>
                 </article>
                 <article class="web-benefit-card">
-                  <strong>Ruta para generar ingresos</strong>
-                  <p>Programas pensados para convertir habilidad en oportunidad económica.</p>
+                  <strong>Posibilidad de generar ingresos</strong>
+                  <p>Lo que aprendes puede convertirse en servicios, clientas y una nueva forma de empezar a ganar por tu cuenta.</p>
                 </article>
               </div>
             </section>
@@ -1238,23 +1275,23 @@
             <section class="web-sales-section">
               <div class="section-heading web-section-heading">
                 <p class="eyebrow">Testimonios</p>
-                <h3>Historias que inspiran confianza y decisión.</h3>
+                <h3>Historias que se sienten cercanas, posibles y reales.</h3>
               </div>
               <div class="web-testimonial-grid">
                 <article class="web-testimonial-card">
-                  <p>"Entré buscando un ingreso extra y hoy ya tengo clientas cada semana. Venezia me ayudó a creer que sí podía."</p>
-                  <strong>Fernanda M.</strong>
-                  <span>Programa de Uñas</span>
+                  <p>"Yo pensaba que esto no era para mí porque nunca había estudiado belleza. Empecé con miedo, y hoy ya hago servicios a conocidas y por fin siento que puedo generar dinero con mis manos."</p>
+                  <strong>Fernanda, 28 años</strong>
+                  <span>Alumna de Uñas</span>
                 </article>
                 <article class="web-testimonial-card">
-                  <p>"Me gustó que aprendí practicando. No solo estudié, salí con seguridad para empezar a cobrar por mi trabajo."</p>
-                  <strong>Daniela R.</strong>
-                  <span>Programa de Pestañas</span>
+                  <p>"Entre mi casa, mis hijos y el trabajo, sentía que nunca iba a poder hacer algo para mí. En Venezia encontré horarios que sí podía tomar y ahora tengo más confianza para salir adelante."</p>
+                  <strong>Daniela, 34 años</strong>
+                  <span>Alumna de Pestañas</span>
                 </article>
                 <article class="web-testimonial-card">
-                  <p>"Sentí acompañamiento desde el inicio. Ahora veo la belleza como una oportunidad real para crecer."</p>
-                  <strong>Mariana C.</strong>
-                  <span>Programa de Maquillaje</span>
+                  <p>"Lo que más me ayudó fue sentir acompañamiento. No solo aprendí técnica; empecé a verme capaz de cobrar, atender clientas y pensar en algo propio."</p>
+                  <strong>Mariana, 22 años</strong>
+                  <span>Alumna de Maquillaje</span>
                 </article>
               </div>
             </section>
@@ -1262,8 +1299,8 @@
             <section class="web-sales-section web-promo-panel">
               <div class="web-promo-copy">
                 <p class="eyebrow">Beca / Promoción</p>
-                <h3>Hay cupos limitados para nuevo ingreso y la mejor opción puede cerrarse pronto.</h3>
-                <p>Escríbenos hoy y revisa si todavía alcanzas lugar, promoción activa o apoyo disponible para tu inscripción.</p>
+                <h3>Las becas y lugares disponibles cambian por sucursal y temporada.</h3>
+                <p>Si quieres saber si todavía alcanzas apoyo para inscripción, escríbenos hoy. Esperarte puede hacer que pierdas una opción que sí estaba disponible para ti.</p>
               </div>
               <div class="web-promo-card" id="webScholarshipCard"></div>
             </section>
@@ -1271,7 +1308,7 @@
             <section class="web-sales-section" id="leadForm">
               <div class="section-heading web-section-heading">
                 <p class="eyebrow">Contacto</p>
-                <h3>Déjanos tus datos y conecta directo con el flujo de prospectos.</h3>
+                <h3>Déjanos tus datos y te ayudamos a encontrar la mejor opción para empezar.</h3>
               </div>
 
               <div id="webSuccessAlert" class="web-alert web-alert-success" hidden>
@@ -1284,9 +1321,9 @@
 
               <div class="web-form-layout">
                 <div class="web-form-copy">
-                  <strong>Agenda información o visita</strong>
-                  <p>Completa el formulario para registrar tu interés en CRM Prospectos y recibir seguimiento real.</p>
-                  <a class="secondary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Prefiero WhatsApp</a>
+                  <strong>Queremos ayudarte a dar el primer paso</strong>
+                  <p>Completa estos datos y una asesora te compartirá información, cursos y opciones disponibles para ti.</p>
+                  <a class="secondary-btn web-link-btn web-whatsapp-link" href="https://wa.me/522463831375" target="_blank" rel="noopener">Prefiero WhatsApp</a>
                 </div>
 
                 <form id="webLeadForm" class="prospect-form web-lead-form">
@@ -1316,46 +1353,8 @@
                     </select>
                   </label>
 
-                  <label>
-                    <span>Acceso de interés</span>
-                    <select id="webAcceso" name="accesoInteres">
-                      <option value="">Quiero que me asesoren</option>
-                      <option>Platinum</option>
-                      <option>Oro</option>
-                      <option>Plata</option>
-                    </select>
-                  </label>
-
-                  <label id="webHorarioCitaField">
-                    <span>Horario de cita</span>
-                    <select id="webHorarioCita" name="horarioCita">
-                      <option value="">Selecciona una opcion</option>
-                      <option>11:00 AM</option>
-                      <option>1:00 PM</option>
-                      <option>3:00 PM</option>
-                      <option>Otro horario</option>
-                    </select>
-                  </label>
-
-                  <label id="webHoraSugeridaField" hidden>
-                    <span>Hora sugerida</span>
-                    <input id="webHoraSugerida" name="horaSugerida" type="text" />
-                    <small>Disponible solo entre 10:00 AM y 5:00 PM</small>
-                  </label>
-
-                  <label class="full-width">
-                    <span>Tipo de solicitud</span>
-                    <select id="webTipoSolicitud" name="tipoSolicitud" required>
-                      <option value="">Selecciona una opcion</option>
-                      <option>Agendar visita para inscribirme</option>
-                      <option>Agendar visita para aplicar a una beca</option>
-                      <option>Solicitar información</option>
-                      <option>Inscribirme en línea</option>
-                    </select>
-                  </label>
-
                   <div class="form-actions full-width">
-                    <button class="primary-btn" type="submit" form="webLeadForm" id="webLeadSubmitButton">Enviar solicitud</button>
+                    <button class="primary-btn" type="submit" form="webLeadForm" id="webLeadSubmitButton">Quiero recibir información</button>
                   </div>
                 </form>
               </div>
@@ -1364,16 +1363,21 @@
             <section class="web-sales-section web-final-cta">
               <div>
                 <p class="eyebrow">Tu momento</p>
-                <h3>Si quieres un cambio real, este puede ser el inicio de tu nueva etapa.</h3>
-                <p>Escríbenos, agenda tu visita y descubre cómo empezar en belleza con una opción pensada para ti.</p>
+                <h3>Tu próxima oportunidad puede empezar con un solo mensaje hoy.</h3>
+                <p>Si estás buscando una forma real de superarte, aprender algo valioso y empezar a generar ingresos, este puede ser tu momento para dar el primer paso.</p>
               </div>
               <div class="form-actions">
-                <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener">Quiero hablar por WhatsApp</a>
-                <button class="secondary-btn" type="button" data-web-scroll="leadForm">Quiero dejar mis datos</button>
+                <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/522463831375" target="_blank" rel="noopener">Quiero información por WhatsApp</a>
+                <button class="secondary-btn" type="button" data-web-scroll="leadForm">Quiero aplicar a una beca</button>
               </div>
             </section>
 
-            <a class="web-floating-whatsapp web-whatsapp-link" href="https://wa.me/525500000000" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
+            <footer class="web-sales-footer">
+              <button class="web-footer-link" type="button" id="footerStudentAccessButton">Mi Venezia</button>
+              <button class="web-footer-link" type="button" id="footerInternalAccessButton">Acceso interno</button>
+            </footer>
+
+            <a class="web-floating-whatsapp web-whatsapp-link" href="https://wa.me/522463831375" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">
               WhatsApp
             </a>
           </div>
