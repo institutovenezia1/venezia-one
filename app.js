@@ -2015,23 +2015,61 @@ function renderInfoList(container, items) {
 }
 
 function renderWebScholarshipSection() {
-  if (webSettings.scholarshipActive) {
-    webScholarshipCard.innerHTML = `
-      <strong>Apoyo sujeto a disponibilidad real</strong>
-      <span>Las becas y lugares disponibles cambian por sucursal y temporada. Si quieres saber si todavía alcanzas apoyo para inscripción, escríbenos hoy.</span>
-      <small>${escapeHtml(webSettings.availability || "Consulta disponibilidad actual con una asesora.")}</small>
+  webScholarshipCard.innerHTML = `
+    <div class="web-access-grid">
+      <article class="web-access-card web-access-card-featured">
+        <span class="web-course-tag">Platinum</span>
+        <strong>Platinum</strong>
+        <p class="web-access-price">Inscripción: $2,299.99</p>
+        <ul class="web-access-list">
+          <li>Mensualidad fija en $1,800</li>
+          <li>50% de material para practicar durante todos los cursos</li>
+          <li>Clases personalizadas</li>
+          <li>Horarios flexibles</li>
+          <li>Asesoría para emprendimiento</li>
+          <li>3 cursos o más</li>
+        </ul>
+        <small>Ideal para ti si quieres avanzar más rápido y aprovechar más beneficios.</small>
+      </article>
+      <article class="web-access-card">
+        <span class="web-course-tag">Oro</span>
+        <strong>Oro</strong>
+        <p class="web-access-price">Inscripción: $1,499.99</p>
+        <ul class="web-access-list">
+          <li>Mensualidad en $1,700</li>
+          <li>No incluye material para practicar</li>
+          <li>Clases personalizadas</li>
+          <li>Solo 2 cursos</li>
+        </ul>
+        <small>Ideal si quieres estudiar más de un curso con una inversión accesible.</small>
+      </article>
+      <article class="web-access-card">
+        <span class="web-course-tag">Plata</span>
+        <strong>Plata</strong>
+        <p class="web-access-price">Inscripción: $999.99</p>
+        <ul class="web-access-list">
+          <li>Mensualidad en $1,600</li>
+          <li>No incluye material para practicar</li>
+          <li>Clases personalizadas</li>
+          <li>Solo 1 curso</li>
+        </ul>
+        <small>Ideal para empezar desde cero con una opción más económica.</small>
+      </article>
+      <article class="web-access-card web-access-card-scholarship">
+        <span class="web-course-tag">Beca Venezia</span>
+        <strong>Beca Venezia</strong>
+        <p>Pregunta por la opción de beca disponible y conoce si puedes obtener apoyo especial en inscripción o beneficios según temporada y sucursal.</p>
+        <small>Cupos limitados y sujetos a disponibilidad real.</small>
+      </article>
+    </div>
+    <div class="web-access-footer">
+      <p>¿No sabes cuál acceso te conviene más? Escríbenos por WhatsApp y te orientamos según tu meta, tu tiempo y tu presupuesto.</p>
       <div class="form-actions">
-        <button class="primary-btn web-course-btn" type="button" data-course="Aplicar a beca">Aplicar a beca</button>
-        <a class="secondary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre becas o promociones de Venezia."))}" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="primary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre los accesos Venezia y saber cuál me conviene más."))}" target="_blank" rel="noopener">Quiero información</a>
+        <button class="secondary-btn web-course-btn" type="button" data-course="Aplicar a beca">Quiero aplicar a una Beca Venezia</button>
       </div>
-    `;
-  } else {
-    webScholarshipCard.innerHTML = `
-      <strong>Por el momento no hay becas activas</strong>
-      <span>Escríbenos para conocer cursos, lugares disponibles y la mejor opción para empezar hoy.</span>
-      <a class="secondary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre opciones de ingreso en Venezia."))}" target="_blank" rel="noopener">Hablar por WhatsApp</a>
-    `;
-  }
+    </div>
+  `;
 
   renderWebWhatsappLinks();
 }
