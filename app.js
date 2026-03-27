@@ -210,19 +210,19 @@ const WEB_DEFAULT_COURSES = [
     name: "Uñas",
     description: "Aprende una habilidad con alta demanda y empieza a generar ingresos desde tus primeras clientas.",
     statusLabel: "Curso activo y disponible",
-    imagePath: "images/Uñas.jpeg",
+    imagePath: "images/unas.jpg",
   },
   {
     name: "Pestañas",
     description: "Especialízate en una técnica altamente rentable y crea servicios premium que te permitan cobrar más.",
     statusLabel: "Curso activo y disponible",
-    imagePath: "images/Pestañas.jpeg",
+    imagePath: "images/pestanas.jpg",
   },
   {
     name: "Barbería",
     description: "Desarrolla técnica, seguridad y conviértete en un barbero o lady barber con ingresos constantes.",
     statusLabel: "Curso activo y disponible",
-    imagePath: "images/Barberia.jpeg",
+    imagePath: "images/barberia.jpg",
   },
   {
     name: "Maquillaje",
