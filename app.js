@@ -210,21 +210,25 @@ const WEB_DEFAULT_COURSES = [
     name: "Uñas",
     description: "Aprende una habilidad con alta demanda y empieza a generar ingresos desde tus primeras clientas.",
     statusLabel: "Curso activo y disponible",
+    imagePath: "images/Uñas.jpeg",
   },
   {
     name: "Pestañas",
     description: "Especialízate en una técnica altamente rentable y crea servicios premium que te permitan cobrar más.",
     statusLabel: "Curso activo y disponible",
+    imagePath: "images/Pestañas.jpeg",
   },
   {
     name: "Barbería",
     description: "Desarrolla técnica, seguridad y conviértete en un barbero o lady barber con ingresos constantes.",
     statusLabel: "Curso activo y disponible",
+    imagePath: "images/Barberia.jpeg",
   },
   {
     name: "Maquillaje",
     description: "Domina el maquillaje profesional para eventos y clientas.",
     statusLabel: "No disponible temporalmente",
+    imagePath: "",
   },
 ];
 
@@ -1138,6 +1142,7 @@ function renderWebCourses() {
       .map(
         (course) => `
           <article class="web-course-card">
+            ${course.imagePath ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
             <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
             <strong>${escapeHtml(course.name)}</strong>
             <p>${escapeHtml(course.description)}</p>
