@@ -13,6 +13,12 @@
   --radius-lg: 24px;
   --radius-md: 18px;
   --radius-sm: 12px;
+  --web-purple: #6a0dad;
+  --web-black: #000000;
+  --web-gold: #c9a14a;
+  --web-fuchsia: #e91e63;
+  --web-cream: #fdfbf7;
+  --web-card-shadow: 0 20px 40px rgba(106, 13, 173, 0.08);
 }
 
 * {
@@ -30,7 +36,7 @@ body {
   color: var(--color-text);
   background:
     radial-gradient(circle at top left, rgba(201, 162, 39, 0.08), transparent 20%),
-    linear-gradient(180deg, #ffffff 0%, #fffdfa 58%, #ffffff 100%);
+    linear-gradient(180deg, #fdfbf7 0%, #fffdfa 58%, #fdfbf7 100%);
 }
 
 button,
@@ -641,7 +647,7 @@ td select {
 .web-utility-copy {
   margin: 0;
   max-width: 440px;
-  color: #6c5e55;
+  color: #544c58;
   font-size: 0.92rem;
   line-height: 1.5;
 }
@@ -654,13 +660,43 @@ td select {
 
 .web-utility-link,
 .web-footer-link {
-  border: 1px solid rgba(201, 162, 39, 0.24);
+  border: 1px solid rgba(106, 13, 173, 0.18);
   border-radius: 999px;
   padding: 0.65rem 0.9rem;
-  background: rgba(255, 255, 255, 0.8);
-  color: #6d5a3c;
+  background: rgba(253, 251, 247, 0.92);
+  color: #2e2237;
   font-weight: 700;
   cursor: pointer;
+}
+
+.web-sales-shell .eyebrow {
+  color: var(--web-purple);
+}
+
+.web-sales-shell .section-heading h3,
+.web-sales-shell .web-display-title,
+.web-sales-shell .web-final-cta h3,
+.web-sales-shell .web-access-copy h3,
+.web-sales-shell .web-promo-copy h3 {
+  color: var(--web-black);
+}
+
+.web-sales-shell .primary-btn {
+  background: linear-gradient(180deg, #f02f76 0%, var(--web-fuchsia) 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 32px rgba(233, 30, 99, 0.24);
+}
+
+.web-sales-shell .primary-btn:hover {
+  opacity: 1;
+  box-shadow: 0 20px 36px rgba(233, 30, 99, 0.3);
+}
+
+.web-sales-shell .secondary-btn {
+  background: linear-gradient(180deg, #fffdf9 0%, var(--web-cream) 100%);
+  color: #1f1527;
+  border: 1px solid rgba(201, 161, 74, 0.45);
+  box-shadow: 0 12px 24px rgba(106, 13, 173, 0.05);
 }
 
 .web-hero-points {
@@ -673,9 +709,9 @@ td select {
 .web-hero-points span {
   padding: 0.7rem 0.95rem;
   border-radius: 999px;
-  border: 1px solid rgba(201, 162, 39, 0.25);
-  background: rgba(255, 255, 255, 0.8);
-  color: #7a6540;
+  border: 1px solid rgba(106, 13, 173, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: #34164f;
   font-size: 0.88rem;
   font-weight: 700;
 }
@@ -684,9 +720,10 @@ td select {
   align-content: start;
   padding: 1.4rem;
   border-radius: 24px;
-  border: 1px solid rgba(201, 162, 39, 0.2);
+  border: 1px solid rgba(201, 161, 74, 0.24);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(251, 241, 228, 0.92) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 243, 236, 0.98) 100%);
+  box-shadow: var(--web-card-shadow);
 }
 
 .web-hero-visual,
@@ -724,7 +761,7 @@ td select {
   font-family: "Cormorant Garamond", serif;
   font-size: 1.7rem;
   line-height: 1;
-  color: #835f1a;
+  color: var(--web-black);
 }
 
 .web-hero-highlight span,
@@ -734,7 +771,7 @@ td select {
 .web-form-copy p,
 .web-promo-copy p,
 .web-final-cta p {
-  color: #5a4d43;
+  color: #403844;
   line-height: 1.65;
 }
 
@@ -751,9 +788,10 @@ td select {
 .web-form-copy {
   padding: 1.2rem;
   border-radius: 22px;
-  border: 1px solid rgba(201, 162, 39, 0.16);
+  border: 1px solid rgba(201, 161, 74, 0.2);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(252, 247, 241, 0.98) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 251, 247, 0.99) 100%);
+  box-shadow: var(--web-card-shadow);
 }
 
 .web-transformation-grid,
@@ -779,7 +817,7 @@ td select {
 
 .web-course-card p {
   margin: 0;
-  color: #5c5048;
+  color: #403844;
   line-height: 1.6;
 }
 
@@ -787,8 +825,8 @@ td select {
   width: fit-content;
   padding: 0.4rem 0.7rem;
   border-radius: 999px;
-  background: rgba(201, 162, 39, 0.12);
-  color: #8b6d10;
+  background: rgba(106, 13, 173, 0.08);
+  color: var(--web-purple);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -812,7 +850,7 @@ td select {
 }
 
 .web-testimonial-card span {
-  color: #907d68;
+  color: var(--web-purple);
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -825,8 +863,8 @@ td select {
 
 .web-results-feature {
   min-height: 420px;
-  border: 1px solid rgba(201, 162, 39, 0.16);
-  box-shadow: 0 22px 38px rgba(89, 67, 10, 0.08);
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  box-shadow: 0 22px 38px rgba(106, 13, 173, 0.09);
 }
 
 .web-promo-panel {
@@ -835,8 +873,9 @@ td select {
   gap: 1rem;
   align-items: stretch;
   background:
-    radial-gradient(circle at top right, rgba(201, 162, 39, 0.18), transparent 25%),
-    linear-gradient(135deg, #fff8f0 0%, #fffdfb 100%);
+    radial-gradient(circle at top right, rgba(106, 13, 173, 0.08), transparent 25%),
+    radial-gradient(circle at bottom left, rgba(201, 161, 74, 0.12), transparent 28%),
+    linear-gradient(135deg, #fffaf6 0%, #fffdfb 100%);
 }
 
 .web-promo-copy h3,
@@ -868,33 +907,36 @@ td select {
   gap: 0.8rem;
   padding: 1.2rem;
   border-radius: 22px;
-  border: 1px solid rgba(201, 162, 39, 0.16);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(252, 247, 241, 0.98) 100%);
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 251, 247, 0.99) 100%);
+  box-shadow: var(--web-card-shadow);
 }
 
 .web-access-card-featured {
   background:
-    radial-gradient(circle at top right, rgba(201, 162, 39, 0.15), transparent 35%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(250, 242, 228, 0.98) 100%);
-  box-shadow: 0 18px 32px rgba(89, 67, 10, 0.08);
+    radial-gradient(circle at top right, rgba(106, 13, 173, 0.08), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(201, 161, 74, 0.14), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(252, 245, 236, 0.99) 100%);
+  box-shadow: 0 22px 40px rgba(106, 13, 173, 0.12);
 }
 
 .web-access-card-scholarship {
   background:
-    radial-gradient(circle at top left, rgba(245, 210, 166, 0.2), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 247, 239, 0.98) 100%);
+    radial-gradient(circle at top left, rgba(233, 30, 99, 0.08), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(201, 161, 74, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 248, 251, 0.99) 100%);
 }
 
 .web-access-price {
   margin: 0;
-  color: #7c5814;
+  color: var(--web-fuchsia);
   font-weight: 800;
 }
 
 .web-access-list {
   margin: 0;
   padding-left: 1.1rem;
-  color: #5a4d43;
+  color: #403844;
   line-height: 1.65;
 }
 
@@ -918,7 +960,7 @@ td select {
   font-family: "Cormorant Garamond", serif;
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 0.98;
-  color: #7c5814;
+  color: var(--web-black);
 }
 
 .web-access-copy p {
@@ -927,12 +969,12 @@ td select {
 
 .web-access-footer p {
   margin: 0;
-  color: #5a4d43;
+  color: #403844;
   line-height: 1.65;
 }
 
 .web-promo-card small {
-  color: #8a6f4a;
+  color: var(--web-purple);
   font-weight: 700;
 }
 
@@ -951,8 +993,9 @@ td select {
 .web-lead-form {
   padding: 1.35rem;
   border-radius: 24px;
-  border: 1px solid rgba(201, 162, 39, 0.16);
+  border: 1px solid rgba(201, 161, 74, 0.18);
   background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--web-card-shadow);
 }
 
 .web-alert {
@@ -980,8 +1023,9 @@ td select {
   justify-content: space-between;
   gap: 1rem;
   background:
-    radial-gradient(circle at left center, rgba(201, 162, 39, 0.16), transparent 22%),
-    linear-gradient(135deg, #fdf4ea 0%, #fffdfb 100%);
+    radial-gradient(circle at left center, rgba(233, 30, 99, 0.08), transparent 22%),
+    radial-gradient(circle at right center, rgba(201, 161, 74, 0.12), transparent 26%),
+    linear-gradient(135deg, #fff7fb 0%, #fffdfb 100%);
 }
 
 .web-sales-footer {
