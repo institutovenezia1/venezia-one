@@ -1302,6 +1302,22 @@ body.public-mode .module-section.active {
     min-height: 220px;
   }
 
+  .web-testimonial-photo {
+    display: block;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .web-testimonial-photo img {
+    display: block;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    object-fit: cover;
+    object-position: center;
+  }
+
   .web-floating-whatsapp {
     width: 100%;
     bottom: 0;
