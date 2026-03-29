@@ -1074,8 +1074,8 @@ td select {
   position: relative;
   display: grid;
   gap: 0.95rem;
-  align-content: center;
-  min-height: 360px;
+  align-content: end;
+  min-height: 400px;
   padding: 1.7rem;
   border-radius: 24px;
   border: 1px solid rgba(201, 161, 74, 0.2);
@@ -1091,7 +1091,7 @@ td select {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(253, 251, 247, 0.58) 0%, rgba(253, 251, 247, 0.5) 100%);
+    linear-gradient(180deg, rgba(13, 11, 9, 0.18) 0%, rgba(13, 11, 9, 0.6) 100%);
 }
 
 .web-editorial-block > * {
@@ -1099,38 +1099,51 @@ td select {
   z-index: 1;
 }
 
+.web-editorial-content {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 46rem;
+  padding: clamp(1.2rem, 3vw, 1.7rem);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(18, 16, 13, 0.56) 0%, rgba(18, 16, 13, 0.36) 100%);
+  border: 1px solid rgba(234, 219, 180, 0.16);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(3px);
+}
+
 .web-editorial-block p {
   margin: 0;
   max-width: 44rem;
-  color: var(--web-body);
+  color: rgba(253, 251, 247, 0.96);
   font-size: 1.04rem;
   line-height: 1.8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
 }
 
 .web-editorial-block strong {
-  color: var(--web-black);
+  color: #f4dd9a;
 }
 
 .web-editorial-block-aspirational {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(245, 239, 230, 0.2) 100%),
-    url("images/ahora-magina -esto.png") center / cover no-repeat;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(245, 239, 230, 0.06) 100%),
+    url("images/ahora-imagina-esto.jpg") center / cover no-repeat;
 }
 
 .web-editorial-block-identification {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(253, 251, 247, 0.22) 100%),
-    url("images/te-esta-pasando-esto.png") center / cover no-repeat;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(253, 251, 247, 0.06) 100%),
+    url("images/te-esta-pasando-esto.jpg") center / cover no-repeat;
 }
 
 .web-editorial-block-identification::before {
   background:
-    linear-gradient(180deg, rgba(253, 251, 247, 0.56) 0%, rgba(248, 243, 236, 0.46) 100%);
+    linear-gradient(180deg, rgba(9, 8, 7, 0.18) 0%, rgba(9, 8, 7, 0.62) 100%);
 }
 
 .web-editorial-block-aspirational::before {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.56) 0%, rgba(245, 239, 230, 0.46) 100%);
+    linear-gradient(180deg, rgba(12, 10, 8, 0.2) 0%, rgba(12, 10, 8, 0.6) 100%);
 }
 
 .web-highlight-metrics {
