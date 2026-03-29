@@ -153,6 +153,11 @@ const webAccessButtons = document.querySelectorAll(".web-access-btn");
 const webScrollButtons = document.querySelectorAll("[data-web-scroll]");
 const webScholarshipCard = document.getElementById("webScholarshipCard");
 const webWhatsappLinks = document.querySelectorAll(".web-whatsapp-link");
+const heroSlider = document.getElementById("heroSlider");
+const heroSlides = heroSlider ? Array.from(heroSlider.querySelectorAll(".hero-slide")) : [];
+const heroSliderDots = heroSlider ? Array.from(heroSlider.querySelectorAll("[data-hero-slider-dot]")) : [];
+const heroSliderPrevButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-prev]") : null;
+const heroSliderNextButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-next]") : null;
 
 const moduleSections = {
   dashboard: document.getElementById("dashboardSection"),
@@ -1194,6 +1199,98 @@ function setWebLeadFeedback({ success, message }) {
   if (errorAlert) {
     errorAlert.textContent = message;
   }
+}
+
+function initHeroSlider() {
+  if (!heroSlider || heroSlides.length <= 1) {
+    return;
+  }
+
+  const autoplayDelay = 5000;
+  let activeIndex = Math.max(
+    0,
+    heroSlides.findIndex((slide) => slide.classList.contains("is-active"))
+  );
+  let autoplayTimer = null;
+  let isPaused = false;
+
+  const updateSliderState = (nextIndex) => {
+    activeIndex = (nextIndex + heroSlides.length) % heroSlides.length;
+    heroSlides.forEach((slide, index) => {
+      const isActive = index === activeIndex;
+      slide.classList.toggle("is-active", isActive);
+      slide.setAttribute("aria-hidden", isActive ? "false" : "true");
+    });
+
+    heroSliderDots.forEach((dot, index) => {
+      const isActive = index === activeIndex;
+      dot.classList.toggle("is-active", isActive);
+      dot.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  };
+
+  const startAutoplay = () => {
+    if (autoplayTimer || isPaused) {
+      return;
+    }
+
+    autoplayTimer = window.setInterval(() => {
+      updateSliderState(activeIndex + 1);
+    }, autoplayDelay);
+  };
+
+  const stopAutoplay = () => {
+    if (!autoplayTimer) {
+      return;
+    }
+
+    window.clearInterval(autoplayTimer);
+    autoplayTimer = null;
+  };
+
+  heroSliderDots.forEach((dot, index) => {
+    dot.addEventListener("click", () => {
+      updateSliderState(index);
+      stopAutoplay();
+      startAutoplay();
+    });
+  });
+
+  if (heroSliderPrevButton) {
+    heroSliderPrevButton.addEventListener("click", () => {
+      updateSliderState(activeIndex - 1);
+      stopAutoplay();
+      startAutoplay();
+    });
+  }
+
+  if (heroSliderNextButton) {
+    heroSliderNextButton.addEventListener("click", () => {
+      updateSliderState(activeIndex + 1);
+      stopAutoplay();
+      startAutoplay();
+    });
+  }
+
+  heroSlider.addEventListener("mouseenter", () => {
+    isPaused = true;
+    stopAutoplay();
+  });
+
+  heroSlider.addEventListener("mouseleave", () => {
+    isPaused = false;
+    startAutoplay();
+  });
+
+  heroSlider.addEventListener("focusin", stopAutoplay);
+  heroSlider.addEventListener("focusout", () => {
+    if (!heroSlider.matches(":hover")) {
+      startAutoplay();
+    }
+  });
+
+  updateSliderState(activeIndex);
+  startAutoplay();
 }
 
 function resetForm() {
@@ -2840,4 +2937,5 @@ async function initApp() {
   setActiveModule(getDefaultModuleForCurrentContext());
 }
 
+initHeroSlider();
 initApp();
