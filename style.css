@@ -704,28 +704,28 @@ td select {
 }
 
 .web-sales-shell .primary-btn {
-  background: linear-gradient(180deg, #d3ab56 0%, var(--web-gold) 100%);
+  background: linear-gradient(180deg, #eadbb4 0%, #e1cd96 100%);
   color: var(--web-black);
-  box-shadow: 0 18px 30px rgba(201, 161, 74, 0.26);
+  box-shadow: 0 14px 24px rgba(201, 161, 74, 0.16);
   padding: 1rem 1.35rem;
 }
 
 .web-sales-shell .primary-btn:hover {
   opacity: 1;
-  background: linear-gradient(180deg, #d9b66a 0%, #cfa74f 100%);
-  box-shadow: 0 20px 34px rgba(201, 161, 74, 0.3);
+  background: linear-gradient(180deg, #efe3c2 0%, #e6d5a6 100%);
+  box-shadow: 0 16px 26px rgba(201, 161, 74, 0.18);
 }
 
 .web-sales-shell .secondary-btn {
   background: linear-gradient(180deg, var(--web-white) 0%, var(--web-cream) 100%);
   color: var(--web-black);
-  border: 1px solid rgba(201, 161, 74, 0.45);
-  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.04);
+  border: 1px solid rgba(225, 205, 150, 0.72);
+  box-shadow: 0 10px 18px rgba(17, 17, 17, 0.035);
   padding: 1rem 1.2rem;
 }
 
 .web-sales-shell .secondary-btn:hover {
-  background: linear-gradient(180deg, #fffdf8 0%, #faf2e2 100%);
+  background: linear-gradient(180deg, #fffdf9 0%, #f8f2e6 100%);
 }
 
 .web-hero-points {
@@ -974,12 +974,12 @@ td select {
   min-width: 180px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(245, 239, 230, 0.08) 100%);
   color: var(--web-white);
-  border: 1px solid rgba(201, 161, 74, 0.38);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(225, 205, 150, 0.5);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.14);
 }
 
 .web-social-links .secondary-btn:hover {
-  background: linear-gradient(180deg, rgba(201, 161, 74, 0.16) 0%, rgba(255, 255, 255, 0.1) 100%);
+  background: linear-gradient(180deg, rgba(229, 211, 163, 0.16) 0%, rgba(255, 255, 255, 0.1) 100%);
 }
 
 .web-social-icon {
