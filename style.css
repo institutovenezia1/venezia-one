@@ -722,6 +722,16 @@ td select {
   line-height: 1.35;
 }
 
+.web-hero-start-date {
+  display: inline-block;
+  margin-left: 0.15rem;
+  color: var(--web-black);
+  font-size: 1.26em;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .web-hero-start-hook span {
   color: #8f6e2d;
   font-size: 0.88rem;
