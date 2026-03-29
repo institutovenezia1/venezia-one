@@ -13,12 +13,13 @@
   --radius-lg: 24px;
   --radius-md: 18px;
   --radius-sm: 12px;
-  --web-purple: #6a0dad;
-  --web-black: #000000;
+  --web-black: #111111;
   --web-gold: #c9a14a;
-  --web-fuchsia: #e91e63;
   --web-cream: #fdfbf7;
-  --web-card-shadow: 0 20px 40px rgba(106, 13, 173, 0.08);
+  --web-beige: #f5efe6;
+  --web-body: #3a3a3a;
+  --web-white: #ffffff;
+  --web-card-shadow: 0 20px 40px rgba(17, 17, 17, 0.07);
 }
 
 * {
@@ -647,7 +648,7 @@ td select {
 .web-utility-copy {
   margin: 0;
   max-width: 440px;
-  color: #544c58;
+  color: var(--web-body);
   font-size: 0.92rem;
   line-height: 1.5;
 }
@@ -660,17 +661,17 @@ td select {
 
 .web-utility-link,
 .web-footer-link {
-  border: 1px solid rgba(106, 13, 173, 0.18);
+  border: 1px solid rgba(201, 161, 74, 0.3);
   border-radius: 999px;
   padding: 0.65rem 0.9rem;
   background: rgba(253, 251, 247, 0.92);
-  color: #2e2237;
+  color: var(--web-black);
   font-weight: 700;
   cursor: pointer;
 }
 
 .web-sales-shell .eyebrow {
-  color: var(--web-purple);
+  color: var(--web-gold);
 }
 
 .web-sales-shell .section-heading h3,
@@ -682,21 +683,21 @@ td select {
 }
 
 .web-sales-shell .primary-btn {
-  background: linear-gradient(180deg, #f02f76 0%, var(--web-fuchsia) 100%);
-  color: #ffffff;
-  box-shadow: 0 18px 32px rgba(233, 30, 99, 0.24);
+  background: linear-gradient(180deg, #1b1b1b 0%, var(--web-black) 100%);
+  color: var(--web-white);
+  box-shadow: 0 18px 32px rgba(17, 17, 17, 0.22);
 }
 
 .web-sales-shell .primary-btn:hover {
   opacity: 1;
-  box-shadow: 0 20px 36px rgba(233, 30, 99, 0.3);
+  box-shadow: 0 20px 36px rgba(17, 17, 17, 0.28);
 }
 
 .web-sales-shell .secondary-btn {
-  background: linear-gradient(180deg, #fffdf9 0%, var(--web-cream) 100%);
-  color: #1f1527;
+  background: linear-gradient(180deg, var(--web-white) 0%, var(--web-cream) 100%);
+  color: var(--web-black);
   border: 1px solid rgba(201, 161, 74, 0.45);
-  box-shadow: 0 12px 24px rgba(106, 13, 173, 0.05);
+  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.04);
 }
 
 .web-hero-points {
@@ -709,9 +710,9 @@ td select {
 .web-hero-points span {
   padding: 0.7rem 0.95rem;
   border-radius: 999px;
-  border: 1px solid rgba(106, 13, 173, 0.16);
-  background: rgba(255, 255, 255, 0.92);
-  color: #34164f;
+  border: 1px solid rgba(201, 161, 74, 0.26);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--web-black);
   font-size: 0.88rem;
   font-weight: 700;
 }
@@ -722,7 +723,7 @@ td select {
   border-radius: 24px;
   border: 1px solid rgba(201, 161, 74, 0.24);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 243, 236, 0.98) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(245, 239, 230, 0.98) 100%);
   box-shadow: var(--web-card-shadow);
 }
 
@@ -771,7 +772,7 @@ td select {
 .web-form-copy p,
 .web-promo-copy p,
 .web-final-cta p {
-  color: #403844;
+  color: var(--web-body);
   line-height: 1.65;
 }
 
@@ -817,7 +818,7 @@ td select {
 
 .web-course-card p {
   margin: 0;
-  color: #403844;
+  color: var(--web-body);
   line-height: 1.6;
 }
 
@@ -825,8 +826,8 @@ td select {
   width: fit-content;
   padding: 0.4rem 0.7rem;
   border-radius: 999px;
-  background: rgba(106, 13, 173, 0.08);
-  color: var(--web-purple);
+  background: rgba(201, 161, 74, 0.12);
+  color: #8f6e2d;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -850,7 +851,7 @@ td select {
 }
 
 .web-testimonial-card span {
-  color: var(--web-purple);
+  color: #8f6e2d;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -864,7 +865,7 @@ td select {
 .web-results-feature {
   min-height: 420px;
   border: 1px solid rgba(201, 161, 74, 0.2);
-  box-shadow: 0 22px 38px rgba(106, 13, 173, 0.09);
+  box-shadow: 0 22px 38px rgba(17, 17, 17, 0.08);
 }
 
 .web-promo-panel {
@@ -873,9 +874,9 @@ td select {
   gap: 1rem;
   align-items: stretch;
   background:
-    radial-gradient(circle at top right, rgba(106, 13, 173, 0.08), transparent 25%),
+    radial-gradient(circle at top right, rgba(17, 17, 17, 0.05), transparent 25%),
     radial-gradient(circle at bottom left, rgba(201, 161, 74, 0.12), transparent 28%),
-    linear-gradient(135deg, #fffaf6 0%, #fffdfb 100%);
+    linear-gradient(135deg, var(--web-cream) 0%, var(--web-white) 100%);
 }
 
 .web-promo-copy h3,
@@ -884,7 +885,7 @@ td select {
   font-family: "Cormorant Garamond", serif;
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 0.98;
-  color: #7c5814;
+  color: var(--web-black);
 }
 
 .web-promo-card {
@@ -914,29 +915,29 @@ td select {
 
 .web-access-card-featured {
   background:
-    radial-gradient(circle at top right, rgba(106, 13, 173, 0.08), transparent 35%),
+    radial-gradient(circle at top right, rgba(17, 17, 17, 0.04), transparent 35%),
     radial-gradient(circle at bottom left, rgba(201, 161, 74, 0.14), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(252, 245, 236, 0.99) 100%);
-  box-shadow: 0 22px 40px rgba(106, 13, 173, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(245, 239, 230, 0.99) 100%);
+  box-shadow: 0 22px 40px rgba(17, 17, 17, 0.1);
 }
 
 .web-access-card-scholarship {
   background:
-    radial-gradient(circle at top left, rgba(233, 30, 99, 0.08), transparent 36%),
+    radial-gradient(circle at top left, rgba(17, 17, 17, 0.04), transparent 36%),
     radial-gradient(circle at bottom right, rgba(201, 161, 74, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 248, 251, 0.99) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 246, 239, 0.99) 100%);
 }
 
 .web-access-price {
   margin: 0;
-  color: var(--web-fuchsia);
+  color: var(--web-black);
   font-weight: 800;
 }
 
 .web-access-list {
   margin: 0;
   padding-left: 1.1rem;
-  color: #403844;
+  color: var(--web-body);
   line-height: 1.65;
 }
 
@@ -969,12 +970,12 @@ td select {
 
 .web-access-footer p {
   margin: 0;
-  color: #403844;
+  color: var(--web-body);
   line-height: 1.65;
 }
 
 .web-promo-card small {
-  color: var(--web-purple);
+  color: #8f6e2d;
   font-weight: 700;
 }
 
@@ -1023,9 +1024,9 @@ td select {
   justify-content: space-between;
   gap: 1rem;
   background:
-    radial-gradient(circle at left center, rgba(233, 30, 99, 0.08), transparent 22%),
+    radial-gradient(circle at left center, rgba(17, 17, 17, 0.05), transparent 22%),
     radial-gradient(circle at right center, rgba(201, 161, 74, 0.12), transparent 26%),
-    linear-gradient(135deg, #fff7fb 0%, #fffdfb 100%);
+    linear-gradient(135deg, #f8f3ec 0%, #fffdfb 100%);
 }
 
 .web-sales-footer {
