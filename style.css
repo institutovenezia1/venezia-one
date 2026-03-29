@@ -723,12 +723,13 @@ td select {
 }
 
 .web-hero-start-date {
-  display: inline-block;
-  margin-left: 0.15rem;
+  display: block;
+  margin-top: 0.18rem;
   color: var(--web-black);
-  font-size: 1.26em;
+  font-size: 1.78em;
   font-weight: 900;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.05em;
+  line-height: 1.02;
   white-space: nowrap;
 }
 
