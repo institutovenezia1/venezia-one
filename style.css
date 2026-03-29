@@ -722,6 +722,11 @@ td select {
   line-height: 1.35;
 }
 
+.web-hero-start-roles {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .web-hero-start-date {
   display: block;
   margin-top: 0.18rem;
