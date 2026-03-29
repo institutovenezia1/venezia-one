@@ -616,7 +616,7 @@ td select {
 
 .web-hero-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.78fr);
   gap: 1.5rem;
   align-items: stretch;
   background:
@@ -683,10 +683,10 @@ td select {
 }
 
 .web-display-title {
-  max-width: 15ch;
-  line-height: 1.08;
-  letter-spacing: 0.01em;
-  font-size: clamp(3rem, 5vw, 4.6rem);
+  max-width: 18ch;
+  line-height: 1.03;
+  letter-spacing: 0;
+  font-size: clamp(2.9rem, 4.2vw, 4.1rem);
   text-wrap: balance;
 }
 
