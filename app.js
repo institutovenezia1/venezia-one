@@ -2158,6 +2158,9 @@ function renderWebScholarshipSection() {
         <small>Ideal para empezar desde cero con una opción más económica.</small>
       </article>
       <article class="web-access-card web-access-card-scholarship">
+        <figure class="web-access-media">
+          <img src="images/beca venezia.jpg" alt="Beca Venezia en Instituto Venezia" />
+        </figure>
         <span class="web-course-tag">Beca Venezia</span>
         <strong>Beca Venezia</strong>
         <p class="web-access-urgency">Solo 7 Becas Venezia disponibles</p>
