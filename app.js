@@ -2063,6 +2063,7 @@ function renderWebScholarshipSection() {
       <article class="web-access-card web-access-card-scholarship">
         <span class="web-course-tag">Beca Venezia</span>
         <strong>Beca Venezia</strong>
+        <p class="web-access-urgency">Solo 7 Becas Venezia disponibles</p>
         <p>Pregunta por la opción de beca disponible y conoce si puedes obtener apoyo especial en inscripción o beneficios según temporada y sucursal.</p>
         <small>Cupos limitados y sujetos a disponibilidad real.</small>
       </article>
