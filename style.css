@@ -1114,13 +1114,13 @@ td select {
 .web-editorial-block-aspirational {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(245, 239, 230, 0.2) 100%),
-    url("images/ahora imagina esto.png") center / cover no-repeat;
+    url("images/ahora-magina -esto.png") center / cover no-repeat;
 }
 
 .web-editorial-block-identification {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(253, 251, 247, 0.22) 100%),
-    url("images/te esta pasando esto.png") center / cover no-repeat;
+    url("images/te-esta-pasando-esto.png") center / cover no-repeat;
 }
 
 .web-editorial-block-identification::before {

@@ -2159,7 +2159,7 @@ function renderWebScholarshipSection() {
       </article>
       <article class="web-access-card web-access-card-scholarship">
         <figure class="web-access-media">
-          <img src="images/beca venezia.jpg" alt="Beca Venezia en Instituto Venezia" />
+          <img src="images/beca-venezia.jpg" alt="Beca Venezia en Instituto Venezia" />
         </figure>
         <span class="web-course-tag">Beca Venezia</span>
         <strong>Beca Venezia</strong>
