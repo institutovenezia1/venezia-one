@@ -1051,6 +1051,36 @@ td select {
   flex-wrap: wrap;
 }
 
+.web-editorial-block {
+  display: grid;
+  gap: 0.95rem;
+  padding: 1.7rem;
+  border-radius: 24px;
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(253, 251, 247, 0.99) 100%);
+  box-shadow: var(--web-card-shadow);
+}
+
+.web-editorial-block p {
+  margin: 0;
+  max-width: 44rem;
+  color: var(--web-body);
+  font-size: 1.04rem;
+  line-height: 1.8;
+}
+
+.web-editorial-block strong {
+  color: var(--web-black);
+}
+
+.web-editorial-block-aspirational {
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(245, 239, 230, 0.98) 100%);
+}
+
 .web-highlight-metrics {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1112,6 +1142,10 @@ td select {
 .web-benefit-card,
 .web-testimonial-card {
   min-height: 100%;
+}
+
+.web-benefit-card {
+  gap: 0.55rem;
 }
 
 .web-testimonial-card p {
@@ -1369,14 +1403,67 @@ td select {
 }
 
 .web-final-cta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  display: grid;
+  gap: 1.1rem;
+  justify-items: center;
+  text-align: center;
   background:
     radial-gradient(circle at left center, rgba(17, 17, 17, 0.05), transparent 22%),
     radial-gradient(circle at right center, rgba(201, 161, 74, 0.12), transparent 26%),
     linear-gradient(135deg, #f8f3ec 0%, #fffdfb 100%);
+}
+
+.web-impact-panel {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  justify-items: center;
+  padding: 1.8rem;
+  border-radius: 24px;
+  border: 1px solid rgba(201, 161, 74, 0.28);
+  background:
+    radial-gradient(circle at top center, rgba(201, 161, 74, 0.16), transparent 28%),
+    linear-gradient(180deg, #171512 0%, #1f1b17 100%);
+  box-shadow: 0 24px 44px rgba(17, 17, 17, 0.16);
+}
+
+.web-impact-panel .eyebrow {
+  color: rgba(234, 219, 180, 0.88);
+}
+
+.web-impact-panel h3 {
+  max-width: 16ch;
+  color: var(--web-white);
+  text-wrap: balance;
+}
+
+.web-final-cta-copy {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+}
+
+.web-final-cta-copy p,
+.web-final-cta-copy strong {
+  margin: 0;
+}
+
+.web-final-cta-copy p {
+  color: var(--web-black);
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.web-final-cta-copy strong {
+  color: var(--web-gold);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.web-final-cta .form-actions {
+  justify-content: center;
 }
 
 .web-sales-footer {
