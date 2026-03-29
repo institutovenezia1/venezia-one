@@ -931,6 +931,34 @@ td select {
   gap: 1rem;
 }
 
+.web-social-section {
+  display: grid;
+  place-items: center;
+}
+
+.web-social-proof-block {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.web-social-support {
+  margin: 0;
+  color: var(--web-body);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.web-social-links {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.web-social-links .secondary-btn {
+  min-width: 180px;
+}
+
 .web-results-feature {
   min-height: 420px;
   border: 1px solid rgba(201, 161, 74, 0.2);
