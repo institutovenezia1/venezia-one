@@ -690,6 +690,10 @@ td select {
   text-wrap: balance;
 }
 
+.web-display-title span {
+  display: block;
+}
+
 .web-hero-emotional {
   margin: 0;
   max-width: 34rem;
@@ -1215,6 +1219,10 @@ body.public-mode .module-section.active {
   .web-display-title {
     font-size: 2.5rem;
     max-width: none;
+  }
+
+  .web-display-title span {
+    display: inline;
   }
 
   .web-highlight-metrics {
