@@ -934,6 +934,11 @@ td select {
 .web-social-section {
   display: grid;
   place-items: center;
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.14), transparent 24%),
+    linear-gradient(135deg, #1a1816 0%, #221f1b 48%, #181614 100%);
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  box-shadow: 0 22px 40px rgba(17, 17, 17, 0.2);
 }
 
 .web-social-proof-block {
@@ -941,6 +946,16 @@ td select {
   display: grid;
   gap: 1rem;
   text-align: center;
+}
+
+.web-social-section h3,
+.web-social-section .web-lead,
+.web-social-section .web-social-support {
+  color: rgba(253, 251, 247, 0.94);
+}
+
+.web-social-section .eyebrow {
+  color: var(--web-gold);
 }
 
 .web-social-support {
@@ -957,6 +972,30 @@ td select {
 
 .web-social-links .secondary-btn {
   min-width: 180px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(245, 239, 230, 0.08) 100%);
+  color: var(--web-white);
+  border: 1px solid rgba(201, 161, 74, 0.38);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
+}
+
+.web-social-links .secondary-btn:hover {
+  background: linear-gradient(180deg, rgba(201, 161, 74, 0.16) 0%, rgba(255, 255, 255, 0.1) 100%);
+}
+
+.web-social-icon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.55rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--web-gold);
+  flex: 0 0 auto;
+}
+
+.web-social-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .web-results-feature {
