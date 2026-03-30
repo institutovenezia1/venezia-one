@@ -789,30 +789,35 @@ td select {
   transform: translateY(0);
 }
 
-.web-sales-shell .web-whatsapp-floating {
-  background: #25d366;
-  color: #ffffff;
-  border: 1px solid #25d366;
-  box-shadow: 0 12px 26px rgba(37, 211, 102, 0.22);
+.web-sales-shell .web-whatsapp-floating,
+.web-whatsapp-floating {
+  background: #25d366 !important;
+  color: #ffffff !important;
+  border: 1px solid #25d366 !important;
+  box-shadow: 0 12px 26px rgba(37, 211, 102, 0.22) !important;
 }
 
-.web-sales-shell .web-whatsapp-floating:hover {
-  background: #20bd5c;
-  border-color: #20bd5c;
-  box-shadow: 0 14px 30px rgba(37, 211, 102, 0.26);
+.web-sales-shell .web-whatsapp-floating:hover,
+.web-whatsapp-floating:hover {
+  background: #20bd5c !important;
+  color: #ffffff !important;
+  border-color: #20bd5c !important;
+  box-shadow: 0 14px 30px rgba(37, 211, 102, 0.26) !important;
   transform: translateY(-1px);
-  opacity: 1;
+  opacity: 1 !important;
 }
 
-.web-sales-shell .web-whatsapp-floating:active {
+.web-sales-shell .web-whatsapp-floating:active,
+.web-whatsapp-floating:active {
   transform: translateY(0);
 }
 
-.web-sales-shell .web-whatsapp-floating:focus-visible {
+.web-sales-shell .web-whatsapp-floating:focus-visible,
+.web-whatsapp-floating:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 3px rgba(37, 211, 102, 0.18),
-    0 14px 30px rgba(37, 211, 102, 0.24);
+    0 14px 30px rgba(37, 211, 102, 0.24) !important;
 }
 
 .web-sales-shell .secondary-btn {
@@ -1016,24 +1021,6 @@ td select {
   transform: translateY(0);
 }
 
-.web-sales-shell .web-floating-whatsapp {
-  color: #111111;
-  background: linear-gradient(180deg, rgba(240, 255, 245, 0.44) 0%, rgba(201, 232, 214, 0.22) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 12px 28px rgba(17, 17, 17, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.web-sales-shell .web-floating-whatsapp:hover {
-  background: linear-gradient(180deg, rgba(245, 255, 248, 0.54) 0%, rgba(210, 238, 220, 0.3) 100%);
-  box-shadow:
-    0 16px 32px rgba(17, 17, 17, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  transform: translateY(-1px);
-}
 
 .hero-slider-arrow {
   position: absolute;
