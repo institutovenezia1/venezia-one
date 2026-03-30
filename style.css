@@ -1515,6 +1515,16 @@ td select {
   text-decoration: none;
 }
 
+.web-contact-links {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.web-contact-links .web-link-btn {
+  width: 100%;
+}
+
 .web-form-layout {
   grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
   align-items: start;
