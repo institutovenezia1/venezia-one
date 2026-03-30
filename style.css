@@ -752,7 +752,10 @@ td select {
   text-transform: uppercase;
 }
 
-.web-sales-shell .primary-btn {
+.web-sales-shell .primary-btn:not(.web-whatsapp-primary),
+.web-sales-shell .secondary-btn,
+.web-sales-shell .web-utility-link,
+.web-sales-shell .web-footer-link {
   background: linear-gradient(180deg, rgba(255, 248, 235, 0.42) 0%, rgba(236, 220, 183, 0.24) 100%);
   color: #111111;
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -761,10 +764,16 @@ td select {
     inset 0 1px 0 rgba(255, 255, 255, 0.34);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+
+.web-sales-shell .primary-btn:not(.web-whatsapp-primary) {
   padding: 1rem 1.35rem;
 }
 
-.web-sales-shell .primary-btn:hover {
+.web-sales-shell .primary-btn:not(.web-whatsapp-primary):hover,
+.web-sales-shell .secondary-btn:hover,
+.web-sales-shell .web-utility-link:hover,
+.web-sales-shell .web-footer-link:hover {
   background: linear-gradient(180deg, rgba(255, 250, 240, 0.52) 0%, rgba(240, 225, 195, 0.30) 100%);
   box-shadow:
     0 14px 34px rgba(17, 17, 17, 0.10),
@@ -773,28 +782,24 @@ td select {
   opacity: 1;
 }
 
-.web-sales-shell .primary-btn:active {
+.web-sales-shell .primary-btn:not(.web-whatsapp-primary):active,
+.web-sales-shell .secondary-btn:active,
+.web-sales-shell .web-utility-link:active,
+.web-sales-shell .web-footer-link:active {
   transform: translateY(0);
 }
 
 .web-sales-shell .web-whatsapp-primary {
-  background: linear-gradient(180deg, rgba(33, 186, 84, 0.48) 0%, rgba(17, 122, 54, 0.34) 100%);
-  color: #08110b;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  box-shadow:
-    0 14px 34px rgba(20, 120, 54, 0.24),
-    0 6px 18px rgba(37, 211, 102, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #25d366;
+  color: #ffffff;
+  border: 1px solid #25d366;
+  box-shadow: 0 12px 26px rgba(37, 211, 102, 0.22);
 }
 
 .web-sales-shell .web-whatsapp-primary:hover {
-  background: linear-gradient(180deg, rgba(42, 201, 96, 0.56) 0%, rgba(19, 136, 60, 0.40) 100%);
-  box-shadow:
-    0 18px 40px rgba(20, 120, 54, 0.28),
-    0 8px 22px rgba(37, 211, 102, 0.20),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  background: #20bd5c;
+  border-color: #20bd5c;
+  box-shadow: 0 14px 30px rgba(37, 211, 102, 0.26);
   transform: translateY(-1px);
   opacity: 1;
 }
@@ -807,65 +812,11 @@ td select {
   outline: none;
   box-shadow:
     0 0 0 3px rgba(37, 211, 102, 0.18),
-    0 18px 40px rgba(20, 120, 54, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    0 14px 30px rgba(37, 211, 102, 0.24);
 }
 
 .web-sales-shell .secondary-btn {
-  background: linear-gradient(180deg, rgba(255, 251, 244, 0.32) 0%, rgba(248, 239, 222, 0.18) 100%);
-  color: #111111;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow:
-    0 8px 24px rgba(17, 17, 17, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   padding: 1rem 1.2rem;
-}
-
-.web-sales-shell .secondary-btn:hover {
-  background: linear-gradient(180deg, rgba(255, 253, 248, 0.42) 0%, rgba(249, 241, 227, 0.24) 100%);
-  box-shadow:
-    0 12px 28px rgba(17, 17, 17, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  transform: translateY(-1px);
-  opacity: 1;
-}
-
-.web-sales-shell .secondary-btn:active {
-  transform: translateY(0);
-}
-
-.web-sales-shell .web-utility-link,
-.web-sales-shell .web-footer-link {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
-  padding: 0.65rem 0.9rem;
-  background: linear-gradient(180deg, rgba(255, 251, 244, 0.3) 0%, rgba(246, 236, 217, 0.16) 100%);
-  color: #111111;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow:
-    0 8px 22px rgba(17, 17, 17, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, opacity 0.22s ease;
-}
-
-.web-sales-shell .web-utility-link:hover,
-.web-sales-shell .web-footer-link:hover {
-  background: linear-gradient(180deg, rgba(255, 253, 248, 0.4) 0%, rgba(249, 241, 227, 0.22) 100%);
-  box-shadow:
-    0 12px 26px rgba(17, 17, 17, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  transform: translateY(-1px);
-  opacity: 1;
-}
-
-.web-sales-shell .web-utility-link:active,
-.web-sales-shell .web-footer-link:active {
-  transform: translateY(0);
 }
 
 .web-hero-points {
