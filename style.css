@@ -752,7 +752,7 @@ td select {
   text-transform: uppercase;
 }
 
-.web-sales-shell .primary-btn:not(.web-whatsapp-primary),
+.web-sales-shell .primary-btn:not(.web-whatsapp-floating),
 .web-sales-shell .secondary-btn,
 .web-sales-shell .web-utility-link,
 .web-sales-shell .web-footer-link {
@@ -766,11 +766,11 @@ td select {
   -webkit-backdrop-filter: blur(14px);
 }
 
-.web-sales-shell .primary-btn:not(.web-whatsapp-primary) {
+.web-sales-shell .primary-btn:not(.web-whatsapp-floating) {
   padding: 1rem 1.35rem;
 }
 
-.web-sales-shell .primary-btn:not(.web-whatsapp-primary):hover,
+.web-sales-shell .primary-btn:not(.web-whatsapp-floating):hover,
 .web-sales-shell .secondary-btn:hover,
 .web-sales-shell .web-utility-link:hover,
 .web-sales-shell .web-footer-link:hover {
@@ -782,21 +782,21 @@ td select {
   opacity: 1;
 }
 
-.web-sales-shell .primary-btn:not(.web-whatsapp-primary):active,
+.web-sales-shell .primary-btn:not(.web-whatsapp-floating):active,
 .web-sales-shell .secondary-btn:active,
 .web-sales-shell .web-utility-link:active,
 .web-sales-shell .web-footer-link:active {
   transform: translateY(0);
 }
 
-.web-sales-shell .web-whatsapp-primary {
+.web-sales-shell .web-whatsapp-floating {
   background: #25d366;
   color: #ffffff;
   border: 1px solid #25d366;
   box-shadow: 0 12px 26px rgba(37, 211, 102, 0.22);
 }
 
-.web-sales-shell .web-whatsapp-primary:hover {
+.web-sales-shell .web-whatsapp-floating:hover {
   background: #20bd5c;
   border-color: #20bd5c;
   box-shadow: 0 14px 30px rgba(37, 211, 102, 0.26);
@@ -804,11 +804,11 @@ td select {
   opacity: 1;
 }
 
-.web-sales-shell .web-whatsapp-primary:active {
+.web-sales-shell .web-whatsapp-floating:active {
   transform: translateY(0);
 }
 
-.web-sales-shell .web-whatsapp-primary:focus-visible {
+.web-sales-shell .web-whatsapp-floating:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 3px rgba(37, 211, 102, 0.18),
