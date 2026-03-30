@@ -647,23 +647,8 @@ td select {
 
 .web-brand-lockup {
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.web-brand-logo {
-  width: 72px;
-  height: 72px;
-  display: block;
-  object-fit: contain;
-  object-position: center;
-  flex-shrink: 0;
-  padding: 0.45rem;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(201, 161, 74, 0.18);
-  box-shadow: 0 14px 28px rgba(17, 17, 17, 0.08);
-  filter: drop-shadow(0 10px 18px rgba(17, 17, 17, 0.08));
+  align-items: flex-start;
+  gap: 0;
 }
 
 .web-utility-copy {
@@ -1093,7 +1078,7 @@ td select {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(13, 11, 9, 0.18) 0%, rgba(13, 11, 9, 0.6) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.06) 100%);
 }
 
 .web-editorial-block > * {
@@ -1107,9 +1092,9 @@ td select {
   max-width: 46rem;
   padding: clamp(1.2rem, 3vw, 1.7rem);
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(18, 16, 13, 0.56) 0%, rgba(18, 16, 13, 0.36) 100%);
-  border: 1px solid rgba(234, 219, 180, 0.16);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.12) 100%);
+  border: 1px solid rgba(234, 219, 180, 0.12);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(3px);
 }
 
@@ -1128,26 +1113,26 @@ td select {
 
 .web-editorial-block-aspirational {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(245, 239, 230, 0.06) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.12) 100%),
     url("/images/ahora-imagina-esto.jpg") center center / cover no-repeat;
   background-color: #1a1a1a;
 }
 
 .web-editorial-block-identification {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(253, 251, 247, 0.06) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.12) 100%),
     url("/images/te-esta-pasando-esto.jpg") center center / cover no-repeat;
   background-color: #1a1a1a;
 }
 
 .web-editorial-block-identification::before {
   background:
-    linear-gradient(180deg, rgba(9, 8, 7, 0.18) 0%, rgba(9, 8, 7, 0.62) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.06) 100%);
 }
 
 .web-editorial-block-aspirational::before {
   background:
-    linear-gradient(180deg, rgba(12, 10, 8, 0.2) 0%, rgba(12, 10, 8, 0.6) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.06) 100%);
 }
 
 .web-highlight-metrics {
