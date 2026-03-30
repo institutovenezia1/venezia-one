@@ -1092,7 +1092,7 @@ td select {
   max-width: 46rem;
   padding: clamp(1.2rem, 3vw, 1.7rem);
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.12) 100%);
+  background: rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(234, 219, 180, 0.12);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(3px);
@@ -1113,26 +1113,26 @@ td select {
 
 .web-editorial-block-aspirational {
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%),
     url("/images/ahora-imagina-esto.jpg") center center / cover no-repeat;
   background-color: #1a1a1a;
 }
 
 .web-editorial-block-identification {
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%),
     url("/images/te-esta-pasando-esto.jpg") center center / cover no-repeat;
   background-color: #1a1a1a;
 }
 
 .web-editorial-block-identification::before {
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.06) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.02) 100%);
 }
 
 .web-editorial-block-aspirational::before {
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.06) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, rgba(0, 0, 0, 0.02) 100%);
 }
 
 .web-highlight-metrics {
