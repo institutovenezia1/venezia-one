@@ -311,6 +311,52 @@
     return targetSegment ? targetSegment.slice(label.length + 2).trim() : "";
   }
 
+  function extractProspectMetadata(notes, label) {
+    return extractAltaMetadata(notes, label);
+  }
+
+  function stripProspectMetadata(notes) {
+    const source = String(notes || "");
+    if (!source) {
+      return "";
+    }
+
+    return source
+      .split(" | ")
+      .filter(
+        (segment) =>
+          segment &&
+          !segment.startsWith("Próximo seguimiento: ") &&
+          !segment.startsWith("Asesora asignada: ") &&
+          !segment.startsWith("Temperatura: ")
+      )
+      .join(" | ")
+      .trim();
+  }
+
+  function buildProspectNotes(record) {
+    const segments = [];
+    const baseNotes = stripProspectMetadata(record.notas || "");
+
+    if (baseNotes) {
+      segments.push(baseNotes);
+    }
+
+    if (record.proximoSeguimiento) {
+      segments.push(`Próximo seguimiento: ${record.proximoSeguimiento}`);
+    }
+
+    if (record.asesoraAsignada) {
+      segments.push(`Asesora asignada: ${record.asesoraAsignada}`);
+    }
+
+    if (record.temperatura) {
+      segments.push(`Temperatura: ${record.temperatura}`);
+    }
+
+    return segments.join(" | ");
+  }
+
   const prospectsFallbackFactory = () => [];
   const internalUsersFallbackFactory = () => [];
   const staffFallbackFactory = () => [];
@@ -573,10 +619,7 @@
           contact_channel: record.medio || "",
           info_status: record.informacion || "",
           prospect_status: record.estado || "",
-          next_follow_up: record.proximoSeguimiento || "",
-          assigned_advisor: record.asesoraAsignada || "",
-          prospect_temperature: record.temperatura || "",
-          notes: record.notas || "",
+          notes: buildProspectNotes(record),
           access_interest: record.accesoInteres || "",
           enrolled_by: record.inscribio || "",
           appointment_time: record.horarioCita || "",
@@ -595,11 +638,11 @@
           medio: record.contact_channel || "",
           informacion: record.info_status || "",
           estado: record.prospect_status || "",
-          proximoSeguimiento: record.next_follow_up || "",
-          asesoraAsignada: record.assigned_advisor || "",
-          temperatura: record.prospect_temperature || "",
+          proximoSeguimiento: extractProspectMetadata(record.notes, "Próximo seguimiento"),
+          asesoraAsignada: extractProspectMetadata(record.notes, "Asesora asignada"),
+          temperatura: extractProspectMetadata(record.notes, "Temperatura"),
           contacto: "",
-          notas: record.notes || "",
+          notas: stripProspectMetadata(record.notes || ""),
           accesoInteres: record.access_interest || "",
           inscribio: record.enrolled_by || "",
           horarioCita: record.appointment_time || "",
