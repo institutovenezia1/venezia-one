@@ -1592,6 +1592,12 @@ td select {
   gap: 1rem;
 }
 
+.web-location-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .web-location-card {
   display: grid;
   gap: 1rem;
@@ -1617,6 +1623,30 @@ td select {
   display: block;
   object-fit: cover;
   object-position: center;
+}
+
+.web-location-media-placeholder {
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.14), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 251, 244, 0.98) 0%, rgba(245, 239, 230, 0.94) 100%);
+}
+
+.web-location-placeholder-copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.web-location-placeholder-copy span {
+  max-width: 18rem;
+  color: rgba(17, 17, 17, 0.72);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  line-height: 1.05;
 }
 
 .web-location-overlay {
@@ -1758,6 +1788,10 @@ body.public-mode .module-section.active {
   }
 
   .table-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .web-location-grid {
     grid-template-columns: 1fr;
   }
 
