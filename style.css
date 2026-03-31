@@ -1587,6 +1587,79 @@ td select {
   width: 100%;
 }
 
+.web-location-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.web-location-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 24px;
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 251, 247, 0.99) 100%);
+  box-shadow: var(--web-card-shadow);
+}
+
+.web-location-media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  min-height: 360px;
+  border: 1px solid rgba(201, 161, 74, 0.16);
+}
+
+.web-location-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.web-location-overlay {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0.2rem;
+  padding: 1.2rem 1.25rem;
+  background:
+    linear-gradient(180deg, rgba(12, 11, 10, 0) 0%, rgba(12, 11, 10, 0.7) 100%);
+  color: rgba(255, 251, 244, 0.96);
+}
+
+.web-location-overlay strong {
+  color: #fff8eb;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.65rem, 2.8vw, 2.2rem);
+  line-height: 0.95;
+}
+
+.web-location-overlay span,
+.web-location-overlay small {
+  color: rgba(255, 249, 239, 0.9);
+  line-height: 1.5;
+}
+
+.web-location-overlay small {
+  font-size: 0.92rem;
+}
+
+.web-location-copy {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.web-location-copy h4 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 0.98;
+  color: var(--web-black);
+}
+
 .web-form-layout {
   grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
   align-items: start;
