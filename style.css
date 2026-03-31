@@ -1594,8 +1594,8 @@ td select {
 
 .web-location-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
 .web-location-card {
@@ -1626,10 +1626,15 @@ td select {
 }
 
 .web-location-media-placeholder {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
   background:
-    radial-gradient(circle at top left, rgba(201, 161, 74, 0.14), transparent 35%),
-    radial-gradient(circle at bottom right, rgba(17, 17, 17, 0.1), transparent 32%),
-    linear-gradient(135deg, rgba(255, 251, 244, 0.98) 0%, rgba(245, 239, 230, 0.94) 100%);
+    radial-gradient(circle at top left, rgba(201, 162, 39, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8f3ea 0%, #efe7d8 100%);
 }
 
 .web-location-placeholder-copy {
@@ -1639,14 +1644,8 @@ td select {
   place-items: center;
   padding: 1.5rem;
   text-align: center;
-}
-
-.web-location-placeholder-copy span {
-  max-width: 18rem;
-  color: rgba(17, 17, 17, 0.72);
-  font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.5rem, 2.6vw, 2rem);
-  line-height: 1.05;
+  color: #8b6d10;
+  font-weight: 700;
 }
 
 .web-location-overlay {
