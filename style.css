@@ -460,6 +460,9 @@ textarea {
 }
 
 .table-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) repeat(2, minmax(180px, 1fr));
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
@@ -526,6 +529,10 @@ td select {
   flex-wrap: wrap;
 }
 
+.actions-cell-prospect {
+  min-width: 230px;
+}
+
 .table-action {
   padding: 0.65rem 0.9rem;
   font-size: 0.85rem;
@@ -539,6 +546,61 @@ td select {
 .action-edit {
   background: rgba(201, 162, 39, 0.16);
   color: #8b6d10;
+}
+
+.action-schedule,
+.action-alta,
+.action-history,
+.action-enrolled {
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.prospect-followup-cell {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 160px;
+}
+
+.status-pill-temperature {
+  width: fit-content;
+}
+
+.status-pill-hot {
+  background: linear-gradient(180deg, #fff1e8 0%, #ffd8c2 100%);
+  color: #a04b17;
+  border-color: rgba(211, 128, 62, 0.2);
+}
+
+.status-pill-warm {
+  background: linear-gradient(180deg, #fff7e8 0%, #f7dfb0 100%);
+  color: #8b6512;
+  border-color: rgba(201, 162, 39, 0.22);
+}
+
+.status-pill-cold {
+  background: linear-gradient(180deg, #eef5ff 0%, #d8e6ff 100%);
+  color: #355d9a;
+  border-color: rgba(83, 123, 194, 0.18);
+}
+
+.status-pill-quiet {
+  background: linear-gradient(180deg, #f5f5f5 0%, #e7e7e7 100%);
+  color: #5f5f5f;
+  border-color: rgba(120, 120, 120, 0.14);
+}
+
+.status-pill-reschedule {
+  background: linear-gradient(180deg, #fff5fb 0%, #f5dcef 100%);
+  color: #8a4676;
+  border-color: rgba(180, 100, 154, 0.16);
+}
+
+.status-pill-scholarship {
+  background: linear-gradient(180deg, #f7f5ff 0%, #e8defb 100%);
+  color: #694aa6;
+  border-color: rgba(123, 92, 191, 0.18);
 }
 
 .action-delete {
@@ -1619,6 +1681,10 @@ body.public-mode .module-section.active {
   }
 
   .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-toolbar {
     grid-template-columns: 1fr;
   }
 

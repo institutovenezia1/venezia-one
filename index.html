@@ -247,12 +247,14 @@
                   <span>Origen del prospecto</span>
                   <select id="origen" name="origen" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>Redes sociales</option>
+                    <option>Formulario web</option>
+                    <option>WhatsApp Tlaxcala</option>
+                    <option>WhatsApp Puebla</option>
+                    <option>Informes con una asesora</option>
+                    <option>Instagram</option>
+                    <option>TikTok</option>
                     <option>Referido</option>
-                    <option>Pagina web</option>
-                    <option>Web</option>
-                    <option>Evento</option>
-                    <option>Walk-in</option>
+                    <option>Facebook</option>
                   </select>
                 </label>
 
@@ -260,11 +262,15 @@
                   <span>Medio de contacto</span>
                   <select id="medio" name="medio" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>WhatsApp</option>
-                    <option>Llamada</option>
-                    <option>Facebook Messenger</option>
-                    <option>Instagram DM</option>
                     <option>Formulario web</option>
+                    <option>WhatsApp Tlaxcala</option>
+                    <option>WhatsApp Puebla</option>
+                    <option>Informes con una asesora</option>
+                    <option>Instagram</option>
+                    <option>TikTok</option>
+                    <option>Referido</option>
+                    <option>Facebook</option>
+                    <option>Llamada</option>
                     <option>Presencial</option>
                     <option>Otro</option>
                   </select>
@@ -292,6 +298,34 @@
                     <option>Inscrita</option>
                     <option>Alta completada</option>
                     <option>No interesado</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Próximo seguimiento</span>
+                  <input id="proximoSeguimiento" name="proximoSeguimiento" type="date" />
+                </label>
+
+                <label>
+                  <span>Asesora asignada</span>
+                  <select id="asesoraAsignada" name="asesoraAsignada">
+                    <option value="">Selecciona una opcion</option>
+                    <option>Mari Flores | Coordinadora de maestras</option>
+                    <option>Ysela Herrera | Asesora</option>
+                    <option>Ismael Capir | CEO</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Temperatura</span>
+                  <select id="temperatura" name="temperatura">
+                    <option value="">Selecciona una opcion</option>
+                    <option>Caliente</option>
+                    <option>Tibia</option>
+                    <option>Fría</option>
+                    <option>Sin respuesta</option>
+                    <option>Reagendar</option>
+                    <option>Interesada en beca</option>
                   </select>
                 </label>
 
@@ -351,6 +385,12 @@
                   <option>Oro</option>
                   <option>Plata</option>
                 </select>
+                <select id="crmAdvisorFilter" aria-label="Filtrar por asesora asignada">
+                  <option value="">Todas las asesoras</option>
+                  <option>Mari Flores | Coordinadora de maestras</option>
+                  <option>Ysela Herrera | Asesora</option>
+                  <option>Ismael Capir | CEO</option>
+                </select>
               </div>
 
               <div class="table-wrapper">
@@ -363,6 +403,7 @@
                       <th>Curso</th>
                       <th>Acceso</th>
                       <th>Estado</th>
+                      <th>Seguimiento</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>

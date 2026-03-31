@@ -89,6 +89,7 @@ const financeClearButton = document.getElementById("financeClearButton");
 const financeSubmitButton = document.getElementById("financeSubmitButton");
 const searchInput = document.getElementById("searchInput");
 const crmAccessFilter = document.getElementById("crmAccessFilter");
+const crmAdvisorFilter = document.getElementById("crmAdvisorFilter");
 const monthFilter = document.getElementById("monthFilter");
 const dashboardBranchFilter = document.getElementById("dashboardBranchFilter");
 const tableBody = document.getElementById("prospectsTableBody");
@@ -262,6 +263,7 @@ let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
 let publicAccessPanelOpen = false;
+let activeAdvisorFilter = "";
 
 monthFilter.value = selectedMonth;
 attendanceDate.value = formatDateForInput(new Date());
@@ -280,12 +282,15 @@ function seedProspects() {
       fechaContacto: currentMonthDate,
       sucursal: "Polanco",
       curso: "Cosmetologia Integral",
-      origen: "Redes sociales",
-      medio: "WhatsApp",
+      origen: "WhatsApp Tlaxcala",
+      medio: "WhatsApp Tlaxcala",
       informacion: "Información enviada",
       estado: "Seguimiento",
       contacto: "Si",
       notas: "Solicito horarios vespertinos y plan de pagos.",
+      proximoSeguimiento: currentMonthDate,
+      asesoraAsignada: "Ysela Herrera | Asesora",
+      temperatura: "Caliente",
       createdAt: new Date(`${currentMonthDate}T09:00:00`).toISOString(),
     },
     {
@@ -301,6 +306,9 @@ function seedProspects() {
       estado: "Inscrita",
       contacto: "Si",
       notas: "Aparto lugar para la siguiente generacion.",
+      proximoSeguimiento: currentMonthDate,
+      asesoraAsignada: "Mari Flores | Coordinadora de maestras",
+      temperatura: "Tibia",
       createdAt: new Date(`${currentMonthDate}T11:30:00`).toISOString(),
     },
     {
@@ -310,12 +318,15 @@ function seedProspects() {
       fechaContacto: formatDateForInput(previousMonth),
       sucursal: "Polanco",
       curso: "Maquillaje Profesional",
-      origen: "Pagina web",
+      origen: "Formulario web",
       medio: "Formulario web",
       informacion: "Pendiente de enviar",
       estado: "Nuevo",
       contacto: "No",
       notas: "Pendiente seguimiento inicial.",
+      proximoSeguimiento: "",
+      asesoraAsignada: "",
+      temperatura: "Sin respuesta",
       createdAt: new Date(`${formatDateForInput(previousMonth)}T10:00:00`).toISOString(),
     },
   ];
@@ -622,6 +633,76 @@ function getProspectDate(prospect) {
   return prospect.fechaContacto || (prospect.createdAt ? prospect.createdAt.slice(0, 10) : "");
 }
 
+function normalizeLeadOrigin(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (!normalized) return "";
+  if (normalized === "web" || normalized.includes("pagina web") || normalized.includes("página web") || normalized.includes("formulario web")) return "Formulario web";
+  if (normalized.includes("tlaxcala") && normalized.includes("whatsapp")) return "WhatsApp Tlaxcala";
+  if (normalized.includes("puebla") && normalized.includes("whatsapp")) return "WhatsApp Puebla";
+  if (normalized.includes("asesora")) return "Informes con una asesora";
+  if (normalized.includes("instagram")) return "Instagram";
+  if (normalized.includes("tiktok")) return "TikTok";
+  if (normalized.includes("refer")) return "Referido";
+  if (normalized.includes("facebook")) return "Facebook";
+  if (normalized.includes("redes")) return "Instagram";
+  return String(value || "").trim();
+}
+
+function normalizeLeadChannel(value, origin = "") {
+  const normalized = String(value || "").trim().toLowerCase();
+  const normalizedOrigin = normalizeLeadOrigin(origin);
+
+  if (!normalized && normalizedOrigin) {
+    return normalizedOrigin;
+  }
+
+  if (normalized === "whatsapp") {
+    return normalizedOrigin === "WhatsApp Puebla" ? "WhatsApp Puebla" : "WhatsApp Tlaxcala";
+  }
+
+  if (normalized === "facebook messenger") return "Facebook";
+  if (normalized === "instagram dm") return "Instagram";
+  if (normalized.includes("formulario web") || normalized === "web") return "Formulario web";
+  if (normalized.includes("tlaxcala") && normalized.includes("whatsapp")) return "WhatsApp Tlaxcala";
+  if (normalized.includes("puebla") && normalized.includes("whatsapp")) return "WhatsApp Puebla";
+  if (normalized.includes("asesora")) return "Informes con una asesora";
+  if (normalized.includes("instagram")) return "Instagram";
+  if (normalized.includes("tiktok")) return "TikTok";
+  if (normalized.includes("refer")) return "Referido";
+  if (normalized.includes("facebook")) return "Facebook";
+  if (normalized === "llamada") return "Llamada";
+  if (normalized === "presencial") return "Presencial";
+  if (normalized === "otro") return "Otro";
+  return String(value || normalizedOrigin || "").trim();
+}
+
+function getTemperatureTone(temperature) {
+  const normalized = String(temperature || "").trim().toLowerCase();
+
+  if (normalized === "caliente") return "hot";
+  if (normalized === "tibia") return "warm";
+  if (normalized === "fría" || normalized === "fria") return "cold";
+  if (normalized === "sin respuesta") return "quiet";
+  if (normalized === "reagendar") return "reschedule";
+  if (normalized === "interesada en beca") return "scholarship";
+  return "default";
+}
+
+function getProspectHistorySummary(prospect) {
+  return [
+    `Nombre: ${prospect.nombre || "-"}`,
+    `Fecha de contacto: ${getProspectDate(prospect) || "-"}`,
+    `Estado: ${prospect.estado || "-"}`,
+    `Temperatura: ${prospect.temperatura || "-"}`,
+    `Asesora asignada: ${prospect.asesoraAsignada || "-"}`,
+    `Próximo seguimiento: ${prospect.proximoSeguimiento || "-"}`,
+    `Origen: ${prospect.origen || "-"}`,
+    `Canal: ${prospect.medio || "-"}`,
+    `Notas: ${prospect.notas || "Sin notas registradas."}`,
+  ].join("\n");
+}
+
 function getMonthStartEnd(monthValue) {
   const [year, month] = monthValue.split("-").map(Number);
   return {
@@ -679,13 +760,30 @@ async function normalizeLegacyProspects() {
       changed = true;
     }
 
-    if (normalized.medio === "Instagram") {
-      normalized.medio = "Instagram DM";
+    const nextOrigin = normalizeLeadOrigin(normalized.origen);
+    if (nextOrigin && nextOrigin !== normalized.origen) {
+      normalized.origen = nextOrigin;
       changed = true;
     }
 
-    if (normalized.medio === "Facebook") {
-      normalized.medio = "Facebook Messenger";
+    const nextChannel = normalizeLeadChannel(normalized.medio, normalized.origen);
+    if (nextChannel && nextChannel !== normalized.medio) {
+      normalized.medio = nextChannel;
+      changed = true;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(normalized, "proximoSeguimiento")) {
+      normalized.proximoSeguimiento = "";
+      changed = true;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(normalized, "asesoraAsignada")) {
+      normalized.asesoraAsignada = "";
+      changed = true;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(normalized, "temperatura")) {
+      normalized.temperatura = "";
       changed = true;
     }
 
@@ -748,14 +846,17 @@ function getFormData() {
   return {
     id: existingId || crypto.randomUUID(),
     nombre: formData.get("nombre").trim(),
-    telefono: formData.get("telefono").trim(),
+    telefono: normalizePhone(formData.get("telefono")),
     fechaContacto,
     sucursal: formData.get("sucursal").trim(),
     curso: formData.get("curso").trim(),
-    origen: formData.get("origen"),
-    medio: formData.get("medio"),
+    origen: normalizeLeadOrigin(formData.get("origen")),
+    medio: normalizeLeadChannel(formData.get("medio"), formData.get("origen")),
     informacion: formData.get("informacion"),
     estado: formData.get("estado"),
+    proximoSeguimiento: String(formData.get("proximoSeguimiento") || ""),
+    asesoraAsignada: String(formData.get("asesoraAsignada") || ""),
+    temperatura: String(formData.get("temperatura") || ""),
     contacto: formData.get("contacto"),
     notas: formData.get("notas").trim(),
     accesoInteres: formData.get("accesoInteres"),
@@ -1071,10 +1172,13 @@ function getWebLeadFormData() {
     fechaContacto: today,
     sucursal: String(formData.get("sucursal") || "").trim(),
     curso: String(formData.get("curso") || "").trim(),
-    origen: "Web",
+    origen: "Formulario web",
     medio: "Formulario web",
     informacion: "Pendiente de enviar",
     estado: "Nuevo",
+    proximoSeguimiento: "",
+    asesoraAsignada: "",
+    temperatura: "",
     contacto: "Web",
     notas: notes,
     accesoInteres: "",
@@ -1364,29 +1468,14 @@ function getDashboardFinanceRecords() {
 }
 
 function normalizeDashboardOrigin(prospect) {
-  const origen = String(prospect.origen || "").trim().toLowerCase();
-  const medio = String(prospect.medio || "").trim().toLowerCase();
+  const origen = normalizeLeadOrigin(prospect.origen);
 
-  if (origen.includes("tiktok")) return "TikTok";
-  if (origen.includes("facebook")) return "Facebook";
-  if (origen.includes("instagram")) return "Instagram";
-  if (origen.includes("refer")) return "Referido";
-  if (origen === "web" || origen.includes("pagina web") || origen.includes("página web")) return "Web";
-  if (origen.includes("whatsapp")) return "WhatsApp directo";
-  if (
-    origen.includes("walk-in") ||
-    origen.includes("calle") ||
-    origen.includes("abordaje") ||
-    origen.includes("evento")
-  ) {
-    return "Abordaje en calle";
-  }
-  if (origen.includes("redes")) {
-    if (medio.includes("instagram")) return "Instagram";
-    if (medio.includes("facebook")) return "Facebook";
-    if (medio.includes("whatsapp")) return "WhatsApp directo";
-  }
-
+  if (origen === "TikTok") return "TikTok";
+  if (origen === "Facebook") return "Facebook";
+  if (origen === "Instagram") return "Instagram";
+  if (origen === "Referido") return "Referido";
+  if (origen === "Formulario web") return "Web";
+  if (origen === "WhatsApp Tlaxcala" || origen === "WhatsApp Puebla") return "WhatsApp directo";
   return "Otro";
 }
 
@@ -1645,7 +1734,8 @@ function getFilteredProspects() {
   );
   return base.filter((prospect) => {
     const matchesAccess = !activeAccessFilter || prospect.accesoInteres === activeAccessFilter;
-    if (!matchesAccess) {
+    const matchesAdvisor = !activeAdvisorFilter || prospect.asesoraAsignada === activeAdvisorFilter;
+    if (!matchesAccess || !matchesAdvisor) {
       return false;
     }
 
@@ -1659,6 +1749,10 @@ function getFilteredProspects() {
       prospect.curso,
       prospect.sucursal,
       prospect.estado,
+      prospect.temperatura,
+      prospect.asesoraAsignada,
+      prospect.proximoSeguimiento,
+      prospect.origen,
       prospect.medio,
       prospect.informacion,
       prospect.accesoInteres,
@@ -1692,8 +1786,19 @@ function renderTable() {
           <td>${escapeHtml(prospect.accesoInteres || "-")}</td>
           <td><span class="status-pill">${escapeHtml(prospect.estado)}</span></td>
           <td>
-            <div class="actions-cell">
+            <div class="prospect-followup-cell">
+              <span class="status-pill status-pill-temperature status-pill-${escapeHtml(getTemperatureTone(prospect.temperatura))}">${escapeHtml(prospect.temperatura || "Sin temperatura")}</span>
+              <small>Próximo: ${escapeHtml(prospect.proximoSeguimiento || "-")}</small>
+              <small>Asesora: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
+            </div>
+          </td>
+          <td>
+            <div class="actions-cell actions-cell-prospect">
               <button class="table-action action-whatsapp" type="button" data-action="whatsapp" data-id="${prospect.id}">WhatsApp</button>
+              <button class="table-action action-schedule" type="button" data-action="schedule" data-id="${prospect.id}">Agendar cita</button>
+              <button class="table-action action-enrolled" type="button" data-action="enroll" data-id="${prospect.id}">Marcar como inscrita</button>
+              <button class="table-action action-alta" type="button" data-action="alta" data-id="${prospect.id}">Mandar a alta</button>
+              <button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>
               <button class="table-action action-edit" type="button" data-action="edit" data-id="${prospect.id}">Editar</button>
               <button class="table-action action-delete" type="button" data-action="delete" data-id="${prospect.id}">Eliminar</button>
             </div>
@@ -2329,6 +2434,9 @@ function editProspect(id) {
   document.getElementById("medio").value = prospect.medio;
   document.getElementById("informacion").value = prospect.informacion;
   document.getElementById("estado").value = prospect.estado;
+  document.getElementById("proximoSeguimiento").value = prospect.proximoSeguimiento || "";
+  document.getElementById("asesoraAsignada").value = prospect.asesoraAsignada || "";
+  document.getElementById("temperatura").value = prospect.temperatura || "";
   document.getElementById("contacto").value = prospect.contacto;
   document.getElementById("notas").value = prospect.notas;
   document.getElementById("accesoInteres").value = prospect.accesoInteres || "";
@@ -2352,9 +2460,38 @@ function openWhatsApp(id) {
     return;
   }
 
-  const message = encodeURIComponent(`Hola ${prospect.nombre}, te compartimos la informacion de ${prospect.curso} en Venezia.`);
-  const url = `https://wa.me/${prospect.telefono}?text=${message}`;
+  const message = encodeURIComponent("Hola, te contacto de Instituto Venezia para dar seguimiento a tu información.");
+  const url = `https://wa.me/${normalizePhone(prospect.telefono)}?text=${message}`;
   window.open(url, "_blank", "noopener");
+}
+
+async function updateProspectQuickState(id, updates, successMessage = "") {
+  const prospect = prospects.find((item) => item.id === id);
+  if (!prospect) {
+    return;
+  }
+
+  const updatedProspect = { ...prospect, ...updates };
+  const saveResult = await saveProspectRecord(updatedProspect);
+  renderAll();
+
+  if (!saveResult.synced) {
+    alert("No se pudo sincronizar el cambio en Supabase. Se conservó sólo en el respaldo local.");
+    return;
+  }
+
+  if (successMessage) {
+    alert(successMessage);
+  }
+}
+
+function viewProspectHistory(id) {
+  const prospect = prospects.find((item) => item.id === id);
+  if (!prospect) {
+    return;
+  }
+
+  alert(getProspectHistorySummary(prospect));
 }
 
 function loadProspectIntoAlta(id) {
@@ -2781,6 +2918,13 @@ crmAccessFilter.addEventListener("change", (event) => {
   renderTable();
 });
 
+if (crmAdvisorFilter) {
+  crmAdvisorFilter.addEventListener("change", (event) => {
+    activeAdvisorFilter = event.target.value;
+    renderTable();
+  });
+}
+
 monthFilter.addEventListener("change", (event) => {
   selectedMonth = event.target.value || getCurrentMonthValue();
   renderDashboard();
@@ -2813,6 +2957,22 @@ tableBody.addEventListener("click", async (event) => {
   if (action === "edit") editProspect(id);
   if (action === "delete") await deleteProspect(id);
   if (action === "whatsapp") openWhatsApp(id);
+  if (action === "schedule") {
+    await updateProspectQuickState(
+      id,
+      {
+        estado: "Cita agendada",
+        proximoSeguimiento: formatDateForInput(new Date()),
+      },
+      "Prospecto actualizado a cita agendada."
+    );
+    document.getElementById("proximoSeguimiento").focus();
+  }
+  if (action === "enroll") {
+    await updateProspectQuickState(id, { estado: "Inscrita" }, "Prospecto marcado como inscrita.");
+  }
+  if (action === "alta") loadProspectIntoAlta(id);
+  if (action === "history") viewProspectHistory(id);
 });
 
 pendingAltasTableBody.addEventListener("click", (event) => {
