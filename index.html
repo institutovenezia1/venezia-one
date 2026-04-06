@@ -235,7 +235,11 @@
 
                 <label>
                   <span>Sucursal</span>
-                  <input id="sucursal" name="sucursal" type="text" required />
+                  <select id="sucursal" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Puebla</option>
+                    <option>Tlaxcala</option>
+                  </select>
                 </label>
 
                 <label>
@@ -247,14 +251,14 @@
                   <span>Origen del prospecto</span>
                   <select id="origen" name="origen" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>Formulario web</option>
-                    <option>WhatsApp Tlaxcala</option>
-                    <option>WhatsApp Puebla</option>
-                    <option>Informes con una asesora</option>
-                    <option>Instagram</option>
-                    <option>TikTok</option>
+                    <option>WhatsApp</option>
+                    <option>Redes sociales</option>
                     <option>Referido</option>
-                    <option>Facebook</option>
+                    <option>Pagina web</option>
+                    <option>Web</option>
+                    <option>Evento</option>
+                    <option>Walk-in</option>
+                    <option>Presencial</option>
                   </select>
                 </label>
 
@@ -262,17 +266,10 @@
                   <span>Medio de contacto</span>
                   <select id="medio" name="medio" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>Formulario web</option>
-                    <option>WhatsApp Tlaxcala</option>
-                    <option>WhatsApp Puebla</option>
-                    <option>Informes con una asesora</option>
-                    <option>Instagram</option>
-                    <option>TikTok</option>
-                    <option>Referido</option>
-                    <option>Facebook</option>
-                    <option>Llamada</option>
+                    <option>WhatsApp</option>
                     <option>Presencial</option>
-                    <option>Otro</option>
+                    <option>Llamada</option>
+                    <option>Redes sociales</option>
                   </select>
                 </label>
 
@@ -289,15 +286,10 @@
                   <span>Estado</span>
                   <select id="estado" name="estado" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>Nuevo</option>
-                    <option>Nuevo prospecto</option>
-                    <option>Cita agendada</option>
-                    <option>Inscripción web pendiente</option>
+                    <option>Prospecto nuevo</option>
                     <option>Seguimiento</option>
-                    <option>Interesado</option>
+                    <option>Cita agendada</option>
                     <option>Inscrita</option>
-                    <option>Alta completada</option>
-                    <option>No interesado</option>
                   </select>
                 </label>
 
@@ -307,12 +299,13 @@
                 </label>
 
                 <label>
-                  <span>Asesora asignada</span>
+                  <span>Asesor asignado</span>
                   <select id="asesoraAsignada" name="asesoraAsignada">
                     <option value="">Selecciona una opcion</option>
                     <option>Mari Flores | Coordinadora de maestras</option>
                     <option>Ysela Herrera | Asesora</option>
                     <option>Ismael Capir | CEO</option>
+                    <option>Moises Velazco | Gerente de ventas</option>
                   </select>
                 </label>
 
@@ -324,19 +317,6 @@
                     <option>Tibia</option>
                     <option>Fría</option>
                     <option>Sin respuesta</option>
-                    <option>Reagendar</option>
-                    <option>Interesada en beca</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Atendió primer contacto</span>
-                  <select id="contacto" name="contacto" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Si</option>
-                    <option>No</option>
-                    <option>Web</option>
-                    <option>Pendiente</option>
                   </select>
                 </label>
 
@@ -352,6 +332,7 @@
                     <option>Platinum</option>
                     <option>Oro</option>
                     <option>Plata</option>
+                    <option>Beca Venezia</option>
                   </select>
                 </label>
 

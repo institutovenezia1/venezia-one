@@ -674,15 +674,22 @@ function normalizeLeadOrigin(value) {
   const normalized = String(value || "").trim().toLowerCase();
 
   if (!normalized) return "";
-  if (normalized === "web" || normalized.includes("pagina web") || normalized.includes("página web") || normalized.includes("formulario web")) return "Formulario web";
-  if (normalized.includes("tlaxcala") && normalized.includes("whatsapp")) return "WhatsApp Tlaxcala";
-  if (normalized.includes("puebla") && normalized.includes("whatsapp")) return "WhatsApp Puebla";
-  if (normalized.includes("asesora")) return "Informes con una asesora";
-  if (normalized.includes("instagram")) return "Instagram";
-  if (normalized.includes("tiktok")) return "TikTok";
+  if (normalized === "web") return "Web";
+  if (normalized.includes("pagina web") || normalized.includes("página web") || normalized.includes("formulario web")) return "Pagina web";
+  if (normalized.includes("whatsapp")) return "WhatsApp";
+  if (normalized.includes("asesora")) return "Presencial";
+  if (
+    normalized.includes("instagram") ||
+    normalized.includes("tiktok") ||
+    normalized.includes("facebook") ||
+    normalized.includes("redes")
+  ) {
+    return "Redes sociales";
+  }
   if (normalized.includes("refer")) return "Referido";
-  if (normalized.includes("facebook")) return "Facebook";
-  if (normalized.includes("redes")) return "Instagram";
+  if (normalized.includes("evento")) return "Evento";
+  if (normalized.includes("walk")) return "Walk-in";
+  if (normalized.includes("presencial")) return "Presencial";
   return String(value || "").trim();
 }
 
@@ -690,28 +697,76 @@ function normalizeLeadChannel(value, origin = "") {
   const normalized = String(value || "").trim().toLowerCase();
   const normalizedOrigin = normalizeLeadOrigin(origin);
 
-  if (!normalized && normalizedOrigin) {
-    return normalizedOrigin;
+  if (!normalized) {
+    return normalizedOrigin === "Presencial" || normalizedOrigin === "Walk-in" ? "Presencial" : "";
   }
 
-  if (normalized === "whatsapp") {
-    return normalizedOrigin === "WhatsApp Puebla" ? "WhatsApp Puebla" : "WhatsApp Tlaxcala";
+  if (normalized.includes("whatsapp")) return "WhatsApp";
+  if (normalized === "facebook messenger" || normalized === "instagram dm") return "Redes sociales";
+  if (normalized.includes("formulario web") || normalized === "web") return "";
+  if (
+    normalized.includes("instagram") ||
+    normalized.includes("tiktok") ||
+    normalized.includes("facebook") ||
+    normalized.includes("redes")
+  ) {
+    return "Redes sociales";
   }
-
-  if (normalized === "facebook messenger") return "Facebook";
-  if (normalized === "instagram dm") return "Instagram";
-  if (normalized.includes("formulario web") || normalized === "web") return "Formulario web";
-  if (normalized.includes("tlaxcala") && normalized.includes("whatsapp")) return "WhatsApp Tlaxcala";
-  if (normalized.includes("puebla") && normalized.includes("whatsapp")) return "WhatsApp Puebla";
-  if (normalized.includes("asesora")) return "Informes con una asesora";
-  if (normalized.includes("instagram")) return "Instagram";
-  if (normalized.includes("tiktok")) return "TikTok";
-  if (normalized.includes("refer")) return "Referido";
-  if (normalized.includes("facebook")) return "Facebook";
   if (normalized === "llamada") return "Llamada";
   if (normalized === "presencial") return "Presencial";
-  if (normalized === "otro") return "Otro";
-  return String(value || normalizedOrigin || "").trim();
+  if (normalized.includes("walk")) return "Presencial";
+  return ["WhatsApp", "Presencial", "Llamada", "Redes sociales"].includes(String(value || "").trim())
+    ? String(value || "").trim()
+    : "";
+}
+
+function normalizeProspectState(value, options = {}) {
+  const { preserveOperationalState = true } = options;
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (!normalized) return "";
+  if (normalized === "prospecto nuevo" || normalized === "nuevo" || normalized === "nuevo prospecto") return "Prospecto nuevo";
+  if (normalized === "seguimiento" || normalized === "interesado" || normalized === "inscripción web pendiente") return "Seguimiento";
+  if (normalized === "cita agendada") return "Cita agendada";
+  if (normalized === "inscrita") return "Inscrita";
+  if (normalized === "alta completada") return preserveOperationalState ? "Alta completada" : "Inscrita";
+  if (normalized === "no interesado") return "Seguimiento";
+  return String(value || "").trim();
+}
+
+function normalizeTemperatureValue(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (normalized === "caliente") return "Caliente";
+  if (normalized === "tibia") return "Tibia";
+  if (normalized === "fría" || normalized === "fria") return "Fría";
+  if (normalized === "sin respuesta") return "Sin respuesta";
+  return "";
+}
+
+function getAutoFollowupDate(baseDate = new Date()) {
+  const nextDate = new Date(baseDate);
+  nextDate.setDate(nextDate.getDate() + 3);
+  return formatDateForInput(nextDate);
+}
+
+function shouldAutoAssignFollowup(state) {
+  return state === "Prospecto nuevo" || state === "Seguimiento";
+}
+
+function syncProspectFollowupField() {
+  const estadoField = document.getElementById("estado");
+  const followupField = document.getElementById("proximoSeguimiento");
+  if (!estadoField || !followupField) {
+    return;
+  }
+
+  const autoManaged = shouldAutoAssignFollowup(estadoField.value);
+  followupField.readOnly = autoManaged;
+
+  if (autoManaged) {
+    followupField.value = getAutoFollowupDate(new Date());
+  }
 }
 
 function getTemperatureTone(temperature) {
@@ -795,7 +850,7 @@ function getProspectHistorySummary(prospect) {
     `Fecha de contacto: ${getProspectDate(prospect) || "-"}`,
     `Estado: ${prospect.estado || "-"}`,
     `Temperatura: ${prospect.temperatura || "-"}`,
-    `Asesora asignada: ${prospect.asesoraAsignada || "-"}`,
+    `Asesor asignado: ${prospect.asesoraAsignada || "-"}`,
     `Próximo seguimiento: ${prospect.proximoSeguimiento || "-"}`,
     `Origen: ${prospect.origen || "-"}`,
     `Canal: ${prospect.medio || "-"}`,
@@ -856,7 +911,7 @@ async function normalizeLegacyProspects() {
     }
 
     if (normalized.medio === "Correo") {
-      normalized.medio = "Otro";
+      normalized.medio = "";
       changed = true;
     }
 
@@ -867,8 +922,14 @@ async function normalizeLegacyProspects() {
     }
 
     const nextChannel = normalizeLeadChannel(normalized.medio, normalized.origen);
-    if (nextChannel && nextChannel !== normalized.medio) {
+    if (nextChannel !== normalized.medio) {
       normalized.medio = nextChannel;
+      changed = true;
+    }
+
+    const nextState = normalizeProspectState(normalized.estado);
+    if (nextState && nextState !== normalized.estado) {
+      normalized.estado = nextState;
       changed = true;
     }
 
@@ -884,6 +945,17 @@ async function normalizeLegacyProspects() {
 
     if (!Object.prototype.hasOwnProperty.call(normalized, "temperatura")) {
       normalized.temperatura = "";
+      changed = true;
+    }
+
+    const nextTemperature = normalizeTemperatureValue(normalized.temperatura);
+    if (nextTemperature !== normalized.temperatura) {
+      normalized.temperatura = nextTemperature;
+      changed = true;
+    }
+
+    if (shouldAutoAssignFollowup(normalized.estado) && !normalized.proximoSeguimiento) {
+      normalized.proximoSeguimiento = getAutoFollowupDate(new Date(`${normalized.fechaContacto}T12:00:00`));
       changed = true;
     }
 
@@ -942,22 +1014,27 @@ function getFormData() {
   const existingId = document.getElementById("prospectId").value;
   const existingProspect = prospects.find((item) => item.id === existingId);
   const fechaContacto = formData.get("fechaContacto");
+  const estado = normalizeProspectState(formData.get("estado"), { preserveOperationalState: false });
+  const isAutoFollowup = shouldAutoAssignFollowup(estado);
+  const proximoSeguimiento = isAutoFollowup
+    ? getAutoFollowupDate(new Date())
+    : String(formData.get("proximoSeguimiento") || existingProspect?.proximoSeguimiento || "");
 
   return {
     id: existingId || crypto.randomUUID(),
     nombre: formData.get("nombre").trim(),
     telefono: normalizePhone(formData.get("telefono")),
     fechaContacto,
-    sucursal: formData.get("sucursal").trim(),
+    sucursal: String(formData.get("sucursal") || "").trim(),
     curso: formData.get("curso").trim(),
     origen: normalizeLeadOrigin(formData.get("origen")),
     medio: normalizeLeadChannel(formData.get("medio"), formData.get("origen")),
     informacion: formData.get("informacion"),
-    estado: formData.get("estado"),
-    proximoSeguimiento: String(formData.get("proximoSeguimiento") || ""),
+    estado,
+    proximoSeguimiento,
     asesoraAsignada: String(formData.get("asesoraAsignada") || ""),
-    temperatura: String(formData.get("temperatura") || ""),
-    contacto: formData.get("contacto"),
+    temperatura: normalizeTemperatureValue(formData.get("temperatura")),
+    contacto: existingProspect?.contacto || "",
     notas: formData.get("notas").trim(),
     accesoInteres: formData.get("accesoInteres"),
     createdAt: existingProspect?.createdAt || new Date(`${fechaContacto}T12:00:00`).toISOString(),
@@ -1287,14 +1364,14 @@ function getWebLeadFormData() {
     fechaContacto: today,
     sucursal: String(formData.get("sucursal") || "").trim(),
     curso: String(formData.get("curso") || "").trim(),
-    origen: "Formulario web",
-    medio: "Formulario web",
+    origen: "Web",
+    medio: "WhatsApp",
     informacion: "Pendiente de enviar",
-    estado: "Nuevo",
-    proximoSeguimiento: "",
+    estado: "Prospecto nuevo",
+    proximoSeguimiento: getAutoFollowupDate(new Date()),
     asesoraAsignada: "",
     temperatura: "",
-    contacto: "Web",
+    contacto: "",
     notas: notes,
     accesoInteres: "",
     horarioCita: "",
@@ -1553,6 +1630,8 @@ function resetForm() {
   form.reset();
   document.getElementById("prospectId").value = "";
   document.getElementById("fechaContacto").value = formatDateForInput(new Date());
+  document.getElementById("proximoSeguimiento").value = "";
+  syncProspectFollowupField();
   submitButton.textContent = "Guardar prospecto";
 }
 
@@ -1622,12 +1701,10 @@ function getDashboardFinanceRecords() {
 function normalizeDashboardOrigin(prospect) {
   const origen = normalizeLeadOrigin(prospect.origen);
 
-  if (origen === "TikTok") return "TikTok";
-  if (origen === "Facebook") return "Facebook";
-  if (origen === "Instagram") return "Instagram";
+  if (origen === "Redes sociales") return "Redes sociales";
   if (origen === "Referido") return "Referido";
-  if (origen === "Formulario web") return "Web";
-  if (origen === "WhatsApp Tlaxcala" || origen === "WhatsApp Puebla") return "WhatsApp directo";
+  if (origen === "Pagina web" || origen === "Web") return "Web";
+  if (origen === "WhatsApp") return "WhatsApp directo";
   return "Otro";
 }
 
@@ -1953,12 +2030,12 @@ function renderTable() {
             <small>${escapeHtml(prospect.informacion)}</small>
           </td>
           <td>${escapeHtml(prospect.accesoInteres || "-")}</td>
-          <td><span class="status-pill">${escapeHtml(prospect.estado)}</span></td>
+          <td><span class="status-pill">${escapeHtml(normalizeProspectState(prospect.estado, { preserveOperationalState: false }) || prospect.estado)}</span></td>
           <td>
             <div class="prospect-followup-cell">
               <span class="status-pill followup-pill followup-pill-${escapeHtml(followup.tone)}">${escapeHtml(followup.label)}</span>
               <small>${escapeHtml(followup.detail)}</small>
-              <small>Asesora: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
+              <small>Asesor: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
             </div>
           </td>
           <td>
@@ -2599,16 +2676,16 @@ function editProspect(id) {
   document.getElementById("fechaContacto").value = getProspectDate(prospect);
   document.getElementById("sucursal").value = prospect.sucursal;
   document.getElementById("curso").value = prospect.curso;
-  document.getElementById("origen").value = prospect.origen;
-  document.getElementById("medio").value = prospect.medio;
+  document.getElementById("origen").value = normalizeLeadOrigin(prospect.origen);
+  document.getElementById("medio").value = normalizeLeadChannel(prospect.medio, prospect.origen);
   document.getElementById("informacion").value = prospect.informacion;
-  document.getElementById("estado").value = prospect.estado;
+  document.getElementById("estado").value = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
   document.getElementById("proximoSeguimiento").value = prospect.proximoSeguimiento || "";
   document.getElementById("asesoraAsignada").value = prospect.asesoraAsignada || "";
-  document.getElementById("temperatura").value = prospect.temperatura || "";
-  document.getElementById("contacto").value = prospect.contacto;
+  document.getElementById("temperatura").value = normalizeTemperatureValue(prospect.temperatura);
   document.getElementById("notas").value = prospect.notas;
   document.getElementById("accesoInteres").value = prospect.accesoInteres || "";
+  syncProspectFollowupField();
   submitButton.textContent = "Actualizar prospecto";
   setActiveModule("crm-prospectos");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3099,6 +3176,8 @@ if (crmAdvisorFilter) {
     renderTable();
   });
 }
+
+document.getElementById("estado").addEventListener("change", syncProspectFollowupField);
 
 monthFilter.addEventListener("change", (event) => {
   selectedMonth = event.target.value || getCurrentMonthValue();
