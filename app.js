@@ -726,6 +726,69 @@ function getTemperatureTone(temperature) {
   return "default";
 }
 
+function formatDisplayDate(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date = new Date(`${dateValue}T12:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return dateValue;
+  }
+
+  return date.toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getProspectFollowupMeta(dateValue) {
+  if (!dateValue) {
+    return {
+      tone: "neutral",
+      label: "Sin fecha",
+      detail: "Agrega una fecha para priorizar el seguimiento.",
+    };
+  }
+
+  const today = formatDateForInput(new Date());
+
+  if (dateValue < today) {
+    return {
+      tone: "late",
+      label: "Seguimiento atrasado",
+      detail: `Debió atenderse el ${formatDisplayDate(dateValue)}.`,
+    };
+  }
+
+  if (dateValue === today) {
+    return {
+      tone: "today",
+      label: "Hoy toca seguimiento",
+      detail: "Conviene contactarla hoy.",
+    };
+  }
+
+  return {
+    tone: "upcoming",
+    label: "Próximo seguimiento",
+    detail: formatDisplayDate(dateValue),
+  };
+}
+
+function getProspectWhatsAppUrl(prospect) {
+  const phone = normalizePhone(prospect.telefono);
+  if (!phone || phone.length < 10) {
+    return "";
+  }
+
+  const message = encodeURIComponent(
+    "Hola, te contacto de Instituto Venezia para dar seguimiento a la información que pediste sobre nuestros cursos. 💜"
+  );
+  return `https://wa.me/${phone}?text=${message}`;
+}
+
 function getProspectHistorySummary(prospect) {
   return [
     `Nombre: ${prospect.nombre || "-"}`,
@@ -1856,12 +1919,29 @@ function renderTable() {
   const filteredProspects = getFilteredProspects();
 
   tableBody.innerHTML = filteredProspects
-    .map(
-      (prospect) => `
+    .map((prospect) => {
+      const temperature = prospect.temperatura || "";
+      const temperatureMarkup = temperature
+        ? `<span class="status-pill status-pill-temperature status-pill-${escapeHtml(getTemperatureTone(temperature))}">${escapeHtml(temperature)}</span>`
+        : `<span class="status-pill status-pill-temperature status-pill-default">Sin temperatura</span>`;
+      const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
+      const whatsappUrl = getProspectWhatsAppUrl(prospect);
+      const whatsappDisabled = whatsappUrl ? "" : "disabled";
+      const whatsappTitle = whatsappUrl
+        ? "Abrir conversación en WhatsApp"
+        : "La prospecta no tiene un teléfono válido";
+
+      return `
         <tr>
           <td>
-            <strong>${escapeHtml(prospect.nombre)}</strong>
-            <small>${escapeHtml(prospect.origen)} | ${escapeHtml(getProspectDate(prospect))}</small>
+            <div class="prospect-primary-cell">
+              <strong>${escapeHtml(prospect.nombre)}</strong>
+              <small>${escapeHtml(prospect.origen)} | ${escapeHtml(getProspectDate(prospect))}</small>
+              <div class="prospect-meta-row">
+                ${temperatureMarkup}
+                ${prospect.accesoInteres ? `<span class="status-pill prospect-access-pill">${escapeHtml(prospect.accesoInteres)}</span>` : ""}
+              </div>
+            </div>
           </td>
           <td>
             ${escapeHtml(prospect.telefono)}
@@ -1876,14 +1956,14 @@ function renderTable() {
           <td><span class="status-pill">${escapeHtml(prospect.estado)}</span></td>
           <td>
             <div class="prospect-followup-cell">
-              <span class="status-pill status-pill-temperature status-pill-${escapeHtml(getTemperatureTone(prospect.temperatura))}">${escapeHtml(prospect.temperatura || "Sin temperatura")}</span>
-              <small>Próximo: ${escapeHtml(prospect.proximoSeguimiento || "-")}</small>
+              <span class="status-pill followup-pill followup-pill-${escapeHtml(followup.tone)}">${escapeHtml(followup.label)}</span>
+              <small>${escapeHtml(followup.detail)}</small>
               <small>Asesora: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
             </div>
           </td>
           <td>
             <div class="actions-cell actions-cell-prospect">
-              <button class="table-action action-whatsapp" type="button" data-action="whatsapp" data-id="${prospect.id}">WhatsApp</button>
+              <button class="table-action action-whatsapp" type="button" data-action="whatsapp" data-id="${prospect.id}" title="${escapeHtml(whatsappTitle)}" ${whatsappDisabled}>WhatsApp</button>
               <button class="table-action action-schedule" type="button" data-action="schedule" data-id="${prospect.id}">Agendar cita</button>
               <button class="table-action action-enrolled" type="button" data-action="enroll" data-id="${prospect.id}">Marcar como inscrita</button>
               <button class="table-action action-alta" type="button" data-action="alta" data-id="${prospect.id}">Mandar a alta</button>
@@ -1893,8 +1973,8 @@ function renderTable() {
             </div>
           </td>
         </tr>
-      `
-    )
+      `;
+    })
     .join("");
 
   emptyState.hidden = filteredProspects.length > 0;
@@ -2549,8 +2629,11 @@ function openWhatsApp(id) {
     return;
   }
 
-  const message = encodeURIComponent("Hola, te contacto de Instituto Venezia para dar seguimiento a tu información.");
-  const url = `https://wa.me/${normalizePhone(prospect.telefono)}?text=${message}`;
+  const url = getProspectWhatsAppUrl(prospect);
+  if (!url) {
+    return;
+  }
+
   window.open(url, "_blank", "noopener");
 }
 
