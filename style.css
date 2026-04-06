@@ -1322,6 +1322,119 @@ td select {
   line-height: 1.6;
 }
 
+.web-course-availability {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.95rem;
+  border-radius: 18px;
+  border: 1px solid rgba(201, 161, 74, 0.18);
+  background: linear-gradient(180deg, rgba(252, 249, 242, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
+}
+
+.web-course-availability-soon {
+  align-content: start;
+}
+
+.web-course-availability-title {
+  margin: 0;
+  color: #8f6e2d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.web-course-schedule-group {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.web-course-schedule-heading {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.web-course-schedule-heading strong,
+.web-course-day-title {
+  color: #2e2114;
+  font-size: 0.96rem;
+}
+
+.web-course-schedule-heading span {
+  color: rgba(72, 52, 20, 0.78);
+  font-size: 0.86rem;
+}
+
+.web-course-day-block {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.15rem;
+}
+
+.web-course-slot-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.web-course-slot-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--web-body);
+}
+
+.web-course-slot-label {
+  font-weight: 700;
+  color: #4a3717;
+}
+
+.web-course-slot-label::after {
+  content: "·";
+  margin-left: 0.45rem;
+  color: rgba(143, 110, 45, 0.55);
+}
+
+.web-course-slot-time {
+  color: rgba(72, 52, 20, 0.82);
+}
+
+.web-course-slot-time::after {
+  content: "·";
+  margin-left: 0.45rem;
+  color: rgba(143, 110, 45, 0.55);
+}
+
+.web-course-slot-seats {
+  color: #7f5f21;
+  font-weight: 800;
+}
+
+.web-course-slot-closed {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid rgba(122, 86, 32, 0.18);
+  background: rgba(122, 86, 32, 0.08);
+  color: #7a5620;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.web-course-coming-soon {
+  margin: 0;
+  color: #3f2d14;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .web-course-tag {
   width: fit-content;
   padding: 0.4rem 0.7rem;
@@ -1934,6 +2047,15 @@ body.public-mode .module-section.active {
   .web-utility-actions,
   .web-sales-footer {
     flex-direction: column;
+  }
+
+  .web-course-slot-item {
+    font-size: 0.88rem;
+  }
+
+  .web-course-slot-label::after,
+  .web-course-slot-time::after {
+    margin-left: 0.35rem;
   }
 
   .web-access-grid {

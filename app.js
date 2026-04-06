@@ -217,24 +217,125 @@ const WEB_DEFAULT_COURSES = [
     description: "Aprende una habilidad con alta demanda y empieza a generar ingresos desde tus primeras clientas.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/unas.jpg",
+    availabilityTitle: "Horarios nuevos",
+    scheduleGroups: [
+      {
+        title: "Entre semana",
+        subtitle: "Martes a jueves · 3 días de clases",
+        slots: [
+          { label: "Matutino", time: "9am a 11am", seats: "5 cupos" },
+          { label: "Intermedio", time: "12pm a 2pm", seats: "3 cupos" },
+          { label: "Vespertino", time: "3pm a 5pm", seats: "4 cupos" },
+        ],
+      },
+      {
+        title: "Fin de semana",
+        subtitle: "1 día de clases",
+        days: [
+          {
+            title: "Viernes",
+            slots: [
+              { label: "Matutino", closed: true },
+              { label: "Vespertino", time: "2pm a 6pm", seats: "5 cupos" },
+            ],
+          },
+          {
+            title: "Sábado",
+            slots: [
+              { label: "Matutino", closed: true },
+              { label: "Vespertino", time: "2pm a 6pm", seats: "4 cupos" },
+            ],
+          },
+          {
+            title: "Domingo",
+            slots: [{ label: "Matutino", time: "9am a 1pm", seats: "5 cupos" }],
+          },
+        ],
+      },
+    ],
   },
   {
     name: "Pestañas",
     description: "Especialízate en una técnica altamente rentable y crea servicios premium que te permitan cobrar más.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/pestanas.jpg",
+    availabilityTitle: "Horarios nuevos",
+    scheduleGroups: [
+      {
+        title: "Fin de semana",
+        subtitle: "1 día de clases",
+        days: [
+          {
+            title: "Viernes",
+            slots: [
+              { label: "Matutino", time: "9am a 1pm", seats: "5 cupos" },
+              { label: "Vespertino", time: "2pm a 6pm", seats: "7 cupos" },
+            ],
+          },
+          {
+            title: "Sábado",
+            slots: [
+              { label: "Matutino", closed: true },
+              { label: "Vespertino", time: "2pm a 6pm", seats: "4 cupos" },
+            ],
+          },
+          {
+            title: "Domingo",
+            slots: [{ label: "Matutino", time: "9am a 1pm", seats: "7 cupos" }],
+          },
+        ],
+      },
+    ],
   },
   {
     name: "Barbería",
     description: "Desarrolla técnica, seguridad y conviértete en un barbero o lady barber con ingresos constantes.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/barberia.jpg",
+    availabilityTitle: "Horarios nuevos",
+    scheduleGroups: [
+      {
+        title: "Entre semana",
+        subtitle: "Martes a jueves · 3 días de clases",
+        slots: [
+          { label: "Matutino", time: "9am a 11am", seats: "4 cupos" },
+          { label: "Intermedio", time: "12pm a 2pm", seats: "3 cupos" },
+          { label: "Vespertino", time: "3pm a 5pm", seats: "5 cupos" },
+        ],
+      },
+      {
+        title: "Fin de semana",
+        subtitle: "1 día de clases",
+        days: [
+          {
+            title: "Viernes",
+            slots: [
+              { label: "Matutino", time: "9am a 1pm", seats: "5 cupos" },
+              { label: "Vespertino", time: "1pm a 5pm", seats: "3 cupos" },
+            ],
+          },
+          {
+            title: "Sábado",
+            slots: [
+              { label: "Matutino", closed: true },
+              { label: "Vespertino", time: "1pm a 5pm", seats: "4 cupos" },
+            ],
+          },
+          {
+            title: "Domingo",
+            slots: [{ label: "Matutino", time: "9am a 1pm", seats: "5 cupos" }],
+          },
+        ],
+      },
+    ],
   },
   {
     name: "Maquillaje",
     description: "Domina el maquillaje profesional para eventos y clientas.",
-    statusLabel: "No disponible temporalmente",
+    statusLabel: "Próximamente",
     imagePath: "",
+    availabilityTitle: "Próximamente",
+    comingSoon: "Automaquillaje en mayo",
   },
 ];
 
@@ -1258,6 +1359,90 @@ function getWebCourseCatalog() {
   return WEB_DEFAULT_COURSES.map((course) => ({ ...course }));
 }
 
+function renderWebCourseAvailability(course) {
+  if (course.comingSoon) {
+    return `
+      <div class="web-course-availability web-course-availability-soon">
+        <p class="web-course-availability-title">${escapeHtml(course.availabilityTitle || "Próximamente")}</p>
+        <p class="web-course-coming-soon">${escapeHtml(course.comingSoon)}</p>
+      </div>
+    `;
+  }
+
+  if (!Array.isArray(course.scheduleGroups) || course.scheduleGroups.length === 0) {
+    return "";
+  }
+
+  return `
+    <div class="web-course-availability">
+      <p class="web-course-availability-title">${escapeHtml(course.availabilityTitle || "Horarios nuevos")}</p>
+      ${course.scheduleGroups
+        .map(
+          (group) => `
+            <section class="web-course-schedule-group">
+              <div class="web-course-schedule-heading">
+                <strong>${escapeHtml(group.title)}</strong>
+                ${group.subtitle ? `<span>${escapeHtml(group.subtitle)}</span>` : ""}
+              </div>
+              ${
+                Array.isArray(group.slots)
+                  ? `<ul class="web-course-slot-list">
+                      ${group.slots
+                        .map(
+                          (slot) => `
+                            <li class="web-course-slot-item">
+                              <span class="web-course-slot-label">${escapeHtml(slot.label)}</span>
+                              ${
+                                slot.closed
+                                  ? `<span class="web-course-slot-closed">CERRADO</span>`
+                                  : `<span class="web-course-slot-time">${escapeHtml(slot.time)}</span>
+                                     <strong class="web-course-slot-seats">${escapeHtml(slot.seats)}</strong>`
+                              }
+                            </li>
+                          `
+                        )
+                        .join("")}
+                    </ul>`
+                  : ""
+              }
+              ${
+                Array.isArray(group.days)
+                  ? group.days
+                      .map(
+                        (day) => `
+                          <div class="web-course-day-block">
+                            <strong class="web-course-day-title">${escapeHtml(day.title)}</strong>
+                            <ul class="web-course-slot-list">
+                              ${day.slots
+                                .map(
+                                  (slot) => `
+                                    <li class="web-course-slot-item">
+                                      <span class="web-course-slot-label">${escapeHtml(slot.label)}</span>
+                                      ${
+                                        slot.closed
+                                          ? `<span class="web-course-slot-closed">CERRADO</span>`
+                                          : `<span class="web-course-slot-time">${escapeHtml(slot.time)}</span>
+                                             <strong class="web-course-slot-seats">${escapeHtml(slot.seats)}</strong>`
+                                      }
+                                    </li>
+                                  `
+                                )
+                                .join("")}
+                            </ul>
+                          </div>
+                        `
+                      )
+                      .join("")
+                  : ""
+              }
+            </section>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderWebCourses() {
   const courses = getWebCourseCatalog();
 
@@ -1270,6 +1455,7 @@ function renderWebCourses() {
             <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
             <strong>${escapeHtml(course.name)}</strong>
             <p>${escapeHtml(course.description)}</p>
+            ${renderWebCourseAvailability(course)}
             <button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>
           </article>
         `
