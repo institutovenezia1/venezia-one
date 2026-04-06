@@ -84,6 +84,22 @@ const staffTableBody = document.getElementById("staffTableBody");
 const staffEmptyState = document.getElementById("staffEmptyState");
 const altaForm = document.getElementById("altaForm");
 const clearAltaButton = document.getElementById("clearAltaButton");
+const altaValidationAlert = document.getElementById("altaValidationAlert");
+const altaSummaryNombre = document.getElementById("altaSummaryNombre");
+const altaSummaryCurso = document.getElementById("altaSummaryCurso");
+const altaSummarySucursal = document.getElementById("altaSummarySucursal");
+const altaSummaryAcceso = document.getElementById("altaSummaryAcceso");
+const altaSummaryHorario = document.getElementById("altaSummaryHorario");
+const altaSummaryFechaInicio = document.getElementById("altaSummaryFechaInicio");
+const altaConfirmCard = document.getElementById("altaConfirmCard");
+const altaConfirmNombre = document.getElementById("altaConfirmNombre");
+const altaConfirmCurso = document.getElementById("altaConfirmCurso");
+const altaConfirmSucursal = document.getElementById("altaConfirmSucursal");
+const altaConfirmAcceso = document.getElementById("altaConfirmAcceso");
+const altaConfirmHorario = document.getElementById("altaConfirmHorario");
+const altaConfirmFechaInicio = document.getElementById("altaConfirmFechaInicio");
+const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
+const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
 const financeForm = document.getElementById("financeForm");
 const financeClearButton = document.getElementById("financeClearButton");
 const financeSubmitButton = document.getElementById("financeSubmitButton");
@@ -314,6 +330,7 @@ let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
 let publicAccessPanelOpen = false;
 let activeAdvisorFilter = "";
+let pendingAltaConfirmation = null;
 
 monthFilter.value = selectedMonth;
 attendanceDate.value = formatDateForInput(new Date());
@@ -1100,6 +1117,73 @@ function getAltaFormData() {
   };
 }
 
+function getAltaSummaryData(altaData) {
+  return {
+    nombre: altaData.nombre || "Sin seleccionar",
+    curso: altaData.curso || "-",
+    sucursal: altaData.sucursal || "-",
+    acceso: altaData.accesoElegido || "-",
+    horario: altaData.horario || "-",
+    fechaInicio: altaData.fechaInicio || "-",
+  };
+}
+
+function renderAltaSummary(summary) {
+  altaSummaryNombre.textContent = summary.nombre;
+  altaSummaryCurso.textContent = summary.curso;
+  altaSummarySucursal.textContent = summary.sucursal;
+  altaSummaryAcceso.textContent = summary.acceso;
+  altaSummaryHorario.textContent = summary.horario;
+  altaSummaryFechaInicio.textContent = summary.fechaInicio;
+}
+
+function renderAltaConfirmation(summary) {
+  altaConfirmNombre.textContent = summary.nombre;
+  altaConfirmCurso.textContent = summary.curso;
+  altaConfirmSucursal.textContent = summary.sucursal;
+  altaConfirmAcceso.textContent = summary.acceso;
+  altaConfirmHorario.textContent = summary.horario;
+  altaConfirmFechaInicio.textContent = summary.fechaInicio;
+}
+
+function showAltaValidation(message) {
+  altaValidationAlert.textContent = message;
+  altaValidationAlert.hidden = false;
+}
+
+function clearAltaValidation() {
+  altaValidationAlert.hidden = true;
+  altaValidationAlert.textContent = "";
+}
+
+function getAltaValidationErrors(altaData) {
+  const errors = [];
+  if (!altaData.prospectId) errors.push("Selecciona una prospecta inscrita");
+  if (!altaData.nombre) errors.push("Nombre completo");
+  if (!altaData.telefono) errors.push("Teléfono");
+  if (!altaData.sucursal) errors.push("Sucursal");
+  if (!altaData.curso) errors.push("Curso");
+  if (!altaData.accesoElegido) errors.push("Acceso elegido");
+  if (!altaData.horario) errors.push("Horario");
+  if (!altaData.fechaInicio) errors.push("Fecha de inicio");
+  if (!String(altaForm.elements.inscripcionPagada.value || "").trim()) errors.push("Inscripción pagada");
+  if (!String(altaForm.elements.colegiatura.value || "").trim()) errors.push("Colegiatura");
+  if (!String(altaForm.elements.documentos.value || "").trim()) errors.push("Documentos entregados");
+  if (!String(altaForm.elements.usuarioAlta.value || "").trim()) errors.push("Usuario que dio de alta");
+  return errors;
+}
+
+function openAltaConfirmation(altaData) {
+  pendingAltaConfirmation = altaData;
+  renderAltaConfirmation(getAltaSummaryData(altaData));
+  altaConfirmCard.hidden = false;
+}
+
+function closeAltaConfirmation() {
+  pendingAltaConfirmation = null;
+  altaConfirmCard.hidden = true;
+}
+
 function normalizePhone(phone) {
   return String(phone || "").replace(/\D/g, "");
 }
@@ -1666,6 +1750,9 @@ function resetForm() {
 function resetAltaForm() {
   altaForm.reset();
   document.getElementById("altaProspectId").value = "";
+  clearAltaValidation();
+  closeAltaConfirmation();
+  renderAltaSummary(getAltaSummaryData({}));
 }
 
 function resetFinanceForm() {
@@ -2153,12 +2240,20 @@ function renderPendingAltas() {
     .map(
       (prospect) => `
         <tr>
-          <td>${escapeHtml(prospect.nombre)}</td>
+          <td>
+            <div class="alta-pending-primary">
+              <strong>${escapeHtml(prospect.nombre)}</strong>
+              <small>${escapeHtml(prospect.telefono)}</small>
+            </div>
+          </td>
           <td>${escapeHtml(prospect.telefono)}</td>
           <td>${escapeHtml(prospect.sucursal)}</td>
-          <td>${escapeHtml(prospect.curso)}</td>
-          <td>${escapeHtml(prospect.accesoInteres || "-")}</td>
-          <td><button class="table-action action-edit" type="button" data-action="alta" data-id="${prospect.id}">Dar de alta</button></td>
+          <td>
+            ${escapeHtml(prospect.curso)}
+            <small>${escapeHtml(prospect.origen || "Inscrita desde CRM")}</small>
+          </td>
+          <td><span class="status-pill prospect-access-pill">${escapeHtml(prospect.accesoInteres || "-")}</span></td>
+          <td><button class="table-action action-edit alta-action-button" type="button" data-action="alta" data-id="${prospect.id}">Preparar alta</button></td>
         </tr>
       `
     )
@@ -2837,6 +2932,18 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaSucursal").value = prospect.sucursal;
   document.getElementById("altaCurso").value = prospect.curso;
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
+  clearAltaValidation();
+  closeAltaConfirmation();
+  renderAltaSummary(
+    getAltaSummaryData({
+      nombre: prospect.nombre,
+      curso: prospect.curso,
+      sucursal: prospect.sucursal,
+      accesoElegido: prospect.accesoInteres || "",
+      horario: document.getElementById("altaHorario").value,
+      fechaInicio: document.getElementById("altaFechaInicio").value,
+    })
+  );
   setActiveModule("altas");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -2918,16 +3025,7 @@ form.addEventListener("submit", async (event) => {
   resetForm();
 });
 
-altaForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const altaData = getAltaFormData();
-  console.log("ALTA submit handler invoked");
-
-  if (!altaData.prospectId) {
-    alert("Selecciona primero una prospecta inscrita para dar de alta.");
-    return;
-  }
-
+async function finalizeAltaSubmission(altaData) {
   console.log("ALTA -> students payload", {
     id: altaData.id,
     full_name: altaData.nombre || "",
@@ -2972,6 +3070,23 @@ altaForm.addEventListener("submit", async (event) => {
   renderAll();
   resetAltaForm();
   alert("Alta guardada correctamente.");
+}
+
+altaForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const altaData = getAltaFormData();
+  const validationErrors = getAltaValidationErrors(altaData);
+
+  renderAltaSummary(getAltaSummaryData(altaData));
+
+  if (validationErrors.length > 0) {
+    showAltaValidation(`Completa los campos obligatorios antes de continuar: ${validationErrors.join(", ")}.`);
+    closeAltaConfirmation();
+    return;
+  }
+
+  clearAltaValidation();
+  openAltaConfirmation(altaData);
 });
 
 internalLoginForm.addEventListener("submit", async (event) => {
@@ -3199,6 +3314,26 @@ miVeneziaLogoutButton.addEventListener("click", logoutMiVenezia);
 internalLogoutButton.addEventListener("click", logoutInternalSession);
 internalLoginForm.addEventListener("input", () => {
   internalLoginError.hidden = true;
+});
+
+altaConfirmCancelButton.addEventListener("click", closeAltaConfirmation);
+altaConfirmProceedButton.addEventListener("click", async () => {
+  if (!pendingAltaConfirmation) {
+    return;
+  }
+
+  altaConfirmProceedButton.disabled = true;
+  try {
+    await finalizeAltaSubmission(pendingAltaConfirmation);
+  } finally {
+    altaConfirmProceedButton.disabled = false;
+  }
+});
+
+altaForm.addEventListener("input", () => {
+  clearAltaValidation();
+  closeAltaConfirmation();
+  renderAltaSummary(getAltaSummaryData(getAltaFormData()));
 });
 
 webVeneziaSection.addEventListener("click", (event) => {

@@ -451,8 +451,8 @@
         </section>
 
         <section class="module-section" id="altasSection">
-          <section class="content-grid">
-            <section class="panel table-panel">
+          <section class="content-grid altas-content-grid">
+            <section class="panel table-panel altas-pending-panel">
               <div class="section-heading">
                 <p class="eyebrow">Altas</p>
                 <h3>Prospectas inscritas pendientes de alta</h3>
@@ -479,104 +479,204 @@
               </p>
             </section>
 
-            <section class="panel">
+            <section class="panel altas-form-panel">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
                 <h3>Formulario de alta de alumna</h3>
               </div>
 
-              <form id="altaForm" class="prospect-form">
+              <div id="altaValidationAlert" class="alta-validation-alert" hidden></div>
+
+              <section class="alta-summary-card" id="altaSummaryCard" aria-label="Resumen ejecutivo de alta">
+                <div class="alta-summary-item">
+                  <span>Alumna</span>
+                  <strong id="altaSummaryNombre">Sin seleccionar</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Curso</span>
+                  <strong id="altaSummaryCurso">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Sucursal</span>
+                  <strong id="altaSummarySucursal">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Acceso</span>
+                  <strong id="altaSummaryAcceso">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Horario</span>
+                  <strong id="altaSummaryHorario">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Fecha de inicio</span>
+                  <strong id="altaSummaryFechaInicio">-</strong>
+                </div>
+              </section>
+
+              <form id="altaForm" class="prospect-form altas-form">
                 <input type="hidden" id="altaProspectId" />
 
-                <label>
-                  <span>Nombre completo</span>
-                  <input id="altaNombre" name="nombre" type="text" required />
-                </label>
+                <section class="alta-form-block full-width">
+                  <div class="alta-form-block-heading">
+                    <p class="eyebrow">Datos de la alumna</p>
+                    <strong>Cierre de inscripción</strong>
+                  </div>
+                  <div class="alta-form-block-grid">
+                    <label>
+                      <span>Nombre completo</span>
+                      <input id="altaNombre" name="nombre" type="text" required />
+                    </label>
 
-                <label>
-                  <span>Teléfono</span>
-                  <input id="altaTelefono" name="telefono" type="tel" required />
-                </label>
+                    <label>
+                      <span>Teléfono</span>
+                      <input id="altaTelefono" name="telefono" type="tel" required />
+                    </label>
 
-                <label>
-                  <span>Sucursal</span>
-                  <input id="altaSucursal" name="sucursal" type="text" required />
-                </label>
+                    <label>
+                      <span>Sucursal</span>
+                      <input id="altaSucursal" name="sucursal" type="text" required />
+                    </label>
 
-                <label>
-                  <span>Curso</span>
-                  <input id="altaCurso" name="curso" type="text" required />
-                </label>
+                    <label>
+                      <span>Curso</span>
+                      <input id="altaCurso" name="curso" type="text" required />
+                    </label>
+                  </div>
+                </section>
 
-                <label>
-                  <span>Acceso elegido</span>
-                  <select id="altaAccesoElegido" name="accesoElegido" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Platinum</option>
-                    <option>Oro</option>
-                    <option>Plata</option>
-                  </select>
-                </label>
+                <section class="alta-form-block full-width">
+                  <div class="alta-form-block-heading">
+                    <p class="eyebrow">Datos académicos</p>
+                    <strong>Configuración del arranque</strong>
+                  </div>
+                  <div class="alta-form-block-grid">
+                    <label>
+                      <span>Acceso elegido</span>
+                      <select id="altaAccesoElegido" name="accesoElegido" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Platinum</option>
+                        <option>Oro</option>
+                        <option>Plata</option>
+                        <option>Beca Venezia</option>
+                      </select>
+                    </label>
 
-                <label>
-                  <span>Horario</span>
-                  <input id="altaHorario" name="horario" type="text" required />
-                </label>
+                    <label>
+                      <span>Horario</span>
+                      <input id="altaHorario" name="horario" type="text" required />
+                    </label>
 
-                <label>
-                  <span>Fecha de inicio</span>
-                  <input id="altaFechaInicio" name="fechaInicio" type="date" required />
-                </label>
+                    <label>
+                      <span>Fecha de inicio</span>
+                      <input id="altaFechaInicio" name="fechaInicio" type="date" required />
+                    </label>
+                  </div>
+                </section>
 
-                <label>
-                  <span>Inscripción pagada</span>
-                  <select id="altaInscripcionPagada" name="inscripcionPagada" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Si</option>
-                    <option>No</option>
-                  </select>
-                </label>
+                <section class="alta-form-block full-width">
+                  <div class="alta-form-block-heading">
+                    <p class="eyebrow">Datos administrativos</p>
+                    <strong>Validación previa al alta</strong>
+                  </div>
+                  <div class="alta-form-block-grid">
+                    <label>
+                      <span>Inscripción pagada</span>
+                      <select id="altaInscripcionPagada" name="inscripcionPagada" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Si</option>
+                        <option>No</option>
+                      </select>
+                    </label>
 
-                <label>
-                  <span>Colegiatura</span>
-                  <input id="altaColegiatura" name="colegiatura" type="text" required />
-                </label>
+                    <label>
+                      <span>Colegiatura</span>
+                      <input id="altaColegiatura" name="colegiatura" type="text" required />
+                    </label>
 
-                <label>
-                  <span>Promoción aplicada</span>
-                  <input id="altaPromocion" name="promocion" type="text" />
-                </label>
+                    <label>
+                      <span>Promoción aplicada</span>
+                      <input id="altaPromocion" name="promocion" type="text" />
+                    </label>
 
-                <label>
-                  <span>Documentos entregados</span>
-                  <select id="altaDocumentos" name="documentos" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Completos</option>
-                    <option>Parciales</option>
-                    <option>Pendientes</option>
-                  </select>
-                </label>
+                    <label>
+                      <span>Documentos entregados</span>
+                      <select id="altaDocumentos" name="documentos" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Completos</option>
+                        <option>Parciales</option>
+                        <option>Pendientes</option>
+                      </select>
+                    </label>
 
-                <label class="full-width">
-                  <span>Observaciones</span>
-                  <textarea id="altaObservaciones" name="observaciones" rows="4"></textarea>
-                </label>
+                    <label class="full-width">
+                      <span>Usuario que dio de alta</span>
+                      <input id="altaUsuario" name="usuarioAlta" type="text" required />
+                    </label>
 
-                <label class="full-width">
-                  <span>Usuario que dio de alta</span>
-                  <input id="altaUsuario" name="usuarioAlta" type="text" required />
-                </label>
+                    <label class="full-width">
+                      <span>Observaciones</span>
+                      <textarea id="altaObservaciones" name="observaciones" rows="3"></textarea>
+                    </label>
+                  </div>
+                </section>
 
-                <label class="full-width">
-                  <span>Contraseña de acceso Mi Venezia</span>
-                  <input id="altaPassword" name="portalPassword" type="text" placeholder="Si se deja vacío se genera una temporal" />
-                </label>
+                <section class="alta-form-block full-width alta-access-block">
+                  <div class="alta-form-block-heading">
+                    <p class="eyebrow">Acceso Mi Venezia</p>
+                    <strong>Entrega de acceso a la alumna</strong>
+                  </div>
+                  <div class="alta-form-block-grid alta-access-grid">
+                    <label class="full-width">
+                      <span>Contraseña de acceso Mi Venezia</span>
+                      <input id="altaPassword" name="portalPassword" type="text" placeholder="Si se deja vacío se genera una temporal" />
+                    </label>
+                  </div>
+                </section>
 
                 <div class="form-actions full-width">
                   <button class="primary-btn" type="submit">Confirmar alta</button>
                   <button class="secondary-btn" type="button" id="clearAltaButton">Limpiar</button>
                 </div>
               </form>
+
+              <section class="alta-confirm-card" id="altaConfirmCard" hidden>
+                <div class="alta-confirm-copy">
+                  <p class="eyebrow">Confirmación final</p>
+                  <h4>Revisa el cierre de inscripción antes de guardar</h4>
+                  <p id="altaConfirmMessage">Vas a dar de alta a esta alumna con los siguientes datos.</p>
+                </div>
+                <div class="alta-summary-card alta-summary-card-compact" id="altaConfirmSummary">
+                  <div class="alta-summary-item">
+                    <span>Alumna</span>
+                    <strong id="altaConfirmNombre">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Curso</span>
+                    <strong id="altaConfirmCurso">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Sucursal</span>
+                    <strong id="altaConfirmSucursal">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Acceso</span>
+                    <strong id="altaConfirmAcceso">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Horario</span>
+                    <strong id="altaConfirmHorario">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Fecha de inicio</span>
+                    <strong id="altaConfirmFechaInicio">-</strong>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button class="primary-btn" type="button" id="altaConfirmProceedButton">Confirmar alta</button>
+                  <button class="secondary-btn" type="button" id="altaConfirmCancelButton">Cancelar</button>
+                </div>
+              </section>
             </section>
           </section>
         </section>

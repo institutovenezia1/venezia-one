@@ -850,6 +850,156 @@ td select {
   color: #4a7252;
 }
 
+.altas-content-grid {
+  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+}
+
+.altas-pending-panel,
+.altas-form-panel {
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #fcfaf7 0%, #f7f2eb 100%);
+  border-color: #d8d0c5;
+}
+
+.alta-pending-panel .table-wrapper {
+  border-color: #d8d0c5;
+  background: linear-gradient(180deg, #fcfaf7 0%, #f8f3ed 100%);
+}
+
+.alta-pending-primary {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.alta-pending-primary strong {
+  color: #1a1a1a;
+}
+
+.alta-pending-primary small {
+  color: #7b7268;
+}
+
+.alta-action-button {
+  background: linear-gradient(180deg, #f8f0dc 0%, #e8d7ab 100%);
+  color: #8d6a20;
+  border: 1px solid rgba(201, 161, 74, 0.22);
+}
+
+.alta-validation-alert {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(182, 83, 83, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fcf2ef 0%, #f8e7e2 100%);
+  color: #8b4f43;
+  font-weight: 700;
+}
+
+.alta-summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #fcfaf7 0%, #f2ece4 100%);
+  box-shadow: 0 12px 26px rgba(120, 102, 79, 0.06);
+}
+
+.alta-summary-card-compact {
+  margin-bottom: 0;
+}
+
+.alta-summary-item {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.alta-summary-item span {
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.alta-summary-item strong {
+  color: #1a1a1a;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.altas-form {
+  gap: 1rem;
+}
+
+.alta-form-block {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fdfbf8 0%, #f6f0e8 100%);
+}
+
+.alta-form-block-heading {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.alta-form-block-heading strong {
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.alta-form-block-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.alta-access-block {
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.12), transparent 28%),
+    linear-gradient(180deg, #f9f2e3 0%, #fcfaf7 100%);
+}
+
+.alta-access-grid {
+  grid-template-columns: 1fr;
+}
+
+.alta-confirm-card {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.1), transparent 24%),
+    linear-gradient(180deg, #fcfaf7 0%, #f4ede4 100%);
+  box-shadow: 0 14px 28px rgba(120, 102, 79, 0.08);
+}
+
+.alta-confirm-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.alta-confirm-copy h4,
+.alta-confirm-copy p {
+  margin: 0;
+}
+
+.altas-form-panel .empty-state,
+.altas-pending-panel .empty-state {
+  color: #7b7268;
+}
+
 .info-list {
   display: grid;
   gap: 0.75rem;
@@ -2176,6 +2326,11 @@ body.public-mode .module-section.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .alta-summary-card,
+  .alta-form-block-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .web-location-grid {
     grid-template-columns: 1fr;
   }
@@ -2227,6 +2382,11 @@ body.public-mode .module-section.active {
   }
 
   #crmSection .crm-table-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .alta-summary-card,
+  .alta-form-block-grid {
     grid-template-columns: 1fr;
   }
 
