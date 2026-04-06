@@ -95,22 +95,22 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Navegacion principal">
-          <button class="nav-item" type="button" data-module="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-module="web-venezia">Web Venezia</button>
           <button class="nav-item active" type="button" data-module="crm-prospectos">CRM Prospectos</button>
           <button class="nav-item" type="button" data-module="altas">Altas</button>
-          <button class="nav-item" type="button" data-module="asistencias">Asistencias</button>
           <button class="nav-item" type="button" data-module="pagos">Pagos</button>
-          <button class="nav-item" type="button" data-module="finanzas">Finanzas</button>
-          <button class="nav-item" type="button" data-module="usuarios-accesos">Usuarios y accesos</button>
-          <button class="nav-item" type="button" data-module="personal">Personal</button>
+          <button class="nav-item" type="button" data-module="asistencias">Asistencias</button>
           <button class="nav-item" type="button" data-module="mi-venezia">Mi Venezia</button>
-          <button class="nav-item" type="button" data-module="web-venezia">Web Venezia</button>
+          <button class="nav-item" type="button" data-module="dashboard">Dashboard</button>
+          <button class="nav-item" type="button" data-module="finanzas">Finanzas</button>
+          <button class="nav-item" type="button" data-module="personal">Personal</button>
+          <button class="nav-item" type="button" data-module="usuarios-accesos">Usuarios y accesos</button>
         </nav>
       </aside>
 
       <main class="main-content">
         <header class="topbar">
-          <div>
+          <div class="topbar-copy">
             <p class="eyebrow">Dashboard CRM</p>
             <h2>VENEZIA ONE</h2>
             <p class="subtitle">Sistema Central de Operaciones Venezia</p>
@@ -208,14 +208,14 @@
         </section>
 
         <section class="module-section active" id="crmSection">
-          <section class="content-grid">
-            <section class="panel">
+          <section class="content-grid crm-content-grid">
+            <section class="panel crm-capture-panel">
               <div class="section-heading">
                 <p class="eyebrow">Captura</p>
                 <h3>Añadir nuevo prospecto</h3>
               </div>
 
-              <form id="prospectForm" class="prospect-form">
+              <form id="prospectForm" class="prospect-form crm-prospect-form">
                 <input type="hidden" id="prospectId" />
 
                 <label>
@@ -342,7 +342,7 @@
 
                 <label class="full-width">
                   <span>Notas</span>
-                  <textarea id="notas" name="notas" rows="4"></textarea>
+                  <textarea id="notas" name="notas" rows="3"></textarea>
                 </label>
 
                 <label class="full-width">
@@ -366,13 +366,13 @@
               </form>
             </section>
 
-            <section class="panel table-panel">
+            <section class="panel table-panel crm-management-panel">
               <div class="section-heading">
                 <p class="eyebrow">Seguimiento</p>
                 <h3>Gestión de prospectos</h3>
               </div>
 
-              <div class="table-toolbar">
+              <div class="table-toolbar crm-table-toolbar">
                 <input
                   id="searchInput"
                   type="search"
