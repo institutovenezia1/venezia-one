@@ -830,6 +830,63 @@
               </section>
             </section>
           </section>
+
+          <section class="panel table-panel altas-history-panel">
+            <div class="altas-history-header">
+              <div class="section-heading">
+                <p class="eyebrow">Historial mensual</p>
+                <h3>Altas registradas</h3>
+              </div>
+
+              <label class="altas-history-filter">
+                <span>Mes de inscripción</span>
+                <input id="altasMonthFilter" type="month" />
+              </label>
+            </div>
+
+            <div class="altas-history-stats" aria-label="Resumen mensual de altas">
+              <article class="altas-history-stat">
+                <span>Altas del mes</span>
+                <strong id="altaHistoryTotal">0</strong>
+              </article>
+              <article class="altas-history-stat">
+                <span>Beca Venezia</span>
+                <strong id="altaHistoryBeca">0</strong>
+              </article>
+              <article class="altas-history-stat">
+                <span>Tlaxcala</span>
+                <strong id="altaHistoryTlaxcala">0</strong>
+              </article>
+              <article class="altas-history-stat">
+                <span>Puebla</span>
+                <strong id="altaHistoryPuebla">0</strong>
+              </article>
+            </div>
+
+            <div class="table-wrapper altas-history-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID Alumna</th>
+                    <th>Fecha de inscripción</th>
+                    <th>Nombre completo</th>
+                    <th>Sucursal</th>
+                    <th>Curso inscrito</th>
+                    <th>Tipo de acceso</th>
+                    <th>Horario elegido</th>
+                    <th>Método de pago</th>
+                    <th>Cantidad de pago</th>
+                    <th>Asesor que inscribió</th>
+                  </tr>
+                </thead>
+                <tbody id="altaHistoryTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="altaHistoryEmptyState" class="empty-state">
+              No hay altas registradas en el mes seleccionado.
+            </p>
+          </section>
         </section>
 
         <section class="module-section" id="asistenciasSection">

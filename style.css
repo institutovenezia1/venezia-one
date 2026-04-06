@@ -1000,6 +1000,108 @@ td select {
   color: #7b7268;
 }
 
+.altas-history-panel {
+  margin-top: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 22%),
+    linear-gradient(180deg, #fcfaf7 0%, #f5eee6 100%);
+  border-color: #d8d0c5;
+}
+
+.altas-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.altas-history-filter {
+  min-width: 220px;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.altas-history-filter span {
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.altas-history-filter input {
+  border: 1px solid #d8d0c5;
+  border-radius: 999px;
+  background: #fcfaf7;
+  color: #1a1a1a;
+  font-weight: 800;
+}
+
+.altas-history-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.altas-history-stat {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.1), transparent 34%),
+    linear-gradient(180deg, #fffdf9 0%, #f0e8dc 100%);
+}
+
+.altas-history-stat span {
+  display: block;
+  color: #7b7268;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.altas-history-stat strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #1a1a1a;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.altas-history-table-wrapper {
+  border-color: #d8d0c5;
+  background: linear-gradient(180deg, #fcfaf7 0%, #f7f2eb 100%);
+}
+
+.alta-history-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(201, 161, 74, 0.24);
+  border-radius: 999px;
+  background: #f8f0dc;
+  color: #8d6a20;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.alta-history-primary {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.alta-history-primary strong {
+  color: #1a1a1a;
+}
+
+.alta-history-primary small {
+  color: #7b7268;
+}
+
 .info-list {
   display: grid;
   gap: 0.75rem;
@@ -2327,8 +2429,13 @@ body.public-mode .module-section.active {
   }
 
   .alta-summary-card,
-  .alta-form-block-grid {
+  .alta-form-block-grid,
+  .altas-history-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .altas-history-header {
+    flex-direction: column;
   }
 
   .web-location-grid {
@@ -2386,7 +2493,8 @@ body.public-mode .module-section.active {
   }
 
   .alta-summary-card,
-  .alta-form-block-grid {
+  .alta-form-block-grid,
+  .altas-history-stats {
     grid-template-columns: 1fr;
   }
 

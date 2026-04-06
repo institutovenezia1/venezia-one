@@ -111,6 +111,13 @@ const altaConfirmPortalUser = document.getElementById("altaConfirmPortalUser");
 const altaConfirmPortalPassword = document.getElementById("altaConfirmPortalPassword");
 const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
+const altasMonthFilter = document.getElementById("altasMonthFilter");
+const altaHistoryTotal = document.getElementById("altaHistoryTotal");
+const altaHistoryBeca = document.getElementById("altaHistoryBeca");
+const altaHistoryTlaxcala = document.getElementById("altaHistoryTlaxcala");
+const altaHistoryPuebla = document.getElementById("altaHistoryPuebla");
+const altaHistoryTableBody = document.getElementById("altaHistoryTableBody");
+const altaHistoryEmptyState = document.getElementById("altaHistoryEmptyState");
 const financeForm = document.getElementById("financeForm");
 const financeClearButton = document.getElementById("financeClearButton");
 const financeSubmitButton = document.getElementById("financeSubmitButton");
@@ -335,6 +342,7 @@ let activeFollowupFilter = "";
 let activeAccessFilter = "";
 let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
+let selectedAltasMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
@@ -344,6 +352,7 @@ let activeAdvisorFilter = "";
 let pendingAltaConfirmation = null;
 
 monthFilter.value = selectedMonth;
+altasMonthFilter.value = selectedAltasMonth;
 attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
 
@@ -2410,6 +2419,63 @@ function renderPendingAltas() {
   pendingAltasEmptyState.hidden = pendingAltas.length > 0;
 }
 
+function getStudentInscriptionDate(student) {
+  return student.fechaInscripcion || (student.createdAt ? String(student.createdAt).slice(0, 10) : "");
+}
+
+function getFilteredAltaHistory() {
+  return students
+    .filter((student) => matchesCurrentBranch(student.sucursal))
+    .filter((student) => isDateInMonth(getStudentInscriptionDate(student), selectedAltasMonth))
+    .sort((a, b) => {
+      const dateA = getStudentInscriptionDate(a) || "0000-00-00";
+      const dateB = getStudentInscriptionDate(b) || "0000-00-00";
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+      return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    });
+}
+
+function renderAltaHistory() {
+  const altaHistory = getFilteredAltaHistory();
+  const becaCount = altaHistory.filter((student) => student.accesoElegido === "Beca Venezia").length;
+  const tlaxcalaCount = altaHistory.filter((student) => student.sucursal === "Tlaxcala").length;
+  const pueblaCount = altaHistory.filter((student) => student.sucursal === "Puebla").length;
+
+  altaHistoryTotal.textContent = altaHistory.length;
+  altaHistoryBeca.textContent = becaCount;
+  altaHistoryTlaxcala.textContent = tlaxcalaCount;
+  altaHistoryPuebla.textContent = pueblaCount;
+
+  altaHistoryTableBody.innerHTML = altaHistory
+    .map((student) => {
+      const inscriptionDate = getStudentInscriptionDate(student);
+      return `
+        <tr>
+          <td><span class="alta-history-code">${escapeHtml(student.studentCode || student.id || "-")}</span></td>
+          <td>${escapeHtml(inscriptionDate || "-")}</td>
+          <td>
+            <div class="alta-history-primary">
+              <strong>${escapeHtml(student.nombre || "-")}</strong>
+              <small>${escapeHtml(student.telefono || "-")}</small>
+            </div>
+          </td>
+          <td>${escapeHtml(student.sucursal || "-")}</td>
+          <td>${escapeHtml(student.curso || "-")}</td>
+          <td><span class="status-pill prospect-access-pill">${escapeHtml(student.accesoElegido || "-")}</span></td>
+          <td>${escapeHtml(student.horario || "-")}</td>
+          <td>${escapeHtml(student.metodoPago || "-")}</td>
+          <td>${escapeHtml(student.cantidadPago || "-")}</td>
+          <td>${escapeHtml(student.asesoraInscribio || student.usuarioAlta || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  altaHistoryEmptyState.hidden = altaHistory.length > 0;
+}
+
 function getActiveStudents() {
   return students.filter((student) => {
     const prospect = prospects.find((item) => item.id === student.prospectId);
@@ -3146,6 +3212,7 @@ function renderAll() {
   renderDashboard();
   renderTable();
   renderPendingAltas();
+  renderAltaHistory();
   populateAttendanceFilters();
   if (getAllowedBranch()) {
     attendanceSucursalFilter.value = getAllowedBranch();
@@ -3578,6 +3645,11 @@ monthFilter.addEventListener("change", (event) => {
   renderDashboard();
   renderTable();
   updateAttendanceSummary();
+});
+
+altasMonthFilter.addEventListener("change", (event) => {
+  selectedAltasMonth = event.target.value || getCurrentMonthValue();
+  renderAltaHistory();
 });
 
 dashboardBranchFilter.addEventListener("change", renderDashboard);
