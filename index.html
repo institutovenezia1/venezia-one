@@ -353,6 +353,29 @@
                 <h3>Gestión de prospectos</h3>
               </div>
 
+              <section class="crm-priority-strip" aria-label="Resumen de prioridad CRM">
+                <article class="crm-priority-card">
+                  <span>Prospectos nuevos</span>
+                  <strong id="crmCountNew">0</strong>
+                </article>
+                <article class="crm-priority-card">
+                  <span>Seguimientos de hoy</span>
+                  <strong id="crmCountToday">0</strong>
+                </article>
+                <article class="crm-priority-card">
+                  <span>Seguimientos atrasados</span>
+                  <strong id="crmCountLate">0</strong>
+                </article>
+                <article class="crm-priority-card">
+                  <span>Citas agendadas</span>
+                  <strong id="crmCountScheduled">0</strong>
+                </article>
+                <article class="crm-priority-card">
+                  <span>Inscritas</span>
+                  <strong id="crmCountEnrolled">0</strong>
+                </article>
+              </section>
+
               <div class="table-toolbar crm-table-toolbar">
                 <input
                   id="searchInput"
@@ -360,17 +383,45 @@
                   placeholder="Buscar por nombre, curso o sucursal"
                   aria-label="Buscar prospecto"
                 />
+                <select id="crmBranchFilter" aria-label="Filtrar por sucursal">
+                  <option value="">Todas las sucursales</option>
+                  <option>Puebla</option>
+                  <option>Tlaxcala</option>
+                </select>
+                <select id="crmTemperatureFilter" aria-label="Filtrar por temperatura">
+                  <option value="">Todas las temperaturas</option>
+                  <option>Caliente</option>
+                  <option>Tibia</option>
+                  <option>Fría</option>
+                  <option>Sin respuesta</option>
+                </select>
+                <select id="crmStateFilter" aria-label="Filtrar por estado">
+                  <option value="">Todos los estados</option>
+                  <option>Prospecto nuevo</option>
+                  <option>Seguimiento</option>
+                  <option>Cita agendada</option>
+                  <option>Inscrita</option>
+                </select>
+                <select id="crmFollowupFilter" aria-label="Filtrar por seguimiento">
+                  <option value="">Todos los seguimientos</option>
+                  <option value="late">Atrasados</option>
+                  <option value="today">Hoy</option>
+                  <option value="upcoming">Próximos</option>
+                  <option value="neutral">Sin fecha</option>
+                </select>
                 <select id="crmAccessFilter" aria-label="Filtrar por acceso de interes">
                   <option value="">Todos los accesos</option>
                   <option>Platinum</option>
                   <option>Oro</option>
                   <option>Plata</option>
+                  <option>Beca Venezia</option>
                 </select>
-                <select id="crmAdvisorFilter" aria-label="Filtrar por asesora asignada">
-                  <option value="">Todas las asesoras</option>
+                <select id="crmAdvisorFilter" aria-label="Filtrar por asesor asignado">
+                  <option value="">Todos los asesores</option>
                   <option>Mari Flores | Coordinadora de maestras</option>
                   <option>Ysela Herrera | Asesora</option>
                   <option>Ismael Capir | CEO</option>
+                  <option>Moises Velazco | Gerente de ventas</option>
                 </select>
               </div>
 

@@ -88,12 +88,21 @@ const financeForm = document.getElementById("financeForm");
 const financeClearButton = document.getElementById("financeClearButton");
 const financeSubmitButton = document.getElementById("financeSubmitButton");
 const searchInput = document.getElementById("searchInput");
+const crmBranchFilter = document.getElementById("crmBranchFilter");
+const crmTemperatureFilter = document.getElementById("crmTemperatureFilter");
+const crmStateFilter = document.getElementById("crmStateFilter");
+const crmFollowupFilter = document.getElementById("crmFollowupFilter");
 const crmAccessFilter = document.getElementById("crmAccessFilter");
 const crmAdvisorFilter = document.getElementById("crmAdvisorFilter");
 const monthFilter = document.getElementById("monthFilter");
 const dashboardBranchFilter = document.getElementById("dashboardBranchFilter");
 const tableBody = document.getElementById("prospectsTableBody");
 const emptyState = document.getElementById("emptyState");
+const crmCountNew = document.getElementById("crmCountNew");
+const crmCountToday = document.getElementById("crmCountToday");
+const crmCountLate = document.getElementById("crmCountLate");
+const crmCountScheduled = document.getElementById("crmCountScheduled");
+const crmCountEnrolled = document.getElementById("crmCountEnrolled");
 const pendingAltasTableBody = document.getElementById("pendingAltasTableBody");
 const pendingAltasEmptyState = document.getElementById("pendingAltasEmptyState");
 const submitButton = document.getElementById("submitButton");
@@ -292,6 +301,10 @@ let webSettings = dataService.entities.webSettings.getAll(() => ({
   availability: "Tiempo limitado | Cupos limitados",
 }));
 let activeSearch = "";
+let activeBranchFilter = "";
+let activeTemperatureFilter = "";
+let activeStateFilter = "";
+let activeFollowupFilter = "";
 let activeAccessFilter = "";
 let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
@@ -842,6 +855,21 @@ function getProspectWhatsAppUrl(prospect) {
     "Hola, te contacto de Instituto Venezia para dar seguimiento a la información que pediste sobre nuestros cursos. 💜"
   );
   return `https://wa.me/${phone}?text=${message}`;
+}
+
+function getProspectPriorityRank(prospect) {
+  const normalizedState = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
+  const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
+  const temperature = normalizeTemperatureValue(prospect.temperatura);
+
+  if (followup.tone === "late") return 0;
+  if (followup.tone === "today") return 1;
+  if (temperature === "Caliente") return 2;
+  if (normalizedState === "Prospecto nuevo") return 3;
+  if (normalizedState === "Seguimiento") return 4;
+  if (normalizedState === "Cita agendada") return 5;
+  if (normalizedState === "Inscrita") return 6;
+  return 7;
 }
 
 function getProspectHistorySummary(prospect) {
@@ -1961,47 +1989,101 @@ function getFilteredProspects() {
   const base = prospects.filter(
     (prospect) => isProspectInSelectedMonth(prospect) && matchesCurrentBranch(prospect.sucursal)
   );
-  return base.filter((prospect) => {
-    const matchesAccess = !activeAccessFilter || prospect.accesoInteres === activeAccessFilter;
-    const matchesAdvisor = !activeAdvisorFilter || prospect.asesoraAsignada === activeAdvisorFilter;
-    if (!matchesAccess || !matchesAdvisor) {
-      return false;
-    }
+  return base
+    .filter((prospect) => {
+      const normalizedState = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
+      const normalizedTemperature = normalizeTemperatureValue(prospect.temperatura);
+      const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
+      const matchesBranch = !activeBranchFilter || prospect.sucursal === activeBranchFilter;
+      const matchesTemperature = !activeTemperatureFilter || normalizedTemperature === activeTemperatureFilter;
+      const matchesState = !activeStateFilter || normalizedState === activeStateFilter;
+      const matchesFollowup = !activeFollowupFilter || followup.tone === activeFollowupFilter;
+      const matchesAccess = !activeAccessFilter || prospect.accesoInteres === activeAccessFilter;
+      const matchesAdvisor = !activeAdvisorFilter || prospect.asesoraAsignada === activeAdvisorFilter;
+      if (
+        !matchesBranch ||
+        !matchesTemperature ||
+        !matchesState ||
+        !matchesFollowup ||
+        !matchesAccess ||
+        !matchesAdvisor
+      ) {
+        return false;
+      }
 
-    if (!activeSearch) {
-      return true;
-    }
+      if (!activeSearch) {
+        return true;
+      }
 
-    const query = activeSearch.toLowerCase();
-    return [
-      prospect.nombre,
-      prospect.curso,
-      prospect.sucursal,
-      prospect.estado,
-      prospect.temperatura,
-      prospect.asesoraAsignada,
-      prospect.proximoSeguimiento,
-      prospect.origen,
-      prospect.medio,
-      prospect.informacion,
-      prospect.accesoInteres,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(query);
-  });
+      const query = activeSearch.toLowerCase();
+      return [
+        prospect.nombre,
+        prospect.curso,
+        prospect.sucursal,
+        normalizedState,
+        normalizedTemperature,
+        prospect.asesoraAsignada,
+        prospect.proximoSeguimiento,
+        prospect.origen,
+        prospect.medio,
+        prospect.informacion,
+        prospect.accesoInteres,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    })
+    .sort((left, right) => {
+      const priorityDiff = getProspectPriorityRank(left) - getProspectPriorityRank(right);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+
+      const leftDate = left.proximoSeguimiento || "9999-12-31";
+      const rightDate = right.proximoSeguimiento || "9999-12-31";
+      if (leftDate !== rightDate) {
+        return leftDate.localeCompare(rightDate);
+      }
+
+      return getProspectDate(right).localeCompare(getProspectDate(left));
+    });
+}
+
+function renderCrmPriorityStats(filteredProspects) {
+  const stats = filteredProspects.reduce(
+    (accumulator, prospect) => {
+      const state = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
+      const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
+
+      if (state === "Prospecto nuevo") accumulator.newCount += 1;
+      if (followup.tone === "today") accumulator.todayCount += 1;
+      if (followup.tone === "late") accumulator.lateCount += 1;
+      if (state === "Cita agendada") accumulator.scheduledCount += 1;
+      if (state === "Inscrita") accumulator.enrolledCount += 1;
+      return accumulator;
+    },
+    { newCount: 0, todayCount: 0, lateCount: 0, scheduledCount: 0, enrolledCount: 0 }
+  );
+
+  crmCountNew.textContent = stats.newCount;
+  crmCountToday.textContent = stats.todayCount;
+  crmCountLate.textContent = stats.lateCount;
+  crmCountScheduled.textContent = stats.scheduledCount;
+  crmCountEnrolled.textContent = stats.enrolledCount;
 }
 
 function renderTable() {
   const filteredProspects = getFilteredProspects();
+  renderCrmPriorityStats(filteredProspects);
 
   tableBody.innerHTML = filteredProspects
     .map((prospect) => {
-      const temperature = prospect.temperatura || "";
+      const temperature = normalizeTemperatureValue(prospect.temperatura);
       const temperatureMarkup = temperature
         ? `<span class="status-pill status-pill-temperature status-pill-${escapeHtml(getTemperatureTone(temperature))}">${escapeHtml(temperature)}</span>`
         : `<span class="status-pill status-pill-temperature status-pill-default">Sin temperatura</span>`;
       const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
+      const stateLabel = normalizeProspectState(prospect.estado, { preserveOperationalState: false }) || prospect.estado;
       const whatsappUrl = getProspectWhatsAppUrl(prospect);
       const whatsappDisabled = whatsappUrl ? "" : "disabled";
       const whatsappTitle = whatsappUrl
@@ -2030,11 +2112,11 @@ function renderTable() {
             <small>${escapeHtml(prospect.informacion)}</small>
           </td>
           <td>${escapeHtml(prospect.accesoInteres || "-")}</td>
-          <td><span class="status-pill">${escapeHtml(normalizeProspectState(prospect.estado, { preserveOperationalState: false }) || prospect.estado)}</span></td>
+          <td><span class="status-pill crm-state-pill crm-state-pill-${escapeHtml(stateLabel.toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(stateLabel)}</span></td>
           <td>
             <div class="prospect-followup-cell">
               <span class="status-pill followup-pill followup-pill-${escapeHtml(followup.tone)}">${escapeHtml(followup.label)}</span>
-              <small>${escapeHtml(followup.detail)}</small>
+              <small>${escapeHtml(followup.detail || "Sin fecha definida.")}</small>
               <small>Asesor: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
             </div>
           </td>
@@ -3162,6 +3244,26 @@ webScrollButtons.forEach((button) => {
 
 searchInput.addEventListener("input", (event) => {
   activeSearch = event.target.value.trim();
+  renderTable();
+});
+
+crmBranchFilter.addEventListener("change", (event) => {
+  activeBranchFilter = event.target.value;
+  renderTable();
+});
+
+crmTemperatureFilter.addEventListener("change", (event) => {
+  activeTemperatureFilter = event.target.value;
+  renderTable();
+});
+
+crmStateFilter.addEventListener("change", (event) => {
+  activeStateFilter = event.target.value;
+  renderTable();
+});
+
+crmFollowupFilter.addEventListener("change", (event) => {
+  activeFollowupFilter = event.target.value;
   renderTable();
 });
 
