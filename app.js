@@ -995,6 +995,21 @@ function openPublicAccessPanel() {
   updateSessionUI();
 }
 
+function restoreInternalAccessFromSavedSession() {
+  const user = getCurrentInternalUser();
+  if (!currentInternalUserId || !user || user.status !== "Activo") {
+    return false;
+  }
+
+  currentAccessMode = "internal";
+  publicAccessPanelOpen = false;
+  internalLoginError.hidden = true;
+  updateSessionUI();
+  renderAll();
+  setActiveModule(getDefaultModuleForCurrentContext());
+  return true;
+}
+
 function closePublicAccessPanel() {
   publicAccessPanelOpen = false;
   internalLoginError.hidden = true;
@@ -2819,6 +2834,9 @@ if (webLeadSubmitButton) {
   .filter(Boolean)
   .forEach((button) => {
     button.addEventListener("click", () => {
+      if (restoreInternalAccessFromSavedSession()) {
+        return;
+      }
       openPublicAccessPanel();
     });
   });
@@ -3088,16 +3106,15 @@ async function initApp() {
   updateWebAppointmentFields();
   currentInternalUserId = dataService.sessions.getInternal();
   currentPortalStudentId = dataService.sessions.getStudent();
-  if (currentInternalUserId && getCurrentInternalUser()?.status === "Activo") {
-    currentAccessMode = "internal";
-  } else if (currentPortalStudentId) {
-    currentAccessMode = "student";
-  } else {
-    currentAccessMode = "logged-out";
+  if (currentInternalUserId && getCurrentInternalUser()?.status !== "Activo") {
+    currentInternalUserId = "";
+    dataService.sessions.clearInternal();
   }
+  currentAccessMode = "logged-out";
+  publicAccessPanelOpen = false;
   updateSessionUI();
   renderAll();
-  setActiveModule(getDefaultModuleForCurrentContext());
+  setActiveModule("web-venezia");
 }
 
 initHeroSlider();
