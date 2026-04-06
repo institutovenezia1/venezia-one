@@ -214,56 +214,55 @@ const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
 const WEB_DEFAULT_COURSES = [
   {
     name: "Uñas",
-    description: "Aprende una habilidad con alta demanda y empieza a generar ingresos desde tus primeras clientas.",
+    description: "Aprende con horarios pensados para tu ritmo de vida.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/unas.jpg",
     availabilityTitle: "Horarios nuevos",
     summaryBlocks: [
       {
         title: "Entre semana · 3 días de clases",
-        kicker: "Turnos",
-        detail: "9am a 11am · 12pm a 2pm · 3pm a 5pm",
+        detail: "Turnos: 9am a 11am · 12pm a 2pm · 3pm a 5pm",
       },
       {
         title: "Fin de semana · 1 día de clases",
-        detail: "Viernes o sábado o domingo",
+        detail: "Viernes o sábado",
       },
     ],
+    extraNote: "Domingo: solo matutino de 9am a 1pm",
     capacityNote: "Grupos limitados a 7 cupos",
   },
   {
     name: "Pestañas",
-    description: "Especialízate en una técnica altamente rentable y crea servicios premium que te permitan cobrar más.",
+    description: "Capacítate en fines de semana y da el primer paso para generar ingresos.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/pestanas.jpg",
     availabilityTitle: "Horarios nuevos",
     summaryBlocks: [
       {
         title: "Fin de semana · 1 día de clases",
-        kicker: "Turnos",
-        detail: "9am a 1pm · 2pm a 6pm",
+        detail: "Turnos: Viernes o sábado · 9am a 1pm o 2pm a 6pm",
       },
     ],
-    extraNote: "Viernes o sábado o domingo",
+    extraNote: "Domingo: solo matutino de 9am a 1pm",
     capacityNote: "Grupos limitados a 7 cupos",
   },
   {
     name: "Barbería",
-    description: "Desarrolla técnica, seguridad y conviértete en un barbero o lady barber con ingresos constantes.",
+    description: "Elige el turno que mejor se adapte a ti.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/barberia.jpg",
     availabilityTitle: "Horarios nuevos",
     summaryBlocks: [
       {
         title: "Entre semana · 3 días de clases",
-        kicker: "Turnos",
-        detail: "9am a 11am · 12pm a 2pm · 3pm a 5pm",
+        detail: "Turnos: 9am a 11am · 12pm a 2pm · 3pm a 5pm",
       },
       {
         title: "Fin de semana · 1 día de clases",
-        detail: "Viernes o sábado o domingo",
+        detail: "Viernes o sábado",
       },
     ],
+    extraNote: "Domingo: solo matutino de 9am a 1pm",
     capacityNote: "Grupos limitados a 7 cupos",
   },
   {
