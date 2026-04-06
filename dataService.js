@@ -404,7 +404,9 @@
       tutor: extractAltaMetadata(record.notes, "Tutor"),
       escolaridad: extractAltaMetadata(record.notes, "Escolaridad"),
       contactoEmergencia: extractAltaMetadata(record.notes, "Contacto de emergencia"),
-      asesoraInscribio: extractAltaMetadata(record.notes, "Asesora que inscribió"),
+      asesoraInscribio:
+        extractAltaMetadata(record.notes, "Asesor que inscribió") ||
+        extractAltaMetadata(record.notes, "Asesora que inscribió"),
       metodoPago: extractAltaMetadata(record.notes, "Método de pago"),
       tipoPago: extractAltaMetadata(record.notes, "Tipo de pago"),
       inscripcionPagada: extractAltaMetadata(record.notes, "Inscripción pagada"),

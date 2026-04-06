@@ -489,6 +489,10 @@
 
               <section class="alta-summary-card" id="altaSummaryCard" aria-label="Resumen ejecutivo de alta">
                 <div class="alta-summary-item">
+                  <span>ID Alumna</span>
+                  <strong id="altaSummaryStudentCode">-</strong>
+                </div>
+                <div class="alta-summary-item">
                   <span>Alumna</span>
                   <strong id="altaSummaryNombre">Sin seleccionar</strong>
                 </div>
@@ -565,7 +569,7 @@
                     </label>
 
                     <label>
-                      <span>Dirección</span>
+                      <span>Dirección del alumno o tutor</span>
                       <input id="altaDireccion" name="direccion" type="text" />
                     </label>
 
@@ -639,13 +643,13 @@
                     </label>
 
                     <label>
-                      <span>Asesora que inscribió</span>
+                      <span>Asesor que inscribió</span>
                       <select id="altaAsesoraInscribio" name="asesoraInscribio" required>
                         <option value="">Selecciona una opcion</option>
-                        <option>Mari Flores | Coordinadora de maestras</option>
-                        <option>Ysela Herrera | Asesora</option>
-                        <option>Ismael Capir | CEO</option>
-                        <option>Moises Velazco | Gerente de ventas</option>
+                        <option>Mari Flores</option>
+                        <option>Moises Velazco</option>
+                        <option>Ysela Herrera</option>
+                        <option>Ismael Capir</option>
                       </select>
                     </label>
                   </div>
@@ -676,15 +680,6 @@
                     </label>
 
                     <label>
-                      <span>Inscripción pagada</span>
-                      <select id="altaInscripcionPagada" name="inscripcionPagada" required>
-                        <option value="">Selecciona una opcion</option>
-                        <option>Si</option>
-                        <option>No</option>
-                      </select>
-                    </label>
-
-                    <label>
                       <span>Cantidad de pago</span>
                       <input id="altaCantidadPago" name="cantidadPago" type="text" required />
                     </label>
@@ -692,16 +687,6 @@
                     <label>
                       <span>Mensualidad asignada</span>
                       <input id="altaMensualidad" name="mensualidad" type="text" required />
-                    </label>
-
-                    <label>
-                      <span>Colegiatura</span>
-                      <input id="altaColegiatura" name="colegiatura" type="text" required />
-                    </label>
-
-                    <label>
-                      <span>Promoción aplicada</span>
-                      <input id="altaPromocion" name="promocion" type="text" />
                     </label>
 
                     <label>
@@ -723,10 +708,6 @@
                       </select>
                     </label>
 
-                    <label class="full-width">
-                      <span>Usuario que dio de alta</span>
-                      <input id="altaUsuario" name="usuarioAlta" type="text" required />
-                    </label>
                   </div>
                 </section>
 
@@ -797,6 +778,10 @@
                   <p id="altaConfirmMessage">Vas a dar de alta a esta alumna con los siguientes datos.</p>
                 </div>
                 <div class="alta-summary-card alta-summary-card-compact" id="altaConfirmSummary">
+                  <div class="alta-summary-item">
+                    <span>ID Alumna</span>
+                    <strong id="altaConfirmStudentCode">-</strong>
+                  </div>
                   <div class="alta-summary-item">
                     <span>Alumna</span>
                     <strong id="altaConfirmNombre">-</strong>

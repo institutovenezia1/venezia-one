@@ -85,6 +85,7 @@ const staffEmptyState = document.getElementById("staffEmptyState");
 const altaForm = document.getElementById("altaForm");
 const clearAltaButton = document.getElementById("clearAltaButton");
 const altaValidationAlert = document.getElementById("altaValidationAlert");
+const altaSummaryStudentCode = document.getElementById("altaSummaryStudentCode");
 const altaSummaryNombre = document.getElementById("altaSummaryNombre");
 const altaSummaryCurso = document.getElementById("altaSummaryCurso");
 const altaSummarySucursal = document.getElementById("altaSummarySucursal");
@@ -97,6 +98,7 @@ const altaSummaryPortalUser = document.getElementById("altaSummaryPortalUser");
 const altaSummaryPortalPassword = document.getElementById("altaSummaryPortalPassword");
 const altaConfirmCard = document.getElementById("altaConfirmCard");
 const altaConfirmMessage = document.getElementById("altaConfirmMessage");
+const altaConfirmStudentCode = document.getElementById("altaConfirmStudentCode");
 const altaConfirmNombre = document.getElementById("altaConfirmNombre");
 const altaConfirmCurso = document.getElementById("altaConfirmCurso");
 const altaConfirmSucursal = document.getElementById("altaConfirmSucursal");
@@ -1099,11 +1101,15 @@ function getAltaFormData() {
   const formData = new FormData(altaForm);
   const telefono = normalizePhone(formData.get("telefono"));
   const allowedBranch = getAllowedBranch();
-  const studentCode = String(formData.get("studentCode") || generateStudentCode()).trim();
+  const sucursal = allowedBranch || String(formData.get("sucursal") || "").trim();
+  const studentCode = String(
+    formData.get("studentCode") || generateStudentCode(sucursal, formData.get("fechaInscripcion"))
+  ).trim();
   const fechaInscripcion = String(formData.get("fechaInscripcion") || formatDateForInput(new Date())).trim();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
   const portalPassword = buildStudentPortalPassword(fechaNacimiento);
+  const asesorInscribio = normalizeAdvisorName(formData.get("asesoraInscribio"));
   const rawObservaciones = String(formData.get("observaciones") || "").trim();
   const metadataSegments = [
     `ID Alumna: ${studentCode}`,
@@ -1114,20 +1120,17 @@ function getAltaFormData() {
     `Tutor: ${String(formData.get("tutor") || "").trim() || "-"}`,
     `Escolaridad: ${String(formData.get("escolaridad") || "").trim() || "-"}`,
     `Contacto de emergencia: ${String(formData.get("contactoEmergencia") || "").trim() || "-"}`,
-    `Asesora que inscribió: ${String(formData.get("asesoraInscribio") || "").trim() || "-"}`,
+    `Asesor que inscribió: ${asesorInscribio || "-"}`,
     `Método de pago: ${String(formData.get("metodoPago") || "").trim() || "-"}`,
     `Tipo de pago: ${String(formData.get("tipoPago") || "").trim() || "-"}`,
-    `Inscripción pagada: ${String(formData.get("inscripcionPagada") || "").trim() || "-"}`,
     `Cantidad de pago: ${String(formData.get("cantidadPago") || "").trim() || "-"}`,
     `Mensualidad asignada: ${String(formData.get("mensualidad") || "").trim() || "-"}`,
-    `Colegiatura: ${String(formData.get("colegiatura") || "").trim() || "-"}`,
-    `Promoción: ${String(formData.get("promocion") || "").trim() || "-"}`,
     `Apoyo gobierno: ${String(formData.get("apoyoGobierno") || "").trim() || "-"}`,
     `Documentación: ${String(formData.get("documentos") || "").trim() || "-"}`,
     `Tiene hijos: ${String(formData.get("tieneHijos") || "").trim() || "-"}`,
     `Trabaja actualmente: ${String(formData.get("trabajaActualmente") || "").trim() || "-"}`,
     `Notas médicas: ${String(formData.get("notasMedicas") || "").trim() || "-"}`,
-    `Usuario alta: ${String(formData.get("usuarioAlta") || "").trim() || "-"}`,
+    `Usuario alta: ${asesorInscribio || "-"}`,
     `Usuario Mi Venezia: ${portalUser || "-"}`,
     `Password Mi Venezia: ${portalPassword || "-"}`,
   ];
@@ -1139,7 +1142,7 @@ function getAltaFormData() {
     fechaInscripcion,
     nombre: formData.get("nombre").trim(),
     telefono,
-    sucursal: allowedBranch || formData.get("sucursal").trim(),
+    sucursal,
     curso: formData.get("curso").trim(),
     accesoElegido: formData.get("accesoElegido"),
     horario: formData.get("horario").trim(),
@@ -1150,20 +1153,17 @@ function getAltaFormData() {
     tutor: String(formData.get("tutor") || "").trim(),
     escolaridad: String(formData.get("escolaridad") || "").trim(),
     contactoEmergencia: String(formData.get("contactoEmergencia") || "").trim(),
-    asesoraInscribio: String(formData.get("asesoraInscribio") || "").trim(),
+    asesoraInscribio: asesorInscribio,
     metodoPago: String(formData.get("metodoPago") || "").trim(),
     tipoPago: String(formData.get("tipoPago") || "").trim(),
-    inscripcionPagada: String(formData.get("inscripcionPagada") || "").trim(),
     cantidadPago: String(formData.get("cantidadPago") || "").trim(),
     mensualidad: String(formData.get("mensualidad") || "").trim(),
-    colegiatura: String(formData.get("colegiatura") || "").trim(),
-    promocion: String(formData.get("promocion") || "").trim(),
     apoyoGobierno: String(formData.get("apoyoGobierno") || "").trim(),
     documentos: String(formData.get("documentos") || "").trim(),
     tieneHijos: String(formData.get("tieneHijos") || "").trim(),
     trabajaActualmente: String(formData.get("trabajaActualmente") || "").trim(),
     notasMedicas: String(formData.get("notasMedicas") || "").trim(),
-    usuarioAlta: String(formData.get("usuarioAlta") || "").trim(),
+    usuarioAlta: asesorInscribio,
     observaciones: [rawObservaciones, ...metadataSegments].filter(Boolean).join(" | "),
     portalUser,
     portalPassword,
@@ -1174,6 +1174,7 @@ function getAltaFormData() {
 
 function getAltaSummaryData(altaData) {
   return {
+    studentCode: altaData.studentCode || "-",
     nombre: altaData.nombre || "Sin seleccionar",
     curso: altaData.curso || "-",
     sucursal: altaData.sucursal || "-",
@@ -1188,6 +1189,7 @@ function getAltaSummaryData(altaData) {
 }
 
 function renderAltaSummary(summary) {
+  altaSummaryStudentCode.textContent = summary.studentCode;
   altaSummaryNombre.textContent = summary.nombre;
   altaSummaryCurso.textContent = summary.curso;
   altaSummarySucursal.textContent = summary.sucursal;
@@ -1201,6 +1203,7 @@ function renderAltaSummary(summary) {
 }
 
 function renderAltaConfirmation(summary) {
+  altaConfirmStudentCode.textContent = summary.studentCode;
   altaConfirmNombre.textContent = summary.nombre;
   altaConfirmCurso.textContent = summary.curso;
   altaConfirmSucursal.textContent = summary.sucursal;
@@ -1234,7 +1237,7 @@ function getAltaValidationErrors(altaData) {
   if (!altaData.horario) errors.push("Horario");
   if (!altaData.fechaInicio) errors.push("Fecha de inicio");
   if (!altaData.fechaNacimiento) errors.push("Fecha de nacimiento");
-  if (!altaData.asesoraInscribio) errors.push("Asesora que inscribió");
+  if (!altaData.asesoraInscribio) errors.push("Asesor que inscribió");
   if (!altaData.metodoPago) errors.push("Método de pago");
   if (!altaData.tipoPago) errors.push("Pago completo o Apartó lugar");
   if (!altaData.cantidadPago) errors.push("Cantidad de pago");
@@ -1246,7 +1249,8 @@ function getAltaValidationErrors(altaData) {
 function openAltaConfirmation(altaData) {
   pendingAltaConfirmation = altaData;
   altaConfirmMessage.textContent =
-    `Vas a dar de alta a ${altaData.nombre || "esta alumna"} en ${altaData.curso || "su curso"} ` +
+    `Vas a dar de alta a ${altaData.nombre || "esta alumna"} con folio ${altaData.studentCode || "-"} ` +
+    `en ${altaData.curso || "su curso"} ` +
     `(${altaData.sucursal || "sin sucursal"}) con ${altaData.accesoElegido || "acceso pendiente"}, ` +
     `${altaData.metodoPago || "método de pago pendiente"} y pago de ${altaData.cantidadPago || "-"}.`;
   renderAltaConfirmation(getAltaSummaryData(altaData));
@@ -1261,16 +1265,20 @@ function closeAltaConfirmation() {
 function syncAltaAutoFields() {
   const telefono = normalizePhone(document.getElementById("altaTelefono").value);
   const fechaNacimiento = document.getElementById("altaFechaNacimiento").value;
+  const sucursal = document.getElementById("altaSucursal").value;
   const studentCodeField = document.getElementById("altaStudentCode");
   const fechaInscripcionField = document.getElementById("altaFechaInscripcion");
   const portalUserField = document.getElementById("altaPortalUser");
   const portalPasswordField = document.getElementById("altaPassword");
 
-  if (!studentCodeField.value) {
-    studentCodeField.value = generateStudentCode();
-  }
   if (!fechaInscripcionField.value) {
     fechaInscripcionField.value = formatDateForInput(new Date());
+  }
+  if (sucursal) {
+    const expectedPrefix = sucursal === "Tlaxcala" ? "TLX" : sucursal === "Puebla" ? "PUE" : "ALT";
+    if (!studentCodeField.value || !studentCodeField.value.startsWith(`${expectedPrefix}-${fechaInscripcionField.value.slice(2, 4)}-`)) {
+      studentCodeField.value = generateStudentCode(sucursal, fechaInscripcionField.value);
+    }
   }
 
   portalUserField.value = telefono;
@@ -1289,13 +1297,41 @@ function getBirthYear(dateValue) {
   return normalized.slice(0, 4);
 }
 
+function normalizeAdvisorName(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  return normalized.split("|")[0].trim();
+}
+
 function buildStudentPortalPassword(dateValue) {
   const birthYear = getBirthYear(dateValue);
   return birthYear ? `Venezia${birthYear}` : "Venezia0000";
 }
 
-function generateStudentCode() {
-  return `AL-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
+  const normalizedBranch = String(branch || "").trim();
+  const prefix = normalizedBranch === "Tlaxcala" ? "TLX" : normalizedBranch === "Puebla" ? "PUE" : "ALT";
+  const yearValue = String(inscriptionDate || formatDateForInput(new Date())).slice(2, 4) || String(new Date().getFullYear()).slice(2);
+  const codePattern = new RegExp(`^${prefix}-${yearValue}-(\\d{3})$`);
+  const studentsInScope = students.filter((student) => {
+    if (student.sucursal !== normalizedBranch) {
+      return false;
+    }
+    const baseDate = String(student.fechaInscripcion || student.createdAt || "").trim();
+    return baseDate.includes(`20${yearValue}`);
+  });
+  const existingMaxCode = students.reduce((maxValue, student) => {
+    const code = String(student.studentCode || "").trim();
+    const match = code.match(codePattern);
+    if (!match) {
+      return maxValue;
+    }
+    return Math.max(maxValue, Number(match[1]));
+  }, 0);
+  const sequence = Math.max(existingMaxCode, studentsInScope.length) + 1;
+  return `${prefix}-${yearValue}-${String(sequence).padStart(3, "0")}`;
 }
 
 function getCurrentInternalUser() {
@@ -3045,7 +3081,7 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaSucursal").value = prospect.sucursal;
   document.getElementById("altaCurso").value = prospect.curso;
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
-  document.getElementById("altaAsesoraInscribio").value = prospect.asesoraAsignada || "";
+  document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
   syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
