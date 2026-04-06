@@ -512,6 +512,22 @@
                   <span>Fecha de inicio</span>
                   <strong id="altaSummaryFechaInicio">-</strong>
                 </div>
+                <div class="alta-summary-item">
+                  <span>Método de pago</span>
+                  <strong id="altaSummaryMetodoPago">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Cantidad de pago</span>
+                  <strong id="altaSummaryCantidadPago">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Usuario Mi Venezia</span>
+                  <strong id="altaSummaryPortalUser">-</strong>
+                </div>
+                <div class="alta-summary-item">
+                  <span>Contraseña generada</span>
+                  <strong id="altaSummaryPortalPassword">-</strong>
+                </div>
               </section>
 
               <form id="altaForm" class="prospect-form altas-form">
@@ -524,23 +540,73 @@
                   </div>
                   <div class="alta-form-block-grid">
                     <label>
+                      <span>ID Alumna</span>
+                      <input id="altaStudentCode" name="studentCode" type="text" readonly />
+                    </label>
+
+                    <label>
+                      <span>Fecha de inscripción</span>
+                      <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" readonly />
+                    </label>
+
+                    <label>
                       <span>Nombre completo</span>
                       <input id="altaNombre" name="nombre" type="text" required />
                     </label>
 
                     <label>
-                      <span>Teléfono</span>
+                      <span>Teléfono/Whatsapp</span>
                       <input id="altaTelefono" name="telefono" type="tel" required />
                     </label>
 
                     <label>
-                      <span>Sucursal</span>
-                      <input id="altaSucursal" name="sucursal" type="text" required />
+                      <span>Correo electrónico</span>
+                      <input id="altaCorreo" name="correo" type="email" />
                     </label>
 
                     <label>
-                      <span>Curso</span>
-                      <input id="altaCurso" name="curso" type="text" required />
+                      <span>Dirección</span>
+                      <input id="altaDireccion" name="direccion" type="text" />
+                    </label>
+
+                    <label>
+                      <span>Fecha de nacimiento</span>
+                      <input id="altaFechaNacimiento" name="fechaNacimiento" type="date" required />
+                    </label>
+
+                    <label>
+                      <span>Nombre de tutor si es menor de edad</span>
+                      <input id="altaTutor" name="tutor" type="text" />
+                    </label>
+
+                    <label>
+                      <span>Escolaridad</span>
+                      <input id="altaEscolaridad" name="escolaridad" type="text" />
+                    </label>
+
+                    <label>
+                      <span>Contacto de emergencia</span>
+                      <input id="altaContactoEmergencia" name="contactoEmergencia" type="text" />
+                    </label>
+
+                    <label>
+                      <span>Sucursal</span>
+                      <select id="altaSucursal" name="sucursal" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Puebla</option>
+                        <option>Tlaxcala</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Curso inscrito</span>
+                      <select id="altaCurso" name="curso" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Uñas</option>
+                        <option>Pestañas</option>
+                        <option>Barbería</option>
+                        <option>Maquillaje</option>
+                      </select>
                     </label>
                   </div>
                 </section>
@@ -552,7 +618,7 @@
                   </div>
                   <div class="alta-form-block-grid">
                     <label>
-                      <span>Acceso elegido</span>
+                      <span>Tipo de acceso</span>
                       <select id="altaAccesoElegido" name="accesoElegido" required>
                         <option value="">Selecciona una opcion</option>
                         <option>Platinum</option>
@@ -571,6 +637,17 @@
                       <span>Fecha de inicio</span>
                       <input id="altaFechaInicio" name="fechaInicio" type="date" required />
                     </label>
+
+                    <label>
+                      <span>Asesora que inscribió</span>
+                      <select id="altaAsesoraInscribio" name="asesoraInscribio" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Mari Flores | Coordinadora de maestras</option>
+                        <option>Ysela Herrera | Asesora</option>
+                        <option>Ismael Capir | CEO</option>
+                        <option>Moises Velazco | Gerente de ventas</option>
+                      </select>
+                    </label>
                   </div>
                 </section>
 
@@ -581,12 +658,40 @@
                   </div>
                   <div class="alta-form-block-grid">
                     <label>
+                      <span>Método de pago</span>
+                      <select id="altaMetodoPago" name="metodoPago" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Efectivo</option>
+                        <option>Transferencia</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Pago completo o Apartó lugar</span>
+                      <select id="altaTipoPago" name="tipoPago" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Pago completo</option>
+                        <option>Apartó lugar</option>
+                      </select>
+                    </label>
+
+                    <label>
                       <span>Inscripción pagada</span>
                       <select id="altaInscripcionPagada" name="inscripcionPagada" required>
                         <option value="">Selecciona una opcion</option>
                         <option>Si</option>
                         <option>No</option>
                       </select>
+                    </label>
+
+                    <label>
+                      <span>Cantidad de pago</span>
+                      <input id="altaCantidadPago" name="cantidadPago" type="text" required />
+                    </label>
+
+                    <label>
+                      <span>Mensualidad asignada</span>
+                      <input id="altaMensualidad" name="mensualidad" type="text" required />
                     </label>
 
                     <label>
@@ -600,18 +705,58 @@
                     </label>
 
                     <label>
-                      <span>Documentos entregados</span>
+                      <span>¿Recibe apoyo gobierno?</span>
+                      <select id="altaApoyoGobierno" name="apoyoGobierno" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Sí</option>
+                        <option>No</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Documentación</span>
                       <select id="altaDocumentos" name="documentos" required>
                         <option value="">Selecciona una opcion</option>
-                        <option>Completos</option>
-                        <option>Parciales</option>
-                        <option>Pendientes</option>
+                        <option>Completa</option>
+                        <option>Incompleta</option>
+                        <option>Parcial</option>
                       </select>
                     </label>
 
                     <label class="full-width">
                       <span>Usuario que dio de alta</span>
                       <input id="altaUsuario" name="usuarioAlta" type="text" required />
+                    </label>
+                  </div>
+                </section>
+
+                <section class="alta-form-block full-width">
+                  <div class="alta-form-block-heading">
+                    <p class="eyebrow">Perfil personal</p>
+                    <strong>Información complementaria</strong>
+                  </div>
+                  <div class="alta-form-block-grid">
+                    <label>
+                      <span>¿Tiene hijos?</span>
+                      <select id="altaTieneHijos" name="tieneHijos" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Sí</option>
+                        <option>No</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>¿Trabaja actualmente?</span>
+                      <select id="altaTrabajaActualmente" name="trabajaActualmente" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>Sí</option>
+                        <option>No</option>
+                      </select>
+                    </label>
+
+                    <label class="full-width">
+                      <span>Notas médicas / alergias</span>
+                      <textarea id="altaNotasMedicas" name="notasMedicas" rows="3"></textarea>
                     </label>
 
                     <label class="full-width">
@@ -627,9 +772,14 @@
                     <strong>Entrega de acceso a la alumna</strong>
                   </div>
                   <div class="alta-form-block-grid alta-access-grid">
-                    <label class="full-width">
+                    <label>
+                      <span>Usuario de acceso Mi Venezia</span>
+                      <input id="altaPortalUser" name="portalUser" type="text" readonly />
+                    </label>
+
+                    <label>
                       <span>Contraseña de acceso Mi Venezia</span>
-                      <input id="altaPassword" name="portalPassword" type="text" placeholder="Si se deja vacío se genera una temporal" />
+                      <input id="altaPassword" name="portalPassword" type="text" readonly />
                     </label>
                   </div>
                 </section>
@@ -670,6 +820,22 @@
                   <div class="alta-summary-item">
                     <span>Fecha de inicio</span>
                     <strong id="altaConfirmFechaInicio">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Método de pago</span>
+                    <strong id="altaConfirmMetodoPago">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Cantidad de pago</span>
+                    <strong id="altaConfirmCantidadPago">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Usuario Mi Venezia</span>
+                    <strong id="altaConfirmPortalUser">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
+                    <span>Contraseña generada</span>
+                    <strong id="altaConfirmPortalPassword">-</strong>
                   </div>
                 </div>
                 <div class="form-actions">

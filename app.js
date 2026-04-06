@@ -91,13 +91,22 @@ const altaSummarySucursal = document.getElementById("altaSummarySucursal");
 const altaSummaryAcceso = document.getElementById("altaSummaryAcceso");
 const altaSummaryHorario = document.getElementById("altaSummaryHorario");
 const altaSummaryFechaInicio = document.getElementById("altaSummaryFechaInicio");
+const altaSummaryMetodoPago = document.getElementById("altaSummaryMetodoPago");
+const altaSummaryCantidadPago = document.getElementById("altaSummaryCantidadPago");
+const altaSummaryPortalUser = document.getElementById("altaSummaryPortalUser");
+const altaSummaryPortalPassword = document.getElementById("altaSummaryPortalPassword");
 const altaConfirmCard = document.getElementById("altaConfirmCard");
+const altaConfirmMessage = document.getElementById("altaConfirmMessage");
 const altaConfirmNombre = document.getElementById("altaConfirmNombre");
 const altaConfirmCurso = document.getElementById("altaConfirmCurso");
 const altaConfirmSucursal = document.getElementById("altaConfirmSucursal");
 const altaConfirmAcceso = document.getElementById("altaConfirmAcceso");
 const altaConfirmHorario = document.getElementById("altaConfirmHorario");
 const altaConfirmFechaInicio = document.getElementById("altaConfirmFechaInicio");
+const altaConfirmMetodoPago = document.getElementById("altaConfirmMetodoPago");
+const altaConfirmCantidadPago = document.getElementById("altaConfirmCantidadPago");
+const altaConfirmPortalUser = document.getElementById("altaConfirmPortalUser");
+const altaConfirmPortalPassword = document.getElementById("altaConfirmPortalPassword");
 const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
 const financeForm = document.getElementById("financeForm");
@@ -1088,12 +1097,46 @@ function getFormData() {
 
 function getAltaFormData() {
   const formData = new FormData(altaForm);
-  const telefono = formData.get("telefono").trim();
-  const portalPassword = String(formData.get("portalPassword") || "").trim();
+  const telefono = normalizePhone(formData.get("telefono"));
   const allowedBranch = getAllowedBranch();
+  const studentCode = String(formData.get("studentCode") || generateStudentCode()).trim();
+  const fechaInscripcion = String(formData.get("fechaInscripcion") || formatDateForInput(new Date())).trim();
+  const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
+  const portalUser = telefono;
+  const portalPassword = buildStudentPortalPassword(fechaNacimiento);
+  const rawObservaciones = String(formData.get("observaciones") || "").trim();
+  const metadataSegments = [
+    `ID Alumna: ${studentCode}`,
+    `Fecha de inscripción: ${fechaInscripcion}`,
+    `Correo: ${String(formData.get("correo") || "").trim() || "-"}`,
+    `Dirección: ${String(formData.get("direccion") || "").trim() || "-"}`,
+    `Fecha de nacimiento: ${fechaNacimiento || "-"}`,
+    `Tutor: ${String(formData.get("tutor") || "").trim() || "-"}`,
+    `Escolaridad: ${String(formData.get("escolaridad") || "").trim() || "-"}`,
+    `Contacto de emergencia: ${String(formData.get("contactoEmergencia") || "").trim() || "-"}`,
+    `Asesora que inscribió: ${String(formData.get("asesoraInscribio") || "").trim() || "-"}`,
+    `Método de pago: ${String(formData.get("metodoPago") || "").trim() || "-"}`,
+    `Tipo de pago: ${String(formData.get("tipoPago") || "").trim() || "-"}`,
+    `Inscripción pagada: ${String(formData.get("inscripcionPagada") || "").trim() || "-"}`,
+    `Cantidad de pago: ${String(formData.get("cantidadPago") || "").trim() || "-"}`,
+    `Mensualidad asignada: ${String(formData.get("mensualidad") || "").trim() || "-"}`,
+    `Colegiatura: ${String(formData.get("colegiatura") || "").trim() || "-"}`,
+    `Promoción: ${String(formData.get("promocion") || "").trim() || "-"}`,
+    `Apoyo gobierno: ${String(formData.get("apoyoGobierno") || "").trim() || "-"}`,
+    `Documentación: ${String(formData.get("documentos") || "").trim() || "-"}`,
+    `Tiene hijos: ${String(formData.get("tieneHijos") || "").trim() || "-"}`,
+    `Trabaja actualmente: ${String(formData.get("trabajaActualmente") || "").trim() || "-"}`,
+    `Notas médicas: ${String(formData.get("notasMedicas") || "").trim() || "-"}`,
+    `Usuario alta: ${String(formData.get("usuarioAlta") || "").trim() || "-"}`,
+    `Usuario Mi Venezia: ${portalUser || "-"}`,
+    `Password Mi Venezia: ${portalPassword || "-"}`,
+  ];
+
   return {
     id: crypto.randomUUID(),
     prospectId: document.getElementById("altaProspectId").value,
+    studentCode,
+    fechaInscripcion,
     nombre: formData.get("nombre").trim(),
     telefono,
     sucursal: allowedBranch || formData.get("sucursal").trim(),
@@ -1101,17 +1144,29 @@ function getAltaFormData() {
     accesoElegido: formData.get("accesoElegido"),
     horario: formData.get("horario").trim(),
     fechaInicio: formData.get("fechaInicio"),
-    observaciones: [
-      String(formData.get("observaciones") || "").trim(),
-      `Inscripción pagada: ${String(formData.get("inscripcionPagada") || "").trim()}`,
-      `Colegiatura: ${String(formData.get("colegiatura") || "").trim()}`,
-      `Promoción: ${String(formData.get("promocion") || "").trim() || "-"}`,
-      `Documentos: ${String(formData.get("documentos") || "").trim()}`,
-      `Usuario alta: ${String(formData.get("usuarioAlta") || "").trim()}`,
-    ]
-      .filter(Boolean)
-      .join(" | "),
-    portalPassword: portalPassword || getDefaultStudentPassword(telefono),
+    correo: String(formData.get("correo") || "").trim(),
+    direccion: String(formData.get("direccion") || "").trim(),
+    fechaNacimiento,
+    tutor: String(formData.get("tutor") || "").trim(),
+    escolaridad: String(formData.get("escolaridad") || "").trim(),
+    contactoEmergencia: String(formData.get("contactoEmergencia") || "").trim(),
+    asesoraInscribio: String(formData.get("asesoraInscribio") || "").trim(),
+    metodoPago: String(formData.get("metodoPago") || "").trim(),
+    tipoPago: String(formData.get("tipoPago") || "").trim(),
+    inscripcionPagada: String(formData.get("inscripcionPagada") || "").trim(),
+    cantidadPago: String(formData.get("cantidadPago") || "").trim(),
+    mensualidad: String(formData.get("mensualidad") || "").trim(),
+    colegiatura: String(formData.get("colegiatura") || "").trim(),
+    promocion: String(formData.get("promocion") || "").trim(),
+    apoyoGobierno: String(formData.get("apoyoGobierno") || "").trim(),
+    documentos: String(formData.get("documentos") || "").trim(),
+    tieneHijos: String(formData.get("tieneHijos") || "").trim(),
+    trabajaActualmente: String(formData.get("trabajaActualmente") || "").trim(),
+    notasMedicas: String(formData.get("notasMedicas") || "").trim(),
+    usuarioAlta: String(formData.get("usuarioAlta") || "").trim(),
+    observaciones: [rawObservaciones, ...metadataSegments].filter(Boolean).join(" | "),
+    portalUser,
+    portalPassword,
     estado: "Activa",
     createdAt: new Date().toISOString(),
   };
@@ -1125,6 +1180,10 @@ function getAltaSummaryData(altaData) {
     acceso: altaData.accesoElegido || "-",
     horario: altaData.horario || "-",
     fechaInicio: altaData.fechaInicio || "-",
+    metodoPago: altaData.metodoPago || "-",
+    cantidadPago: altaData.cantidadPago || "-",
+    portalUser: altaData.portalUser || "-",
+    portalPassword: altaData.portalPassword || "-",
   };
 }
 
@@ -1135,6 +1194,10 @@ function renderAltaSummary(summary) {
   altaSummaryAcceso.textContent = summary.acceso;
   altaSummaryHorario.textContent = summary.horario;
   altaSummaryFechaInicio.textContent = summary.fechaInicio;
+  if (altaSummaryMetodoPago) altaSummaryMetodoPago.textContent = summary.metodoPago;
+  if (altaSummaryCantidadPago) altaSummaryCantidadPago.textContent = summary.cantidadPago;
+  if (altaSummaryPortalUser) altaSummaryPortalUser.textContent = summary.portalUser;
+  if (altaSummaryPortalPassword) altaSummaryPortalPassword.textContent = summary.portalPassword;
 }
 
 function renderAltaConfirmation(summary) {
@@ -1144,6 +1207,10 @@ function renderAltaConfirmation(summary) {
   altaConfirmAcceso.textContent = summary.acceso;
   altaConfirmHorario.textContent = summary.horario;
   altaConfirmFechaInicio.textContent = summary.fechaInicio;
+  altaConfirmMetodoPago.textContent = summary.metodoPago;
+  altaConfirmCantidadPago.textContent = summary.cantidadPago;
+  altaConfirmPortalUser.textContent = summary.portalUser;
+  altaConfirmPortalPassword.textContent = summary.portalPassword;
 }
 
 function showAltaValidation(message) {
@@ -1166,15 +1233,22 @@ function getAltaValidationErrors(altaData) {
   if (!altaData.accesoElegido) errors.push("Acceso elegido");
   if (!altaData.horario) errors.push("Horario");
   if (!altaData.fechaInicio) errors.push("Fecha de inicio");
-  if (!String(altaForm.elements.inscripcionPagada.value || "").trim()) errors.push("Inscripción pagada");
-  if (!String(altaForm.elements.colegiatura.value || "").trim()) errors.push("Colegiatura");
-  if (!String(altaForm.elements.documentos.value || "").trim()) errors.push("Documentos entregados");
-  if (!String(altaForm.elements.usuarioAlta.value || "").trim()) errors.push("Usuario que dio de alta");
+  if (!altaData.fechaNacimiento) errors.push("Fecha de nacimiento");
+  if (!altaData.asesoraInscribio) errors.push("Asesora que inscribió");
+  if (!altaData.metodoPago) errors.push("Método de pago");
+  if (!altaData.tipoPago) errors.push("Pago completo o Apartó lugar");
+  if (!altaData.cantidadPago) errors.push("Cantidad de pago");
+  if (!altaData.mensualidad) errors.push("Mensualidad asignada");
+  if (!altaData.documentos) errors.push("Documentación");
   return errors;
 }
 
 function openAltaConfirmation(altaData) {
   pendingAltaConfirmation = altaData;
+  altaConfirmMessage.textContent =
+    `Vas a dar de alta a ${altaData.nombre || "esta alumna"} en ${altaData.curso || "su curso"} ` +
+    `(${altaData.sucursal || "sin sucursal"}) con ${altaData.accesoElegido || "acceso pendiente"}, ` +
+    `${altaData.metodoPago || "método de pago pendiente"} y pago de ${altaData.cantidadPago || "-"}.`;
   renderAltaConfirmation(getAltaSummaryData(altaData));
   altaConfirmCard.hidden = false;
 }
@@ -1184,8 +1258,44 @@ function closeAltaConfirmation() {
   altaConfirmCard.hidden = true;
 }
 
+function syncAltaAutoFields() {
+  const telefono = normalizePhone(document.getElementById("altaTelefono").value);
+  const fechaNacimiento = document.getElementById("altaFechaNacimiento").value;
+  const studentCodeField = document.getElementById("altaStudentCode");
+  const fechaInscripcionField = document.getElementById("altaFechaInscripcion");
+  const portalUserField = document.getElementById("altaPortalUser");
+  const portalPasswordField = document.getElementById("altaPassword");
+
+  if (!studentCodeField.value) {
+    studentCodeField.value = generateStudentCode();
+  }
+  if (!fechaInscripcionField.value) {
+    fechaInscripcionField.value = formatDateForInput(new Date());
+  }
+
+  portalUserField.value = telefono;
+  portalPasswordField.value = buildStudentPortalPassword(fechaNacimiento);
+}
+
 function normalizePhone(phone) {
   return String(phone || "").replace(/\D/g, "");
+}
+
+function getBirthYear(dateValue) {
+  const normalized = String(dateValue || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return "";
+  }
+  return normalized.slice(0, 4);
+}
+
+function buildStudentPortalPassword(dateValue) {
+  const birthYear = getBirthYear(dateValue);
+  return birthYear ? `Venezia${birthYear}` : "Venezia0000";
+}
+
+function generateStudentCode() {
+  return `AL-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 function getCurrentInternalUser() {
@@ -1317,7 +1427,7 @@ function applyBranchRestrictionsToUI() {
     dashboardBranchFilter.value = allowedBranch;
   }
 
-  document.getElementById("altaSucursal").readOnly = branchLocked;
+  document.getElementById("altaSucursal").disabled = branchLocked;
   document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
   document.getElementById("financeSucursal").disabled = branchLocked;
   document.getElementById("staffSucursal").value = branchLocked ? allowedBranch : document.getElementById("staffSucursal").value;
@@ -1750,6 +1860,9 @@ function resetForm() {
 function resetAltaForm() {
   altaForm.reset();
   document.getElementById("altaProspectId").value = "";
+  document.getElementById("altaStudentCode").value = generateStudentCode();
+  document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
+  syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData({}));
@@ -2932,16 +3045,24 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaSucursal").value = prospect.sucursal;
   document.getElementById("altaCurso").value = prospect.curso;
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
+  document.getElementById("altaAsesoraInscribio").value = prospect.asesoraAsignada || "";
+  syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(
     getAltaSummaryData({
+      studentCode: document.getElementById("altaStudentCode").value,
+      fechaInscripcion: document.getElementById("altaFechaInscripcion").value,
       nombre: prospect.nombre,
       curso: prospect.curso,
       sucursal: prospect.sucursal,
       accesoElegido: prospect.accesoInteres || "",
       horario: document.getElementById("altaHorario").value,
       fechaInicio: document.getElementById("altaFechaInicio").value,
+      metodoPago: document.getElementById("altaMetodoPago").value,
+      cantidadPago: document.getElementById("altaCantidadPago").value,
+      portalUser: document.getElementById("altaPortalUser").value,
+      portalPassword: document.getElementById("altaPassword").value,
     })
   );
   setActiveModule("altas");
@@ -3331,6 +3452,7 @@ altaConfirmProceedButton.addEventListener("click", async () => {
 });
 
 altaForm.addEventListener("input", () => {
+  syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData(getAltaFormData()));
