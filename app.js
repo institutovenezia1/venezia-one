@@ -1228,7 +1228,6 @@ function clearAltaValidation() {
 
 function getAltaValidationErrors(altaData) {
   const errors = [];
-  if (!altaData.prospectId) errors.push("Selecciona una prospecta inscrita");
   if (!altaData.nombre) errors.push("Nombre completo");
   if (!altaData.telefono) errors.push("Teléfono");
   if (!altaData.sucursal) errors.push("Sucursal");
