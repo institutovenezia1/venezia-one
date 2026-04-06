@@ -1365,6 +1365,35 @@ td select {
   font-size: 0.86rem;
 }
 
+.web-course-schedule-kicker {
+  display: inline-block;
+  width: fit-content;
+  color: #8f6e2d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.web-course-schedule-detail {
+  margin: 0;
+  color: #3f2d14;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.web-course-extra-note,
+.web-course-capacity-note {
+  margin: 0;
+  color: #4a3717;
+  line-height: 1.5;
+}
+
+.web-course-capacity-note {
+  font-weight: 800;
+  color: #7f5f21;
+}
+
 .web-course-day-block {
   display: grid;
   gap: 0.45rem;
