@@ -1198,6 +1198,10 @@ function getAltaSummaryData(altaData) {
 }
 
 function renderAltaSummary(summary) {
+  if (!altaSummaryStudentCode) {
+    return;
+  }
+
   altaSummaryStudentCode.textContent = summary.studentCode;
   altaSummaryNombre.textContent = summary.nombre;
   altaSummaryCurso.textContent = summary.curso;
