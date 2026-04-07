@@ -452,36 +452,9 @@
 
         <section class="module-section" id="altasSection">
           <section class="content-grid altas-content-grid">
-            <section class="panel table-panel altas-pending-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Altas</p>
-                <h3>Prospectas inscritas pendientes de alta</h3>
-              </div>
-
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Prospecta</th>
-                      <th>Teléfono</th>
-                      <th>Sucursal</th>
-                      <th>Curso</th>
-                      <th>Acceso</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody id="pendingAltasTableBody"></tbody>
-                </table>
-              </div>
-
-              <p id="pendingAltasEmptyState" class="empty-state">
-                No hay prospectas inscritas pendientes de alta.
-              </p>
-            </section>
-
             <section class="panel altas-form-panel">
               <div class="section-heading">
-                <p class="eyebrow">Registro</p>
+                <p class="eyebrow">Datos de la alta</p>
                 <h3>Formulario de alta de alumna</h3>
               </div>
 
@@ -834,8 +807,8 @@
           <section class="panel table-panel altas-history-panel">
             <div class="altas-history-header">
               <div class="section-heading">
-                <p class="eyebrow">Historial mensual</p>
-                <h3>Altas registradas</h3>
+                <p class="eyebrow">Registro</p>
+                <h3>Historial mensual de altas</h3>
               </div>
 
               <label class="altas-history-filter">
@@ -885,6 +858,33 @@
 
             <p id="altaHistoryEmptyState" class="empty-state">
               No hay altas registradas en el mes seleccionado.
+            </p>
+          </section>
+
+          <section class="panel table-panel altas-pending-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Bandeja de pendientes</p>
+              <h3>Prospectas inscritas pendientes de alta</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Prospecta</th>
+                    <th>Teléfono</th>
+                    <th>Sucursal</th>
+                    <th>Curso</th>
+                    <th>Acceso</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="pendingAltasTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="pendingAltasEmptyState" class="empty-state">
+              No hay prospectas inscritas pendientes de alta
             </p>
           </section>
         </section>
