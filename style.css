@@ -490,6 +490,19 @@ textarea {
   margin-top: 0.5rem;
 }
 
+.attendance-search-row {
+  margin-bottom: 0.85rem;
+}
+
+.attendance-search-row input {
+  width: min(100%, 520px);
+  border: 1px solid #d8d0c5;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fcfaf7 0%, #f7f2eb 100%);
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

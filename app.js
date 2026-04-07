@@ -144,6 +144,7 @@ const navItems = document.querySelectorAll(".nav-item");
 const moduleBadge = document.getElementById("moduleBadge");
 
 const attendanceDate = document.getElementById("attendanceDate");
+const attendanceSearchInput = document.getElementById("attendanceSearchInput");
 const attendanceSucursalFilter = document.getElementById("attendanceSucursalFilter");
 const attendanceCursoFilter = document.getElementById("attendanceCursoFilter");
 const attendanceHorarioFilter = document.getElementById("attendanceHorarioFilter");
@@ -348,6 +349,7 @@ let selectedMonth = getCurrentMonthValue();
 let selectedAltasMonth = selectedMonth;
 let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
+let activeAttendanceSearch = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
@@ -2526,6 +2528,15 @@ function getAttendanceRecord(studentId, date) {
 
 function getFilteredStudentsForAttendance() {
   return getActiveStudents().filter((student) => {
+    const normalizedSearch = activeAttendanceSearch.trim().toLowerCase();
+    const searchableText = [
+      student.nombre,
+      student.portalUser,
+      student.telefono,
+      student.studentCode,
+    ].join(" ").toLowerCase();
+
+    if (normalizedSearch && !searchableText.includes(normalizedSearch)) return false;
     if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
     if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
     if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
@@ -3720,6 +3731,11 @@ altasMonthFilter.addEventListener("change", (event) => {
 dashboardBranchFilter.addEventListener("change", renderDashboard);
 
 attendanceDate.addEventListener("change", renderAttendanceTable);
+attendanceSearchInput.addEventListener("input", (event) => {
+  activeAttendanceSearch = event.target.value;
+  renderAttendanceTable();
+});
+
 financeTipo.addEventListener("change", updateFinanceCategories);
 financeMonthFilter.addEventListener("change", () => {
   renderFinanceTable();
