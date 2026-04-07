@@ -160,6 +160,7 @@ const paymentsEmptyState = document.getElementById("paymentsEmptyState");
 const paymentsRegisteredCount = document.getElementById("paymentsRegisteredCount");
 const paymentsPendingCount = document.getElementById("paymentsPendingCount");
 const paymentsMensualidadesPaid = document.getElementById("paymentsMensualidadesPaid");
+const paymentsSearchInput = document.getElementById("paymentsSearchInput");
 const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
@@ -350,6 +351,7 @@ let selectedAltasMonth = selectedMonth;
 let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
+let activePaymentsSearch = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
@@ -2730,8 +2732,27 @@ function parsePaymentAmount(value) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function getFilteredStudentsForPayments() {
+  const normalizedSearch = activePaymentsSearch.trim().toLowerCase();
+
+  return getActiveStudents().filter((student) => {
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const searchableText = [
+      student.nombre,
+      student.portalUser,
+      student.telefono,
+      student.studentCode,
+    ].join(" ").toLowerCase();
+
+    return searchableText.includes(normalizedSearch);
+  });
+}
+
 function renderPaymentsTable() {
-  const studentsList = getActiveStudents();
+  const studentsList = getFilteredStudentsForPayments();
 
   paymentsTableBody.innerHTML = studentsList
     .map((student) => {
@@ -3746,6 +3767,11 @@ paymentsMonthFilter.addEventListener("change", (event) => {
   selectedPaymentsMonth = event.target.value || getCurrentMonthValue();
   renderPaymentsTable();
   updatePaymentsSummary();
+});
+
+paymentsSearchInput.addEventListener("input", (event) => {
+  activePaymentsSearch = event.target.value;
+  renderPaymentsTable();
 });
 
 financeBranchFilter.addEventListener("change", () => {

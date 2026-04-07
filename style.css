@@ -1189,6 +1189,36 @@ td select {
   margin-bottom: 1rem;
 }
 
+.payments-panel-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.payments-search-field {
+  min-width: min(360px, 100%);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.payments-search-field span {
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.payments-search-field input {
+  border: 1px solid #d8d0c5;
+  border-radius: 999px;
+  background: #fcfaf7;
+  color: #1a1a1a;
+  font-weight: 800;
+}
+
 .payments-month-filter {
   min-width: 220px;
   display: grid;
@@ -2585,6 +2615,12 @@ body.public-mode .module-section.active {
 
   .payments-panel-header {
     flex-direction: column;
+  }
+
+  .payments-panel-controls,
+  .payments-search-field,
+  .payments-month-filter {
+    width: 100%;
   }
 
   .web-location-grid {
