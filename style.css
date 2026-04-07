@@ -693,7 +693,7 @@ td select {
 }
 
 #crmSection .crm-content-grid {
-  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.35fr);
+  grid-template-columns: 1fr;
   gap: 1.25rem;
 }
 
@@ -737,7 +737,7 @@ td select {
 }
 
 #crmSection .crm-management-panel table {
-  min-width: 700px;
+  min-width: 900px;
 }
 
 #crmSection {
