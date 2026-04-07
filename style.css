@@ -503,6 +503,47 @@ textarea {
   font-weight: 700;
 }
 
+.attendance-school-table-wrapper {
+  border-color: #d8d0c5;
+  background: linear-gradient(180deg, #fcfaf7 0%, #f9f4ee 100%);
+}
+
+.attendance-school-table-wrapper table {
+  min-width: 3400px;
+}
+
+.attendance-school-table-wrapper th,
+.attendance-school-table-wrapper td {
+  padding: 0.62rem 0.58rem;
+  white-space: nowrap;
+}
+
+.attendance-school-table-wrapper td:nth-child(3) {
+  white-space: normal;
+  min-width: 220px;
+}
+
+.attendance-student-cell {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.attendance-student-cell strong {
+  color: #1a1a1a;
+}
+
+.attendance-student-cell small {
+  color: #7b7268;
+}
+
+.attendance-session-select {
+  min-width: 64px;
+  padding: 0.42rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 900;
+  text-align: center;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

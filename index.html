@@ -853,7 +853,7 @@
               <strong id="attendanceFaltas">0</strong>
             </article>
             <article class="stat-card">
-              <p>Total retardos</p>
+              <p>Total permisos</p>
               <strong id="attendanceRetardos">0</strong>
             </article>
             <article class="stat-card">
@@ -891,7 +891,7 @@
               </label>
 
               <label>
-                <span>Fecha</span>
+                <span>Fecha inicial del grupo</span>
                 <input id="attendanceDate" type="date" />
               </label>
             </div>
@@ -912,20 +912,9 @@
               />
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-wrapper attendance-school-table-wrapper">
               <table>
-                <thead>
-                  <tr>
-                    <th>Nombre completo</th>
-                    <th>Sucursal</th>
-                    <th>Curso</th>
-                    <th>Horario</th>
-                    <th>Fecha</th>
-                    <th>Estado de asistencia</th>
-                    <th>Observaciones</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
+                <thead id="attendanceTableHead"></thead>
                 <tbody id="attendanceTableBody"></tbody>
               </table>
             </div>

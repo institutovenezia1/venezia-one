@@ -33,7 +33,14 @@ const EXPENSE_CATEGORIES = [
 
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
-const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Falta", "Retardo", "Recuperación"];
+const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Recuperación", "Falta"];
+const ATTENDANCE_SESSION_COUNT = 20;
+const ATTENDANCE_STATUS_LABELS = {
+  Asistencia: "A",
+  Permiso: "P",
+  Recuperación: "R",
+  Falta: "F",
+};
 
 const BASE_ROLE_PERMISSIONS = {
   "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "pagos", "finanzas", "web-venezia", "mi-venezia"],
@@ -148,6 +155,7 @@ const attendanceSearchInput = document.getElementById("attendanceSearchInput");
 const attendanceSucursalFilter = document.getElementById("attendanceSucursalFilter");
 const attendanceCursoFilter = document.getElementById("attendanceCursoFilter");
 const attendanceHorarioFilter = document.getElementById("attendanceHorarioFilter");
+const attendanceTableHead = document.getElementById("attendanceTableHead");
 const attendanceTableBody = document.getElementById("attendanceTableBody");
 const attendanceEmptyState = document.getElementById("attendanceEmptyState");
 const attendanceHistoryPanel = document.getElementById("attendanceHistoryPanel");
@@ -2548,27 +2556,122 @@ function getFilteredStudentsForAttendance() {
 
 function renderAttendanceOptions(selectedValue) {
   return ATTENDANCE_STATUS_OPTIONS.map((option) => {
-    const label = option || "Selecciona";
+    const label = option ? ATTENDANCE_STATUS_LABELS[option] || option : "-";
     return `<option value="${escapeHtml(option)}" ${option === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
   }).join("");
+}
+
+function addDaysToDateValue(dateValue, days) {
+  const date = new Date(`${dateValue}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatDateForInput(date);
+}
+
+function getAttendanceSessionDates(baseDate) {
+  return Array.from({ length: ATTENDANCE_SESSION_COUNT }, (_, index) => ({
+    key: `s${index + 1}`,
+    date: addDaysToDateValue(baseDate, index * 7),
+  }));
+}
+
+function getAttendanceSessionLabel(session) {
+  const date = new Date(`${session.date}T12:00:00`);
+  const dateLabel = date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+  return `${dateLabel} / ${session.key}`;
+}
+
+function getLatestPaymentRecordForStudent(studentId) {
+  return paymentRecords
+    .filter((record) => record.studentId === studentId)
+    .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0] || {};
+}
+
+function getAttendanceMeta(record, label) {
+  const source = String(record?.observaciones || "");
+  const segment = source.split(" | ").find((item) => item.startsWith(`${label}: `));
+  return segment ? segment.slice(label.length + 2).trim() : "";
+}
+
+function buildAttendanceNotes({ reglamento, reportes, observaciones }) {
+  return [
+    `Reglamento firmado: ${reglamento || ""}`,
+    `Reportes: ${reportes || ""}`,
+    `Observaciones: ${observaciones || ""}`,
+  ].join(" | ");
+}
+
+function getAttendanceNotesValue(record, label) {
+  return getAttendanceMeta(record, label) || "";
 }
 
 function renderAttendanceTable() {
   const selectedDate = attendanceDate.value || formatDateForInput(new Date());
   const studentsList = getFilteredStudentsForAttendance();
+  const sessions = getAttendanceSessionDates(selectedDate);
+
+  attendanceTableHead.innerHTML = `
+    <tr>
+      <th>Reglamento firmado y recibido</th>
+      <th>Num # de lista</th>
+      <th>Nombre del alumno</th>
+      <th>Celular</th>
+      <th>Primer pago de Certificado</th>
+      <th>Segundo pago de Certificado</th>
+      <th>Mensualidad asignada</th>
+      <th>1ra M</th>
+      <th>2da M</th>
+      <th>3ra M</th>
+      <th>4ta M</th>
+      <th>5ta M</th>
+      <th>Pago con Trans o Efec</th>
+      <th>Reportes</th>
+      <th>Observaciones</th>
+      ${sessions.map((session) => `<th>${escapeHtml(getAttendanceSessionLabel(session))}</th>`).join("")}
+      <th>Acciones</th>
+    </tr>
+  `;
 
   attendanceTableBody.innerHTML = studentsList
-    .map((student) => {
-      const record = getAttendanceRecord(student.id, selectedDate);
+    .map((student, index) => {
+      const baseRecord = getAttendanceRecord(student.id, selectedDate);
+      const sessionRecords = sessions.map((session) => getAttendanceRecord(student.id, session.date)).filter(Boolean);
+      const metadataRecord = baseRecord || sessionRecords.find((record) => record.observaciones);
+      const payment = getLatestPaymentRecordForStudent(student.id);
+      const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
       return `
         <tr>
-          <td>${escapeHtml(student.nombre)}</td>
-          <td>${escapeHtml(student.sucursal)}</td>
-          <td>${escapeHtml(student.curso)}</td>
-          <td>${escapeHtml(student.horario)}</td>
-          <td>${escapeHtml(selectedDate)}</td>
-          <td><select data-attendance-field="estado" data-student-id="${student.id}">${renderAttendanceOptions(record?.estado || "")}</select></td>
-          <td><input type="text" value="${escapeHtml(record?.observaciones || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
+          <td>
+            <select data-attendance-field="reglamento" data-student-id="${student.id}">
+              <option value="">-</option>
+              <option value="Sí" ${getAttendanceNotesValue(metadataRecord, "Reglamento firmado") === "Sí" ? "selected" : ""}>Sí</option>
+              <option value="No" ${getAttendanceNotesValue(metadataRecord, "Reglamento firmado") === "No" ? "selected" : ""}>No</option>
+            </select>
+          </td>
+          <td>${index + 1}</td>
+          <td>
+            <div class="attendance-student-cell">
+              <strong>${escapeHtml(student.nombre)}</strong>
+              <small>${escapeHtml(student.studentCode || student.portalUser || "-")}</small>
+            </div>
+          </td>
+          <td>${escapeHtml(student.telefono || "-")}</td>
+          <td>${escapeHtml(payment.certificadoP1 || "-")}</td>
+          <td>${escapeHtml(payment.certificadoP2 || "-")}</td>
+          <td>${escapeHtml(payment.mensualidadPactada || student.mensualidad || "-")}</td>
+          <td>${escapeHtml(payment.mensualidad1 || "-")}</td>
+          <td>${escapeHtml(payment.mensualidad2 || "-")}</td>
+          <td>${escapeHtml(payment.mensualidad3 || "-")}</td>
+          <td>${escapeHtml(payment.mensualidad4 || "-")}</td>
+          <td>${escapeHtml(monthlyPayment5)}</td>
+          <td>${escapeHtml(payment.metodoPago || "-")}</td>
+          <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Reportes") || payment.reportes || "")}" placeholder="Reporte" data-attendance-field="reportes" data-student-id="${student.id}" /></td>
+          <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Observaciones") || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
+          ${sessions
+            .map((session) => {
+              const record = getAttendanceRecord(student.id, session.date);
+              return `<td><select class="attendance-session-select" data-attendance-field="session" data-session-date="${session.date}" data-student-id="${student.id}">${renderAttendanceOptions(record?.estado || "")}</select></td>`;
+            })
+            .join("")}
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
@@ -2591,35 +2694,55 @@ async function saveAttendanceForStudent(studentId) {
   }
 
   const date = attendanceDate.value || formatDateForInput(new Date());
-  const estadoField = attendanceTableBody.querySelector(`[data-attendance-field="estado"][data-student-id="${studentId}"]`);
+  const sessionFields = Array.from(
+    attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
+  );
+  const reglamentoField = attendanceTableBody.querySelector(`[data-attendance-field="reglamento"][data-student-id="${studentId}"]`);
+  const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
   const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
+  const firstSelectedSessionDate = sessionFields.find((field) => field.value)?.dataset.sessionDate || date;
+  const recordsToSave = sessionFields
+    .filter((field) => field.value)
+    .map((field) => {
+      const sessionDate = field.dataset.sessionDate;
+      const existingIndex = attendanceRecords.findIndex((record) => record.studentId === studentId && record.fecha === sessionDate);
+      return {
+        id: existingIndex >= 0 ? attendanceRecords[existingIndex].id : crypto.randomUUID(),
+        studentId,
+        fecha: sessionDate,
+        estado: field.value,
+        observaciones:
+          sessionDate === date || sessionDate === firstSelectedSessionDate
+            ? buildAttendanceNotes({
+                reglamento: reglamentoField?.value || "",
+                reportes: reportesField?.value.trim() || "",
+                observaciones: observacionesField?.value.trim() || "",
+              })
+            : attendanceRecords[existingIndex]?.observaciones || "",
+        recordedBy: getCurrentInternalUser()?.id || "",
+        createdAt:
+          existingIndex >= 0
+            ? attendanceRecords[existingIndex].createdAt || new Date().toISOString()
+            : new Date().toISOString(),
+      };
+    });
 
-  if (!estadoField || !estadoField.value) {
-    alert("Selecciona un estado de asistencia antes de guardar.");
+  if (recordsToSave.length === 0) {
+    alert("Selecciona al menos una asistencia A, P, R o F antes de guardar.");
     return;
   }
 
-  const existingIndex = attendanceRecords.findIndex((record) => record.studentId === studentId && record.fecha === date);
-  const newRecord = {
-    id: existingIndex >= 0 ? attendanceRecords[existingIndex].id : crypto.randomUUID(),
-    studentId,
-    fecha: date,
-    estado: estadoField.value,
-    observaciones: observacionesField?.value.trim() || "",
-    recordedBy: getCurrentInternalUser()?.id || "",
-    createdAt:
-      existingIndex >= 0
-        ? attendanceRecords[existingIndex].createdAt || new Date().toISOString()
-        : new Date().toISOString(),
-  };
+  const saveResults = [];
+  for (const record of recordsToSave) {
+    saveResults.push(await saveAttendanceRecord(record));
+  }
 
-  const saveResult = await saveAttendanceRecord(newRecord);
-  if (!saveResult.synced) {
+  if (saveResults.some((result) => !result.synced)) {
     updateAttendanceSummary();
     if (selectedAttendanceStudentId === studentId) {
       renderAttendanceHistory(studentId);
     }
-    alert("No se pudo guardar la asistencia en Supabase. Se conservó sólo en el respaldo local.");
+    alert("No se pudo guardar toda la asistencia en Supabase. Se conservó sólo en el respaldo local.");
     return;
   }
 
@@ -2634,7 +2757,7 @@ function updateAttendanceSummary() {
   const monthlyRecords = attendanceRecords.filter((record) => isDateInSelectedMonth(record.fecha));
   attendanceAsistencias.textContent = monthlyRecords.filter((record) => record.estado === "Asistencia").length;
   attendanceFaltas.textContent = monthlyRecords.filter((record) => record.estado === "Falta").length;
-  attendanceRetardos.textContent = monthlyRecords.filter((record) => record.estado === "Retardo").length;
+  attendanceRetardos.textContent = monthlyRecords.filter((record) => record.estado === "Permiso").length;
   attendanceRecuperaciones.textContent = monthlyRecords.filter((record) => record.estado === "Recuperación").length;
 }
 
@@ -3039,7 +3162,7 @@ function renderMiVeneziaDashboard() {
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
-  const retardos = attendanceHistory.filter((record) => record.estado === "Retardo").length;
+  const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const totalClases = attendanceHistory.length;
   const clasesTomadas = attendanceHistory.filter((record) => record.estado !== "Falta").length;
@@ -3070,7 +3193,7 @@ function renderMiVeneziaDashboard() {
 
   renderInfoList(miVeneziaResumenAsistencias, [
     { label: "Faltas", value: String(faltas) },
-    { label: "Retardos", value: String(retardos) },
+    { label: "Permisos", value: String(permisos) },
     { label: "Recuperaciones", value: String(recuperaciones) },
   ]);
 
