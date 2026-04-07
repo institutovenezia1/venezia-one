@@ -311,6 +311,21 @@
     return targetSegment ? targetSegment.slice(label.length + 2).trim() : "";
   }
 
+  function buildPaymentNotes(record) {
+    return [
+      `Mes pago: ${record.mesPago || ""}`,
+      `Certificado P1: ${record.certificadoP1 || ""}`,
+      `Certificado P2: ${record.certificadoP2 || ""}`,
+      `1ra mensualidad: ${record.mensualidad1 || ""}`,
+      `2da mensualidad: ${record.mensualidad2 || ""}`,
+      `3ra mensualidad: ${record.mensualidad3 || ""}`,
+      `4ta mensualidad: ${record.mensualidad4 || ""}`,
+      `5ta mensualidad: ${record.mensualidad5 || ""}`,
+      `Cantidad pagada: ${record.cantidadPagada || ""}`,
+      `Observaciones: ${record.observaciones || ""}`,
+    ].join(" | ");
+  }
+
   function extractProspectMetadata(notes, label) {
     return extractAltaMetadata(notes, label);
   }
@@ -475,7 +490,7 @@
       pending_payments: record.pagosPendientes || "",
       payment_method: record.metodoPago || "",
       reports: record.reportes || "",
-      notes: record.observaciones || "",
+      notes: buildPaymentNotes(record),
       updated_at: record.updatedAt || null,
       created_at: record.createdAt || null,
     }),
@@ -483,17 +498,19 @@
       id: record.id,
       studentId: record.student_id || "",
       mensualidadPactada: record.tuition_amount || "",
-      certificadoP1: record.certificate_p1_amount || "",
-      certificadoP2: record.certificate_p2_amount || "",
-      mensualidad1: record.first_month_amount || "",
-      mensualidad2: record.second_month_amount || "",
-      mensualidad3: record.third_month_amount || "",
-      mensualidad4: record.fourth_month_amount || "",
-      mensualidad5: record.fifth_month_amount || "",
+      mesPago: extractAltaMetadata(record.notes, "Mes pago"),
+      certificadoP1: extractAltaMetadata(record.notes, "Certificado P1") || record.certificate_p1_amount || "",
+      certificadoP2: extractAltaMetadata(record.notes, "Certificado P2") || record.certificate_p2_amount || "",
+      mensualidad1: extractAltaMetadata(record.notes, "1ra mensualidad") || record.first_month_amount || "",
+      mensualidad2: extractAltaMetadata(record.notes, "2da mensualidad") || record.second_month_amount || "",
+      mensualidad3: extractAltaMetadata(record.notes, "3ra mensualidad") || record.third_month_amount || "",
+      mensualidad4: extractAltaMetadata(record.notes, "4ta mensualidad") || record.fourth_month_amount || "",
+      mensualidad5: extractAltaMetadata(record.notes, "5ta mensualidad") || record.fifth_month_amount || "",
       pagosPendientes: record.pending_payments || "",
       metodoPago: record.payment_method || "",
+      cantidadPagada: extractAltaMetadata(record.notes, "Cantidad pagada"),
       reportes: record.reports || "",
-      observaciones: record.notes || "",
+      observaciones: extractAltaMetadata(record.notes, "Observaciones") || record.notes || "",
       updatedAt: record.updated_at || "",
       createdAt: record.created_at || "",
     }),

@@ -1157,6 +1157,79 @@ td select {
   color: #7b7268;
 }
 
+.payments-stats-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.payments-panel {
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #fcfaf7 0%, #f5eee6 100%);
+  border-color: #d8d0c5;
+}
+
+.payments-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.payments-month-filter {
+  min-width: 220px;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.payments-month-filter span {
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.payments-month-filter input {
+  border: 1px solid #d8d0c5;
+  border-radius: 999px;
+  background: #fcfaf7;
+  color: #1a1a1a;
+  font-weight: 800;
+}
+
+.payments-table-wrapper {
+  border-color: #d8d0c5;
+  background: linear-gradient(180deg, #fcfaf7 0%, #f9f4ee 100%);
+}
+
+.payments-table-wrapper table {
+  min-width: 1680px;
+}
+
+.payments-table-wrapper th,
+.payments-table-wrapper td {
+  white-space: nowrap;
+}
+
+.payments-table-wrapper td:first-child {
+  white-space: normal;
+  min-width: 220px;
+}
+
+.payment-student-cell {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.payment-student-cell strong {
+  color: #1a1a1a;
+}
+
+.payment-student-cell small {
+  color: #7b7268;
+}
+
 .info-list {
   display: grid;
   gap: 0.75rem;
@@ -2479,6 +2552,10 @@ body.public-mode .module-section.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .payments-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   #crmSection .crm-table-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2490,6 +2567,10 @@ body.public-mode .module-section.active {
   }
 
   .altas-history-header {
+    flex-direction: column;
+  }
+
+  .payments-panel-header {
     flex-direction: column;
   }
 
@@ -2540,6 +2621,10 @@ body.public-mode .module-section.active {
   }
 
   .crm-priority-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .payments-stats-grid {
     grid-template-columns: 1fr;
   }
 

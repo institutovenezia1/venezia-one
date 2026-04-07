@@ -31,8 +31,8 @@ const EXPENSE_CATEGORIES = [
   "Otro egreso",
 ];
 
-const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Pendiente", "No aplica"];
-const PAYMENT_METHOD_OPTIONS = ["", "Transferencia", "Efectivo", "Mixto"];
+const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
+const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Falta", "Retardo", "Recuperación"];
 
 const BASE_ROLE_PERMISSIONS = {
@@ -159,7 +159,10 @@ const paymentsEmptyState = document.getElementById("paymentsEmptyState");
 const paymentsRegisteredCount = document.getElementById("paymentsRegisteredCount");
 const paymentsPendingCount = document.getElementById("paymentsPendingCount");
 const paymentsMensualidadesPaid = document.getElementById("paymentsMensualidadesPaid");
-const paymentsCertificadosPaid = document.getElementById("paymentsCertificadosPaid");
+const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
+const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
+const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
+const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
 
 const financeCategoria = document.getElementById("financeCategoria");
 const financeTipo = document.getElementById("financeTipo");
@@ -343,6 +346,7 @@ let activeAccessFilter = "";
 let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
 let selectedAltasMonth = selectedMonth;
+let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
@@ -353,6 +357,7 @@ let pendingAltaConfirmation = null;
 
 monthFilter.value = selectedMonth;
 altasMonthFilter.value = selectedAltasMonth;
+paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
 
@@ -1965,7 +1970,9 @@ function getDashboardActiveStudents() {
 
 function getDashboardPaymentRecords() {
   const activeStudentIds = new Set(getDashboardActiveStudents().map((student) => student.id));
-  return paymentRecords.filter((record) => activeStudentIds.has(record.studentId));
+  return paymentRecords.filter(
+    (record) => activeStudentIds.has(record.studentId) && getPaymentRecordMonth(record) === selectedMonth
+  );
 }
 
 function getDashboardFinanceRecords() {
@@ -2643,8 +2650,17 @@ function renderAttendanceHistory(studentId) {
 }
 
 function getPaymentRecord(studentId) {
+  const currentMonthRecord = paymentRecords.find(
+    (record) => record.studentId === studentId && getPaymentRecordMonth(record) === selectedPaymentsMonth
+  );
+  if (currentMonthRecord) {
+    return currentMonthRecord;
+  }
+
   return (
-    paymentRecords.find((record) => record.studentId === studentId) || {
+    paymentRecords.find(
+      (record) => record.studentId === studentId && !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
+    ) || {
       mensualidadPactada: "",
       certificadoP1: "",
       certificadoP2: "",
@@ -2655,10 +2671,29 @@ function getPaymentRecord(studentId) {
       mensualidad5: "",
       pagosPendientes: "",
       metodoPago: "",
+      cantidadPagada: "",
       reportes: "",
       observaciones: "",
+      mesPago: selectedPaymentsMonth,
     }
   );
+}
+
+function getPaymentRecordMonth(record) {
+  if (record.mesPago) {
+    return record.mesPago;
+  }
+
+  const baseDate = String(record.updatedAt || record.createdAt || "").slice(0, 10);
+  return baseDate ? baseDate.slice(0, 7) : "";
+}
+
+function isPaymentRecordInSelectedMonth(record) {
+  return getPaymentRecordMonth(record) === selectedPaymentsMonth;
+}
+
+function courseUsesFifthMonth(course) {
+  return String(course || "").trim().toLowerCase() === "barbería" || String(course || "").trim().toLowerCase() === "barberia";
 }
 
 function renderPaymentSelectOptions(selectedValue, options) {
@@ -2670,28 +2705,48 @@ function renderPaymentSelectOptions(selectedValue, options) {
     .join("");
 }
 
+function renderPaymentStatusSelect(field, student, payment) {
+  const selectedValue = field === "mensualidad5" && !courseUsesFifthMonth(student.curso)
+    ? "No aplica"
+    : payment[field] || "";
+  const disabled = field === "mensualidad5" && !courseUsesFifthMonth(student.curso) ? "disabled" : "";
+  return `<select data-payment-field="${field}" data-student-id="${student.id}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>`;
+}
+
+function parsePaymentAmount(value) {
+  const normalized = String(value || "").replace(/[$,\s]/g, "");
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function renderPaymentsTable() {
   const studentsList = getActiveStudents();
 
   paymentsTableBody.innerHTML = studentsList
     .map((student) => {
       const payment = getPaymentRecord(student.id);
+      const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
       return `
         <tr>
-          <td>${escapeHtml(student.nombre)}</td>
+          <td>
+            <div class="payment-student-cell">
+              <strong>${escapeHtml(student.nombre)}</strong>
+              <small>${escapeHtml(student.studentCode || student.telefono || "-")}</small>
+            </div>
+          </td>
           <td>${escapeHtml(student.sucursal)}</td>
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
-          <td><input type="text" value="${escapeHtml(payment.mensualidadPactada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
-          <td><select data-payment-field="certificadoP1" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.certificadoP1, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="certificadoP2" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.certificadoP2, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="mensualidad1" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.mensualidad1, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="mensualidad2" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.mensualidad2, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="mensualidad3" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.mensualidad3, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="mensualidad4" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.mensualidad4, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="mensualidad5" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.mensualidad5, PAYMENT_STATUS_OPTIONS)}</select></td>
-          <td><input type="text" value="${escapeHtml(payment.pagosPendientes)}" data-payment-field="pagosPendientes" data-student-id="${student.id}" /></td>
+          <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
+          <td>${renderPaymentStatusSelect("certificadoP1", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP2", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad1", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad2", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad3", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad4", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad5", student, payment)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
+          <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
           <td><button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button></td>
@@ -2719,8 +2774,8 @@ async function savePaymentForStudent(studentId) {
     "mensualidad3",
     "mensualidad4",
     "mensualidad5",
-    "pagosPendientes",
     "metodoPago",
+    "cantidadPagada",
     "reportes",
     "observaciones",
   ];
@@ -2729,6 +2784,7 @@ async function savePaymentForStudent(studentId) {
   const newRecord = {
     id: current.id || crypto.randomUUID(),
     studentId,
+    mesPago: selectedPaymentsMonth,
     createdAt: current.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -2753,23 +2809,28 @@ async function savePaymentForStudent(studentId) {
 
 function updatePaymentsSummary() {
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
-  const validRecords = paymentRecords.filter((record) => activeStudentIds.has(record.studentId));
+  const studentsById = new Map(getActiveStudents().map((student) => [student.id, student]));
+  const validRecords = paymentRecords.filter(
+    (record) => activeStudentIds.has(record.studentId) && isPaymentRecordInSelectedMonth(record)
+  );
   const mensualidadFields = ["mensualidad1", "mensualidad2", "mensualidad3", "mensualidad4", "mensualidad5"];
   const certificadoFields = ["certificadoP1", "certificadoP2"];
+  const paymentFields = certificadoFields.concat(mensualidadFields);
 
   paymentsRegisteredCount.textContent = validRecords.length;
   paymentsPendingCount.textContent = validRecords.reduce(
-    (total, record) => total + certificadoFields.concat(mensualidadFields).filter((field) => record[field] === "Pendiente").length,
+    (total, record) => total + paymentFields.filter((field) => record[field] === "Pendiente" || record[field] === "Parcial").length,
     0
   );
   paymentsMensualidadesPaid.textContent = validRecords.reduce(
     (total, record) => total + mensualidadFields.filter((field) => record[field] === "Pagado").length,
     0
   );
-  paymentsCertificadosPaid.textContent = validRecords.reduce(
-    (total, record) => total + certificadoFields.filter((field) => record[field] === "Pagado").length,
-    0
+  paymentsMonthlyIncome.textContent = formatCurrency(
+    validRecords.reduce((total, record) => total + parsePaymentAmount(record.cantidadPagada), 0)
   );
+  paymentsTlaxcalaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Tlaxcala").length;
+  paymentsPueblaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Puebla").length;
 }
 
 function updateFinanceCategories() {
@@ -3664,6 +3725,13 @@ financeMonthFilter.addEventListener("change", () => {
   renderFinanceTable();
   updateFinanceSummary();
 });
+
+paymentsMonthFilter.addEventListener("change", (event) => {
+  selectedPaymentsMonth = event.target.value || getCurrentMonthValue();
+  renderPaymentsTable();
+  updatePaymentsSummary();
+});
+
 financeBranchFilter.addEventListener("change", () => {
   renderFinanceTable();
   updateFinanceSummary();

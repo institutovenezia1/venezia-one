@@ -952,7 +952,7 @@
         </section>
 
         <section class="module-section" id="pagosSection">
-          <section class="stats-grid" aria-label="Resumen de pagos">
+          <section class="stats-grid payments-stats-grid" aria-label="Resumen de pagos">
             <article class="stat-card">
               <p>Total alumnas con pagos registrados</p>
               <strong id="paymentsRegisteredCount">0</strong>
@@ -966,18 +966,33 @@
               <strong id="paymentsMensualidadesPaid">0</strong>
             </article>
             <article class="stat-card">
-              <p>Total certificados pagados</p>
-              <strong id="paymentsCertificadosPaid">0</strong>
+              <p>Ingresos del mes</p>
+              <strong id="paymentsMonthlyIncome">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Tlaxcala</p>
+              <strong id="paymentsTlaxcalaCount">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Puebla</p>
+              <strong id="paymentsPueblaCount">0</strong>
             </article>
           </section>
 
-          <section class="panel table-panel">
-            <div class="section-heading">
-              <p class="eyebrow">Control</p>
-              <h3>Pagos de alumnas</h3>
+          <section class="panel table-panel payments-panel">
+            <div class="payments-panel-header">
+              <div class="section-heading">
+                <p class="eyebrow">Control financiero</p>
+                <h3>Pagos de alumnas</h3>
+              </div>
+
+              <label class="payments-month-filter">
+                <span>Mes de pago</span>
+                <input id="paymentsMonthFilter" type="month" />
+              </label>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-wrapper payments-table-wrapper">
               <table>
                 <thead>
                   <tr>
@@ -985,7 +1000,7 @@
                     <th>Sucursal</th>
                     <th>Curso</th>
                     <th>Horario</th>
-                    <th>Mensualidad pactada</th>
+                    <th>Mensualidad asignada</th>
                     <th>Certificado P1</th>
                     <th>Certificado P2</th>
                     <th>1ra mensualidad</th>
@@ -993,8 +1008,8 @@
                     <th>3ra mensualidad</th>
                     <th>4ta mensualidad</th>
                     <th>5ta mensualidad</th>
-                    <th>Pagos pendientes</th>
                     <th>Método de pago</th>
+                    <th>Cantidad pagada</th>
                     <th>Reportes</th>
                     <th>Observaciones</th>
                     <th>Acciones</th>
