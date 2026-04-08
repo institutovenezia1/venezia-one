@@ -99,6 +99,7 @@
           <button class="nav-item active" type="button" data-module="crm-prospectos">CRM Prospectos</button>
           <button class="nav-item" type="button" data-module="altas">Altas</button>
           <button class="nav-item" type="button" data-module="pagos">Pagos</button>
+          <button class="nav-item" type="button" data-module="balance">Balance</button>
           <button class="nav-item" type="button" data-module="asistencias">Asistencias</button>
           <button class="nav-item" type="button" data-module="mi-venezia">Mi Venezia</button>
           <button class="nav-item" type="button" data-module="dashboard">Dashboard</button>
@@ -1065,6 +1066,179 @@
           </section>
         </section>
 
+        <section class="module-section" id="balanceSection">
+          <section class="panel balance-header-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Control financiero</p>
+              <h3>Balance</h3>
+            </div>
+
+            <div class="prospect-form attendance-filters balance-filters">
+              <label>
+                <span>Sucursal</span>
+                <select id="balanceBranchFilter">
+                  <option value="">Todas</option>
+                  <option>Tlaxcala</option>
+                  <option>Puebla</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Fecha</span>
+                <input id="balanceDateFilter" type="date" />
+              </label>
+            </div>
+          </section>
+
+          <section class="stats-grid balance-stats-grid" aria-label="Resumen de balance">
+            <article class="stat-card">
+              <p>Ingresos</p>
+              <strong id="balanceIncomeTotal">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Egresos</p>
+              <strong id="balanceExpenseTotal">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total en caja</p>
+              <strong id="balanceCashTotal">$0</strong>
+            </article>
+          </section>
+
+          <section class="panel table-panel balance-income-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Ingresos automáticos</p>
+              <h3>Ingresos provenientes de Pagos</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Alumna</th>
+                    <th>Concepto</th>
+                    <th>Monto</th>
+                    <th>Sucursal</th>
+                    <th>Método de pago</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="balanceIncomeTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="balanceIncomeEmptyState" class="empty-state">
+              No hay ingresos de Pagos para los filtros seleccionados.
+            </p>
+          </section>
+
+          <section class="panel balance-expense-form-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Registro</p>
+              <h3>Egresos manuales</h3>
+            </div>
+
+            <form id="balanceExpenseForm" class="prospect-form">
+              <input type="hidden" id="balanceExpenseId" name="id" />
+
+              <label>
+                <span>Fecha</span>
+                <input id="balanceExpenseDate" name="fecha" type="date" required />
+              </label>
+
+              <label>
+                <span>Sucursal</span>
+                <select id="balanceExpenseBranch" name="sucursal" required>
+                  <option value="">Selecciona una opcion</option>
+                  <option>Tlaxcala</option>
+                  <option>Puebla</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Nombre del gasto</span>
+                <input id="balanceExpenseName" name="nombreGasto" type="text" required />
+              </label>
+
+              <label>
+                <span>Cantidad</span>
+                <input id="balanceExpenseQuantity" name="cantidad" type="number" min="1" step="1" required />
+              </label>
+
+              <label>
+                <span>Costo unitario</span>
+                <input id="balanceExpenseUnitCost" name="costoUnitario" type="number" min="0.01" step="0.01" required />
+              </label>
+
+              <label>
+                <span>Total</span>
+                <input id="balanceExpenseTotalField" name="total" type="number" step="0.01" readonly />
+              </label>
+
+              <label>
+                <span>Responsable del gasto</span>
+                <input id="balanceExpenseResponsible" name="responsableGasto" type="text" required />
+              </label>
+
+              <label class="full-width">
+                <span>Nota</span>
+                <textarea id="balanceExpenseNote" name="nota" rows="3"></textarea>
+              </label>
+
+              <div class="form-actions full-width">
+                <button class="primary-btn" type="submit" id="balanceExpenseSubmitButton">Guardar egreso</button>
+                <button class="secondary-btn" type="button" id="balanceExpenseClearButton">Limpiar</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel table-panel balance-expense-list-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Consulta</p>
+              <h3>Egresos registrados</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Nombre del gasto</th>
+                    <th>Cantidad</th>
+                    <th>Costo unitario</th>
+                    <th>Total</th>
+                    <th>Responsable del gasto</th>
+                    <th>Nota</th>
+                    <th>Sucursal</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="balanceExpenseTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="balanceExpenseEmptyState" class="empty-state">
+              No hay egresos registrados para los filtros seleccionados.
+            </p>
+          </section>
+
+          <section class="stats-grid balance-stats-grid balance-summary-grid" aria-label="Resumen final de balance">
+            <article class="stat-card">
+              <p>Total ingresos</p>
+              <strong id="balanceSummaryIncome">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total egresos</p>
+              <strong id="balanceSummaryExpense">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Total en caja</p>
+              <strong id="balanceSummaryCash">$0</strong>
+            </article>
+          </section>
+        </section>
+
         <section class="module-section" id="finanzasSection">
           <section class="stats-grid" aria-label="Resumen de finanzas">
             <article class="stat-card">
@@ -1277,6 +1451,7 @@
                     <label><input type="checkbox" name="permissions" value="altas" /> Altas</label>
                     <label><input type="checkbox" name="permissions" value="asistencias" /> Asistencias</label>
                     <label><input type="checkbox" name="permissions" value="pagos" /> Pagos</label>
+                    <label><input type="checkbox" name="permissions" value="balance" /> Balance</label>
                     <label><input type="checkbox" name="permissions" value="finanzas" /> Finanzas</label>
                     <label><input type="checkbox" name="permissions" value="web-venezia" /> Web Venezia</label>
                     <label><input type="checkbox" name="permissions" value="mi-venezia" /> Mi Venezia</label>

@@ -44,9 +44,9 @@ const ATTENDANCE_STATUS_LABELS = {
 };
 
 const BASE_ROLE_PERMISSIONS = {
-  "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "pagos", "finanzas", "web-venezia", "mi-venezia"],
+  "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "pagos", "balance", "finanzas", "web-venezia", "mi-venezia"],
   Gerente: ["crm-prospectos", "altas"],
-  "Director de sucursal": ["altas", "asistencias", "pagos", "finanzas"],
+  "Director de sucursal": ["altas", "asistencias", "pagos", "balance", "finanzas"],
   Asesora: ["crm-prospectos"],
   Maestra: ["asistencias"],
   Alumna: ["mi-venezia"],
@@ -59,6 +59,7 @@ const ALL_MODULE_PERMISSIONS = [
   "altas",
   "asistencias",
   "pagos",
+  "balance",
   "finanzas",
   "web-venezia",
   "mi-venezia",
@@ -190,6 +191,21 @@ const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
 const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
+const balanceBranchFilter = document.getElementById("balanceBranchFilter");
+const balanceDateFilter = document.getElementById("balanceDateFilter");
+const balanceIncomeTotal = document.getElementById("balanceIncomeTotal");
+const balanceExpenseTotal = document.getElementById("balanceExpenseTotal");
+const balanceCashTotal = document.getElementById("balanceCashTotal");
+const balanceSummaryIncome = document.getElementById("balanceSummaryIncome");
+const balanceSummaryExpense = document.getElementById("balanceSummaryExpense");
+const balanceSummaryCash = document.getElementById("balanceSummaryCash");
+const balanceIncomeTableBody = document.getElementById("balanceIncomeTableBody");
+const balanceIncomeEmptyState = document.getElementById("balanceIncomeEmptyState");
+const balanceExpenseForm = document.getElementById("balanceExpenseForm");
+const balanceExpenseSubmitButton = document.getElementById("balanceExpenseSubmitButton");
+const balanceExpenseClearButton = document.getElementById("balanceExpenseClearButton");
+const balanceExpenseTableBody = document.getElementById("balanceExpenseTableBody");
+const balanceExpenseEmptyState = document.getElementById("balanceExpenseEmptyState");
 
 const financeCategoria = document.getElementById("financeCategoria");
 const financeTipo = document.getElementById("financeTipo");
@@ -239,6 +255,7 @@ const moduleSections = {
   altas: document.getElementById("altasSection"),
   asistencias: document.getElementById("asistenciasSection"),
   pagos: document.getElementById("pagosSection"),
+  balance: document.getElementById("balanceSection"),
   finanzas: document.getElementById("finanzasSection"),
   "usuarios-accesos": document.getElementById("usersAccessSection"),
   personal: document.getElementById("personalSection"),
@@ -377,6 +394,7 @@ let prospects = dataService.entities.prospects.getAll(() => []);
 let students = dataService.entities.students.getAll(() => []);
 let attendanceRecords = dataService.entities.attendance.getAll(() => []);
 let paymentRecords = dataService.entities.payments.getAll(() => []);
+let balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
 let financeRecords = dataService.entities.financialMovements.getAll(() => []);
 let studentAccessRecords = dataService.entities.studentPortalAccess.getAll(() => []);
 let internalUsers = dataService.entities.internalUsers.getAll(() => []);
@@ -3116,6 +3134,221 @@ function updatePaymentsSummary() {
   );
   paymentsTlaxcalaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Tlaxcala").length;
   paymentsPueblaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Puebla").length;
+}
+
+function getBalancePaymentDate(record) {
+  const baseDate = String(record.updatedAt || record.createdAt || "").slice(0, 10);
+  if (baseDate) {
+    return baseDate;
+  }
+  return record.mesPago ? `${record.mesPago}-01` : "";
+}
+
+function getBalanceIncomeRows() {
+  const studentsById = new Map(getActiveStudents().map((student) => [student.id, student]));
+
+  return paymentRecords
+    .map((record) => {
+      const student = studentsById.get(record.studentId);
+      if (!student) {
+        return null;
+      }
+
+      const fecha = getBalancePaymentDate(record);
+      const monto = parsePaymentAmount(record.cantidadPagada);
+      if (!monto) {
+        return null;
+      }
+
+      return {
+        id: record.id,
+        studentId: record.studentId,
+        fecha,
+        alumna: student.nombre || "-",
+        concepto: record.mesPago ? `Pago ${record.mesPago}` : "Pago registrado",
+        monto,
+        sucursal: student.sucursal || "",
+        metodoPago: record.metodoPago || "-",
+      };
+    })
+    .filter(Boolean)
+    .filter((record) => matchesCurrentBranch(record.sucursal))
+    .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
+    .filter((record) => !balanceDateFilter.value || record.fecha === balanceDateFilter.value)
+    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+}
+
+function getFilteredBalanceExpenses() {
+  return balanceExpenses
+    .filter((record) => matchesCurrentBranch(record.sucursal))
+    .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
+    .filter((record) => !balanceDateFilter.value || record.fecha === balanceDateFilter.value)
+    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+}
+
+function syncBalanceExpenseTotal() {
+  const quantity = Number(document.getElementById("balanceExpenseQuantity").value || 0);
+  const unitCost = Number(document.getElementById("balanceExpenseUnitCost").value || 0);
+  const total = quantity > 0 && unitCost > 0 ? quantity * unitCost : 0;
+  document.getElementById("balanceExpenseTotalField").value = total ? String(total.toFixed(2)) : "";
+}
+
+function resetBalanceExpenseForm() {
+  balanceExpenseForm.reset();
+  document.getElementById("balanceExpenseId").value = "";
+  document.getElementById("balanceExpenseDate").value = formatDateForInput(new Date());
+  document.getElementById("balanceExpenseTotalField").value = "";
+  if (getAllowedBranch()) {
+    document.getElementById("balanceExpenseBranch").value = getAllowedBranch();
+  }
+  balanceExpenseSubmitButton.textContent = "Guardar egreso";
+}
+
+function getBalanceExpenseFormData() {
+  const formData = new FormData(balanceExpenseForm);
+  const existingId = String(formData.get("id") || "").trim();
+  const existingRecord = balanceExpenses.find((record) => record.id === existingId);
+  const cantidad = Number(formData.get("cantidad") || 0);
+  const costoUnitario = Number(formData.get("costoUnitario") || 0);
+  const total = Number((cantidad * costoUnitario).toFixed(2));
+  const allowedBranch = getAllowedBranch();
+
+  return {
+    id: existingId || crypto.randomUUID(),
+    fecha: String(formData.get("fecha") || "").trim(),
+    sucursal: allowedBranch || String(formData.get("sucursal") || "").trim(),
+    nombreGasto: String(formData.get("nombreGasto") || "").trim(),
+    cantidad,
+    costoUnitario,
+    total,
+    nota: String(formData.get("nota") || "").trim(),
+    responsableGasto: String(formData.get("responsableGasto") || "").trim(),
+    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+  };
+}
+
+function getBalanceExpenseValidationErrors(record) {
+  const errors = [];
+  if (!record.fecha) errors.push("Fecha");
+  if (!record.sucursal) errors.push("Sucursal");
+  if (!record.nombreGasto) errors.push("Nombre del gasto");
+  if (!(record.cantidad > 0)) errors.push("Cantidad");
+  if (!(record.costoUnitario > 0)) errors.push("Costo unitario");
+  if (!(record.total > 0)) errors.push("Total");
+  if (!record.responsableGasto) errors.push("Responsable del gasto");
+  return errors;
+}
+
+function saveBalanceExpensesCollection() {
+  dataService.entities.balanceExpenses.setAll(balanceExpenses);
+}
+
+function renderBalanceIncomeTable() {
+  const rows = getBalanceIncomeRows();
+  balanceIncomeTableBody.innerHTML = rows
+    .map(
+      (record) => `
+        <tr>
+          <td>${escapeHtml(record.fecha || "-")}</td>
+          <td>${escapeHtml(record.alumna)}</td>
+          <td>${escapeHtml(record.concepto)}</td>
+          <td>${formatCurrency(record.monto)}</td>
+          <td>${escapeHtml(record.sucursal || "-")}</td>
+          <td>${escapeHtml(record.metodoPago || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${record.studentId}">
+                Ver expediente
+              </button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+  balanceIncomeEmptyState.hidden = rows.length > 0;
+  return rows;
+}
+
+function renderBalanceExpensesTable() {
+  const rows = getFilteredBalanceExpenses();
+  balanceExpenseTableBody.innerHTML = rows
+    .map(
+      (record) => `
+        <tr>
+          <td>${escapeHtml(record.fecha || "-")}</td>
+          <td>${escapeHtml(record.nombreGasto || "-")}</td>
+          <td>${escapeHtml(String(record.cantidad || "-"))}</td>
+          <td>${formatCurrency(record.costoUnitario || 0)}</td>
+          <td>${formatCurrency(record.total || 0)}</td>
+          <td>${escapeHtml(record.responsableGasto || "-")}</td>
+          <td>${escapeHtml(record.nota || "-")}</td>
+          <td>${escapeHtml(record.sucursal || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-balance-expense" data-id="${record.id}">Editar</button>
+              <button class="table-action action-delete" type="button" data-action="delete-balance-expense" data-id="${record.id}">Eliminar</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+  balanceExpenseEmptyState.hidden = rows.length > 0;
+  return rows;
+}
+
+function updateBalanceSummary() {
+  const incomes = getBalanceIncomeRows();
+  const expenses = getFilteredBalanceExpenses();
+  const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
+  const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
+  const cashTotal = incomeTotal - expenseTotal;
+
+  [balanceIncomeTotal, balanceSummaryIncome].forEach((element) => {
+    element.textContent = formatCurrency(incomeTotal);
+  });
+  [balanceExpenseTotal, balanceSummaryExpense].forEach((element) => {
+    element.textContent = formatCurrency(expenseTotal);
+  });
+  [balanceCashTotal, balanceSummaryCash].forEach((element) => {
+    element.textContent = formatCurrency(cashTotal);
+  });
+}
+
+function renderBalanceModule() {
+  renderBalanceIncomeTable();
+  renderBalanceExpensesTable();
+  updateBalanceSummary();
+}
+
+function editBalanceExpense(id) {
+  const record = balanceExpenses.find((item) => item.id === id);
+  if (!record) {
+    return;
+  }
+
+  document.getElementById("balanceExpenseId").value = record.id;
+  document.getElementById("balanceExpenseDate").value = record.fecha || "";
+  document.getElementById("balanceExpenseBranch").value = record.sucursal || "";
+  document.getElementById("balanceExpenseName").value = record.nombreGasto || "";
+  document.getElementById("balanceExpenseQuantity").value = String(record.cantidad || "");
+  document.getElementById("balanceExpenseUnitCost").value = String(record.costoUnitario || "");
+  document.getElementById("balanceExpenseResponsible").value = record.responsableGasto || "";
+  document.getElementById("balanceExpenseNote").value = record.nota || "";
+  document.getElementById("balanceExpenseTotalField").value = record.total ? String(Number(record.total).toFixed(2)) : "";
+  balanceExpenseSubmitButton.textContent = "Actualizar egreso";
+  setActiveModule("balance");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function deleteBalanceExpense(id) {
+  balanceExpenses = balanceExpenses.filter((record) => record.id !== id);
+  saveBalanceExpensesCollection();
+  renderBalanceModule();
+  if (document.getElementById("balanceExpenseId").value === id) {
+    resetBalanceExpenseForm();
+  }
 }
 
 function updateFinanceCategories() {
