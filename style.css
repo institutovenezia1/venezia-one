@@ -504,7 +504,18 @@ textarea {
 }
 
 .attendance-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 190px));
+  justify-content: start;
+  justify-items: stretch;
   align-items: end;
+  gap: 0.75rem 0.8rem;
+  max-width: 860px;
+}
+
+.attendance-filters label {
+  width: 100%;
+  margin: 0;
 }
 
 .attendance-filters label:last-child select {
