@@ -1521,12 +1521,15 @@
                   <span>Puesto</span>
                   <select id="staffPuesto" name="puesto" required>
                     <option value="">Selecciona una opcion</option>
-                    <option>Asesora</option>
-                    <option>Gerente</option>
-                    <option>Director de sucursal</option>
-                    <option>Maestra</option>
-                    <option>Administración</option>
-                    <option>Otro</option>
+                    <option>gerente de sucursal</option>
+                    <option>director administrativo de sucursal</option>
+                    <option>coordinadora de maestras</option>
+                    <option>miss de uñas</option>
+                    <option>miss de pestañas</option>
+                    <option>miss de barbería</option>
+                    <option>miss de maquillaje</option>
+                    <option>gerente de ventas</option>
+                    <option>asesor de ventas</option>
                   </select>
                 </label>
 
@@ -1556,6 +1559,11 @@
                 </label>
 
                 <label>
+                  <span>Fecha de nacimiento</span>
+                  <input id="staffFechaNacimiento" name="fechaNacimiento" type="date" required />
+                </label>
+
+                <label>
                   <span>Estado</span>
                   <select id="staffEstado" name="estado" required>
                     <option value="">Selecciona una opcion</option>
@@ -1565,11 +1573,16 @@
                 </label>
 
                 <label>
-                  <span>Usuario vinculado</span>
-                  <select id="staffLinkedUser" name="linkedUserId">
-                    <option value="">Sin vincular</option>
-                  </select>
+                  <span>Usuario de acceso</span>
+                  <input id="staffAccessUsername" name="usernamePreview" type="text" readonly />
                 </label>
+
+                <label>
+                  <span>Contraseña temporal</span>
+                  <input id="staffTemporaryPassword" name="passwordPreview" type="text" readonly />
+                </label>
+
+                <input id="staffLinkedUser" name="linkedUserId" type="hidden" />
 
                 <label class="full-width">
                   <span>Observaciones</span>
@@ -1600,7 +1613,7 @@
                       <th>Sucursal</th>
                       <th>Fecha de ingreso</th>
                       <th>Estado</th>
-                      <th>Usuario vinculado</th>
+                      <th>Usuario de acceso</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>

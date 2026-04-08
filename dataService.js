@@ -349,6 +349,41 @@
       .trim();
   }
 
+  function extractStaffMetadata(notes, label) {
+    const source = String(notes || "");
+    const segments = source.split(" | ");
+    const targetSegment = segments.find((segment) => segment.startsWith(`${label}: `));
+    return targetSegment ? targetSegment.slice(label.length + 2).trim() : "";
+  }
+
+  function stripStaffMetadata(notes) {
+    const metadataLabels = new Set([
+      "Fecha de nacimiento",
+      "Usuario de acceso",
+      "Contraseña temporal",
+    ]);
+
+    return String(notes || "")
+      .split(" | ")
+      .filter((segment) => {
+        const [label] = segment.split(": ");
+        return segment && !metadataLabels.has(label);
+      })
+      .join(" | ")
+      .trim();
+  }
+
+  function buildStaffNotes(record) {
+    return [
+      stripStaffMetadata(record.observaciones || ""),
+      record.fechaNacimiento ? `Fecha de nacimiento: ${record.fechaNacimiento}` : "",
+      record.username ? `Usuario de acceso: ${record.username}` : "",
+      record.password ? `Contraseña temporal: ${record.password}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  }
+
   function buildPaymentNotes(record) {
     return [
       `Mes pago: ${record.mesPago || ""}`,
@@ -665,7 +700,7 @@
           hire_date: toNullableDateValue(record.fechaIngreso),
           status: record.estado || "",
           linked_user_id: record.linkedUserId || null,
-          notes: record.observaciones || "",
+          notes: buildStaffNotes(record),
           created_at: toNullableTimestampValue(record.createdAt),
         }),
         fromDb: (record) => ({
@@ -678,7 +713,10 @@
           fechaIngreso: record.hire_date ? String(record.hire_date).slice(0, 10) : "",
           estado: record.status || "",
           linkedUserId: record.linked_user_id || "",
-          observaciones: record.notes || "",
+          fechaNacimiento: extractStaffMetadata(record.notes, "Fecha de nacimiento"),
+          username: extractStaffMetadata(record.notes, "Usuario de acceso"),
+          password: extractStaffMetadata(record.notes, "Contraseña temporal"),
+          observaciones: stripStaffMetadata(record.notes || ""),
           createdAt: record.created_at || null,
         }),
       }),

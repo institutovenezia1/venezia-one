@@ -91,6 +91,9 @@ const staffClearButton = document.getElementById("staffClearButton");
 const staffSubmitButton = document.getElementById("staffSubmitButton");
 const staffTableBody = document.getElementById("staffTableBody");
 const staffEmptyState = document.getElementById("staffEmptyState");
+const staffFechaNacimiento = document.getElementById("staffFechaNacimiento");
+const staffAccessUsername = document.getElementById("staffAccessUsername");
+const staffTemporaryPassword = document.getElementById("staffTemporaryPassword");
 const altaForm = document.getElementById("altaForm");
 const clearAltaButton = document.getElementById("clearAltaButton");
 const altaValidationAlert = document.getElementById("altaValidationAlert");
@@ -692,6 +695,148 @@ function saveStudentAccessRecords() {
 async function saveInternalUsers() {
   // Supabase-based module with local cache fallback.
   await dataService.entities.internalUsers.setAll(internalUsers);
+}
+
+function getStaffRoleFromPosition(position) {
+  const normalizedPosition = String(position || "").trim().toLowerCase();
+
+  if (normalizedPosition === "gerente de ventas") {
+    return "Gerente";
+  }
+
+  if (normalizedPosition === "asesor de ventas") {
+    return "Asesora";
+  }
+
+  if (
+    normalizedPosition === "gerente de sucursal" ||
+    normalizedPosition === "director administrativo de sucursal"
+  ) {
+    return "Director de sucursal";
+  }
+
+  return "Maestra";
+}
+
+function getStaffBranchPrefix(branch) {
+  const normalizedBranch = String(branch || "").trim().toLowerCase();
+  if (normalizedBranch === "tlaxcala") return "tlx";
+  if (normalizedBranch === "puebla") return "pue";
+  return "ven";
+}
+
+function getStaffBirthYear(value) {
+  const normalizedValue = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue.slice(0, 4);
+  }
+  if (/^\d{4}$/.test(normalizedValue)) {
+    return normalizedValue;
+  }
+  return "";
+}
+
+function slugifyStaffUsername(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+}
+
+function generateStaffUsername({ nombre, telefono, sucursal, staffId = "", linkedUserId = "" }) {
+  const firstName = String(nombre || "").trim().split(/\s+/)[0] || "staff";
+  const phoneDigits = normalizePhone(telefono);
+  const lastFour = phoneDigits.slice(-4) || "0000";
+  const prefix = getStaffBranchPrefix(sucursal);
+  const usernameBase = `${prefix}.${slugifyStaffUsername(firstName) || "staff"}${lastFour}`;
+  const reservedUsernames = new Set();
+
+  internalUsers.forEach((user) => {
+    if (user.id !== linkedUserId && user.username) {
+      reservedUsernames.add(user.username.toLowerCase());
+    }
+  });
+
+  staffRecords.forEach((record) => {
+    if (record.id !== staffId && record.username) {
+      reservedUsernames.add(String(record.username).toLowerCase());
+    }
+  });
+
+  if (!reservedUsernames.has(usernameBase.toLowerCase())) {
+    return usernameBase;
+  }
+
+  let suffix = 2;
+  let nextCandidate = `${usernameBase}-${suffix}`;
+  while (reservedUsernames.has(nextCandidate.toLowerCase())) {
+    suffix += 1;
+    nextCandidate = `${usernameBase}-${suffix}`;
+  }
+
+  return nextCandidate;
+}
+
+function buildStaffTemporaryPassword(value) {
+  return `Venezia${getStaffBirthYear(value) || "0000"}`;
+}
+
+function syncStaffAccessFields() {
+  const existingId = document.getElementById("staffId").value;
+  const linkedUserId = document.getElementById("staffLinkedUser").value;
+  const allowedBranch = getAllowedBranch();
+  const username = generateStaffUsername({
+    nombre: document.getElementById("staffNombre").value,
+    telefono: document.getElementById("staffTelefono").value,
+    sucursal: allowedBranch || document.getElementById("staffSucursal").value,
+    staffId: existingId,
+    linkedUserId,
+  });
+  const password = buildStaffTemporaryPassword(staffFechaNacimiento.value);
+
+  staffAccessUsername.value = username;
+  staffTemporaryPassword.value = password;
+}
+
+async function syncStaffInternalAccess(record) {
+  const mappedRole = getStaffRoleFromPosition(record.puesto);
+  const existingUser =
+    internalUsers.find((user) => user.id === record.linkedUserId) ||
+    internalUsers.find((user) => user.username === record.username);
+  const internalUserPayload = {
+    id: existingUser?.id || record.linkedUserId || crypto.randomUUID(),
+    fullName: record.nombre || "",
+    username: record.username || "",
+    phone: record.telefono || "",
+    password: record.password || "",
+    role: existingUser?.role || mappedRole,
+    branch: record.sucursal || existingUser?.branch || "",
+    status: record.estado || existingUser?.status || "Activo",
+    permissions:
+      Array.isArray(existingUser?.permissions) && existingUser.permissions.length > 0
+        ? existingUser.permissions
+        : [...(BASE_ROLE_PERMISSIONS[existingUser?.role || mappedRole] || [])],
+  };
+  const saveResult = await dataService.entities.internalUsers.upsertOne(internalUserPayload, { alertOnFailure: false });
+  const nextUser = {
+    ...internalUserPayload,
+    ...saveResult.record,
+    permissions: internalUserPayload.permissions,
+  };
+  const existingIndex = internalUsers.findIndex((user) => user.id === nextUser.id);
+
+  if (existingIndex >= 0) {
+    internalUsers[existingIndex] = nextUser;
+  } else {
+    internalUsers.unshift(nextUser);
+  }
+
+  return {
+    ...saveResult,
+    record: nextUser,
+  };
 }
 
 async function saveStaffRecord(record) {
@@ -1629,10 +1774,13 @@ function getInternalUserFormData() {
 }
 
 function getStaffFormData() {
+  syncStaffAccessFields();
   const formData = new FormData(staffForm);
   const existingId = document.getElementById("staffId").value;
   const existingRecord = staffRecords.find((record) => record.id === existingId);
   const allowedBranch = getAllowedBranch();
+  const username = staffAccessUsername.value.trim();
+  const password = staffTemporaryPassword.value.trim();
 
   return {
     id: existingId || crypto.randomUUID(),
@@ -1642,8 +1790,11 @@ function getStaffFormData() {
     area: formData.get("area"),
     sucursal: allowedBranch || formData.get("sucursal"),
     fechaIngreso: formData.get("fechaIngreso"),
+    fechaNacimiento: String(formData.get("fechaNacimiento") || "").trim(),
     estado: formData.get("estado"),
     linkedUserId: String(formData.get("linkedUserId") || "").trim(),
+    username,
+    password,
     observaciones: String(formData.get("observaciones") || "").trim(),
     createdAt: existingRecord?.createdAt || new Date().toISOString(),
   };
@@ -1975,8 +2126,10 @@ function resetInternalUserForm() {
 function resetStaffForm() {
   staffForm.reset();
   document.getElementById("staffId").value = "";
+  document.getElementById("staffLinkedUser").value = "";
   document.getElementById("staffFechaIngreso").value = formatDateForInput(new Date());
   staffSubmitButton.textContent = "Guardar personal";
+  syncStaffAccessFields();
 }
 
 function updateStats() {
@@ -2108,23 +2261,7 @@ function renderDashboard() {
 }
 
 function populateStaffLinkedUsers() {
-  const previousValue = document.getElementById("staffLinkedUser").value;
-  const availableUsers = internalUsers
-    .filter((user) => matchesCurrentBranch(user.branch) || user.branch === "Todas")
-    .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-  document.getElementById("staffLinkedUser").innerHTML = ['<option value="">Sin vincular</option>']
-    .concat(
-      availableUsers.map(
-        (user) =>
-          `<option value="${escapeHtml(user.id)}">${escapeHtml(user.fullName)} | ${escapeHtml(user.role)}</option>`
-      )
-    )
-    .join("");
-
-  if (availableUsers.some((user) => user.id === previousValue)) {
-    document.getElementById("staffLinkedUser").value = previousValue;
-  }
+  syncStaffAccessFields();
 }
 
 function getVisibleInternalUsers() {
@@ -2164,9 +2301,13 @@ function getVisibleStaffRecords() {
   return staffRecords.filter((record) => matchesCurrentBranch(record.sucursal));
 }
 
-function getLinkedUserLabel(userId) {
-  const user = internalUsers.find((item) => item.id === userId);
-  return user ? `${user.fullName} | ${user.role}` : "-";
+function getStaffAccessLabel(record) {
+  if (record.username) {
+    return record.username;
+  }
+
+  const user = internalUsers.find((item) => item.id === record.linkedUserId);
+  return user?.username || "-";
 }
 
 function renderStaffTable() {
@@ -2183,7 +2324,7 @@ function renderStaffTable() {
           <td>${escapeHtml(record.sucursal)}</td>
           <td>${escapeHtml(record.fechaIngreso)}</td>
           <td><span class="status-pill">${escapeHtml(record.estado)}</span></td>
-          <td>${escapeHtml(getLinkedUserLabel(record.linkedUserId))}</td>
+          <td>${escapeHtml(getStaffAccessLabel(record))}</td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-staff" data-id="${record.id}">Editar</button>
@@ -2257,10 +2398,14 @@ function editStaffRecord(id) {
   document.getElementById("staffArea").value = record.area;
   document.getElementById("staffSucursal").value = record.sucursal;
   document.getElementById("staffFechaIngreso").value = record.fechaIngreso;
+  document.getElementById("staffFechaNacimiento").value = record.fechaNacimiento || "";
   document.getElementById("staffEstado").value = record.estado;
   document.getElementById("staffLinkedUser").value = record.linkedUserId || "";
+  staffAccessUsername.value = record.username || "";
+  staffTemporaryPassword.value = record.password || "";
   document.getElementById("staffObservaciones").value = record.observaciones || "";
   staffSubmitButton.textContent = "Actualizar personal";
+  syncStaffAccessFields();
   setActiveModule("personal");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -4220,11 +4365,19 @@ internalUserForm.addEventListener("submit", async (event) => {
 staffForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const staffData = getStaffFormData();
-  staffData.linkedUserId = await resolveLinkedInternalUserId(staffData.linkedUserId);
+  const internalAccessResult = await syncStaffInternalAccess(staffData);
+  staffData.linkedUserId = internalAccessResult.record.id;
   const saveResult = await saveStaffRecord(staffData);
   if (!saveResult.synced) {
     renderStaffTable();
     alert("No se pudo guardar el personal en Supabase. Se conservó sólo en el respaldo local.");
+    return;
+  }
+
+  if (!internalAccessResult.synced) {
+    renderAll();
+    resetStaffForm();
+    alert("El personal se guardó, pero la cuenta interna sólo quedó en el respaldo local.");
     return;
   }
 
@@ -4427,6 +4580,11 @@ altaForm.addEventListener("input", () => {
 
 ["balanceExpenseQuantity", "balanceExpenseUnitCost"].forEach((id) => {
   document.getElementById(id).addEventListener("input", syncBalanceExpenseTotal);
+});
+
+["staffNombre", "staffTelefono", "staffSucursal", "staffFechaNacimiento"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", syncStaffAccessFields);
+  document.getElementById(id).addEventListener("change", syncStaffAccessFields);
 });
 
 webVeneziaSection.addEventListener("click", (event) => {
