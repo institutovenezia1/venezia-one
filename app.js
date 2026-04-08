@@ -2505,6 +2505,11 @@ function renderAltaHistory() {
           <td>${escapeHtml(student.metodoPago || "-")}</td>
           <td>${escapeHtml(student.cantidadPago || "-")}</td>
           <td>${escapeHtml(student.asesoraInscribio || student.usuarioAlta || "-")}</td>
+          <td>
+            <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">
+              Ver expediente
+            </button>
+          </td>
         </tr>
       `;
     })
@@ -2689,6 +2694,7 @@ function renderAttendanceTable() {
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
+              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
             </div>
           </td>
@@ -4095,6 +4101,13 @@ pendingAltasTableBody.addEventListener("click", (event) => {
   }
 });
 
+altaHistoryTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action='view-student-file']");
+  if (actionButton) {
+    openStudentFile(actionButton.dataset.id);
+  }
+});
+
 attendanceTableBody.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) return;
@@ -4106,6 +4119,7 @@ attendanceTableBody.addEventListener("click", async (event) => {
     });
     await saveAttendanceForStudent(id);
   }
+  if (action === "view-student-file") openStudentFile(id);
   if (action === "view-history") renderAttendanceHistory(id);
 });
 
