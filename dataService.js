@@ -671,6 +671,7 @@
           password: record.password || "",
           role: record.role || "",
           branch: record.branch || "",
+          permissions: Array.isArray(record.permissions) ? record.permissions : [],
           status: record.status || "Activo",
         }),
         fromDb: (record) => ({
@@ -681,6 +682,7 @@
           password: record.password || "",
           role: record.role || "",
           branch: record.branch || "",
+          permissions: Array.isArray(record.permissions) ? record.permissions : [],
           status: record.status || "Activo",
         }),
       }),

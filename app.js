@@ -755,6 +755,27 @@ function getStaffRoleFromPosition(position) {
   return "Maestra";
 }
 
+function getPermissionFallbackFromStaff(user) {
+  if (!user) {
+    return [];
+  }
+
+  const linkedStaffRecord =
+    staffRecords.find((record) => record.linkedUserId === user.id) ||
+    staffRecords.find((record) => record.username && record.username === user.username);
+
+  if (!linkedStaffRecord) {
+    return [];
+  }
+
+  const normalizedPosition = String(linkedStaffRecord.puesto || "").trim().toLowerCase();
+  if (normalizedPosition === "coordinadora de maestras") {
+    return ["asistencias", "crm-prospectos", "altas"];
+  }
+
+  return [];
+}
+
 function getStaffBranchPrefix(branch) {
   const normalizedBranch = String(branch || "").trim().toLowerCase();
   if (normalizedBranch === "tlaxcala") return "tlx";
@@ -1243,6 +1264,7 @@ async function normalizeInternalUsers() {
 
   internalUsers = internalUsers.map((user) => {
     const storedPermissions = Array.isArray(permissionOverrides[user.id]) ? permissionOverrides[user.id] : null;
+    const staffFallbackPermissions = getPermissionFallbackFromStaff(user);
     const normalized = {
       ...user,
       fullName: user.fullName || "",
@@ -1260,6 +1282,9 @@ async function normalizeInternalUsers() {
 
     if (storedPermissions && storedPermissions.length > 0) {
       normalized.permissions = [...storedPermissions];
+      changed = true;
+    } else if (staffFallbackPermissions.length > 0 && (!Array.isArray(normalized.permissions) || normalized.permissions.length === 0)) {
+      normalized.permissions = [...staffFallbackPermissions];
       changed = true;
     } else if (!Array.isArray(normalized.permissions) || normalized.permissions.length === 0) {
       normalized.permissions =
@@ -1281,6 +1306,14 @@ async function normalizeInternalUsers() {
 
     normalized.phone = normalizePhone(normalized.phone);
     setInternalUserPermissionOverride(normalized.id, normalized.permissions);
+    console.debug("[Permisos] Usuario normalizado", {
+      id: normalized.id,
+      username: normalized.username,
+      role: normalized.role,
+      storedPermissions,
+      staffFallbackPermissions,
+      finalPermissions: normalized.permissions,
+    });
 
     return normalized;
   });
@@ -1627,6 +1660,18 @@ function applyRoleToSidebar() {
           : false;
     navItem.hidden = !visible;
   });
+
+  if (currentAccessMode === "internal") {
+    const currentUser = getCurrentInternalUser();
+    console.debug("[Permisos] Menú visible", {
+      id: currentUser?.id || "",
+      username: currentUser?.username || "",
+      permissions: currentUser?.permissions || [],
+      visibleModules: Array.from(navItems)
+        .filter((item) => !item.hidden)
+        .map((item) => item.dataset.module),
+    });
+  }
 }
 
 function updateSessionUI() {
@@ -4368,12 +4413,24 @@ internalLoginForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  console.debug("[Permisos] Login encontrado", {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    permissionsBeforeSession: user.permissions || [],
+  });
+
   currentInternalUserId = user.id;
   currentAccessMode = "internal";
   publicAccessPanelOpen = false;
   dataService.sessions.setInternal(user.id);
   updateSessionUI();
   renderAll();
+  console.debug("[Permisos] Login aplicado", {
+    id: user.id,
+    username: user.username,
+    permissionsAfterSession: getCurrentInternalUser()?.permissions || [],
+  });
   setActiveModule(getDefaultModuleForCurrentContext());
   internalLoginForm.reset();
 });
