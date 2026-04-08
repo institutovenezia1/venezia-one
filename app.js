@@ -3031,21 +3031,20 @@ function renderAttendanceTable() {
 
   attendanceTableHead.innerHTML = `
     <tr>
-      <th>Reglamento firmado y recibido</th>
-      <th>Num # de lista</th>
+      <th>REGLAMENTO</th>
+      <th>#</th>
       <th>Nombre del alumno</th>
       <th>Celular</th>
-      <th>Primer pago de Certificado</th>
-      <th>Segundo pago de Certificado</th>
-      <th>Mensualidad asignada</th>
+      <th>PAGO C1</th>
+      <th>PAGO C2</th>
+      <th>MENS</th>
       <th>1ra M</th>
       <th>2da M</th>
       <th>3ra M</th>
       <th>4ta M</th>
       <th>5ta M</th>
-      <th>Pago con Trans o Efec</th>
-      <th>Reportes</th>
-      <th>Observaciones</th>
+      <th>TRANS O EFEC</th>
+      <th>OBSERVA.</th>
       ${sessions.map((session) => `<th>${escapeHtml(getAttendanceSessionLabel(session))}</th>`).join("")}
       <th>Acciones</th>
     </tr>
@@ -3084,7 +3083,6 @@ function renderAttendanceTable() {
           <td>${escapeHtml(payment.mensualidad4 || "-")}</td>
           <td>${escapeHtml(monthlyPayment5)}</td>
           <td>${escapeHtml(payment.metodoPago || "-")}</td>
-          <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Reportes") || payment.reportes || "")}" placeholder="Reporte" data-attendance-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Observaciones") || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
           ${sessions
             .map((session) => {
