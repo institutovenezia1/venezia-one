@@ -1235,7 +1235,8 @@ td select {
 }
 
 #asistenciasSection > .stats-grid,
-#pagosSection > .payments-stats-grid {
+#pagosSection > .payments-stats-grid,
+#balanceSection > .balance-stats-grid {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
@@ -1245,7 +1246,8 @@ td select {
 }
 
 #asistenciasSection > .stats-grid .stat-card,
-#pagosSection > .payments-stats-grid .stat-card {
+#pagosSection > .payments-stats-grid .stat-card,
+#balanceSection > .balance-stats-grid .stat-card {
   flex: 0 0 160px;
   width: 160px;
   max-width: 160px;
@@ -1255,14 +1257,27 @@ td select {
 }
 
 #asistenciasSection > .stats-grid .stat-card p,
-#pagosSection > .payments-stats-grid .stat-card p {
+#pagosSection > .payments-stats-grid .stat-card p,
+#balanceSection > .balance-stats-grid .stat-card p {
   margin: 0 0 0.35rem;
   font-size: 0.82rem;
 }
 
 #asistenciasSection > .stats-grid .stat-card strong,
-#pagosSection > .payments-stats-grid .stat-card strong {
+#pagosSection > .payments-stats-grid .stat-card strong,
+#balanceSection > .balance-stats-grid .stat-card strong {
   font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.balance-filters {
+  max-width: 460px;
+}
+
+.balance-header-panel,
+.balance-income-panel,
+.balance-expense-form-panel,
+.balance-expense-list-panel {
+  margin-bottom: 1rem;
 }
 
 .payments-panel {

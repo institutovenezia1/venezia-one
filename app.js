@@ -1080,6 +1080,11 @@ async function normalizeInternalUsers() {
       changed = true;
     }
 
+    if (normalized.permissions.includes("pagos") && !normalized.permissions.includes("balance")) {
+      normalized.permissions = [...new Set(normalized.permissions.concat("balance"))];
+      changed = true;
+    }
+
     if (normalized.role === "Director General" && !normalized.permissions.includes("usuarios-accesos")) {
       normalized.permissions = [...new Set(normalized.permissions.concat("usuarios-accesos"))];
       changed = true;
@@ -1496,7 +1501,9 @@ function applyBranchRestrictionsToUI() {
   if (branchLocked) {
     document.getElementById("altaSucursal").value = allowedBranch;
     document.getElementById("financeSucursal").value = allowedBranch;
+    document.getElementById("balanceExpenseBranch").value = allowedBranch;
     attendanceSucursalFilter.value = allowedBranch;
+    balanceBranchFilter.value = allowedBranch;
     financeBranchFilter.value = allowedBranch;
     dashboardBranchFilter.value = allowedBranch;
   }
@@ -1504,9 +1511,12 @@ function applyBranchRestrictionsToUI() {
   document.getElementById("altaSucursal").disabled = branchLocked;
   document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
   document.getElementById("financeSucursal").disabled = branchLocked;
+  document.getElementById("balanceExpenseBranch").value = branchLocked ? allowedBranch : document.getElementById("balanceExpenseBranch").value;
+  document.getElementById("balanceExpenseBranch").disabled = branchLocked;
   document.getElementById("staffSucursal").value = branchLocked ? allowedBranch : document.getElementById("staffSucursal").value;
   document.getElementById("staffSucursal").disabled = branchLocked;
   attendanceSucursalFilter.disabled = branchLocked;
+  balanceBranchFilter.disabled = branchLocked;
   financeBranchFilter.disabled = branchLocked;
   dashboardBranchFilter.disabled = branchLocked || !hasInternalAccess("dashboard");
 }
@@ -1599,6 +1609,10 @@ function getInternalUserFormData() {
 
   if (role === "Director General" && !permissions.includes("usuarios-accesos")) {
     permissions = permissions.concat("usuarios-accesos");
+  }
+
+  if (permissions.includes("pagos") && !permissions.includes("balance")) {
+    permissions = permissions.concat("balance");
   }
 
   return {
@@ -4018,6 +4032,7 @@ function setActiveModule(module) {
     altas: "Altas",
     asistencias: "Asistencias",
     pagos: "Pagos",
+    balance: "Balance",
     finanzas: "Finanzas",
     "usuarios-accesos": "Usuarios y accesos",
     personal: "Personal",
@@ -4043,6 +4058,7 @@ function renderAll() {
   updateAttendanceSummary();
   renderPaymentsTable();
   updatePaymentsSummary();
+  renderBalanceModule();
   renderFinanceTable();
   updateFinanceSummary();
   renderInternalUsersTable();
@@ -4354,11 +4370,34 @@ financeForm.addEventListener("submit", async (event) => {
   resetFinanceForm();
 });
 
+balanceExpenseForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const expenseData = getBalanceExpenseFormData();
+  const validationErrors = getBalanceExpenseValidationErrors(expenseData);
+
+  if (validationErrors.length > 0) {
+    alert(`Completa los campos obligatorios del egreso: ${validationErrors.join(", ")}.`);
+    return;
+  }
+
+  const existingIndex = balanceExpenses.findIndex((record) => record.id === expenseData.id);
+  if (existingIndex >= 0) {
+    balanceExpenses[existingIndex] = expenseData;
+  } else {
+    balanceExpenses.unshift(expenseData);
+  }
+
+  saveBalanceExpensesCollection();
+  renderBalanceModule();
+  resetBalanceExpenseForm();
+});
+
 clearButton.addEventListener("click", resetForm);
 internalUserClearButton.addEventListener("click", resetInternalUserForm);
 staffClearButton.addEventListener("click", resetStaffForm);
 clearAltaButton.addEventListener("click", resetAltaForm);
 financeClearButton.addEventListener("click", resetFinanceForm);
+balanceExpenseClearButton.addEventListener("click", resetBalanceExpenseForm);
 miVeneziaLogoutButton.addEventListener("click", logoutMiVenezia);
 internalLogoutButton.addEventListener("click", logoutInternalSession);
 internalLoginForm.addEventListener("input", () => {
@@ -4384,6 +4423,10 @@ altaForm.addEventListener("input", () => {
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+});
+
+["balanceExpenseQuantity", "balanceExpenseUnitCost"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", syncBalanceExpenseTotal);
 });
 
 webVeneziaSection.addEventListener("click", (event) => {
@@ -4503,6 +4546,9 @@ paymentsSearchInput.addEventListener("input", (event) => {
   renderPaymentsTable();
 });
 
+balanceBranchFilter.addEventListener("change", renderBalanceModule);
+balanceDateFilter.addEventListener("change", renderBalanceModule);
+
 financeBranchFilter.addEventListener("change", () => {
   renderFinanceTable();
   updateFinanceSummary();
@@ -4620,6 +4666,25 @@ financeTableBody.addEventListener("click", (event) => {
   if (action === "delete-finance") deleteFinanceRecord(id);
 });
 
+balanceIncomeTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action='view-student-file']");
+  if (actionButton) {
+    openStudentFile(actionButton.dataset.id);
+  }
+});
+
+balanceExpenseTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton) return;
+
+  if (actionButton.dataset.action === "edit-balance-expense") {
+    editBalanceExpense(actionButton.dataset.id);
+  }
+  if (actionButton.dataset.action === "delete-balance-expense") {
+    deleteBalanceExpense(actionButton.dataset.id);
+  }
+});
+
 internalUsersTableBody.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) return;
@@ -4658,6 +4723,7 @@ navItems.forEach((item) => {
       module === "altas" ||
       module === "asistencias" ||
       module === "pagos" ||
+      module === "balance" ||
       module === "finanzas" ||
       module === "usuarios-accesos" ||
       module === "personal" ||
@@ -4667,8 +4733,6 @@ navItems.forEach((item) => {
       setActiveModule(module);
       return;
     }
-
-    alert("Próximamente");
   });
 });
 
@@ -4678,6 +4742,7 @@ async function initApp() {
   students = await dataService.entities.students.getAllPrimary(() => []);
   attendanceRecords = await dataService.entities.attendance.getAllPrimary(() => []);
   paymentRecords = await dataService.entities.payments.getAllPrimary(() => []);
+  balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
   financeRecords = await dataService.entities.financialMovements.getAllPrimary(() => []);
   studentAccessRecords = await dataService.entities.studentPortalAccess.getAllPrimary(() => []);
   staffRecords = await dataService.entities.staff.getAllPrimary(() => []);
@@ -4689,6 +4754,7 @@ async function initApp() {
   resetInternalUserForm();
   resetStaffForm();
   resetAltaForm();
+  resetBalanceExpenseForm();
   resetFinanceForm();
   updateWebAppointmentFields();
   currentInternalUserId = dataService.sessions.getInternal();
