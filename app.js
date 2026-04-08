@@ -9,6 +9,7 @@ const STAFF_STORAGE_KEY = "venezia-one-v2-staff";
 const WEB_SETTINGS_STORAGE_KEY = "venezia-one-v2-web-settings";
 const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
+const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
 
 const INCOME_CATEGORIES = [
@@ -692,8 +693,44 @@ function saveStudentAccessRecords() {
   dataService.entities.studentPortalAccess.setAll(studentAccessRecords);
 }
 
+function getInternalUserPermissionOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(INTERNAL_USER_PERMISSIONS_STORAGE_KEY) || "{}");
+  } catch (error) {
+    console.error("No se pudieron cargar los permisos locales de usuarios internos.", error);
+    return {};
+  }
+}
+
+function saveInternalUserPermissionOverrides(overrides) {
+  localStorage.setItem(INTERNAL_USER_PERMISSIONS_STORAGE_KEY, JSON.stringify(overrides));
+}
+
+function setInternalUserPermissionOverride(userId, permissions = []) {
+  if (!userId) {
+    return;
+  }
+  const overrides = getInternalUserPermissionOverrides();
+  overrides[userId] = Array.from(new Set((permissions || []).filter(Boolean)));
+  saveInternalUserPermissionOverrides(overrides);
+}
+
+function removeInternalUserPermissionOverride(userId) {
+  if (!userId) {
+    return;
+  }
+  const overrides = getInternalUserPermissionOverrides();
+  delete overrides[userId];
+  saveInternalUserPermissionOverrides(overrides);
+}
+
 async function saveInternalUsers() {
   // Supabase-based module with local cache fallback.
+  internalUsers.forEach((user) => {
+    if (Array.isArray(user.permissions) && user.permissions.length > 0) {
+      setInternalUserPermissionOverride(user.id, user.permissions);
+    }
+  });
   await dataService.entities.internalUsers.setAll(internalUsers);
 }
 
@@ -832,6 +869,8 @@ async function syncStaffInternalAccess(record) {
   } else {
     internalUsers.unshift(nextUser);
   }
+
+  setInternalUserPermissionOverride(nextUser.id, nextUser.permissions);
 
   return {
     ...saveResult,
@@ -1200,8 +1239,10 @@ async function normalizeLegacyProspects() {
 
 async function normalizeInternalUsers() {
   let changed = false;
+  const permissionOverrides = getInternalUserPermissionOverrides();
 
   internalUsers = internalUsers.map((user) => {
+    const storedPermissions = Array.isArray(permissionOverrides[user.id]) ? permissionOverrides[user.id] : null;
     const normalized = {
       ...user,
       fullName: user.fullName || "",
@@ -1217,7 +1258,10 @@ async function normalizeInternalUsers() {
       changed = true;
     }
 
-    if (!Array.isArray(normalized.permissions)) {
+    if (storedPermissions && storedPermissions.length > 0) {
+      normalized.permissions = [...storedPermissions];
+      changed = true;
+    } else if (!Array.isArray(normalized.permissions) || normalized.permissions.length === 0) {
       normalized.permissions =
         normalized.role === "Director General"
           ? [...ALL_MODULE_PERMISSIONS]
@@ -1236,6 +1280,7 @@ async function normalizeInternalUsers() {
     }
 
     normalized.phone = normalizePhone(normalized.phone);
+    setInternalUserPermissionOverride(normalized.id, normalized.permissions);
 
     return normalized;
   });
@@ -2379,6 +2424,7 @@ async function deleteInternalUser(id) {
   }
   const deleteResult = await dataService.entities.internalUsers.deleteOne(id);
   internalUsers = deleteResult.records;
+  removeInternalUserPermissionOverride(id);
   renderAll();
   if (document.getElementById("internalUserId").value === id) {
     resetInternalUserForm();
