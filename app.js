@@ -34,13 +34,12 @@ const EXPENSE_CATEGORIES = [
 
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
-const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Recuperación", "Falta"];
-const DEFAULT_ATTENDANCE_SESSION_COUNT = 10;
+const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
+const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
   Permiso: "P",
-  Recuperación: "R",
   Falta: "F",
 };
 
@@ -2902,13 +2901,46 @@ function renderAttendanceOptions(selectedValue) {
   }).join("");
 }
 
+function getAttendanceSessionCountForCourse(course) {
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
+    return 20;
+  }
+  if (
+    normalizedCourse === "uñas" ||
+    normalizedCourse === "unas" ||
+    normalizedCourse === "pestañas" ||
+    normalizedCourse === "pestanas" ||
+    normalizedCourse === "maquillaje"
+  ) {
+    return 16;
+  }
+  return DEFAULT_ATTENDANCE_SESSION_COUNT;
+}
+
+function getAttendanceSessionCount(studentsList = []) {
+  const explicitCourse = attendanceCursoFilter.value;
+  if (explicitCourse) {
+    return getAttendanceSessionCountForCourse(explicitCourse);
+  }
+
+  if (studentsList.length === 0) {
+    return DEFAULT_ATTENDANCE_SESSION_COUNT;
+  }
+
+  return studentsList.reduce(
+    (maxCount, student) => Math.max(maxCount, getAttendanceSessionCountForCourse(student.curso)),
+    DEFAULT_ATTENDANCE_SESSION_COUNT
+  );
+}
+
 function addDaysToDateValue(dateValue, days) {
   const date = new Date(`${dateValue}T12:00:00`);
   date.setDate(date.getDate() + days);
   return formatDateForInput(date);
 }
 
-function getAttendanceSessionDates(baseDate, sessionCount = activeAttendanceSessionCount) {
+function getAttendanceSessionDates(baseDate, sessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT) {
   return Array.from({ length: sessionCount }, (_, index) => ({
     key: `s${index + 1}`,
     date: addDaysToDateValue(baseDate, index * 7),
@@ -2995,7 +3027,7 @@ function renderAttendanceTable() {
   const studentsList = getFilteredStudentsForAttendance();
   const selectedDate = getAttendanceBaseDate(studentsList);
   attendanceDate.value = selectedDate;
-  const sessions = getAttendanceSessionDates(selectedDate);
+  const sessions = getAttendanceSessionDates(selectedDate, getAttendanceSessionCount(studentsList));
 
   attendanceTableHead.innerHTML = `
     <tr>
@@ -3119,7 +3151,7 @@ async function saveAttendanceForStudent(studentId) {
     });
 
   if (recordsToSave.length === 0) {
-    alert("Selecciona al menos una asistencia A, P, R o F antes de guardar.");
+    alert("Selecciona al menos una asistencia A, P o F antes de guardar.");
     return;
   }
 
@@ -3144,7 +3176,13 @@ async function saveAttendanceForStudent(studentId) {
   }
 }
 
-function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance(), sessions = getAttendanceSessionDates(attendanceDate.value || formatDateForInput(new Date()))) {
+function updateAttendanceSummary(
+  studentsList = getFilteredStudentsForAttendance(),
+  sessions = getAttendanceSessionDates(
+    attendanceDate.value || formatDateForInput(new Date()),
+    getAttendanceSessionCount(studentsList)
+  )
+) {
   const summary = getAttendanceSummaryFromSelection(studentsList, sessions);
   attendanceGroupCount.textContent = summary.groupCount;
   attendanceAsistencias.textContent = summary.asistencias;
