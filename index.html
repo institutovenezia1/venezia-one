@@ -461,6 +461,7 @@
               <div id="altaValidationAlert" class="alta-validation-alert" hidden></div>
 
               <form id="altaForm" class="prospect-form altas-form">
+                <input type="hidden" id="altaStudentId" name="studentId" />
                 <input type="hidden" id="altaProspectId" />
 
                 <section class="alta-form-block full-width">
@@ -560,12 +561,27 @@
 
                     <label>
                       <span>Horario</span>
-                      <input id="altaHorario" name="horario" type="text" required />
+                      <select id="altaHorario" name="horario" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option>9am a 1pm</option>
+                        <option>2pm a 6pm</option>
+                        <option>1pm a 5pm</option>
+                      </select>
                     </label>
 
                     <label>
                       <span>Fecha de inicio</span>
                       <input id="altaFechaInicio" name="fechaInicio" type="date" required />
+                    </label>
+
+                    <label>
+                      <span>Día de clases</span>
+                      <select id="altaDiaClases" name="diaClases">
+                        <option value="">Selecciona una opcion</option>
+                        <option>Viernes</option>
+                        <option>Sábado</option>
+                        <option>Domingo</option>
+                      </select>
                     </label>
 
                     <label>
@@ -892,23 +908,23 @@
                 <span>Horario</span>
                 <select id="attendanceHorarioFilter">
                   <option value="">Todos</option>
+                  <option>9am a 1pm</option>
+                  <option>2pm a 6pm</option>
+                  <option>1pm a 5pm</option>
                 </select>
               </label>
 
               <label>
-                <span>Fecha inicial del grupo</span>
-                <input id="attendanceDate" type="date" />
-              </label>
-
-              <label>
-                <span>Sesiones visibles</span>
-                <select id="attendanceSessionCount">
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="30">30</option>
+                <span>Día de clases</span>
+                <select id="attendanceDayFilter">
+                  <option value="">Todos</option>
+                  <option>Viernes</option>
+                  <option>Sábado</option>
+                  <option>Domingo</option>
                 </select>
               </label>
             </div>
+            <input id="attendanceDate" type="hidden" />
           </section>
 
           <section class="panel table-panel">

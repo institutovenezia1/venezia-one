@@ -34,8 +34,8 @@ const EXPENSE_CATEGORIES = [
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Recuperación", "Falta"];
-const ATTENDANCE_SESSION_OPTIONS = [10, 20, 30];
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 10;
+const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
   Permiso: "P",
@@ -156,7 +156,7 @@ const attendanceSearchInput = document.getElementById("attendanceSearchInput");
 const attendanceSucursalFilter = document.getElementById("attendanceSucursalFilter");
 const attendanceCursoFilter = document.getElementById("attendanceCursoFilter");
 const attendanceHorarioFilter = document.getElementById("attendanceHorarioFilter");
-const attendanceSessionCount = document.getElementById("attendanceSessionCount");
+const attendanceDayFilter = document.getElementById("attendanceDayFilter");
 const attendanceTableHead = document.getElementById("attendanceTableHead");
 const attendanceTableBody = document.getElementById("attendanceTableBody");
 const attendanceEmptyState = document.getElementById("attendanceEmptyState");
@@ -348,9 +348,32 @@ const WEB_DEFAULT_COURSES = [
   },
 ];
 
+function applyDataResetIfNeeded() {
+  const storage = window.localStorage;
+  const resetKey = `venezia-one-v2-reset-${DATA_RESET_VERSION}`;
+  if (!storage || storage.getItem(resetKey)) {
+    return;
+  }
+
+  [
+    dataService.keys.prospects,
+    dataService.keys.students,
+    dataService.keys.attendance,
+    dataService.keys.payments,
+    dataService.keys.studentPortalAccess,
+    dataService.keys.webRequests,
+    dataService.keys.internalSession,
+    dataService.keys.studentSession,
+  ].forEach((key) => storage.removeItem(key));
+
+  storage.setItem(resetKey, "true");
+}
+
+applyDataResetIfNeeded();
+
 // Supabase-backed modules now hydrate from local cache first and refresh from
 // Supabase during init: internal users, staff, prospects.
-let prospects = dataService.entities.prospects.getAll(seedProspects);
+let prospects = dataService.entities.prospects.getAll(() => []);
 let students = dataService.entities.students.getAll(() => []);
 let attendanceRecords = dataService.entities.attendance.getAll(() => []);
 let paymentRecords = dataService.entities.payments.getAll(() => []);
@@ -390,71 +413,10 @@ monthFilter.value = selectedMonth;
 altasMonthFilter.value = selectedAltasMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
-attendanceSessionCount.value = String(activeAttendanceSessionCount);
 financeMonthFilter.value = selectedMonth;
 
 function seedProspects() {
-  const today = new Date();
-  const currentMonthDate = formatDateForInput(today);
-  const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 14);
-
-  const initialProspects = [
-    {
-      id: crypto.randomUUID(),
-      nombre: "Moises Velazco",
-      telefono: "525511223344",
-      fechaContacto: currentMonthDate,
-      sucursal: "Polanco",
-      curso: "Cosmetologia Integral",
-      origen: "WhatsApp Tlaxcala",
-      medio: "WhatsApp Tlaxcala",
-      informacion: "Información enviada",
-      estado: "Seguimiento",
-      contacto: "Si",
-      notas: "Solicito horarios vespertinos y plan de pagos.",
-      proximoSeguimiento: currentMonthDate,
-      asesoraAsignada: "Ysela Herrera | Asesora",
-      temperatura: "Caliente",
-      createdAt: new Date(`${currentMonthDate}T09:00:00`).toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      nombre: "Andrea Rivas",
-      telefono: "525533778899",
-      fechaContacto: currentMonthDate,
-      sucursal: "Roma Norte",
-      curso: "Maquillaje Profesional",
-      origen: "Referido",
-      medio: "Llamada",
-      informacion: "Información enviada",
-      estado: "Inscrita",
-      contacto: "Si",
-      notas: "Aparto lugar para la siguiente generacion.",
-      proximoSeguimiento: currentMonthDate,
-      asesoraAsignada: "Mari Flores | Coordinadora de maestras",
-      temperatura: "Tibia",
-      createdAt: new Date(`${currentMonthDate}T11:30:00`).toISOString(),
-    },
-    {
-      id: crypto.randomUUID(),
-      nombre: "Valeria Campos",
-      telefono: "525500112233",
-      fechaContacto: formatDateForInput(previousMonth),
-      sucursal: "Polanco",
-      curso: "Maquillaje Profesional",
-      origen: "Formulario web",
-      medio: "Formulario web",
-      informacion: "Pendiente de enviar",
-      estado: "Nuevo",
-      contacto: "No",
-      notas: "Pendiente seguimiento inicial.",
-      proximoSeguimiento: "",
-      asesoraAsignada: "",
-      temperatura: "Sin respuesta",
-      createdAt: new Date(`${formatDateForInput(previousMonth)}T10:00:00`).toISOString(),
-    },
-  ];
-  return initialProspects;
+  return [];
 }
 
 function seedInternalUsers() {
@@ -1155,6 +1117,8 @@ function getAltaFormData() {
   const studentCode = String(
     formData.get("studentCode") || generateStudentCode(sucursal, formData.get("fechaInscripcion"))
   ).trim();
+  const existingStudentId = String(formData.get("studentId") || "").trim();
+  const existingStudent = students.find((student) => student.id === existingStudentId);
   const fechaInscripcion = String(formData.get("fechaInscripcion") || formatDateForInput(new Date())).trim();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
@@ -1164,6 +1128,7 @@ function getAltaFormData() {
   const metadataSegments = [
     `ID Alumna: ${studentCode}`,
     `Fecha de inscripción: ${fechaInscripcion}`,
+    `Día de clases: ${String(formData.get("diaClases") || "").trim() || "-"}`,
     `Correo: ${String(formData.get("correo") || "").trim() || "-"}`,
     `Dirección: ${String(formData.get("direccion") || "").trim() || "-"}`,
     `Fecha de nacimiento: ${fechaNacimiento || "-"}`,
@@ -1186,7 +1151,7 @@ function getAltaFormData() {
   ];
 
   return {
-    id: crypto.randomUUID(),
+    id: existingStudentId || crypto.randomUUID(),
     prospectId: document.getElementById("altaProspectId").value,
     studentCode,
     fechaInscripcion,
@@ -1196,6 +1161,7 @@ function getAltaFormData() {
     curso: formData.get("curso").trim(),
     accesoElegido: formData.get("accesoElegido"),
     horario: formData.get("horario").trim(),
+    diaClases: String(formData.get("diaClases") || "").trim(),
     fechaInicio: formData.get("fechaInicio"),
     correo: String(formData.get("correo") || "").trim(),
     direccion: String(formData.get("direccion") || "").trim(),
@@ -1218,7 +1184,7 @@ function getAltaFormData() {
     portalUser,
     portalPassword,
     estado: "Activa",
-    createdAt: new Date().toISOString(),
+    createdAt: existingStudent?.createdAt || new Date().toISOString(),
   };
 }
 
@@ -1301,8 +1267,9 @@ function getAltaValidationErrors(altaData) {
 
 function openAltaConfirmation(altaData) {
   pendingAltaConfirmation = altaData;
+  const actionLabel = document.getElementById("altaStudentId").value ? "actualizar la alta de" : "dar de alta a";
   altaConfirmMessage.textContent =
-    `Vas a dar de alta a ${altaData.nombre || "esta alumna"} con folio ${altaData.studentCode || "-"} ` +
+    `Vas a ${actionLabel} ${altaData.nombre || "esta alumna"} con folio ${altaData.studentCode || "-"} ` +
     `en ${altaData.curso || "su curso"} ` +
     `(${altaData.sucursal || "sin sucursal"}) con ${altaData.accesoElegido || "acceso pendiente"}, ` +
     `${altaData.metodoPago || "método de pago pendiente"} y pago de ${altaData.cantidadPago || "-"}.`;
@@ -1948,9 +1915,11 @@ function resetForm() {
 
 function resetAltaForm() {
   altaForm.reset();
+  document.getElementById("altaStudentId").value = "";
   document.getElementById("altaProspectId").value = "";
   document.getElementById("altaStudentCode").value = generateStudentCode();
   document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
+  altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
   syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
@@ -2516,9 +2485,10 @@ function renderAltaHistory() {
           <td>${escapeHtml(student.cantidadPago || "-")}</td>
           <td>${escapeHtml(student.asesoraInscribio || student.usuarioAlta || "-")}</td>
           <td>
-            <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">
-              Ver expediente
-            </button>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
+              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+            </div>
           </td>
         </tr>
       `;
@@ -2542,6 +2512,51 @@ function getStudentById(studentId) {
   return students.find((student) => student.id === studentId);
 }
 
+function loadStudentIntoAlta(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    return;
+  }
+
+  document.getElementById("altaStudentId").value = student.id;
+  document.getElementById("altaProspectId").value = student.prospectId || "";
+  document.getElementById("altaStudentCode").value = student.studentCode || "";
+  document.getElementById("altaFechaInscripcion").value = student.fechaInscripcion || formatDateForInput(new Date());
+  document.getElementById("altaNombre").value = student.nombre || "";
+  document.getElementById("altaTelefono").value = student.telefono || "";
+  document.getElementById("altaCorreo").value = student.correo || "";
+  document.getElementById("altaDireccion").value = student.direccion || "";
+  document.getElementById("altaFechaNacimiento").value = student.fechaNacimiento || "";
+  document.getElementById("altaTutor").value = student.tutor || "";
+  document.getElementById("altaEscolaridad").value = student.escolaridad || "";
+  document.getElementById("altaContactoEmergencia").value = student.contactoEmergencia || "";
+  document.getElementById("altaSucursal").value = student.sucursal || "";
+  document.getElementById("altaCurso").value = student.curso || "";
+  document.getElementById("altaAccesoElegido").value = student.accesoElegido || "";
+  document.getElementById("altaHorario").value = student.horario || "";
+  document.getElementById("altaFechaInicio").value = student.fechaInicio || "";
+  document.getElementById("altaDiaClases").value = student.diaClases || "";
+  document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(student.asesoraInscribio || student.usuarioAlta);
+  document.getElementById("altaMetodoPago").value = student.metodoPago || "";
+  document.getElementById("altaTipoPago").value = student.tipoPago || "";
+  document.getElementById("altaCantidadPago").value = student.cantidadPago || "";
+  document.getElementById("altaMensualidad").value = student.mensualidad || "";
+  document.getElementById("altaApoyoGobierno").value = student.apoyoGobierno || "";
+  document.getElementById("altaDocumentos").value = student.documentos || "";
+  document.getElementById("altaTieneHijos").value = student.tieneHijos || "";
+  document.getElementById("altaTrabajaActualmente").value = student.trabajaActualmente || "";
+  document.getElementById("altaNotasMedicas").value = student.notasMedicas || "";
+  document.getElementById("altaObservaciones").value = student.observaciones || "";
+
+  syncAltaAutoFields();
+  altaForm.querySelector('button[type="submit"]').textContent = "Actualizar alta";
+  clearAltaValidation();
+  closeAltaConfirmation();
+  renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+  setActiveModule("altas");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function populateSelectWithValues(select, values, defaultLabel) {
   const previousValue = select.value;
   const uniqueValues = [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -2555,10 +2570,38 @@ function populateSelectWithValues(select, values, defaultLabel) {
 }
 
 function populateAttendanceFilters() {
-  const studentsList = getActiveStudents();
-  populateSelectWithValues(attendanceSucursalFilter, studentsList.map((student) => student.sucursal), "Todas");
-  populateSelectWithValues(attendanceCursoFilter, studentsList.map((student) => student.curso), "Todos");
-  populateSelectWithValues(attendanceHorarioFilter, studentsList.map((student) => student.horario), "Todos");
+  const filters = [
+    {
+      element: attendanceSucursalFilter,
+      defaultLabel: "Todas",
+      options: ["Puebla", "Tlaxcala"],
+    },
+    {
+      element: attendanceCursoFilter,
+      defaultLabel: "Todos",
+      options: ["Uñas", "Pestañas", "Barbería", "Maquillaje"],
+    },
+    {
+      element: attendanceHorarioFilter,
+      defaultLabel: "Todos",
+      options: ["9am a 1pm", "2pm a 6pm", "1pm a 5pm"],
+    },
+    {
+      element: attendanceDayFilter,
+      defaultLabel: "Todos",
+      options: ["Viernes", "Sábado", "Domingo"],
+    },
+  ];
+
+  filters.forEach(({ element, defaultLabel, options }) => {
+    const previousValue = element.value;
+    element.innerHTML = [`<option value="">${defaultLabel}</option>`]
+      .concat(options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`))
+      .join("");
+    if (options.includes(previousValue)) {
+      element.value = previousValue;
+    }
+  });
 }
 
 function getAttendanceRecord(studentId, date) {
@@ -2579,6 +2622,7 @@ function getFilteredStudentsForAttendance() {
     if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
     if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
     if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
+    if (attendanceDayFilter.value && student.diaClases !== attendanceDayFilter.value) return false;
     return true;
   });
 }
@@ -2601,6 +2645,36 @@ function getAttendanceSessionDates(baseDate, sessionCount = activeAttendanceSess
     key: `s${index + 1}`,
     date: addDaysToDateValue(baseDate, index * 7),
   }));
+}
+
+function getAttendanceWeekdayIndex(dayLabel) {
+  return {
+    Viernes: 5,
+    Sábado: 6,
+    Domingo: 0,
+  }[dayLabel] ?? null;
+}
+
+function alignDateToSelectedClassDay(dateValue, dayLabel) {
+  const weekday = getAttendanceWeekdayIndex(dayLabel);
+  if (weekday === null) {
+    return dateValue;
+  }
+
+  const date = new Date(`${dateValue}T12:00:00`);
+  const diff = (weekday - date.getDay() + 7) % 7;
+  date.setDate(date.getDate() + diff);
+  return formatDateForInput(date);
+}
+
+function getAttendanceBaseDate(studentsList) {
+  const firstStartDate =
+    studentsList
+      .map((student) => student.fechaInicio)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))[0] || formatDateForInput(new Date());
+  const selectedDay = attendanceDayFilter.value || studentsList[0]?.diaClases || "";
+  return alignDateToSelectedClassDay(firstStartDate, selectedDay);
 }
 
 function getAttendanceSessionLabel(session) {
@@ -2650,8 +2724,9 @@ function getAttendanceSummaryFromSelection(studentsList, sessions) {
 }
 
 function renderAttendanceTable() {
-  const selectedDate = attendanceDate.value || formatDateForInput(new Date());
   const studentsList = getFilteredStudentsForAttendance();
+  const selectedDate = getAttendanceBaseDate(studentsList);
+  attendanceDate.value = selectedDate;
   const sessions = getAttendanceSessionDates(selectedDate);
 
   attendanceTableHead.innerHTML = `
@@ -2719,6 +2794,7 @@ function renderAttendanceTable() {
             .join("")}
           <td>
             <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
               <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
@@ -2954,6 +3030,7 @@ function renderPaymentsTable() {
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
           <td>
             <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
               <button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
             </div>
@@ -3649,13 +3726,16 @@ function loadProspectIntoAlta(id) {
     return;
   }
 
+  document.getElementById("altaStudentId").value = "";
   document.getElementById("altaProspectId").value = prospect.id;
   document.getElementById("altaNombre").value = prospect.nombre;
   document.getElementById("altaTelefono").value = prospect.telefono;
   document.getElementById("altaSucursal").value = prospect.sucursal;
   document.getElementById("altaCurso").value = prospect.curso;
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
+  document.getElementById("altaDiaClases").value = "";
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
+  altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
   syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
@@ -3761,6 +3841,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function finalizeAltaSubmission(altaData) {
+  const isEditingExistingStudent = Boolean(document.getElementById("altaStudentId").value);
   console.log("ALTA -> students payload", {
     id: altaData.id,
     full_name: altaData.nombre || "",
@@ -3804,7 +3885,7 @@ async function finalizeAltaSubmission(altaData) {
   syncStudentAccessRecords();
   renderAll();
   resetAltaForm();
-  alert("Alta guardada correctamente.");
+  alert(isEditingExistingStudent ? "Alta actualizada correctamente." : "Alta guardada correctamente.");
 }
 
 altaForm.addEventListener("submit", async (event) => {
@@ -4167,11 +4248,6 @@ altasMonthFilter.addEventListener("change", (event) => {
 dashboardBranchFilter.addEventListener("change", renderDashboard);
 
 attendanceDate.addEventListener("change", renderAttendanceTable);
-attendanceSessionCount.addEventListener("change", (event) => {
-  const nextValue = Number(event.target.value) || DEFAULT_ATTENDANCE_SESSION_COUNT;
-  activeAttendanceSessionCount = ATTENDANCE_SESSION_OPTIONS.includes(nextValue) ? nextValue : DEFAULT_ATTENDANCE_SESSION_COUNT;
-  renderAttendanceTable();
-});
 attendanceSearchInput.addEventListener("input", (event) => {
   activeAttendanceSearch = event.target.value;
   renderAttendanceTable();
@@ -4199,7 +4275,7 @@ financeBranchFilter.addEventListener("change", () => {
   updateFinanceSummary();
 });
 
-[attendanceSucursalFilter, attendanceCursoFilter, attendanceHorarioFilter].forEach((filter) => {
+[attendanceSucursalFilter, attendanceCursoFilter, attendanceHorarioFilter, attendanceDayFilter].forEach((filter) => {
   filter.addEventListener("change", renderAttendanceTable);
 });
 
@@ -4237,9 +4313,15 @@ pendingAltasTableBody.addEventListener("click", (event) => {
 });
 
 altaHistoryTableBody.addEventListener("click", (event) => {
-  const actionButton = event.target.closest("[data-action='view-student-file']");
-  if (actionButton) {
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton) {
+    return;
+  }
+  if (actionButton.dataset.action === "view-student-file") {
     openStudentFile(actionButton.dataset.id);
+  }
+  if (actionButton.dataset.action === "edit-student") {
+    loadStudentIntoAlta(actionButton.dataset.id);
   }
 });
 
@@ -4254,6 +4336,7 @@ attendanceTableBody.addEventListener("click", async (event) => {
     });
     await saveAttendanceForStudent(id);
   }
+  if (action === "edit-student") loadStudentIntoAlta(id);
   if (action === "view-student-file") openStudentFile(id);
   if (action === "view-history") renderAttendanceHistory(id);
 });
@@ -4267,6 +4350,10 @@ paymentsTableBody.addEventListener("click", async (event) => {
       studentId: actionButton.dataset.id,
     });
     await savePaymentForStudent(actionButton.dataset.id);
+  }
+
+  if (actionButton.dataset.action === "edit-student") {
+    loadStudentIntoAlta(actionButton.dataset.id);
   }
 
   if (actionButton.dataset.action === "view-student-file") {
@@ -4361,7 +4448,7 @@ async function initApp() {
   financeRecords = await dataService.entities.financialMovements.getAllPrimary(() => []);
   studentAccessRecords = await dataService.entities.studentPortalAccess.getAllPrimary(() => []);
   staffRecords = await dataService.entities.staff.getAllPrimary(() => []);
-  prospects = await dataService.entities.prospects.getAllPrimary(seedProspects);
+  prospects = await dataService.entities.prospects.getAllPrimary(() => []);
 
   await normalizeLegacyProspects();
   await normalizeInternalUsers();

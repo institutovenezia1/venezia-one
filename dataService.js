@@ -311,6 +311,43 @@
     return targetSegment ? targetSegment.slice(label.length + 2).trim() : "";
   }
 
+  function stripAltaMetadata(notes) {
+    const metadataLabels = new Set([
+      "ID Alumna",
+      "Fecha de inscripción",
+      "Día de clases",
+      "Correo",
+      "Dirección",
+      "Fecha de nacimiento",
+      "Tutor",
+      "Escolaridad",
+      "Contacto de emergencia",
+      "Asesor que inscribió",
+      "Asesora que inscribió",
+      "Método de pago",
+      "Tipo de pago",
+      "Cantidad de pago",
+      "Mensualidad asignada",
+      "Apoyo gobierno",
+      "Documentación",
+      "Tiene hijos",
+      "Trabaja actualmente",
+      "Notas médicas",
+      "Usuario alta",
+      "Usuario Mi Venezia",
+      "Password Mi Venezia",
+    ]);
+
+    return String(notes || "")
+      .split(" | ")
+      .filter((segment) => {
+        const [label] = segment.split(": ");
+        return segment && !metadataLabels.has(label);
+      })
+      .join(" | ")
+      .trim();
+  }
+
   function buildPaymentNotes(record) {
     return [
       `Mes pago: ${record.mesPago || ""}`,
@@ -411,6 +448,7 @@
       studentCode: extractAltaMetadata(record.notes, "ID Alumna"),
       fechaInscripcion: extractAltaMetadata(record.notes, "Fecha de inscripción"),
       horario: record.schedule || "",
+      diaClases: extractAltaMetadata(record.notes, "Día de clases"),
       fechaInicio: record.start_date || "",
       accesoElegido: record.access_selected || "",
       correo: extractAltaMetadata(record.notes, "Correo"),
@@ -438,7 +476,7 @@
       portalPassword: record.password || "",
       estado: record.status || "Activa",
       prospectId: record.source_prospect_id || "",
-      observaciones: record.notes || "",
+      observaciones: stripAltaMetadata(record.notes),
       usuarioAlta: extractAltaMetadata(record.notes, "Usuario alta"),
       createdAt: record.created_at || "",
     }),
