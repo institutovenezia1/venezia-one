@@ -1637,8 +1637,8 @@
 
             <form id="miVeneziaLoginForm" class="prospect-form">
               <label>
-                <span>Número de teléfono</span>
-                <input id="miVeneziaTelefono" name="telefono" type="tel" required />
+                <span>Usuario Mi Venezia</span>
+                <input id="miVeneziaTelefono" name="telefono" type="text" required />
               </label>
 
               <label>
@@ -1652,7 +1652,7 @@
             </form>
 
             <p class="empty-state">
-              Contraseña inicial: <strong>la definida en Altas</strong>. Si no se capturó, usa <strong><code>venezia</code> + últimos 4 dígitos del teléfono</strong>.
+              Ingresa con el usuario y la contraseña generados en Altas para tu acceso de alumna.
             </p>
           </section>
 
@@ -1668,52 +1668,101 @@
               </div>
             </section>
 
-            <section class="content-grid">
+            <section class="panel mi-venezia-hero-panel">
+              <div class="mi-venezia-hero-copy">
+                <p class="eyebrow">Panel principal</p>
+                <h3 id="miVeneziaHeroName">Mi Venezia</h3>
+                <p id="miVeneziaHeroMeta" class="subtitle">Consulta tu información académica y administrativa en un solo lugar.</p>
+              </div>
+
+              <div class="info-list mi-venezia-hero-summary" id="miVeneziaHeroSummary"></div>
+
+              <div class="form-actions">
+                <a class="primary-btn" id="miVeneziaContactButton" href="https://wa.me/522463831375" target="_blank" rel="noopener">Contactar por WhatsApp</a>
+              </div>
+            </section>
+
+            <section class="stats-grid mi-venezia-stats-grid" aria-label="Resumen de alumna">
+              <article class="stat-card">
+                <p>Curso</p>
+                <strong id="miVeneziaStatCourse">-</strong>
+              </article>
+              <article class="stat-card">
+                <p>Asistencias</p>
+                <strong id="miVeneziaStatAttendance">0 de 0</strong>
+              </article>
+              <article class="stat-card">
+                <p>Pagos</p>
+                <strong id="miVeneziaStatPayments">0 registrados</strong>
+              </article>
+              <article class="stat-card">
+                <p>Estatus</p>
+                <strong id="miVeneziaStatStatus">-</strong>
+              </article>
+            </section>
+
+            <section class="content-grid mi-venezia-content-grid">
               <section class="panel">
                 <div class="section-heading">
                   <p class="eyebrow">Perfil</p>
-                  <h3>Mi perfil</h3>
+                  <h3>Mis datos</h3>
                 </div>
                 <div id="miVeneziaPerfil" class="info-list"></div>
               </section>
 
               <section class="panel">
                 <div class="section-heading">
-                  <p class="eyebrow">Pagos</p>
-                  <h3>Mis pagos</h3>
-                </div>
-                <div id="miVeneziaPagos" class="info-list"></div>
-              </section>
-            </section>
-
-            <section class="content-grid">
-              <section class="panel">
-                <div class="section-heading">
                   <p class="eyebrow">Asistencia</p>
                   <h3>Mis asistencias</h3>
                 </div>
                 <div id="miVeneziaResumenAsistencias" class="info-list"></div>
-                <div class="table-wrapper">
+                <div class="table-wrapper mi-venezia-simple-table">
                   <table>
                     <thead>
                       <tr>
+                        <th>Sesión</th>
+                        <th>Resultado</th>
                         <th>Fecha</th>
-                        <th>Estado</th>
-                        <th>Observaciones</th>
                       </tr>
                     </thead>
                     <tbody id="miVeneziaAsistenciasBody"></tbody>
                   </table>
                 </div>
                 <p id="miVeneziaAsistenciasEmptyState" class="empty-state">
-                  No hay asistencias registradas para esta alumna.
+                  Aún no hay asistencias registradas para tu perfil.
+                </p>
+              </section>
+            </section>
+
+            <section class="content-grid mi-venezia-content-grid">
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Pagos</p>
+                  <h3>Mis pagos</h3>
+                </div>
+                <div id="miVeneziaPagos" class="info-list"></div>
+                <div class="table-wrapper mi-venezia-simple-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Monto</th>
+                        <th>Estatus</th>
+                      </tr>
+                    </thead>
+                    <tbody id="miVeneziaPagosBody"></tbody>
+                  </table>
+                </div>
+                <p id="miVeneziaPagosEmptyState" class="empty-state">
+                  Aún no hay pagos registrados para tu perfil.
                 </p>
               </section>
 
               <section class="panel">
                 <div class="section-heading">
-                  <p class="eyebrow">Avance</p>
-                  <h3>Mi avance</h3>
+                  <p class="eyebrow">Estado</p>
+                  <h3>Mi estatus</h3>
                 </div>
                 <div id="miVeneziaAvance" class="info-list"></div>
               </section>

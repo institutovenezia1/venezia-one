@@ -1629,6 +1629,66 @@ td select {
   line-height: 1.55;
 }
 
+#miVeneziaSection {
+  --mi-bg: #f4f0ea;
+  --mi-panel: #fcfaf7;
+  --mi-border: #d8d0c5;
+}
+
+#miVeneziaSection .panel {
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, var(--mi-panel) 0%, #f7f2eb 100%);
+  border-color: var(--mi-border);
+}
+
+.mi-venezia-hero-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.mi-venezia-hero-copy h3 {
+  margin-bottom: 0.35rem;
+}
+
+.mi-venezia-hero-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.mi-venezia-hero-summary .info-item {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(216, 208, 197, 0.88);
+}
+
+.mi-venezia-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mi-venezia-content-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mi-venezia-simple-table table {
+  min-width: 100%;
+}
+
+.mi-venezia-simple-table th,
+.mi-venezia-simple-table td {
+  padding: 0.62rem 0.68rem;
+}
+
+@media (max-width: 920px) {
+  .mi-venezia-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mi-venezia-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .info-list {
   display: grid;
   gap: 0.75rem;

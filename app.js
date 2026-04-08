@@ -226,10 +226,20 @@ const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
 const miVeneziaLogoutButton = document.getElementById("miVeneziaLogoutButton");
 const miVeneziaPerfil = document.getElementById("miVeneziaPerfil");
 const miVeneziaPagos = document.getElementById("miVeneziaPagos");
+const miVeneziaPagosBody = document.getElementById("miVeneziaPagosBody");
+const miVeneziaPagosEmptyState = document.getElementById("miVeneziaPagosEmptyState");
 const miVeneziaResumenAsistencias = document.getElementById("miVeneziaResumenAsistencias");
 const miVeneziaAsistenciasBody = document.getElementById("miVeneziaAsistenciasBody");
 const miVeneziaAsistenciasEmptyState = document.getElementById("miVeneziaAsistenciasEmptyState");
 const miVeneziaAvance = document.getElementById("miVeneziaAvance");
+const miVeneziaHeroName = document.getElementById("miVeneziaHeroName");
+const miVeneziaHeroMeta = document.getElementById("miVeneziaHeroMeta");
+const miVeneziaHeroSummary = document.getElementById("miVeneziaHeroSummary");
+const miVeneziaContactButton = document.getElementById("miVeneziaContactButton");
+const miVeneziaStatCourse = document.getElementById("miVeneziaStatCourse");
+const miVeneziaStatAttendance = document.getElementById("miVeneziaStatAttendance");
+const miVeneziaStatPayments = document.getElementById("miVeneziaStatPayments");
+const miVeneziaStatStatus = document.getElementById("miVeneziaStatStatus");
 const webLeadForm = document.getElementById("webLeadForm");
 const webSuccessAlert = document.getElementById("webSuccessAlert");
 const webErrorAlert = document.getElementById("webErrorAlert");
@@ -3963,6 +3973,66 @@ function openStudentFile(studentId) {
   renderStudentFile(studentId);
 }
 
+function getStudentPortalLoginMatch(identifier, password) {
+  const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "");
+  if (!normalizedIdentifier || !normalizedPassword) {
+    return null;
+  }
+
+  return students.find((student) => {
+    const portalUser = String(student.portalUser || "").trim().toLowerCase();
+    return portalUser === normalizedIdentifier && String(student.portalPassword || "") === normalizedPassword;
+  }) || null;
+}
+
+function getStudentPaymentEntries(student) {
+  return paymentRecords
+    .filter((record) => record.studentId === student.id)
+    .map((record) => {
+      const statuses = [
+        record.certificadoP1,
+        record.certificadoP2,
+        record.mensualidad1,
+        record.mensualidad2,
+        record.mensualidad3,
+        record.mensualidad4,
+        record.mensualidad5,
+      ].filter((value) => value && value !== "No aplica");
+      const hasPending = statuses.some((value) => value === "Pendiente" || value === "Parcial");
+      return {
+        id: record.id,
+        fecha: getBalancePaymentDate(record) || "-",
+        concepto: record.mesPago ? `Pago ${record.mesPago}` : "Pago registrado",
+        monto: parsePaymentAmount(record.cantidadPagada),
+        estatus: hasPending ? "Con pendientes" : statuses.length > 0 ? "Al corriente" : "Sin detalle",
+        metodoPago: record.metodoPago || "-",
+      };
+    })
+    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+
+function countStudentRegisteredPayments(student) {
+  const payment = getPaymentRecord(student.id);
+  return [
+    payment.certificadoP1,
+    payment.certificadoP2,
+    payment.mensualidad1,
+    payment.mensualidad2,
+    payment.mensualidad3,
+    payment.mensualidad4,
+    payment.mensualidad5,
+  ].filter((value) => value === "Pagado" || value === "Parcial").length;
+}
+
+function getStudentPortalWhatsappUrl(student) {
+  const branchLabel = student.sucursal ? ` de ${student.sucursal}` : "";
+  const message = encodeURIComponent(
+    `Hola, soy ${student.nombre || "alumna"} y necesito apoyo con mi cuenta de Mi Venezia${branchLabel}.`
+  );
+  return `https://wa.me/${WEB_DEFAULT_WHATSAPP_NUMBER}?text=${message}`;
+}
+
 function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
     <div class="web-access-grid">
@@ -4042,62 +4112,102 @@ function renderMiVeneziaDashboard() {
   }
 
   const payment = getPaymentRecord(student.id);
+  const paymentEntries = getStudentPaymentEntries(student);
   const attendanceHistory = attendanceRecords
     .filter((record) => record.studentId === student.id)
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
-  const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
-  const totalClases = attendanceHistory.length;
-  const clasesTomadas = attendanceHistory.filter((record) => record.estado !== "Falta").length;
-  const clasesPendientes = Math.max(totalClases - clasesTomadas, 0);
+  const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
+  const totalClasesPlaneadas = getAttendanceSessionCountForCourse(student.curso);
+  const totalClasesRegistradas = attendanceHistory.length;
+  const clasesPendientes = Math.max(totalClasesPlaneadas - totalClasesRegistradas, 0);
+  const registeredPayments = countStudentRegisteredPayments(student);
+  const hasPendingPayments = [
+    payment.certificadoP1,
+    payment.certificadoP2,
+    payment.mensualidad1,
+    payment.mensualidad2,
+    payment.mensualidad3,
+    payment.mensualidad4,
+    payment.mensualidad5,
+  ].some((value) => value === "Pendiente" || value === "Parcial");
+
+  miVeneziaHeroName.textContent = student.nombre || "Mi Venezia";
+  miVeneziaHeroMeta.textContent = `${student.studentCode || "-"} · ${student.sucursal || "-"} · ${student.curso || "-"} · ${student.horario || "-"}`;
+  renderInfoList(miVeneziaHeroSummary, [
+    { label: "ID Alumna", value: student.studentCode || "-" },
+    { label: "Sucursal", value: student.sucursal || "-" },
+    { label: "Curso", value: student.curso || "-" },
+    { label: "Horario", value: student.horario || "-" },
+    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
+    { label: "Acceso", value: student.accesoElegido || "-" },
+  ]);
+
+  miVeneziaStatCourse.textContent = student.curso || "-";
+  miVeneziaStatAttendance.textContent = `${asistencias} de ${totalClasesPlaneadas}`;
+  miVeneziaStatPayments.textContent = `${registeredPayments} registrados`;
+  miVeneziaStatStatus.textContent = student.estado || "Activa";
+  miVeneziaContactButton.href = getStudentPortalWhatsappUrl(student);
 
   renderInfoList(miVeneziaPerfil, [
-    { label: "Nombre completo", value: student.nombre },
-    { label: "Sucursal", value: student.sucursal },
-    { label: "Curso", value: student.curso },
-    { label: "Horario", value: student.horario },
-    { label: "Fecha de inicio", value: student.fechaInicio },
-    { label: "Acceso elegido", value: student.accesoElegido || "-" },
+    { label: "Nombre completo", value: student.nombre || "-" },
+    { label: "Celular", value: student.telefono || "-" },
+    { label: "Sucursal", value: student.sucursal || "-" },
+    { label: "Curso", value: student.curso || "-" },
+    { label: "Horario", value: student.horario || "-" },
+    { label: "ID alumna", value: student.studentCode || "-" },
+    { label: "Usuario Mi Venezia", value: student.portalUser || "-" },
   ]);
 
   renderInfoList(miVeneziaPagos, [
-    { label: "Mensualidad pactada", value: payment.mensualidadPactada || "-" },
-    { label: "Certificado P1", value: payment.certificadoP1 || "-" },
-    { label: "Certificado P2", value: payment.certificadoP2 || "-" },
-    { label: "1ra mensualidad", value: payment.mensualidad1 || "-" },
-    { label: "2da mensualidad", value: payment.mensualidad2 || "-" },
-    { label: "3ra mensualidad", value: payment.mensualidad3 || "-" },
-    { label: "4ta mensualidad", value: payment.mensualidad4 || "-" },
-    { label: "5ta mensualidad", value: payment.mensualidad5 || "-" },
-    { label: "Pagos pendientes", value: payment.pagosPendientes || "-" },
-    { label: "Método de pago", value: payment.metodoPago || "-" },
-    { label: "Observaciones de pago", value: payment.observaciones || "-" },
+    { label: "Mensualidad asignada", value: payment.mensualidadPactada || student.mensualidad || "-" },
+    { label: "Pagos registrados", value: String(paymentEntries.length) },
+    { label: "Método más reciente", value: payment.metodoPago || "-" },
+    { label: "Estatus", value: hasPendingPayments ? "Con pendientes" : paymentEntries.length ? "Al corriente" : "Sin registros" },
   ]);
 
   renderInfoList(miVeneziaResumenAsistencias, [
+    { label: "Total de sesiones", value: String(totalClasesPlaneadas) },
+    { label: "Asistencias registradas", value: String(asistencias) },
     { label: "Faltas", value: String(faltas) },
     { label: "Permisos", value: String(permisos) },
-    { label: "Recuperaciones", value: String(recuperaciones) },
   ]);
 
   miVeneziaAsistenciasBody.innerHTML = attendanceHistory
     .map(
-      (record) => `
+      (record, index) => `
         <tr>
-          <td>${escapeHtml(record.fecha)}</td>
-          <td>${escapeHtml(record.estado)}</td>
-          <td>${escapeHtml(record.observaciones || "-")}</td>
+          <td>S${index + 1}</td>
+          <td>${escapeHtml(ATTENDANCE_STATUS_LABELS[record.estado] || record.estado || "-")}</td>
+          <td>${escapeHtml(record.fecha || "-")}</td>
         </tr>
       `
     )
     .join("");
   miVeneziaAsistenciasEmptyState.hidden = attendanceHistory.length > 0;
 
+  miVeneziaPagosBody.innerHTML = paymentEntries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(entry.fecha || "-")}</td>
+          <td>${escapeHtml(entry.concepto || "-")}</td>
+          <td>${formatCurrency(entry.monto || 0)}</td>
+          <td>${escapeHtml(entry.estatus || "-")}</td>
+        </tr>
+      `
+    )
+    .join("");
+  miVeneziaPagosEmptyState.hidden = paymentEntries.length > 0;
+
   renderInfoList(miVeneziaAvance, [
-    { label: "Total de clases registradas", value: String(totalClases) },
-    { label: "Clases tomadas", value: String(clasesTomadas) },
+    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
+    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
+    { label: "Acceso", value: student.accesoElegido || "-" },
+    { label: "Estatus académico", value: student.estado || "Activa" },
+    { label: "Clases registradas", value: String(totalClasesRegistradas) },
     { label: "Clases pendientes", value: String(clasesPendientes) },
   ]);
 
@@ -4538,18 +4648,16 @@ openStudentPortalButton.addEventListener("click", () => {
 miVeneziaLoginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const formData = new FormData(miVeneziaLoginForm);
-  const telefono = normalizePhone(formData.get("telefono"));
+  const login = String(formData.get("telefono") || "").trim();
   const password = String(formData.get("password") || "");
-  const access = studentAccessRecords.find(
-    (record) => record.telefono === telefono && record.password === password
-  );
+  const student = getStudentPortalLoginMatch(login, password);
 
-  if (!access) {
-    alert("Teléfono o contraseña incorrectos.");
+  if (!student) {
+    alert("Usuario o contraseña incorrectos.");
     return;
   }
 
-  currentPortalStudentId = access.studentId;
+  currentPortalStudentId = student.id;
   renderMiVeneziaDashboard();
   miVeneziaLoginForm.reset();
 });
