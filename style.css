@@ -789,6 +789,7 @@ td select {
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 0.9rem;
   min-width: 0;
+  overflow: visible;
   background:
     radial-gradient(circle at top right, rgba(201, 161, 74, 0.1), transparent 24%),
     linear-gradient(180deg, #fcfaf7 0%, #f7f2eb 100%);
@@ -805,18 +806,22 @@ td select {
 }
 
 #crmSection .crm-management-panel .table-wrapper {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  padding-bottom: 0.2rem;
   border-color: #d8d0c5;
   background: linear-gradient(180deg, #fcfaf7 0%, #f9f4ee 100%);
 }
 
 #crmSection .crm-management-panel table {
-  min-width: 1180px;
+  width: max-content;
+  min-width: 1380px;
 }
 
 #crmSection .crm-management-panel th,
@@ -827,6 +832,12 @@ td select {
 #crmSection .crm-management-panel td:first-child {
   white-space: normal;
   min-width: 220px;
+}
+
+#crmSection .crm-management-panel th:last-child,
+#crmSection .crm-management-panel td:last-child {
+  min-width: 320px;
+  padding-right: 1.15rem;
 }
 
 #crmSection {
