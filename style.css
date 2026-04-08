@@ -643,7 +643,7 @@ td select {
 }
 
 .actions-cell-prospect {
-  min-width: 230px;
+  min-width: 196px;
 }
 
 .table-action {
@@ -836,8 +836,26 @@ td select {
 
 #crmSection .crm-management-panel th:last-child,
 #crmSection .crm-management-panel td:last-child {
-  min-width: 320px;
+  min-width: 220px;
   padding-right: 1.15rem;
+}
+
+#crmSection .crm-management-panel .actions-cell-prospect {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  min-width: 196px;
+  align-items: start;
+}
+
+#crmSection .crm-management-panel .actions-cell-prospect .table-action {
+  width: 100%;
+  min-width: 0;
+  padding: 0.48rem 0.62rem;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  text-align: center;
+  justify-content: center;
 }
 
 #crmSection {
