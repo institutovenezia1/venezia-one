@@ -162,6 +162,19 @@ const attendanceHistoryPanel = document.getElementById("attendanceHistoryPanel")
 const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle");
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
 const attendanceHistoryEmptyState = document.getElementById("attendanceHistoryEmptyState");
+const studentFileOverlay = document.getElementById("studentFileOverlay");
+const studentFileCloseButton = document.getElementById("studentFileCloseButton");
+const studentFileTitle = document.getElementById("studentFileTitle");
+const studentFileSummary = document.getElementById("studentFileSummary");
+const studentFileGeneral = document.getElementById("studentFileGeneral");
+const studentFileAcademic = document.getElementById("studentFileAcademic");
+const studentFileAdministrative = document.getElementById("studentFileAdministrative");
+const studentFilePortal = document.getElementById("studentFilePortal");
+const studentFilePayments = document.getElementById("studentFilePayments");
+const studentFileAttendanceSummary = document.getElementById("studentFileAttendanceSummary");
+const studentFileAttendanceBody = document.getElementById("studentFileAttendanceBody");
+const studentFileAttendanceEmptyState = document.getElementById("studentFileAttendanceEmptyState");
+const studentFileNotes = document.getElementById("studentFileNotes");
 
 const paymentsTableBody = document.getElementById("paymentsTableBody");
 const paymentsEmptyState = document.getElementById("paymentsEmptyState");
@@ -360,6 +373,7 @@ let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let activePaymentsSearch = "";
+let activeStudentFileId = "";
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
@@ -2904,7 +2918,12 @@ function renderPaymentsTable() {
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
-          <td><button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button></td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button>
+              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+            </div>
+          </td>
         </tr>
       `;
     })
@@ -3076,6 +3095,140 @@ function renderInfoList(container, items) {
       `
     )
     .join("");
+}
+
+function closeStudentFile() {
+  activeStudentFileId = "";
+  studentFileOverlay.hidden = true;
+}
+
+function getLatestAttendanceMetadataRecord(studentId) {
+  return attendanceRecords
+    .filter((record) => record.studentId === studentId && record.observaciones)
+    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")))[0] || null;
+}
+
+function renderStudentFile(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    closeStudentFile();
+    return;
+  }
+
+  const payment = getLatestPaymentRecordForStudent(studentId);
+  const attendanceHistory = attendanceRecords
+    .filter((record) => record.studentId === studentId)
+    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+  const attendanceMetaRecord = getLatestAttendanceMetadataRecord(studentId);
+  const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
+  const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
+  const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
+  const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
+
+  studentFileTitle.textContent = student.nombre || "Ficha de alumna";
+  studentFileSummary.innerHTML = `
+    <div class="student-file-summary-card">
+      <span>ID Alumna</span>
+      <strong>${escapeHtml(student.studentCode || "-")}</strong>
+    </div>
+    <div class="student-file-summary-card">
+      <span>Curso</span>
+      <strong>${escapeHtml(student.curso || "-")}</strong>
+    </div>
+    <div class="student-file-summary-card">
+      <span>Sucursal</span>
+      <strong>${escapeHtml(student.sucursal || "-")}</strong>
+    </div>
+    <div class="student-file-summary-card">
+      <span>Horario</span>
+      <strong>${escapeHtml(student.horario || "-")}</strong>
+    </div>
+  `;
+
+  renderInfoList(studentFileGeneral, [
+    { label: "Fecha de inscripción", value: student.fechaInscripcion || "-" },
+    { label: "Nombre completo", value: student.nombre || "-" },
+    { label: "Teléfono/Whatsapp", value: student.telefono || "-" },
+    { label: "Correo electrónico", value: student.correo || "-" },
+    { label: "Dirección del alumno o tutor", value: student.direccion || "-" },
+    { label: "Fecha de nacimiento", value: student.fechaNacimiento || "-" },
+    { label: "Tutor", value: student.tutor || "-" },
+    { label: "Escolaridad", value: student.escolaridad || "-" },
+    { label: "Contacto de emergencia", value: student.contactoEmergencia || "-" },
+  ]);
+
+  renderInfoList(studentFileAcademic, [
+    { label: "Sucursal", value: student.sucursal || "-" },
+    { label: "Curso inscrito", value: student.curso || "-" },
+    { label: "Tipo de acceso", value: student.accesoElegido || "-" },
+    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
+    { label: "Horario elegido", value: student.horario || "-" },
+    { label: "Asesor que inscribió", value: student.asesoraInscribio || student.usuarioAlta || "-" },
+  ]);
+
+  renderInfoList(studentFileAdministrative, [
+    { label: "¿Recibe apoyo gobierno?", value: student.apoyoGobierno || "-" },
+    { label: "¿Tiene hijos?", value: student.tieneHijos || "-" },
+    { label: "¿Trabaja actualmente?", value: student.trabajaActualmente || "-" },
+    { label: "Documentación", value: student.documentos || "-" },
+    { label: "Notas médicas / alergias", value: student.notasMedicas || "-" },
+  ]);
+
+  renderInfoList(studentFilePortal, [
+    { label: "Usuario Mi Venezia", value: student.portalUser || "-" },
+    { label: "Contraseña Mi Venezia", value: student.portalPassword || "-" },
+  ]);
+
+  renderInfoList(studentFilePayments, [
+    { label: "Mensualidad asignada", value: payment.mensualidadPactada || student.mensualidad || "-" },
+    { label: "Certificado P1", value: payment.certificadoP1 || "-" },
+    { label: "Certificado P2", value: payment.certificadoP2 || "-" },
+    { label: "1ra M", value: payment.mensualidad1 || "-" },
+    { label: "2da M", value: payment.mensualidad2 || "-" },
+    { label: "3ra M", value: payment.mensualidad3 || "-" },
+    { label: "4ta M", value: payment.mensualidad4 || "-" },
+    { label: "5ta M", value: courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica" },
+    { label: "Método de pago", value: payment.metodoPago || "-" },
+    { label: "Cantidad pagada", value: payment.cantidadPagada || "-" },
+    { label: "Reportes", value: payment.reportes || "-" },
+    { label: "Observaciones de pago", value: payment.observaciones || "-" },
+  ]);
+
+  renderInfoList(studentFileAttendanceSummary, [
+    { label: "Asistencias", value: String(asistencias) },
+    { label: "Permisos", value: String(permisos) },
+    { label: "Recuperaciones", value: String(recuperaciones) },
+    { label: "Faltas", value: String(faltas) },
+    { label: "Reglamento firmado", value: getAttendanceNotesValue(attendanceMetaRecord, "Reglamento firmado") || "-" },
+    { label: "Reportes", value: getAttendanceNotesValue(attendanceMetaRecord, "Reportes") || "-" },
+  ]);
+
+  studentFileAttendanceBody.innerHTML = attendanceHistory
+    .slice(0, 12)
+    .map(
+      (record) => `
+        <tr>
+          <td>${escapeHtml(record.fecha || "-")}</td>
+          <td>${escapeHtml(record.estado || "-")}</td>
+          <td>${escapeHtml(getAttendanceNotesValue(record, "Observaciones") || record.observaciones || "-")}</td>
+        </tr>
+      `
+    )
+    .join("");
+  studentFileAttendanceEmptyState.hidden = attendanceHistory.length > 0;
+
+  studentFileNotes.innerHTML = `
+    <p><strong>Observaciones generales:</strong> ${escapeHtml(student.observaciones || "-")}</p>
+    <p><strong>Observaciones de pago:</strong> ${escapeHtml(payment.observaciones || "-")}</p>
+    <p><strong>Observaciones de asistencia:</strong> ${escapeHtml(getAttendanceNotesValue(attendanceMetaRecord, "Observaciones") || "-")}</p>
+  `;
+
+  activeStudentFileId = studentId;
+  studentFileOverlay.hidden = false;
+}
+
+function openStudentFile(studentId) {
+  renderStudentFile(studentId);
 }
 
 function renderWebScholarshipSection() {
@@ -3446,6 +3599,9 @@ function renderAll() {
   renderInternalUsersTable();
   renderStaffTable();
   syncStudentAccessRecords();
+  if (activeStudentFileId) {
+    renderStudentFile(activeStudentFileId);
+  }
   renderMiVeneziaDashboard();
   renderWebCourses();
   renderWebWhatsappLinks();
@@ -3954,12 +4110,25 @@ attendanceTableBody.addEventListener("click", async (event) => {
 });
 
 paymentsTableBody.addEventListener("click", async (event) => {
-  const actionButton = event.target.closest("[data-action='save-payment']");
-  if (actionButton) {
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton) return;
+
+  if (actionButton.dataset.action === "save-payment") {
     console.log("PAGO GUARDAR CLICKED", {
       studentId: actionButton.dataset.id,
     });
     await savePaymentForStudent(actionButton.dataset.id);
+  }
+
+  if (actionButton.dataset.action === "view-student-file") {
+    openStudentFile(actionButton.dataset.id);
+  }
+});
+
+studentFileCloseButton.addEventListener("click", closeStudentFile);
+studentFileOverlay.addEventListener("click", (event) => {
+  if (event.target === studentFileOverlay) {
+    closeStudentFile();
   }
 });
 

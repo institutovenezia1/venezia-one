@@ -1313,6 +1313,112 @@ td select {
   color: #7b7268;
 }
 
+.student-file-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  justify-items: end;
+  padding: 1.5rem;
+  background: rgba(26, 26, 26, 0.26);
+  backdrop-filter: blur(8px);
+}
+
+.student-file-panel {
+  width: min(1080px, 100%);
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #fcfaf7 0%, #f5eee6 100%);
+  box-shadow: 0 24px 48px rgba(74, 59, 33, 0.18);
+}
+
+.student-file-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.student-file-close {
+  flex-shrink: 0;
+}
+
+.student-file-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.student-file-summary-card,
+.student-file-section {
+  padding: 1rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fdfbf8 0%, #f6f0e8 100%);
+}
+
+.student-file-summary-card span,
+.student-file-section h4 {
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-file-summary-card strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: #1a1a1a;
+  font-size: 1.02rem;
+}
+
+.student-file-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.student-file-section {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.student-file-section-wide {
+  grid-column: 1 / -1;
+}
+
+.student-file-section h4 {
+  margin: 0;
+}
+
+.student-file-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.student-file-history-wrapper {
+  border-color: #d8d0c5;
+  background: #fcfaf7;
+}
+
+.student-file-notes {
+  display: grid;
+  gap: 0.6rem;
+  color: #1a1a1a;
+}
+
+.student-file-notes p {
+  margin: 0;
+}
+
 .info-list {
   display: grid;
   gap: 0.75rem;

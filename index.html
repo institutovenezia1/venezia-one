@@ -1889,6 +1889,70 @@
             </a>
           </div>
         </section>
+
+        <aside class="student-file-overlay" id="studentFileOverlay" hidden>
+          <section class="student-file-panel" aria-label="Ficha de alumna">
+            <div class="student-file-header">
+              <div class="section-heading">
+                <p class="eyebrow">Expediente de alumna</p>
+                <h3 id="studentFileTitle">Ficha de alumna</h3>
+              </div>
+
+              <button class="secondary-btn student-file-close" type="button" id="studentFileCloseButton">Cerrar</button>
+            </div>
+
+            <div class="student-file-summary" id="studentFileSummary"></div>
+            <div class="student-file-grid">
+              <section class="student-file-section">
+                <h4>Datos generales</h4>
+                <div class="student-file-list" id="studentFileGeneral"></div>
+              </section>
+
+              <section class="student-file-section">
+                <h4>Datos académicos</h4>
+                <div class="student-file-list" id="studentFileAcademic"></div>
+              </section>
+
+              <section class="student-file-section">
+                <h4>Datos administrativos</h4>
+                <div class="student-file-list" id="studentFileAdministrative"></div>
+              </section>
+
+              <section class="student-file-section">
+                <h4>Acceso Mi Venezia</h4>
+                <div class="student-file-list" id="studentFilePortal"></div>
+              </section>
+
+              <section class="student-file-section">
+                <h4>Pagos</h4>
+                <div class="student-file-list" id="studentFilePayments"></div>
+              </section>
+
+              <section class="student-file-section student-file-section-wide">
+                <h4>Asistencias</h4>
+                <div class="student-file-list" id="studentFileAttendanceSummary"></div>
+                <div class="table-wrapper student-file-history-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody id="studentFileAttendanceBody"></tbody>
+                  </table>
+                </div>
+                <p id="studentFileAttendanceEmptyState" class="empty-state">Esta alumna no tiene asistencias registradas.</p>
+              </section>
+
+              <section class="student-file-section student-file-section-wide">
+                <h4>Observaciones</h4>
+                <div class="student-file-notes" id="studentFileNotes"></div>
+              </section>
+            </div>
+          </section>
+        </aside>
       </main>
     </div>
 
