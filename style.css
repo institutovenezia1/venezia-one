@@ -503,6 +503,14 @@ textarea {
   font-weight: 700;
 }
 
+.attendance-filters {
+  align-items: end;
+}
+
+.attendance-filters label:last-child select {
+  min-width: 120px;
+}
+
 .attendance-school-table-wrapper {
   border-color: #d8d0c5;
   background: linear-gradient(180deg, #fcfaf7 0%, #f9f4ee 100%);
@@ -1353,7 +1361,21 @@ td select {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.student-file-summary-card-primary {
+  grid-column: span 2;
+  background:
+    radial-gradient(circle at top right, rgba(201, 161, 74, 0.16), transparent 34%),
+    linear-gradient(180deg, #fffaf4 0%, #f7efe5 100%);
+}
+
+.student-file-summary-card small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #7b7268;
+  font-size: 0.82rem;
 }
 
 .student-file-summary-card,
@@ -1380,6 +1402,28 @@ td select {
   font-size: 1.02rem;
 }
 
+.student-file-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.student-file-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding-inline: 0.95rem;
+  text-decoration: none;
+}
+
+.student-file-action[aria-disabled="true"],
+.student-file-action:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .student-file-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1404,6 +1448,48 @@ td select {
   gap: 0.75rem;
 }
 
+.student-file-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 173, 160, 0.38);
+  color: #493f35;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.student-file-badge-gold {
+  background: #f1e4bf;
+  color: #7d5a17;
+}
+
+.student-file-badge-green {
+  background: #dcefd9;
+  color: #3f6b35;
+}
+
+.student-file-badge-blue {
+  background: #dce8f5;
+  color: #425d82;
+}
+
+.student-file-badge-red {
+  background: #f4d8d4;
+  color: #8c4e46;
+}
+
+.student-file-badge-purple {
+  background: #eadff5;
+  color: #675481;
+}
+
+.student-file-badge-greige {
+  background: #ece5dc;
+  color: #6f655a;
+}
+
 .student-file-history-wrapper {
   border-color: #d8d0c5;
   background: #fcfaf7;
@@ -1411,12 +1497,32 @@ td select {
 
 .student-file-notes {
   display: grid;
-  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
   color: #1a1a1a;
+}
+
+.student-file-note-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid #d8d0c5;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fdfbf8 0%, #f4ece4 100%);
+}
+
+.student-file-note-card span {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #7b7268;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .student-file-notes p {
   margin: 0;
+  color: #2f2720;
+  line-height: 1.55;
 }
 
 .info-list {
@@ -1431,9 +1537,34 @@ td select {
   background: #ffffff;
 }
 
+.info-item-highlight {
+  background: linear-gradient(180deg, #fffdf9 0%, #f7efe2 100%);
+  border-color: rgba(201, 161, 74, 0.28);
+}
+
 .info-item strong {
   display: block;
   margin-bottom: 0.2rem;
+}
+
+.info-item span {
+  color: #1a1a1a;
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .student-file-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-file-summary-card-primary {
+    grid-column: 1 / -1;
+  }
+
+  .student-file-grid,
+  .student-file-notes {
+    grid-template-columns: 1fr;
+  }
 }
 
 .web-sales-shell {

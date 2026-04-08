@@ -846,19 +846,23 @@
         <section class="module-section" id="asistenciasSection">
           <section class="stats-grid" aria-label="Resumen de asistencias">
             <article class="stat-card">
-              <p>Total asistencias</p>
+              <p>Alumnas del grupo</p>
+              <strong id="attendanceGroupCount">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Asistencias</p>
               <strong id="attendanceAsistencias">0</strong>
             </article>
             <article class="stat-card">
-              <p>Total faltas</p>
-              <strong id="attendanceFaltas">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total permisos</p>
+              <p>Permisos</p>
               <strong id="attendanceRetardos">0</strong>
             </article>
             <article class="stat-card">
-              <p>Total recuperaciones</p>
+              <p>Faltas</p>
+              <strong id="attendanceFaltas">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Recuperaciones</p>
               <strong id="attendanceRecuperaciones">0</strong>
             </article>
           </section>
@@ -894,6 +898,15 @@
               <label>
                 <span>Fecha inicial del grupo</span>
                 <input id="attendanceDate" type="date" />
+              </label>
+
+              <label>
+                <span>Sesiones visibles</span>
+                <select id="attendanceSessionCount">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="30">30</option>
+                </select>
               </label>
             </div>
           </section>
@@ -1903,6 +1916,7 @@
             </div>
 
             <div class="student-file-summary" id="studentFileSummary"></div>
+            <div class="student-file-quick-actions" id="studentFileQuickActions"></div>
             <div class="student-file-grid">
               <section class="student-file-section">
                 <h4>Datos generales</h4>

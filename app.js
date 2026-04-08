@@ -34,7 +34,8 @@ const EXPENSE_CATEGORIES = [
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Recuperación", "Falta"];
-const ATTENDANCE_SESSION_COUNT = 20;
+const ATTENDANCE_SESSION_OPTIONS = [10, 20, 30];
+const DEFAULT_ATTENDANCE_SESSION_COUNT = 10;
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
   Permiso: "P",
@@ -155,6 +156,7 @@ const attendanceSearchInput = document.getElementById("attendanceSearchInput");
 const attendanceSucursalFilter = document.getElementById("attendanceSucursalFilter");
 const attendanceCursoFilter = document.getElementById("attendanceCursoFilter");
 const attendanceHorarioFilter = document.getElementById("attendanceHorarioFilter");
+const attendanceSessionCount = document.getElementById("attendanceSessionCount");
 const attendanceTableHead = document.getElementById("attendanceTableHead");
 const attendanceTableBody = document.getElementById("attendanceTableBody");
 const attendanceEmptyState = document.getElementById("attendanceEmptyState");
@@ -162,10 +164,12 @@ const attendanceHistoryPanel = document.getElementById("attendanceHistoryPanel")
 const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle");
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
 const attendanceHistoryEmptyState = document.getElementById("attendanceHistoryEmptyState");
+const attendanceGroupCount = document.getElementById("attendanceGroupCount");
 const studentFileOverlay = document.getElementById("studentFileOverlay");
 const studentFileCloseButton = document.getElementById("studentFileCloseButton");
 const studentFileTitle = document.getElementById("studentFileTitle");
 const studentFileSummary = document.getElementById("studentFileSummary");
+const studentFileQuickActions = document.getElementById("studentFileQuickActions");
 const studentFileGeneral = document.getElementById("studentFileGeneral");
 const studentFileAcademic = document.getElementById("studentFileAcademic");
 const studentFileAdministrative = document.getElementById("studentFileAdministrative");
@@ -374,6 +378,7 @@ let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let activePaymentsSearch = "";
 let activeStudentFileId = "";
+let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
@@ -385,6 +390,7 @@ monthFilter.value = selectedMonth;
 altasMonthFilter.value = selectedAltasMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
+attendanceSessionCount.value = String(activeAttendanceSessionCount);
 financeMonthFilter.value = selectedMonth;
 
 function seedProspects() {
@@ -915,6 +921,10 @@ function getProspectFollowupMeta(dateValue) {
 
 function getProspectWhatsAppUrl(prospect) {
   const phone = normalizePhone(prospect.telefono);
+  return getWhatsAppUrlByPhone(phone);
+}
+
+function getWhatsAppUrlByPhone(phone) {
   if (!phone || phone.length < 10) {
     return "";
   }
@@ -2586,8 +2596,8 @@ function addDaysToDateValue(dateValue, days) {
   return formatDateForInput(date);
 }
 
-function getAttendanceSessionDates(baseDate) {
-  return Array.from({ length: ATTENDANCE_SESSION_COUNT }, (_, index) => ({
+function getAttendanceSessionDates(baseDate, sessionCount = activeAttendanceSessionCount) {
+  return Array.from({ length: sessionCount }, (_, index) => ({
     key: `s${index + 1}`,
     date: addDaysToDateValue(baseDate, index * 7),
   }));
@@ -2621,6 +2631,22 @@ function buildAttendanceNotes({ reglamento, reportes, observaciones }) {
 
 function getAttendanceNotesValue(record, label) {
   return getAttendanceMeta(record, label) || "";
+}
+
+function getAttendanceSummaryFromSelection(studentsList, sessions) {
+  const visibleStudentIds = new Set(studentsList.map((student) => student.id));
+  const visibleSessionDates = new Set(sessions.map((session) => session.date));
+  const visibleRecords = attendanceRecords.filter(
+    (record) => visibleStudentIds.has(record.studentId) && visibleSessionDates.has(record.fecha)
+  );
+
+  return {
+    groupCount: studentsList.length,
+    asistencias: visibleRecords.filter((record) => record.estado === "Asistencia").length,
+    permisos: visibleRecords.filter((record) => record.estado === "Permiso").length,
+    faltas: visibleRecords.filter((record) => record.estado === "Falta").length,
+    recuperaciones: visibleRecords.filter((record) => record.estado === "Recuperación").length,
+  };
 }
 
 function renderAttendanceTable() {
@@ -2704,6 +2730,7 @@ function renderAttendanceTable() {
     .join("");
 
   attendanceEmptyState.hidden = studentsList.length > 0;
+  updateAttendanceSummary(studentsList, sessions);
 }
 
 async function saveAttendanceForStudent(studentId) {
@@ -2773,12 +2800,13 @@ async function saveAttendanceForStudent(studentId) {
   }
 }
 
-function updateAttendanceSummary() {
-  const monthlyRecords = attendanceRecords.filter((record) => isDateInSelectedMonth(record.fecha));
-  attendanceAsistencias.textContent = monthlyRecords.filter((record) => record.estado === "Asistencia").length;
-  attendanceFaltas.textContent = monthlyRecords.filter((record) => record.estado === "Falta").length;
-  attendanceRetardos.textContent = monthlyRecords.filter((record) => record.estado === "Permiso").length;
-  attendanceRecuperaciones.textContent = monthlyRecords.filter((record) => record.estado === "Recuperación").length;
+function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance(), sessions = getAttendanceSessionDates(attendanceDate.value || formatDateForInput(new Date()))) {
+  const summary = getAttendanceSummaryFromSelection(studentsList, sessions);
+  attendanceGroupCount.textContent = summary.groupCount;
+  attendanceAsistencias.textContent = summary.asistencias;
+  attendanceRetardos.textContent = summary.permisos;
+  attendanceFaltas.textContent = summary.faltas;
+  attendanceRecuperaciones.textContent = summary.recuperaciones;
 }
 
 function renderAttendanceHistory(studentId) {
@@ -3103,6 +3131,67 @@ function renderInfoList(container, items) {
     .join("");
 }
 
+function getStudentFileBadgeClass(tone) {
+  return {
+    gold: "student-file-badge-gold",
+    green: "student-file-badge-green",
+    blue: "student-file-badge-blue",
+    red: "student-file-badge-red",
+    purple: "student-file-badge-purple",
+    greige: "student-file-badge-greige",
+  }[tone] || "student-file-badge-greige";
+}
+
+function renderStudentFileBadge(value, tone = "greige") {
+  return `<span class="student-file-badge ${getStudentFileBadgeClass(tone)}">${escapeHtml(value || "-")}</span>`;
+}
+
+function renderStudentFileInfoList(container, items) {
+  container.innerHTML = items
+    .map((item) => {
+      const valueMarkup = item.badge
+        ? renderStudentFileBadge(item.value, item.tone)
+        : `<span>${escapeHtml(item.value || "-")}</span>`;
+      return `
+        <div class="info-item ${item.highlight ? "info-item-highlight" : ""}">
+          <strong>${escapeHtml(item.label)}</strong>
+          ${valueMarkup}
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function getPaymentTone(value) {
+  if (value === "Pagado") return "green";
+  if (value === "Parcial") return "gold";
+  if (value === "Pendiente") return "red";
+  if (value === "No aplica") return "greige";
+  return "greige";
+}
+
+function getStudentWhatsAppUrl(student) {
+  return getWhatsAppUrlByPhone(normalizePhone(student?.telefono));
+}
+
+async function copyStudentFileValue(value, button) {
+  if (!value || value === "-") {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(value);
+    if (button) {
+      const originalLabel = button.textContent;
+      button.textContent = "Copiado";
+      window.setTimeout(() => {
+        button.textContent = originalLabel;
+      }, 1400);
+    }
+  } catch (error) {
+    console.error("No se pudo copiar al portapapeles", error);
+  }
+}
+
 function closeStudentFile() {
   activeStudentFileId = "";
   studentFileOverlay.hidden = true;
@@ -3130,9 +3219,25 @@ function renderStudentFile(studentId) {
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
+  const whatsappUrl = getStudentWhatsAppUrl(student);
+  const paymentHighlights = [
+    payment.certificadoP1,
+    payment.certificadoP2,
+    payment.mensualidad1,
+    payment.mensualidad2,
+    payment.mensualidad3,
+    payment.mensualidad4,
+    courseUsesFifthMonth(student.curso) ? payment.mensualidad5 : "No aplica",
+  ];
+  const hasPendingPayments = paymentHighlights.some((value) => value === "Pendiente" || value === "Parcial");
 
   studentFileTitle.textContent = student.nombre || "Ficha de alumna";
   studentFileSummary.innerHTML = `
+    <div class="student-file-summary-card student-file-summary-card-primary">
+      <span>Alumna</span>
+      <strong>${escapeHtml(student.nombre || "-")}</strong>
+      <small>${escapeHtml(student.studentCode || "-")}</small>
+    </div>
     <div class="student-file-summary-card">
       <span>ID Alumna</span>
       <strong>${escapeHtml(student.studentCode || "-")}</strong>
@@ -3149,11 +3254,26 @@ function renderStudentFile(studentId) {
       <span>Horario</span>
       <strong>${escapeHtml(student.horario || "-")}</strong>
     </div>
+    <div class="student-file-summary-card">
+      <span>Tipo de acceso</span>
+      <strong>${escapeHtml(student.accesoElegido || "-")}</strong>
+    </div>
+  `;
+  studentFileQuickActions.innerHTML = `
+    <button class="secondary-btn student-file-action" type="button" data-student-file-action="copy-user" ${student.portalUser ? "" : "disabled"}>
+      Copiar usuario Mi Venezia
+    </button>
+    <button class="secondary-btn student-file-action" type="button" data-student-file-action="copy-password" ${student.portalPassword ? "" : "disabled"}>
+      Copiar contraseña
+    </button>
+    <a class="secondary-btn student-file-action" href="${whatsappUrl || "#"}" target="_blank" rel="noopener noreferrer" ${whatsappUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+      Abrir WhatsApp
+    </a>
   `;
 
-  renderInfoList(studentFileGeneral, [
+  renderStudentFileInfoList(studentFileGeneral, [
     { label: "Fecha de inscripción", value: student.fechaInscripcion || "-" },
-    { label: "Nombre completo", value: student.nombre || "-" },
+    { label: "Nombre completo", value: student.nombre || "-", highlight: true },
     { label: "Teléfono/Whatsapp", value: student.telefono || "-" },
     { label: "Correo electrónico", value: student.correo || "-" },
     { label: "Dirección del alumno o tutor", value: student.direccion || "-" },
@@ -3163,49 +3283,50 @@ function renderStudentFile(studentId) {
     { label: "Contacto de emergencia", value: student.contactoEmergencia || "-" },
   ]);
 
-  renderInfoList(studentFileAcademic, [
-    { label: "Sucursal", value: student.sucursal || "-" },
-    { label: "Curso inscrito", value: student.curso || "-" },
-    { label: "Tipo de acceso", value: student.accesoElegido || "-" },
+  renderStudentFileInfoList(studentFileAcademic, [
+    { label: "Sucursal", value: student.sucursal || "-", badge: true, tone: "blue" },
+    { label: "Curso inscrito", value: student.curso || "-", badge: true, tone: "purple" },
+    { label: "Tipo de acceso", value: student.accesoElegido || "-", badge: true, tone: "gold" },
     { label: "Fecha de inicio", value: student.fechaInicio || "-" },
     { label: "Horario elegido", value: student.horario || "-" },
     { label: "Asesor que inscribió", value: student.asesoraInscribio || student.usuarioAlta || "-" },
   ]);
 
-  renderInfoList(studentFileAdministrative, [
-    { label: "¿Recibe apoyo gobierno?", value: student.apoyoGobierno || "-" },
-    { label: "¿Tiene hijos?", value: student.tieneHijos || "-" },
-    { label: "¿Trabaja actualmente?", value: student.trabajaActualmente || "-" },
-    { label: "Documentación", value: student.documentos || "-" },
+  renderStudentFileInfoList(studentFileAdministrative, [
+    { label: "¿Recibe apoyo gobierno?", value: student.apoyoGobierno || "-", badge: true, tone: student.apoyoGobierno === "Sí" ? "gold" : "greige" },
+    { label: "¿Tiene hijos?", value: student.tieneHijos || "-", badge: true, tone: student.tieneHijos === "Sí" ? "purple" : "greige" },
+    { label: "¿Trabaja actualmente?", value: student.trabajaActualmente || "-", badge: true, tone: student.trabajaActualmente === "Sí" ? "blue" : "greige" },
+    { label: "Documentación", value: student.documentos || "-", badge: true, tone: student.documentos === "Completa" ? "green" : student.documentos === "Parcial" ? "gold" : "red" },
     { label: "Notas médicas / alergias", value: student.notasMedicas || "-" },
   ]);
 
-  renderInfoList(studentFilePortal, [
-    { label: "Usuario Mi Venezia", value: student.portalUser || "-" },
-    { label: "Contraseña Mi Venezia", value: student.portalPassword || "-" },
+  renderStudentFileInfoList(studentFilePortal, [
+    { label: "Usuario Mi Venezia", value: student.portalUser || "-", highlight: true },
+    { label: "Contraseña Mi Venezia", value: student.portalPassword || "-", highlight: true },
   ]);
 
-  renderInfoList(studentFilePayments, [
-    { label: "Mensualidad asignada", value: payment.mensualidadPactada || student.mensualidad || "-" },
-    { label: "Certificado P1", value: payment.certificadoP1 || "-" },
-    { label: "Certificado P2", value: payment.certificadoP2 || "-" },
-    { label: "1ra M", value: payment.mensualidad1 || "-" },
-    { label: "2da M", value: payment.mensualidad2 || "-" },
-    { label: "3ra M", value: payment.mensualidad3 || "-" },
-    { label: "4ta M", value: payment.mensualidad4 || "-" },
-    { label: "5ta M", value: courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica" },
-    { label: "Método de pago", value: payment.metodoPago || "-" },
+  renderStudentFileInfoList(studentFilePayments, [
+    { label: "Mensualidad asignada", value: payment.mensualidadPactada || student.mensualidad || "-", highlight: true },
+    { label: "Certificado P1", value: payment.certificadoP1 || "-", badge: true, tone: getPaymentTone(payment.certificadoP1) },
+    { label: "Certificado P2", value: payment.certificadoP2 || "-", badge: true, tone: getPaymentTone(payment.certificadoP2) },
+    { label: "1ra M", value: payment.mensualidad1 || "-", badge: true, tone: getPaymentTone(payment.mensualidad1) },
+    { label: "2da M", value: payment.mensualidad2 || "-", badge: true, tone: getPaymentTone(payment.mensualidad2) },
+    { label: "3ra M", value: payment.mensualidad3 || "-", badge: true, tone: getPaymentTone(payment.mensualidad3) },
+    { label: "4ta M", value: payment.mensualidad4 || "-", badge: true, tone: getPaymentTone(payment.mensualidad4) },
+    { label: "5ta M", value: courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica", badge: true, tone: getPaymentTone(courseUsesFifthMonth(student.curso) ? payment.mensualidad5 : "No aplica") },
+    { label: "Método de pago", value: payment.metodoPago || "-", badge: true, tone: "blue" },
     { label: "Cantidad pagada", value: payment.cantidadPagada || "-" },
+    { label: "Estado financiero", value: hasPendingPayments ? "Con pendientes" : "Al corriente", badge: true, tone: hasPendingPayments ? "red" : "green" },
     { label: "Reportes", value: payment.reportes || "-" },
     { label: "Observaciones de pago", value: payment.observaciones || "-" },
   ]);
 
-  renderInfoList(studentFileAttendanceSummary, [
-    { label: "Asistencias", value: String(asistencias) },
-    { label: "Permisos", value: String(permisos) },
-    { label: "Recuperaciones", value: String(recuperaciones) },
-    { label: "Faltas", value: String(faltas) },
-    { label: "Reglamento firmado", value: getAttendanceNotesValue(attendanceMetaRecord, "Reglamento firmado") || "-" },
+  renderStudentFileInfoList(studentFileAttendanceSummary, [
+    { label: "Asistencias", value: String(asistencias), badge: true, tone: "green" },
+    { label: "Permisos", value: String(permisos), badge: true, tone: "gold" },
+    { label: "Recuperaciones", value: String(recuperaciones), badge: true, tone: "blue" },
+    { label: "Faltas", value: String(faltas), badge: true, tone: "red" },
+    { label: "Reglamento firmado", value: getAttendanceNotesValue(attendanceMetaRecord, "Reglamento firmado") || "-", badge: true, tone: getAttendanceNotesValue(attendanceMetaRecord, "Reglamento firmado") === "Sí" ? "green" : "greige" },
     { label: "Reportes", value: getAttendanceNotesValue(attendanceMetaRecord, "Reportes") || "-" },
   ]);
 
@@ -3224,9 +3345,18 @@ function renderStudentFile(studentId) {
   studentFileAttendanceEmptyState.hidden = attendanceHistory.length > 0;
 
   studentFileNotes.innerHTML = `
-    <p><strong>Observaciones generales:</strong> ${escapeHtml(student.observaciones || "-")}</p>
-    <p><strong>Observaciones de pago:</strong> ${escapeHtml(payment.observaciones || "-")}</p>
-    <p><strong>Observaciones de asistencia:</strong> ${escapeHtml(getAttendanceNotesValue(attendanceMetaRecord, "Observaciones") || "-")}</p>
+    <article class="student-file-note-card">
+      <span>Observaciones generales</span>
+      <p>${escapeHtml(student.observaciones || "-")}</p>
+    </article>
+    <article class="student-file-note-card">
+      <span>Observaciones de pago</span>
+      <p>${escapeHtml(payment.observaciones || "-")}</p>
+    </article>
+    <article class="student-file-note-card">
+      <span>Observaciones de asistencia</span>
+      <p>${escapeHtml(getAttendanceNotesValue(attendanceMetaRecord, "Observaciones") || "-")}</p>
+    </article>
   `;
 
   activeStudentFileId = studentId;
@@ -4037,6 +4167,11 @@ altasMonthFilter.addEventListener("change", (event) => {
 dashboardBranchFilter.addEventListener("change", renderDashboard);
 
 attendanceDate.addEventListener("change", renderAttendanceTable);
+attendanceSessionCount.addEventListener("change", (event) => {
+  const nextValue = Number(event.target.value) || DEFAULT_ATTENDANCE_SESSION_COUNT;
+  activeAttendanceSessionCount = ATTENDANCE_SESSION_OPTIONS.includes(nextValue) ? nextValue : DEFAULT_ATTENDANCE_SESSION_COUNT;
+  renderAttendanceTable();
+});
 attendanceSearchInput.addEventListener("input", (event) => {
   activeAttendanceSearch = event.target.value;
   renderAttendanceTable();
@@ -4141,6 +4276,16 @@ paymentsTableBody.addEventListener("click", async (event) => {
 
 studentFileCloseButton.addEventListener("click", closeStudentFile);
 studentFileOverlay.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-student-file-action]");
+  if (actionButton) {
+    if (actionButton.dataset.studentFileAction === "copy-user") {
+      copyStudentFileValue(getStudentById(activeStudentFileId)?.portalUser || "", actionButton);
+    }
+    if (actionButton.dataset.studentFileAction === "copy-password") {
+      copyStudentFileValue(getStudentById(activeStudentFileId)?.portalPassword || "", actionButton);
+    }
+    return;
+  }
   if (event.target === studentFileOverlay) {
     closeStudentFile();
   }
