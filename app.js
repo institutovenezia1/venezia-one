@@ -104,6 +104,9 @@ const ALL_MODULE_PERMISSIONS = [
 const form = document.getElementById("prospectForm");
 const loginShell = document.getElementById("loginShell");
 const appShell = document.getElementById("appShell");
+const sidebarShell = document.querySelector(".sidebar");
+const topbarShell = document.querySelector(".topbar");
+const mainContentShell = document.querySelector(".main-content");
 const internalLoginForm = document.getElementById("internalLoginForm");
 const internalLoginError = document.getElementById("internalLoginError");
 const openStudentPortalButton = document.getElementById("openStudentPortalButton");
@@ -2965,6 +2968,14 @@ function applyRoleToSidebar() {
 
 function updateSessionUI() {
   const user = getCurrentInternalUser();
+  if (currentAccessMode !== "student" && isTeacherInternalUser(user) && currentAccessMode !== "teacher") {
+    console.info("[Portal Maestras] Corrigiendo modo de acceso a teacher", {
+      username: user?.username || "",
+      role: user?.role || "",
+      previousMode: currentAccessMode,
+    });
+    currentAccessMode = "teacher";
+  }
   const inApp = currentAccessMode === "internal" || currentAccessMode === "student" || currentAccessMode === "teacher";
   const publicMode = !inApp;
   const studentPortalMode = currentAccessMode === "student";
@@ -2977,6 +2988,29 @@ function updateSessionUI() {
   appShell.hidden = false;
   loginShell.style.display = inApp || !publicAccessPanelOpen ? "none" : "grid";
   appShell.style.display = "grid";
+
+  if (sidebarShell) {
+    sidebarShell.hidden = teacherPortalMode;
+    sidebarShell.style.display = teacherPortalMode ? "none" : "";
+  }
+
+  if (topbarShell) {
+    topbarShell.hidden = teacherPortalMode;
+    topbarShell.style.display = teacherPortalMode ? "none" : "";
+  }
+
+  if (mainContentShell) {
+    mainContentShell.dataset.portalMode = teacherPortalMode ? "teacher" : studentPortalMode ? "student" : "admin";
+  }
+
+  Object.entries(moduleSections).forEach(([key, section]) => {
+    if (!section) {
+      return;
+    }
+    const shouldHideForTeacher = teacherPortalMode && key !== "portal-maestras";
+    section.hidden = shouldHideForTeacher;
+    section.style.display = shouldHideForTeacher ? "none" : "";
+  });
 
   if (currentAccessMode === "internal" && user) {
     userBadge.hidden = false;
@@ -5779,7 +5813,7 @@ function renderTeacherPortalDashboard() {
   }
 
   if (!profile) {
-    teacherPortalHeroName.textContent = user.fullName || "Portal de Maestras";
+    teacherPortalHeroName.textContent = user.fullName || "Mi Portal Docente";
     teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Maestras.";
     renderInfoList(teacherPortalHeroSummary, [
       { label: "Usuario", value: user.username || "-" },
@@ -5827,7 +5861,7 @@ function renderTeacherPortalDashboard() {
   const coverageSpecialty = getTeacherCoverageDisplay(profile);
   const paymentDates = getTeacherPortalPaymentDates(period);
 
-  teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Portal de Maestras";
+  teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Mi Portal Docente";
   teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.puesto || "-"} · ${getTeacherSpecialtyDisplay(profile)}`;
   renderInfoList(teacherPortalHeroSummary, [
     { label: "Sucursal", value: profile.sucursal || "-" },
@@ -6066,6 +6100,17 @@ function loadProspectIntoAlta(id) {
 }
 
 function setActiveModule(module) {
+  const currentUser = getCurrentInternalUser();
+  if (currentAccessMode !== "student" && isTeacherInternalUser(currentUser) && currentAccessMode !== "teacher") {
+    console.info("[Portal Maestras] Forzando modo teacher al activar módulo", {
+      username: currentUser?.username || "",
+      role: currentUser?.role || "",
+      requestedModule: module,
+      previousMode: currentAccessMode,
+    });
+    currentAccessMode = "teacher";
+  }
+
   const allowedModule =
     currentAccessMode === "student"
       ? "mi-venezia"

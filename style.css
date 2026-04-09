@@ -1783,9 +1783,50 @@ td select {
   border-color: var(--mi-border);
 }
 
+#teacherPortalSection {
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.18), transparent 26%),
+    radial-gradient(circle at top right, rgba(232, 214, 180, 0.55), transparent 30%),
+    linear-gradient(180deg, #f8f3eb 0%, #f1e7db 52%, #f7f1e8 100%);
+  border-radius: 28px;
+}
+
 .mi-venezia-hero-panel {
   display: grid;
   gap: 1rem;
+}
+
+.teacher-portal-hero-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 1.8rem;
+  border: 1px solid rgba(188, 155, 86, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 32%),
+    linear-gradient(135deg, rgba(255, 249, 240, 0.96) 0%, rgba(242, 229, 210, 0.92) 48%, rgba(232, 214, 188, 0.9) 100%);
+  box-shadow:
+    0 24px 48px rgba(131, 110, 71, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.teacher-portal-hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -60px -70px auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 161, 74, 0.18) 0%, rgba(201, 161, 74, 0) 70%);
+  pointer-events: none;
+}
+
+.teacher-portal-stamp {
+  margin: 0 0 0.45rem;
+  color: #8c6a21;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
 .mi-venezia-hero-copy h3 {
@@ -1930,6 +1971,69 @@ td select {
 
 .teacher-portal-payroll-rules {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.teacher-portal-mode .sidebar,
+body.teacher-portal-mode .topbar {
+  display: none !important;
+}
+
+body.teacher-portal-mode .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body.teacher-portal-mode .main-content {
+  padding: 0.9rem 1.1rem 1.4rem;
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.16), transparent 24%),
+    linear-gradient(180deg, #f6efe4 0%, #efe3d3 100%);
+}
+
+body.teacher-portal-mode .module-section {
+  display: none !important;
+}
+
+body.teacher-portal-mode #teacherPortalSection {
+  display: block !important;
+  padding-top: 0;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard {
+  display: grid;
+  gap: 1.25rem;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard[hidden] {
+  display: none !important;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin-bottom: 0.75rem;
+  border-radius: 16px;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .section-heading {
+  margin-bottom: 0.45rem;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .eyebrow {
+  margin-bottom: 0.15rem;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child h3 {
+  font-size: 1.08rem;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .form-actions {
+  margin-top: 0;
+}
+
+body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary-btn {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.76rem;
 }
 
 @media (max-width: 920px) {
