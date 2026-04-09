@@ -984,7 +984,7 @@
         <section class="module-section" id="maestrasSection">
           <section class="stats-grid maestras-stats-grid" aria-label="Resumen de maestras">
             <article class="stat-card">
-              <p>Maestras registradas</p>
+              <p>Personal docente</p>
               <strong id="teacherCountStat">0</strong>
             </article>
             <article class="stat-card">
@@ -1004,8 +1004,8 @@
           <section class="content-grid maestras-capture-grid">
             <section class="panel maestras-capture-panel">
               <div class="section-heading">
-                <p class="eyebrow">Alta</p>
-                <h3>Registrar maestra</h3>
+                <p class="eyebrow">Configuración</p>
+                <h3>Configurar maestra</h3>
               </div>
 
               <form id="teacherForm" class="prospect-form">
@@ -1013,21 +1013,34 @@
                 <input type="hidden" id="teacherLinkedUserId" />
 
                 <label>
-                  <span>Nombre completo</span>
-                  <input id="teacherFullName" name="nombreCompleto" type="text" required />
-                </label>
-
-                <label>
-                  <span>Sucursal</span>
-                  <select id="teacherBranch" name="sucursal" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Tlaxcala</option>
-                    <option>Puebla</option>
+                  <span>Personal</span>
+                  <select id="teacherStaffId" name="staffId" required>
+                    <option value="">Selecciona desde Personal</option>
                   </select>
                 </label>
 
                 <label>
-                  <span>Especialidad</span>
+                  <span>Nombre completo</span>
+                  <input id="teacherFullName" name="nombreCompleto" type="text" readonly />
+                </label>
+
+                <label>
+                  <span>Puesto</span>
+                  <input id="teacherPosition" name="puesto" type="text" readonly />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <input id="teacherBranch" name="sucursal" type="text" readonly />
+                </label>
+
+                <label>
+                  <span>Usuario interno</span>
+                  <input id="teacherUsername" name="usuario" type="text" readonly />
+                </label>
+
+                <label>
+                  <span>Especialidad docente</span>
                   <select id="teacherSpecialty" name="especialidad" required>
                     <option value="">Selecciona una opcion</option>
                     <option>Uñas</option>
@@ -1038,24 +1051,31 @@
                 </label>
 
                 <label>
-                  <span>Tipo de pago</span>
+                  <span>Tabulador de pago</span>
                   <select id="teacherPaymentType" name="tipoPago" required>
                     <option>Por turnos trabajados</option>
                   </select>
                 </label>
 
                 <label>
-                  <span>Usuario</span>
-                  <input id="teacherUsername" name="usuario" type="text" required />
+                  <span>Estatus docente</span>
+                  <select id="teacherOperationalStatus" name="estadoDocente" required>
+                    <option>Activo</option>
+                    <option>Inactivo</option>
+                  </select>
                 </label>
 
-                <label>
-                  <span>Contraseña</span>
-                  <input id="teacherPassword" name="password" type="text" required />
+                <p id="teacherConfigHelper" class="module-helper-copy">
+                  La identidad base se administra desde Personal. Aquí sólo configuras datos docentes y operativos.
+                </p>
+
+                <label class="full-width">
+                  <span>Configuración operativa</span>
+                  <textarea id="teacherOperationalNotes" name="configuracionOperativa" rows="3"></textarea>
                 </label>
 
                 <div class="form-actions full-width">
-                  <button class="primary-btn" type="submit" id="teacherSubmitButton">Guardar maestra</button>
+                  <button class="primary-btn" type="submit" id="teacherSubmitButton">Guardar configuración</button>
                   <button class="secondary-btn" type="button" id="teacherClearButton">Limpiar</button>
                 </div>
               </form>
@@ -1137,7 +1157,7 @@
             <section class="panel table-panel maestras-data-panel">
               <div class="section-heading">
                 <p class="eyebrow">Directorio</p>
-                <h3>Maestras registradas</h3>
+                <h3>Personal docente</h3>
               </div>
 
               <div class="table-wrapper">
@@ -1145,10 +1165,12 @@
                   <thead>
                     <tr>
                       <th>Nombre completo</th>
+                      <th>Puesto</th>
                       <th>Sucursal</th>
-                      <th>Especialidad</th>
-                      <th>Tipo de pago</th>
                       <th>Usuario</th>
+                      <th>Especialidad</th>
+                      <th>Tabulador</th>
+                      <th>Estatus docente</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -1157,7 +1179,7 @@
               </div>
 
               <p id="teachersEmptyState" class="empty-state">
-                No hay maestras registradas.
+                No hay personal docente disponible desde Personal.
               </p>
             </section>
 

@@ -40,7 +40,16 @@ const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
 const TEACHER_ATTENDANCE_STATUS_OPTIONS = ["Asistió", "Falta", "Permiso"];
+const TEACHER_OPERATIONAL_STATUS_OPTIONS = ["Activo", "Inactivo"];
 const TEACHER_PAYMENT_TYPE = "Por turnos trabajados";
+const TEACHER_ELIGIBLE_POSITIONS = new Set([
+  "miss de uñas",
+  "miss de pestañas",
+  "miss de maquillaje",
+  "miss de barbería",
+  "miss de barberia",
+  "coordinadora de maestras",
+]);
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
@@ -188,8 +197,11 @@ const attendanceGroupCount = document.getElementById("attendanceGroupCount");
 const teacherForm = document.getElementById("teacherForm");
 const teacherClearButton = document.getElementById("teacherClearButton");
 const teacherSubmitButton = document.getElementById("teacherSubmitButton");
+const teacherStaffId = document.getElementById("teacherStaffId");
+const teacherPosition = document.getElementById("teacherPosition");
 const teachersTableBody = document.getElementById("teachersTableBody");
 const teachersEmptyState = document.getElementById("teachersEmptyState");
+const teacherConfigHelper = document.getElementById("teacherConfigHelper");
 const teacherAttendanceForm = document.getElementById("teacherAttendanceForm");
 const teacherAttendanceClearButton = document.getElementById("teacherAttendanceClearButton");
 const teacherAttendanceSubmitButton = document.getElementById("teacherAttendanceSubmitButton");
@@ -202,6 +214,7 @@ const teacherAttendanceShift = document.getElementById("teacherAttendanceShift")
 const teacherAttendanceStatus = document.getElementById("teacherAttendanceStatus");
 const teacherAttendanceTableBody = document.getElementById("teacherAttendanceTableBody");
 const teacherAttendanceEmptyState = document.getElementById("teacherAttendanceEmptyState");
+const teacherOperationalStatus = document.getElementById("teacherOperationalStatus");
 const teacherSummaryBranchFilter = document.getElementById("teacherSummaryBranchFilter");
 const teacherSummaryTeacherFilter = document.getElementById("teacherSummaryTeacherFilter");
 const teacherSummaryMonthFilter = document.getElementById("teacherSummaryMonthFilter");
@@ -1042,12 +1055,260 @@ function normalizeTeacherPaymentType(value) {
   return String(value || "").trim() ? TEACHER_PAYMENT_TYPE : TEACHER_PAYMENT_TYPE;
 }
 
-function getTeacherDisplayName(record) {
-  return record?.nombreCompleto || record?.nombre || record?.teacherName || "Maestra";
+function normalizeTeacherOperationalStatus(value) {
+  return String(value || "").trim().toLowerCase() === "inactivo" ? "Inactivo" : "Activo";
 }
 
-function getTeacherById(teacherId) {
-  return teacherRecords.find((record) => record.id === teacherId) || null;
+function normalizeTeacherPosition(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function isEligibleTeacherStaffPosition(position) {
+  return TEACHER_ELIGIBLE_POSITIONS.has(normalizeTeacherPosition(position));
+}
+
+function getDefaultTeacherSpecialtyFromPosition(position) {
+  const normalizedPosition = normalizeTeacherPosition(position);
+  if (normalizedPosition === "miss de unas" || normalizedPosition === "miss de uñas") return "Uñas";
+  if (normalizedPosition === "miss de pestanas" || normalizedPosition === "miss de pestañas") return "Pestañas";
+  if (normalizedPosition === "miss de maquillaje") return "Maquillaje";
+  if (normalizedPosition === "miss de barberia" || normalizedPosition === "miss de barbería") return "Barbería";
+  return "";
+}
+
+function getTeacherDisplayName(record) {
+  return record?.nombreCompleto || record?.nombre || record?.teacherName || record?.legacyNombreCompleto || "Maestra";
+}
+
+function getTeacherConfigTimestamp(record) {
+  return String(record?.updatedAt || record?.createdAt || "");
+}
+
+function getTeacherStaffAccessUsername(staffRecord) {
+  if (staffRecord?.username) {
+    return staffRecord.username;
+  }
+
+  const linkedUser = internalUsers.find((user) => user.id === staffRecord?.linkedUserId);
+  return linkedUser?.username || "";
+}
+
+function getTeacherConfigById(id, configs = teacherRecords) {
+  return configs.find((record) => record.id === id) || null;
+}
+
+function getTeacherConfigByStaffId(staffId, configs = teacherRecords) {
+  return configs.find((record) => record.staffId === staffId || record.id === staffId) || null;
+}
+
+function getEligibleTeacherStaffRecords() {
+  return staffRecords
+    .filter(
+      (record) =>
+        isEligibleTeacherStaffPosition(record.puesto) &&
+        matchesCurrentBranch(record.sucursal)
+    )
+    .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
+}
+
+function findMatchingStaffForTeacherRecord(record) {
+  const explicitStaff =
+    staffRecords.find((staffRecord) => staffRecord.id === record.staffId) ||
+    staffRecords.find((staffRecord) => staffRecord.id === record.id);
+  if (explicitStaff && isEligibleTeacherStaffPosition(explicitStaff.puesto)) {
+    return explicitStaff;
+  }
+
+  const linkedUserMatch = staffRecords.find(
+    (staffRecord) =>
+      isEligibleTeacherStaffPosition(staffRecord.puesto) &&
+      record.linkedUserId &&
+      staffRecord.linkedUserId === record.linkedUserId
+  );
+  if (linkedUserMatch) {
+    return linkedUserMatch;
+  }
+
+  const normalizedUsername = String(record.usuario || "").trim().toLowerCase();
+  if (normalizedUsername) {
+    const usernameMatch = staffRecords.find(
+      (staffRecord) =>
+        isEligibleTeacherStaffPosition(staffRecord.puesto) &&
+        String(getTeacherStaffAccessUsername(staffRecord) || "").trim().toLowerCase() === normalizedUsername
+    );
+    if (usernameMatch) {
+      return usernameMatch;
+    }
+  }
+
+  const normalizedName = getTeacherDisplayName(record)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  const normalizedBranch = String(record.sucursal || "").trim().toLowerCase();
+  return (
+    staffRecords.find((staffRecord) => {
+      if (!isEligibleTeacherStaffPosition(staffRecord.puesto)) {
+        return false;
+      }
+      const staffName = String(staffRecord.nombre || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+      const sameBranch =
+        !normalizedBranch ||
+        String(staffRecord.sucursal || "").trim().toLowerCase() === normalizedBranch;
+      return staffName === normalizedName && sameBranch;
+    }) || null
+  );
+}
+
+function buildLegacyTeacherProfile(configRecord) {
+  return {
+    id: configRecord.id,
+    staffId: configRecord.staffId || "",
+    linkedUserId: configRecord.linkedUserId || "",
+    nombreCompleto: configRecord.legacyNombreCompleto || getTeacherDisplayName(configRecord),
+    puesto: configRecord.legacyPuesto || "Registro legado sin enlace",
+    sucursal: configRecord.legacySucursal || configRecord.sucursal || "",
+    usuario: configRecord.legacyUsuario || configRecord.usuario || "",
+    especialidad: normalizeTeacherSpecialty(configRecord.especialidad),
+    tipoPago: normalizeTeacherPaymentType(configRecord.tipoPago),
+    estadoDocente: normalizeTeacherOperationalStatus(configRecord.estadoDocente),
+    configuracionOperativa: configRecord.configuracionOperativa || "",
+    isConfigured: true,
+    source: "legacy",
+  };
+}
+
+function buildTeacherProfileFromStaff(staffRecord, configRecord = null) {
+  return {
+    id: staffRecord.id,
+    staffId: staffRecord.id,
+    linkedUserId: staffRecord.linkedUserId || configRecord?.linkedUserId || "",
+    nombreCompleto: staffRecord.nombre || "",
+    puesto: staffRecord.puesto || "",
+    sucursal: staffRecord.sucursal || "",
+    usuario: getTeacherStaffAccessUsername(staffRecord),
+    especialidad:
+      normalizeTeacherSpecialty(configRecord?.especialidad) ||
+      getDefaultTeacherSpecialtyFromPosition(staffRecord.puesto),
+    tipoPago: normalizeTeacherPaymentType(configRecord?.tipoPago || TEACHER_PAYMENT_TYPE),
+    estadoDocente: normalizeTeacherOperationalStatus(
+      configRecord?.estadoDocente || staffRecord.estado || "Activo"
+    ),
+    configuracionOperativa: configRecord?.configuracionOperativa || "",
+    isConfigured: Boolean(configRecord),
+    source: "staff",
+  };
+}
+
+function getTeacherProfileById(teacherId, configs = teacherRecords) {
+  const staffRecord = staffRecords.find((record) => record.id === teacherId);
+  if (staffRecord && isEligibleTeacherStaffPosition(staffRecord.puesto)) {
+    return buildTeacherProfileFromStaff(staffRecord, getTeacherConfigByStaffId(staffRecord.id, configs));
+  }
+
+  const configRecord = getTeacherConfigById(teacherId, configs);
+  if (!configRecord) {
+    return null;
+  }
+
+  const matchedStaff = staffRecords.find((record) => record.id === configRecord.staffId);
+  if (matchedStaff && isEligibleTeacherStaffPosition(matchedStaff.puesto)) {
+    return buildTeacherProfileFromStaff(matchedStaff, configRecord);
+  }
+
+  return buildLegacyTeacherProfile(configRecord);
+}
+
+function normalizeTeacherDataAgainstStaff() {
+  const legacyToCanonicalTeacherId = new Map();
+  const groupedRecords = new Map();
+
+  teacherRecords.forEach((record) => {
+    const matchedStaff = findMatchingStaffForTeacherRecord(record);
+    const canonicalId = matchedStaff?.id || record.staffId || record.id;
+    legacyToCanonicalTeacherId.set(record.id, canonicalId);
+    if (!groupedRecords.has(canonicalId)) {
+      groupedRecords.set(canonicalId, []);
+    }
+    groupedRecords.get(canonicalId).push({ record, matchedStaff });
+  });
+
+  const nextTeacherRecords = Array.from(groupedRecords.entries()).map(([canonicalId, entries]) => {
+    const latestEntry = [...entries].sort(
+      (left, right) => getTeacherConfigTimestamp(right.record).localeCompare(getTeacherConfigTimestamp(left.record))
+    )[0];
+    const matchedStaff = entries.map((entry) => entry.matchedStaff).find(Boolean) || null;
+    const specialty =
+      normalizeTeacherSpecialty(
+        latestEntry.record.especialidad ||
+          entries.find((entry) => normalizeTeacherSpecialty(entry.record.especialidad))?.record?.especialidad ||
+          getDefaultTeacherSpecialtyFromPosition(matchedStaff?.puesto)
+      ) || "";
+
+    return {
+      id: canonicalId,
+      staffId: matchedStaff?.id || latestEntry.record.staffId || "",
+      linkedUserId: matchedStaff?.linkedUserId || latestEntry.record.linkedUserId || "",
+      especialidad: specialty,
+      tipoPago: normalizeTeacherPaymentType(latestEntry.record.tipoPago || TEACHER_PAYMENT_TYPE),
+      estadoDocente: normalizeTeacherOperationalStatus(
+        latestEntry.record.estadoDocente || latestEntry.record.status || matchedStaff?.estado || "Activo"
+      ),
+      configuracionOperativa:
+        latestEntry.record.configuracionOperativa ||
+        latestEntry.record.observacionesOperativas ||
+        latestEntry.record.notes ||
+        "",
+      legacyNombreCompleto: matchedStaff ? "" : getTeacherDisplayName(latestEntry.record),
+      legacySucursal: matchedStaff ? "" : latestEntry.record.sucursal || "",
+      legacyUsuario: matchedStaff ? "" : latestEntry.record.usuario || "",
+      legacyPuesto: matchedStaff ? "" : latestEntry.record.puesto || "",
+      createdAt: latestEntry.record.createdAt || new Date().toISOString(),
+      updatedAt: latestEntry.record.updatedAt || latestEntry.record.createdAt || new Date().toISOString(),
+    };
+  });
+
+  const nextTeacherAttendanceRecords = teacherAttendanceRecords.map((record) => {
+    const canonicalTeacherId = legacyToCanonicalTeacherId.get(record.teacherId) || record.teacherId;
+    const teacherProfile = getTeacherProfileById(canonicalTeacherId, nextTeacherRecords);
+    return {
+      ...record,
+      teacherId: canonicalTeacherId,
+      teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
+      sucursal: teacherProfile?.sucursal || record.sucursal || "",
+      especialidad: normalizeTeacherSpecialty(teacherProfile?.especialidad || record.especialidad),
+      turno: normalizeTeacherShift(record.turno),
+      estatus: normalizeTeacherAttendanceStatus(record.estatus),
+    };
+  });
+
+  const previousTeacherSnapshot = JSON.stringify(teacherRecords);
+  const nextTeacherSnapshot = JSON.stringify(nextTeacherRecords);
+  const previousAttendanceSnapshot = JSON.stringify(teacherAttendanceRecords);
+  const nextAttendanceSnapshot = JSON.stringify(nextTeacherAttendanceRecords);
+
+  if (previousTeacherSnapshot !== nextTeacherSnapshot) {
+    teacherRecords = nextTeacherRecords;
+    saveTeachersCollection();
+  } else {
+    teacherRecords = nextTeacherRecords;
+  }
+
+  if (previousAttendanceSnapshot !== nextAttendanceSnapshot) {
+    teacherAttendanceRecords = nextTeacherAttendanceRecords;
+    saveTeacherAttendanceCollection();
+  } else {
+    teacherAttendanceRecords = nextTeacherAttendanceRecords;
+  }
 }
 
 function getTeacherSpecialtyKey(value) {
@@ -1134,9 +1395,43 @@ function getTeacherAttendanceLogicalKey(record) {
 }
 
 function getVisibleTeacherRecords() {
-  return teacherRecords
+  return getEligibleTeacherStaffRecords().map((staffRecord) =>
+    buildTeacherProfileFromStaff(staffRecord, getTeacherConfigByStaffId(staffRecord.id))
+  );
+}
+
+function getSelectableTeacherProfiles({ includeInactive = true } = {}) {
+  const configuredProfiles = getVisibleTeacherRecords().filter(
+    (record) =>
+      record.isConfigured &&
+      (includeInactive || normalizeTeacherOperationalStatus(record.estadoDocente) === "Activo")
+  );
+  const legacyProfiles = teacherRecords
+    .filter((record) => !record.staffId || !staffRecords.some((staffRecord) => staffRecord.id === record.staffId))
+    .map((record) => buildLegacyTeacherProfile(record))
+    .filter(
+      (record) =>
+        includeInactive || normalizeTeacherOperationalStatus(record.estadoDocente) === "Activo"
+    );
+
+  return configuredProfiles
+    .concat(legacyProfiles)
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .sort((left, right) => getTeacherDisplayName(left).localeCompare(getTeacherDisplayName(right), "es-MX"));
+}
+
+function buildTeacherStaffOptions(records, selectedValue, defaultLabel = "Selecciona desde Personal") {
+  return [`<option value="">${escapeHtml(defaultLabel)}</option>`]
+    .concat(
+      records.map((record) => {
+        const profile = buildTeacherProfileFromStaff(record, getTeacherConfigByStaffId(record.id));
+        const statusLabel = profile.isConfigured ? "Configurada" : "Pendiente";
+        return `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
+          `${record.nombre || "-"} · ${record.puesto || "-"} · ${record.sucursal || "-"} · ${statusLabel}`
+        )}</option>`;
+      })
+    )
+    .join("");
 }
 
 function buildTeacherSelectOptions(records, selectedValue, defaultLabel = "Selecciona una opcion") {
@@ -1145,15 +1440,24 @@ function buildTeacherSelectOptions(records, selectedValue, defaultLabel = "Selec
       records.map(
         (record) =>
           `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
-            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${record.especialidad || "-"}`
+            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${record.especialidad || "-"}${record.source === "legacy" ? " · Legado" : ""}`
           )}</option>`
       )
     )
     .join("");
 }
 
+function populateTeacherConfigStaffOptions() {
+  const visibleStaff = getEligibleTeacherStaffRecords();
+  const previousValue = teacherStaffId.value;
+  teacherStaffId.innerHTML = buildTeacherStaffOptions(
+    visibleStaff,
+    visibleStaff.some((record) => record.id === previousValue) ? previousValue : ""
+  );
+}
+
 function populateTeacherSelects() {
-  const visibleTeachers = getVisibleTeacherRecords();
+  const visibleTeachers = getSelectableTeacherProfiles({ includeInactive: true });
   const attendanceBranchValue = teacherAttendanceBranch.value;
   const filteredForAttendance = visibleTeachers.filter(
     (record) => !attendanceBranchValue || record.sucursal === attendanceBranchValue
@@ -1180,27 +1484,36 @@ function populateTeacherSelects() {
 
 function getTeacherFormData() {
   const formData = new FormData(teacherForm);
-  const existingId = document.getElementById("teacherId").value;
-  const existingRecord = teacherRecords.find((record) => record.id === existingId);
-  const allowedBranch = getAllowedBranch();
+  const selectedStaffId = String(formData.get("staffId") || "").trim();
+  const selectedStaff = staffRecords.find((record) => record.id === selectedStaffId);
+  const existingRecord = getTeacherConfigByStaffId(selectedStaffId);
+
+  if (!selectedStaff) {
+    return null;
+  }
 
   return {
-    id: existingId || crypto.randomUUID(),
-    nombreCompleto: String(formData.get("nombreCompleto") || "").trim(),
-    sucursal: allowedBranch || String(formData.get("sucursal") || "").trim(),
-    especialidad: normalizeTeacherSpecialty(formData.get("especialidad")),
+    id: selectedStaff.id,
+    staffId: selectedStaff.id,
+    linkedUserId: selectedStaff.linkedUserId || existingRecord?.linkedUserId || "",
+    especialidad:
+      normalizeTeacherSpecialty(formData.get("especialidad")) ||
+      getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto),
     tipoPago: normalizeTeacherPaymentType(formData.get("tipoPago")),
-    usuario: String(formData.get("usuario") || "").trim(),
-    password: String(formData.get("password") || "").trim(),
-    linkedUserId: document.getElementById("teacherLinkedUserId").value || existingRecord?.linkedUserId || "",
+    estadoDocente: normalizeTeacherOperationalStatus(formData.get("estadoDocente")),
+    configuracionOperativa: String(formData.get("configuracionOperativa") || "").trim(),
     createdAt: existingRecord?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    legacyNombreCompleto: "",
+    legacySucursal: "",
+    legacyUsuario: "",
+    legacyPuesto: "",
   };
 }
 
 function getTeacherAttendanceFormData() {
   const formData = new FormData(teacherAttendanceForm);
-  const selectedTeacher = getTeacherById(String(formData.get("maestraId") || "").trim());
+  const selectedTeacher = getTeacherProfileById(String(formData.get("maestraId") || "").trim());
   const existingId = document.getElementById("teacherAttendanceId").value;
   const existingRecord = teacherAttendanceRecords.find((record) => record.id === existingId);
   const existingLogicalRecord = teacherAttendanceRecords.find(
@@ -1213,7 +1526,7 @@ function getTeacherAttendanceFormData() {
   return {
     id: existingLogicalRecord?.id || existingRecord?.id || existingId || crypto.randomUUID(),
     teacherId: selectedTeacher?.id || "",
-    teacherName: getTeacherDisplayName(selectedTeacher),
+    teacherName: selectedTeacher?.nombreCompleto || "",
     fecha: String(formData.get("fecha") || "").trim(),
     sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
     especialidad: normalizeTeacherSpecialty(selectedTeacher?.especialidad || formData.get("especialidad")),
@@ -1226,98 +1539,25 @@ function getTeacherAttendanceFormData() {
   };
 }
 
-function getTeacherUserConflict(record) {
-  const normalizedUsername = String(record.usuario || "").trim().toLowerCase();
-  if (!normalizedUsername) {
-    return null;
-  }
-
-  const teacherConflict = teacherRecords.find(
-    (item) => item.id !== record.id && String(item.usuario || "").trim().toLowerCase() === normalizedUsername
-  );
-  if (teacherConflict) {
-    return "Ya existe otra maestra con ese usuario.";
-  }
-
-  const linkedUser = internalUsers.find((user) => user.id === record.linkedUserId);
-  const internalUserConflict = internalUsers.find(
-    (user) =>
-      user.id !== linkedUser?.id &&
-      String(user.username || "").trim().toLowerCase() === normalizedUsername
-  );
-
-  if (internalUserConflict) {
-    return "Ese usuario ya existe en accesos internos. Usa otro para esta maestra.";
-  }
-
-  return null;
-}
-
-async function syncTeacherInternalAccess(record) {
-  const existingUser =
-    internalUsers.find((user) => user.id === record.linkedUserId) ||
-    internalUsers.find((user) => user.username === record.usuario);
-  const permissions = Array.from(
-    new Set([...(Array.isArray(existingUser?.permissions) ? existingUser.permissions : []), "maestras"])
-  );
-  const internalUserPayload = {
-    id: existingUser?.id || record.linkedUserId || crypto.randomUUID(),
-    fullName: record.nombreCompleto || "",
-    username: record.usuario || "",
-    phone: existingUser?.phone || "",
-    password: record.password || "",
-    role: "Maestra",
-    branch: record.sucursal || existingUser?.branch || "",
-    status: existingUser?.status || "Activo",
-    permissions,
-  };
-  const result = await dataService.entities.internalUsers.upsertOne(internalUserPayload, { alertOnFailure: false });
-  const nextUser = {
-    ...internalUserPayload,
-    ...result.record,
-    permissions,
-  };
-  const existingIndex = internalUsers.findIndex((user) => user.id === nextUser.id);
-
-  if (existingIndex >= 0) {
-    internalUsers[existingIndex] = nextUser;
-  } else {
-    internalUsers.unshift(nextUser);
-  }
-
-  setInternalUserPermissionOverride(nextUser.id, nextUser.permissions);
-  return {
-    ...result,
-    record: nextUser,
-  };
-}
-
 async function saveTeacherRecord(record) {
-  const internalAccessResult = await syncTeacherInternalAccess(record);
-  const nextRecord = {
-    ...record,
-    linkedUserId: internalAccessResult.record.id,
-  };
-  const existingIndex = teacherRecords.findIndex((item) => item.id === nextRecord.id);
-
-  if (existingIndex >= 0) {
-    teacherRecords[existingIndex] = nextRecord;
-  } else {
-    teacherRecords.unshift(nextRecord);
-  }
-
+  teacherRecords = teacherRecords.filter(
+    (item) => item.id !== record.id && item.staffId !== record.staffId
+  );
+  teacherRecords.unshift(record);
   saveTeachersCollection();
   return {
-    record: nextRecord,
-    synced: internalAccessResult.synced,
+    record,
+    synced: true,
   };
 }
 
 function saveTeacherAttendanceRecord(record) {
+  const teacherProfile = getTeacherProfileById(record.teacherId);
   const nextRecord = {
     ...record,
-    teacherName: record.teacherName || getTeacherDisplayName(getTeacherById(record.teacherId)),
-    especialidad: normalizeTeacherSpecialty(record.especialidad),
+    teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
+    sucursal: teacherProfile?.sucursal || record.sucursal || "",
+    especialidad: normalizeTeacherSpecialty(teacherProfile?.especialidad || record.especialidad),
     turno: normalizeTeacherShift(record.turno),
     estatus: normalizeTeacherAttendanceStatus(record.estatus),
   };
@@ -1353,7 +1593,7 @@ function consolidateTeacherAttendanceGroup(records = []) {
   const latestRecord = [...records].sort((left, right) =>
     String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
   )[0];
-  const teacher = getTeacherById(latestRecord.teacherId);
+  const teacher = getTeacherProfileById(latestRecord.teacherId);
   const specialty = normalizeTeacherSpecialty(
     latestRecord.especialidad || teacher?.especialidad || records.find((record) => record.especialidad)?.especialidad
   );
@@ -1545,7 +1785,7 @@ function updateTeacherAttendanceHelper() {
 
   if (!teacherId || !dateValue) {
     teacherAttendanceHelper.textContent =
-      "Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.";
+      "Sólo aparecen docentes configuradas desde Personal. Si ya existe una fecha, el registro se actualiza.";
     return;
   }
 
@@ -1569,8 +1809,50 @@ function updateTeacherAttendanceHelper() {
     "Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.";
 }
 
+function syncTeacherConfigFields() {
+  const selectedStaff = staffRecords.find((record) => record.id === teacherStaffId.value);
+  const existingConfig = selectedStaff ? getTeacherConfigByStaffId(selectedStaff.id) : null;
+
+  if (!selectedStaff) {
+    document.getElementById("teacherId").value = "";
+    document.getElementById("teacherLinkedUserId").value = "";
+    document.getElementById("teacherFullName").value = "";
+    teacherPosition.value = "";
+    document.getElementById("teacherBranch").value = getAllowedBranch() || "";
+    document.getElementById("teacherUsername").value = "";
+    document.getElementById("teacherSpecialty").value = "";
+    document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
+    teacherOperationalStatus.value = "Activo";
+    document.getElementById("teacherOperationalNotes").value = "";
+    teacherSubmitButton.textContent = "Guardar configuración";
+    teacherConfigHelper.textContent =
+      "La identidad base se administra desde Personal. Aquí sólo configuras datos docentes y operativos.";
+    return;
+  }
+
+  document.getElementById("teacherId").value = existingConfig?.id || "";
+  document.getElementById("teacherLinkedUserId").value = selectedStaff.linkedUserId || existingConfig?.linkedUserId || "";
+  document.getElementById("teacherFullName").value = selectedStaff.nombre || "";
+  teacherPosition.value = selectedStaff.puesto || "";
+  document.getElementById("teacherBranch").value = selectedStaff.sucursal || "";
+  document.getElementById("teacherUsername").value = getTeacherStaffAccessUsername(selectedStaff);
+  document.getElementById("teacherSpecialty").value =
+    normalizeTeacherSpecialty(existingConfig?.especialidad) ||
+    getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto) ||
+    "";
+  document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
+  teacherOperationalStatus.value = normalizeTeacherOperationalStatus(
+    existingConfig?.estadoDocente || selectedStaff.estado || "Activo"
+  );
+  document.getElementById("teacherOperationalNotes").value = existingConfig?.configuracionOperativa || "";
+  teacherSubmitButton.textContent = existingConfig ? "Actualizar configuración" : "Guardar configuración";
+  teacherConfigHelper.textContent = existingConfig
+    ? "Esta docente ya está enlazada con Personal. Aquí sólo ajustas especialidad, estatus y operación."
+    : "Se creará sólo la configuración docente. Nombre, sucursal y acceso interno seguirán viniendo desde Personal.";
+}
+
 function syncTeacherAttendanceFields() {
-  const selectedTeacher = getTeacherById(teacherAttendanceTeacherId.value);
+  const selectedTeacher = getTeacherProfileById(teacherAttendanceTeacherId.value);
   const allowedBranch = getAllowedBranch();
 
   if (selectedTeacher) {
@@ -1584,13 +1866,14 @@ function syncTeacherAttendanceFields() {
 }
 
 function resetTeacherForm() {
-  const allowedBranch = getAllowedBranch();
   teacherForm.reset();
   document.getElementById("teacherId").value = "";
   document.getElementById("teacherLinkedUserId").value = "";
-  document.getElementById("teacherBranch").value = allowedBranch || "";
   document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
-  teacherSubmitButton.textContent = "Guardar maestra";
+  teacherOperationalStatus.value = "Activo";
+  populateTeacherConfigStaffOptions();
+  syncTeacherConfigFields();
+  teacherSubmitButton.textContent = "Guardar configuración";
 }
 
 function resetTeacherAttendanceForm() {
@@ -1612,13 +1895,15 @@ function renderTeachersTable() {
       (record) => `
         <tr>
           <td>${escapeHtml(getTeacherDisplayName(record))}</td>
+          <td>${escapeHtml(record.puesto || "-")}</td>
           <td>${escapeHtml(record.sucursal || "-")}</td>
+          <td>${escapeHtml(record.usuario || "-")}</td>
           <td>${escapeHtml(record.especialidad || "-")}</td>
           <td>${escapeHtml(record.tipoPago || TEACHER_PAYMENT_TYPE)}</td>
-          <td>${escapeHtml(record.usuario || "-")}</td>
+          <td><span class="status-pill">${escapeHtml(record.isConfigured ? record.estadoDocente : "Pendiente")}</span></td>
           <td>
             <div class="actions-cell">
-              <button class="table-action action-edit" type="button" data-action="edit-teacher" data-id="${record.id}">Editar</button>
+              <button class="table-action action-edit" type="button" data-action="edit-teacher" data-id="${record.id}">${record.isConfigured ? "Editar" : "Configurar"}</button>
             </div>
           </td>
         </tr>
@@ -1699,7 +1984,10 @@ function updateTeacherModuleStats() {
 }
 
 function renderTeachersModule() {
+  normalizeTeacherDataAgainstStaff();
+  populateTeacherConfigStaffOptions();
   populateTeacherSelects();
+  syncTeacherConfigFields();
   syncTeacherAttendanceFields();
   renderTeachersTable();
   renderTeacherAttendanceTable();
@@ -1708,20 +1996,18 @@ function renderTeachersModule() {
 }
 
 function editTeacherRecord(id) {
-  const record = getTeacherById(id);
+  const record = getTeacherProfileById(id);
   if (!record) {
     return;
   }
 
-  document.getElementById("teacherId").value = record.id;
-  document.getElementById("teacherLinkedUserId").value = record.linkedUserId || "";
-  document.getElementById("teacherFullName").value = getTeacherDisplayName(record);
-  document.getElementById("teacherBranch").value = record.sucursal || "";
+  teacherStaffId.value = record.staffId || record.id;
+  syncTeacherConfigFields();
   document.getElementById("teacherSpecialty").value = record.especialidad || "";
   document.getElementById("teacherPaymentType").value = record.tipoPago || TEACHER_PAYMENT_TYPE;
-  document.getElementById("teacherUsername").value = record.usuario || "";
-  document.getElementById("teacherPassword").value = record.password || "";
-  teacherSubmitButton.textContent = "Actualizar maestra";
+  teacherOperationalStatus.value = normalizeTeacherOperationalStatus(record.estadoDocente);
+  document.getElementById("teacherOperationalNotes").value = record.configuracionOperativa || "";
+  teacherSubmitButton.textContent = "Actualizar configuración";
   setActiveModule("maestras");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -5605,23 +5891,17 @@ staffForm.addEventListener("submit", async (event) => {
 teacherForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const teacherData = getTeacherFormData();
-  const isEditingExistingTeacher = Boolean(document.getElementById("teacherId").value);
-  const userConflictMessage = getTeacherUserConflict(teacherData);
+  const isEditingExistingTeacher = Boolean(getTeacherConfigByStaffId(teacherStaffId.value));
 
-  if (!teacherData.nombreCompleto || !teacherData.sucursal || !teacherData.especialidad || !teacherData.usuario || !teacherData.password) {
-    alert("Completa todos los campos obligatorios de la maestra.");
-    return;
-  }
-
-  if (userConflictMessage) {
-    alert(userConflictMessage);
+  if (!teacherData || !teacherData.staffId || !teacherData.especialidad) {
+    alert("Selecciona a una persona desde Personal y define la especialidad docente.");
     return;
   }
 
   await saveTeacherRecord(teacherData);
   renderAll();
   resetTeacherForm();
-  alert(isEditingExistingTeacher ? "Maestra actualizada correctamente." : "Maestra guardada correctamente.");
+  alert(isEditingExistingTeacher ? "Configuración docente actualizada correctamente." : "Configuración docente guardada correctamente.");
 });
 
 teacherAttendanceForm.addEventListener("submit", (event) => {
@@ -5849,6 +6129,8 @@ altaForm.addEventListener("input", () => {
   document.getElementById(id).addEventListener("input", syncStaffAccessFields);
   document.getElementById(id).addEventListener("change", syncStaffAccessFields);
 });
+
+teacherStaffId.addEventListener("change", syncTeacherConfigFields);
 
 ["teacherAttendanceDate", "teacherAttendanceTeacherId"].forEach((id) => {
   document.getElementById(id).addEventListener("change", syncTeacherAttendanceFields);
