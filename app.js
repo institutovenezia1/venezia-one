@@ -1701,8 +1701,10 @@ function updateSessionUI() {
   const user = getCurrentInternalUser();
   const inApp = currentAccessMode === "internal" || currentAccessMode === "student";
   const publicMode = !inApp;
+  const studentPortalMode = currentAccessMode === "student";
 
   document.body.classList.toggle("public-mode", publicMode);
+  document.body.classList.toggle("student-portal-mode", studentPortalMode);
   loginShell.hidden = inApp || !publicAccessPanelOpen;
   appShell.hidden = false;
   loginShell.style.display = inApp || !publicAccessPanelOpen ? "none" : "grid";
@@ -4314,7 +4316,7 @@ function renderMiVeneziaDashboard() {
   );
 
   renderInfoList(miVeneziaResumenAsistencias, [
-    { label: "Total de sesiones", value: String(totalClasesPlaneadas) },
+    { label: "Total de clases", value: String(totalClasesPlaneadas) },
     { label: "Asistencias registradas", value: String(asistencias) },
     { label: "Faltas", value: String(faltas) },
     { label: "Permisos", value: String(permisos) },
@@ -4568,6 +4570,10 @@ function setActiveModule(module) {
   };
 
   moduleBadge.textContent = badgeMap[allowedModule] || "Venezia One";
+  document.body.classList.toggle(
+    "student-portal-active",
+    currentAccessMode === "student" && allowedModule === "mi-venezia"
+  );
 }
 
 function renderAll() {

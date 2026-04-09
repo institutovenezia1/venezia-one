@@ -3379,4 +3379,50 @@ body.public-mode .module-section.active {
   .web-footer-link {
     width: 100%;
   }
+
+  body.student-portal-mode.student-portal-active .sidebar,
+  body.student-portal-mode.student-portal-active .topbar {
+    display: none;
+  }
+
+  body.student-portal-mode.student-portal-active .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  body.student-portal-mode.student-portal-active .main-content {
+    padding: 0.45rem 0.75rem 1rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaSection {
+    padding-top: 0;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin-bottom: 0.75rem;
+    border-radius: 16px;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .section-heading {
+    margin-bottom: 0.45rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .eyebrow {
+    margin-bottom: 0.15rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child h3 {
+    font-size: 1.08rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .form-actions {
+    margin-top: 0;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .secondary-btn {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.76rem;
+  }
 }
