@@ -208,6 +208,7 @@ const teacherClearButton = document.getElementById("teacherClearButton");
 const teacherSubmitButton = document.getElementById("teacherSubmitButton");
 const teacherStaffId = document.getElementById("teacherStaffId");
 const teacherPosition = document.getElementById("teacherPosition");
+const teacherCoverageSpecialty = document.getElementById("teacherCoverageSpecialty");
 const teachersTableBody = document.getElementById("teachersTableBody");
 const teachersEmptyState = document.getElementById("teachersEmptyState");
 const teacherConfigHelper = document.getElementById("teacherConfigHelper");
@@ -1151,6 +1152,10 @@ function normalizeTeacherSpecialty(value) {
   return "";
 }
 
+function normalizeTeacherCoverageSpecialty(value) {
+  return normalizeTeacherSpecialty(value);
+}
+
 function normalizeTeacherShift(value) {
   const normalized = String(value || "")
     .normalize("NFD")
@@ -1183,6 +1188,32 @@ function normalizeTeacherPaymentType(value) {
 
 function normalizeTeacherOperationalStatus(value) {
   return String(value || "").trim().toLowerCase() === "inactivo" ? "Inactivo" : "Activo";
+}
+
+function getTeacherOperationalSpecialty(record) {
+  const coverageSpecialty = normalizeTeacherCoverageSpecialty(record?.coberturaEspecialidad);
+  const primarySpecialty = normalizeTeacherSpecialty(record?.especialidad);
+
+  if (coverageSpecialty && (!primarySpecialty || primarySpecialty === "COORD de maestras")) {
+    return coverageSpecialty;
+  }
+
+  return primarySpecialty;
+}
+
+function getTeacherCoverageDisplay(record) {
+  return normalizeTeacherCoverageSpecialty(record?.coberturaEspecialidad);
+}
+
+function getTeacherSpecialtyDisplay(record) {
+  const primarySpecialty = normalizeTeacherSpecialty(record?.especialidad);
+  const coverageSpecialty = getTeacherCoverageDisplay(record);
+
+  if (!coverageSpecialty) {
+    return primarySpecialty || "-";
+  }
+
+  return primarySpecialty ? `${primarySpecialty} · Cubre ${coverageSpecialty}` : coverageSpecialty;
 }
 
 function normalizeTeacherPosition(value) {
@@ -1306,6 +1337,7 @@ function buildLegacyTeacherProfile(configRecord) {
     sucursal: configRecord.legacySucursal || configRecord.sucursal || "",
     usuario: configRecord.legacyUsuario || configRecord.usuario || "",
     especialidad: normalizeTeacherSpecialty(configRecord.especialidad),
+    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(configRecord.coberturaEspecialidad),
     tipoPago: normalizeTeacherPaymentType(configRecord.tipoPago),
     estadoDocente: normalizeTeacherOperationalStatus(configRecord.estadoDocente),
     configuracionOperativa: configRecord.configuracionOperativa || "",
@@ -1326,6 +1358,7 @@ function buildTeacherProfileFromStaff(staffRecord, configRecord = null) {
     especialidad:
       normalizeTeacherSpecialty(configRecord?.especialidad) ||
       getDefaultTeacherSpecialtyFromPosition(staffRecord.puesto),
+    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(configRecord?.coberturaEspecialidad),
     tipoPago: normalizeTeacherPaymentType(configRecord?.tipoPago || TEACHER_PAYMENT_TYPE),
     estadoDocente: normalizeTeacherOperationalStatus(
       configRecord?.estadoDocente || staffRecord.estado || "Activo"
@@ -1386,6 +1419,11 @@ function normalizeTeacherDataAgainstStaff() {
       staffId: matchedStaff?.id || latestEntry.record.staffId || "",
       linkedUserId: matchedStaff?.linkedUserId || latestEntry.record.linkedUserId || "",
       especialidad: specialty,
+      coberturaEspecialidad: normalizeTeacherCoverageSpecialty(
+        latestEntry.record.coberturaEspecialidad ||
+          entries.find((entry) => normalizeTeacherCoverageSpecialty(entry.record.coberturaEspecialidad))?.record
+            ?.coberturaEspecialidad
+      ),
       tipoPago: normalizeTeacherPaymentType(latestEntry.record.tipoPago || TEACHER_PAYMENT_TYPE),
       estadoDocente: normalizeTeacherOperationalStatus(
         latestEntry.record.estadoDocente || latestEntry.record.status || matchedStaff?.estado || "Activo"
@@ -1567,7 +1605,7 @@ function buildTeacherSelectOptions(records, selectedValue, defaultLabel = "Selec
       records.map(
         (record) =>
           `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
-            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${record.especialidad || "-"}${record.source === "legacy" ? " · Legado" : ""}`
+            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${getTeacherSpecialtyDisplay(record)}${record.source === "legacy" ? " · Legado" : ""}`
           )}</option>`
       )
     )
@@ -1626,6 +1664,7 @@ function getTeacherFormData() {
     especialidad:
       normalizeTeacherSpecialty(formData.get("especialidad")) ||
       getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto),
+    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(formData.get("coberturaEspecialidad")),
     tipoPago: normalizeTeacherPaymentType(formData.get("tipoPago")),
     estadoDocente: normalizeTeacherOperationalStatus(formData.get("estadoDocente")),
     configuracionOperativa: String(formData.get("configuracionOperativa") || "").trim(),
@@ -1656,7 +1695,7 @@ function getTeacherAttendanceFormData() {
     teacherName: selectedTeacher?.nombreCompleto || "",
     fecha: String(formData.get("fecha") || "").trim(),
     sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
-    especialidad: normalizeTeacherSpecialty(selectedTeacher?.especialidad || formData.get("especialidad")),
+    especialidad: getTeacherOperationalSpecialty(selectedTeacher) || normalizeTeacherSpecialty(formData.get("especialidad")),
     turno: normalizeTeacherShift(formData.get("turno")),
     estatus: normalizeTeacherAttendanceStatus(formData.get("estatus")),
     observacion: String(formData.get("observacion") || "").trim(),
@@ -1948,6 +1987,7 @@ function syncTeacherConfigFields() {
     document.getElementById("teacherBranch").value = getAllowedBranch() || "";
     document.getElementById("teacherUsername").value = "";
     document.getElementById("teacherSpecialty").value = "";
+    teacherCoverageSpecialty.value = "";
     document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
     teacherOperationalStatus.value = "Activo";
     document.getElementById("teacherOperationalNotes").value = "";
@@ -1967,6 +2007,7 @@ function syncTeacherConfigFields() {
     normalizeTeacherSpecialty(existingConfig?.especialidad) ||
     getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto) ||
     "";
+  teacherCoverageSpecialty.value = normalizeTeacherCoverageSpecialty(existingConfig?.coberturaEspecialidad) || "";
   document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
   teacherOperationalStatus.value = normalizeTeacherOperationalStatus(
     existingConfig?.estadoDocente || selectedStaff.estado || "Activo"
@@ -1984,7 +2025,7 @@ function syncTeacherAttendanceFields() {
 
   if (selectedTeacher) {
     teacherAttendanceBranch.value = allowedBranch || selectedTeacher.sucursal || teacherAttendanceBranch.value;
-    teacherAttendanceSpecialty.value = selectedTeacher.especialidad || "";
+    teacherAttendanceSpecialty.value = getTeacherOperationalSpecialty(selectedTeacher) || "";
   } else {
     teacherAttendanceSpecialty.value = "";
   }
@@ -1996,6 +2037,7 @@ function resetTeacherForm() {
   teacherForm.reset();
   document.getElementById("teacherId").value = "";
   document.getElementById("teacherLinkedUserId").value = "";
+  teacherCoverageSpecialty.value = "";
   document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
   teacherOperationalStatus.value = "Activo";
   populateTeacherConfigStaffOptions();
@@ -2026,6 +2068,7 @@ function renderTeachersTable() {
           <td>${escapeHtml(record.sucursal || "-")}</td>
           <td>${escapeHtml(record.usuario || "-")}</td>
           <td>${escapeHtml(record.especialidad || "-")}</td>
+          <td>${escapeHtml(getTeacherCoverageDisplay(record) || "-")}</td>
           <td>${escapeHtml(record.tipoPago || TEACHER_PAYMENT_TYPE)}</td>
           <td><span class="status-pill">${escapeHtml(record.isConfigured ? record.estadoDocente : "Pendiente")}</span></td>
           <td>
@@ -2131,6 +2174,7 @@ function editTeacherRecord(id) {
   teacherStaffId.value = record.staffId || record.id;
   syncTeacherConfigFields();
   document.getElementById("teacherSpecialty").value = record.especialidad || "";
+  teacherCoverageSpecialty.value = getTeacherCoverageDisplay(record) || "";
   document.getElementById("teacherPaymentType").value = record.tipoPago || TEACHER_PAYMENT_TYPE;
   teacherOperationalStatus.value = normalizeTeacherOperationalStatus(record.estadoDocente);
   document.getElementById("teacherOperationalNotes").value = record.configuracionOperativa || "";
@@ -5659,8 +5703,25 @@ function getTeacherPortalPayrollEntries(profile, range = getTeacherPortalCurrent
   );
 }
 
+function getTeacherPortalPaymentDates(range = getTeacherPortalCurrentRange()) {
+  if (!range?.from || !range?.to) {
+    return [];
+  }
+
+  const [year, month] = range.to.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const monthLabel = new Date(`${range.to}T12:00:00`).toLocaleDateString("es-MX", {
+    month: "long",
+  });
+
+  return [
+    { label: "Pago quincena 1", value: `15 de ${monthLabel}` },
+    { label: "Pago quincena 2", value: `${lastDay} de ${monthLabel}` },
+  ];
+}
+
 function getTeacherPortalRuleCards(profile) {
-  const specialty = normalizeTeacherSpecialty(profile?.especialidad);
+  const specialty = getTeacherOperationalSpecialty(profile);
   if (specialty === "Barbería") {
     return [
       { label: "Matutino", value: "$500 por fecha válida" },
@@ -5762,12 +5823,16 @@ function renderTeacherPortalDashboard() {
   const totalShifts = payrollEntries.reduce((sum, entry) => sum + getTeacherCoveredTurnUnits(entry.turno), 0);
   const totalPayroll = payrollEntries.reduce((sum, entry) => sum + Number(entry.estimatedPay || 0), 0);
   const statusLabel = profile.estadoDocente || user.status || "Activo";
+  const operationalSpecialty = getTeacherOperationalSpecialty(profile);
+  const coverageSpecialty = getTeacherCoverageDisplay(profile);
+  const paymentDates = getTeacherPortalPaymentDates(period);
 
   teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Portal de Maestras";
-  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.especialidad || "-"} · ${profile.puesto || "-"}`;
+  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.puesto || "-"} · ${getTeacherSpecialtyDisplay(profile)}`;
   renderInfoList(teacherPortalHeroSummary, [
     { label: "Sucursal", value: profile.sucursal || "-" },
     { label: "Especialidad", value: profile.especialidad || "-" },
+    { label: "Cobertura", value: coverageSpecialty || "Sin cobertura adicional" },
     { label: "Puesto", value: profile.puesto || "-" },
     { label: "Periodo", value: period.label },
   ]);
@@ -5782,6 +5847,8 @@ function renderTeacherPortalDashboard() {
     { label: "Nombre completo", value: profile.nombreCompleto || "-" },
     { label: "Sucursal", value: profile.sucursal || "-" },
     { label: "Especialidad docente", value: profile.especialidad || "-" },
+    { label: "Cubre especialidad", value: coverageSpecialty || "Sin cobertura adicional" },
+    { label: "Especialidad operativa", value: operationalSpecialty || "-" },
     { label: "Puesto", value: profile.puesto || "-" },
     { label: "Estatus", value: statusLabel || "-" },
     { label: "Usuario", value: profile.usuario || user.username || "-" },
@@ -5790,6 +5857,7 @@ function renderTeacherPortalDashboard() {
   renderInfoList(teacherPortalPayrollSummary, [
     { label: "Periodo", value: period.label },
     { label: "Turnos válidos", value: String(totalShifts) },
+    { label: "Especialidad pagada", value: operationalSpecialty || "-" },
     { label: "Total estimado", value: formatCurrency(totalPayroll) },
   ]);
 
@@ -5797,6 +5865,7 @@ function renderTeacherPortalDashboard() {
   renderInfoList(teacherPortalPeriodInfo, [
     { label: "Desde", value: period.from || "-" },
     { label: "Hasta", value: period.to || "-" },
+    ...paymentDates,
     { label: "Días válidos", value: String(totalDays) },
     { label: "Monto actual", value: formatCurrency(totalPayroll) },
   ]);
