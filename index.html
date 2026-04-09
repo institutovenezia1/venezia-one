@@ -2066,6 +2066,126 @@
           </section>
         </section>
 
+        <section class="module-section" id="teacherPortalSection">
+          <section class="module-section-inner" id="teacherPortalDashboard" hidden>
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Cuenta</p>
+                <h3>Portal de Maestras</h3>
+              </div>
+
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="teacherPortalLogoutButton">Cerrar sesión</button>
+              </div>
+            </section>
+
+            <section class="panel mi-venezia-hero-panel teacher-portal-hero-panel">
+              <div class="mi-venezia-hero-copy">
+                <p class="eyebrow">Panel principal</p>
+                <h3 id="teacherPortalHeroName">Portal de Maestras</h3>
+                <p id="teacherPortalHeroMeta" class="subtitle">Consulta tus jornadas laborales y tu nómina estimada en un solo lugar.</p>
+              </div>
+
+              <div class="info-list mi-venezia-hero-summary" id="teacherPortalHeroSummary"></div>
+
+              <div class="form-actions">
+                <a class="primary-btn whatsapp-director-btn" id="teacherPortalContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Dudas con Dirección</a>
+              </div>
+            </section>
+
+            <section class="stats-grid mi-venezia-stats-grid teacher-portal-stats-grid" aria-label="Resumen de maestra">
+              <article class="stat-card">
+                <p>Días laborados</p>
+                <strong id="teacherPortalStatDays">0</strong>
+              </article>
+              <article class="stat-card">
+                <p>Turnos cubiertos</p>
+                <strong id="teacherPortalStatShifts">0</strong>
+              </article>
+              <article class="stat-card">
+                <p>Incidencias / permisos</p>
+                <strong id="teacherPortalStatIncidents">0</strong>
+              </article>
+              <article class="stat-card">
+                <p>Nómina estimada</p>
+                <strong id="teacherPortalStatPayroll">$0</strong>
+              </article>
+            </section>
+
+            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid">
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Perfil</p>
+                  <h3>Mi información docente</h3>
+                </div>
+                <div id="teacherPortalProfile" class="info-list"></div>
+              </section>
+
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Nómina</p>
+                  <h3>Mi nómina estimada</h3>
+                </div>
+                <div id="teacherPortalPayrollSummary" class="info-list mi-venezia-payments-summary teacher-portal-payroll-summary"></div>
+                <div class="section-heading mi-venezia-subsection-heading">
+                  <p class="eyebrow">Cálculo</p>
+                  <h3>Cómo se calcula</h3>
+                </div>
+                <div id="teacherPortalPayrollRules" class="info-list mi-venezia-payment-schedule teacher-portal-payroll-rules"></div>
+              </section>
+            </section>
+
+            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid">
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Jornadas</p>
+                  <h3>Mis jornadas</h3>
+                </div>
+                <div class="table-wrapper mi-venezia-simple-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Turno</th>
+                        <th>Estatus</th>
+                        <th>Observación</th>
+                      </tr>
+                    </thead>
+                    <tbody id="teacherPortalJornadasBody"></tbody>
+                  </table>
+                </div>
+                <p id="teacherPortalJornadasEmptyState" class="empty-state">
+                  Aún no hay jornadas laborales registradas para tu perfil.
+                </p>
+              </section>
+
+              <section class="panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Periodo actual</p>
+                  <h3>Turnos válidos considerados</h3>
+                </div>
+                <div id="teacherPortalPeriodInfo" class="info-list"></div>
+                <div class="table-wrapper mi-venezia-simple-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Turno válido</th>
+                        <th>Estatus</th>
+                        <th>Monto estimado</th>
+                      </tr>
+                    </thead>
+                    <tbody id="teacherPortalPayrollBody"></tbody>
+                  </table>
+                </div>
+                <p id="teacherPortalPayrollEmptyState" class="empty-state">
+                  Aún no hay jornadas válidas en el periodo actual.
+                </p>
+              </section>
+            </section>
+          </section>
+        </section>
+
         <section class="module-section" id="webVeneziaSection">
           <div class="web-sales-shell">
             <section class="web-sales-section web-hero-panel">

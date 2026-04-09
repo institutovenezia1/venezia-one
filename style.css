@@ -1769,7 +1769,14 @@ td select {
   --mi-border: #d8d0c5;
 }
 
-#miVeneziaSection .panel {
+#teacherPortalSection {
+  --mi-bg: #f4f0ea;
+  --mi-panel: #fcfaf7;
+  --mi-border: #d8d0c5;
+}
+
+#miVeneziaSection .panel,
+#teacherPortalSection .panel {
   background:
     radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
     linear-gradient(180deg, var(--mi-panel) 0%, #f7f2eb 100%);
@@ -1917,6 +1924,14 @@ td select {
   padding: 0.62rem 0.68rem;
 }
 
+.teacher-portal-payroll-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.teacher-portal-payroll-rules {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 920px) {
   .mi-venezia-content-grid {
     grid-template-columns: 1fr;
@@ -1927,7 +1942,8 @@ td select {
   }
 
   .mi-venezia-payments-summary,
-  .mi-venezia-payment-schedule {
+  .mi-venezia-payment-schedule,
+  .teacher-portal-payroll-rules {
     grid-template-columns: 1fr;
   }
 }
@@ -3542,6 +3558,52 @@ body.public-mode .module-section.active {
   }
 
   body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .secondary-btn {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.76rem;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active .sidebar,
+  body.teacher-portal-mode.teacher-portal-active .topbar {
+    display: none;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active .main-content {
+    padding: 0.45rem 0.75rem 1rem;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalSection {
+    padding-top: 0;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin-bottom: 0.75rem;
+    border-radius: 16px;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child .section-heading {
+    margin-bottom: 0.45rem;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child .eyebrow {
+    margin-bottom: 0.15rem;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child h3 {
+    font-size: 1.08rem;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child .form-actions {
+    margin-top: 0;
+  }
+
+  body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child .secondary-btn {
     padding: 0.45rem 0.7rem;
     font-size: 0.76rem;
   }

@@ -303,6 +303,24 @@ const miVeneziaStatCourse = document.getElementById("miVeneziaStatCourse");
 const miVeneziaStatAttendance = document.getElementById("miVeneziaStatAttendance");
 const miVeneziaStatPayments = document.getElementById("miVeneziaStatPayments");
 const miVeneziaStatStatus = document.getElementById("miVeneziaStatStatus");
+const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
+const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
+const teacherPortalProfile = document.getElementById("teacherPortalProfile");
+const teacherPortalPayrollSummary = document.getElementById("teacherPortalPayrollSummary");
+const teacherPortalPayrollRules = document.getElementById("teacherPortalPayrollRules");
+const teacherPortalJornadasBody = document.getElementById("teacherPortalJornadasBody");
+const teacherPortalJornadasEmptyState = document.getElementById("teacherPortalJornadasEmptyState");
+const teacherPortalPayrollBody = document.getElementById("teacherPortalPayrollBody");
+const teacherPortalPayrollEmptyState = document.getElementById("teacherPortalPayrollEmptyState");
+const teacherPortalHeroName = document.getElementById("teacherPortalHeroName");
+const teacherPortalHeroMeta = document.getElementById("teacherPortalHeroMeta");
+const teacherPortalHeroSummary = document.getElementById("teacherPortalHeroSummary");
+const teacherPortalContactButton = document.getElementById("teacherPortalContactButton");
+const teacherPortalStatDays = document.getElementById("teacherPortalStatDays");
+const teacherPortalStatShifts = document.getElementById("teacherPortalStatShifts");
+const teacherPortalStatIncidents = document.getElementById("teacherPortalStatIncidents");
+const teacherPortalStatPayroll = document.getElementById("teacherPortalStatPayroll");
+const teacherPortalPeriodInfo = document.getElementById("teacherPortalPeriodInfo");
 const webLeadForm = document.getElementById("webLeadForm");
 const webSuccessAlert = document.getElementById("webSuccessAlert");
 const webErrorAlert = document.getElementById("webErrorAlert");
@@ -337,6 +355,7 @@ const moduleSections = {
   "usuarios-accesos": document.getElementById("usersAccessSection"),
   personal: document.getElementById("personalSection"),
   "mi-venezia": document.getElementById("miVeneziaSection"),
+  "portal-maestras": document.getElementById("teacherPortalSection"),
   "web-venezia": document.getElementById("webVeneziaSection"),
 };
 
@@ -2767,6 +2786,10 @@ function getDefaultModuleForCurrentContext() {
     return "mi-venezia";
   }
 
+  if (currentAccessMode === "teacher") {
+    return "portal-maestras";
+  }
+
   if (currentAccessMode !== "internal") {
     return "web-venezia";
   }
@@ -2779,7 +2802,9 @@ function applyRoleToSidebar() {
   navItems.forEach((navItem) => {
     const module = navItem.dataset.module;
     const visible =
-      currentAccessMode === "student"
+      currentAccessMode === "teacher"
+        ? false
+        : currentAccessMode === "student"
         ? module === "mi-venezia"
         : currentAccessMode === "internal"
           ? hasInternalAccess(module)
@@ -2802,12 +2827,14 @@ function applyRoleToSidebar() {
 
 function updateSessionUI() {
   const user = getCurrentInternalUser();
-  const inApp = currentAccessMode === "internal" || currentAccessMode === "student";
+  const inApp = currentAccessMode === "internal" || currentAccessMode === "student" || currentAccessMode === "teacher";
   const publicMode = !inApp;
   const studentPortalMode = currentAccessMode === "student";
+  const teacherPortalMode = currentAccessMode === "teacher";
 
   document.body.classList.toggle("public-mode", publicMode);
   document.body.classList.toggle("student-portal-mode", studentPortalMode);
+  document.body.classList.toggle("teacher-portal-mode", teacherPortalMode);
   loginShell.hidden = inApp || !publicAccessPanelOpen;
   appShell.hidden = false;
   loginShell.style.display = inApp || !publicAccessPanelOpen ? "none" : "grid";
@@ -2821,6 +2848,11 @@ function updateSessionUI() {
   } else if (currentAccessMode === "student") {
     userBadge.hidden = false;
     userBadge.textContent = "Mi Venezia | Alumna";
+    internalLogoutButton.hidden = false;
+    internalLoginError.hidden = true;
+  } else if (currentAccessMode === "teacher" && user) {
+    userBadge.hidden = false;
+    userBadge.textContent = `Portal Maestras | ${user.fullName || "Maestra"}`;
     internalLogoutButton.hidden = false;
     internalLoginError.hidden = true;
   } else {
@@ -2842,7 +2874,7 @@ function restoreInternalAccessFromSavedSession() {
     return false;
   }
 
-  currentAccessMode = "internal";
+  currentAccessMode = user.role === "Maestra" ? "teacher" : "internal";
   publicAccessPanelOpen = false;
   internalLoginError.hidden = true;
   updateSessionUI();
@@ -2902,6 +2934,7 @@ function logoutInternalSession() {
   miVeneziaLoginForm.reset();
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
+  teacherPortalDashboard.hidden = true;
   updateSessionUI();
 }
 
@@ -5480,6 +5513,226 @@ function logoutMiVenezia() {
   dataService.sessions.clearStudent();
 }
 
+function getTeacherProfileByInternalUser(user = getCurrentInternalUser()) {
+  if (!user) {
+    return null;
+  }
+
+  const linkedStaff =
+    staffRecords.find(
+      (record) => isEligibleTeacherStaffPosition(record.puesto) && record.linkedUserId === user.id
+    ) ||
+    staffRecords.find(
+      (record) =>
+        isEligibleTeacherStaffPosition(record.puesto) &&
+        String(getTeacherStaffAccessUsername(record) || "").trim().toLowerCase() === String(user.username || "").trim().toLowerCase()
+    );
+
+  if (linkedStaff) {
+    return getTeacherProfileById(linkedStaff.id);
+  }
+
+  const linkedConfig =
+    teacherRecords.find((record) => record.linkedUserId && record.linkedUserId === user.id) ||
+    teacherRecords.find(
+      (record) =>
+        String(record.legacyUsuario || record.usuario || "").trim().toLowerCase() === String(user.username || "").trim().toLowerCase()
+    );
+
+  return linkedConfig ? getTeacherProfileById(linkedConfig.id) : null;
+}
+
+function getTeacherPortalCurrentRange() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const lastDay = new Date(year, month, 0).getDate();
+
+  return {
+    from: `${year}-${String(month).padStart(2, "0")}-${day <= 15 ? "01" : "16"}`,
+    to: `${year}-${String(month).padStart(2, "0")}-${String(day <= 15 ? 15 : lastDay).padStart(2, "0")}`,
+    label: day <= 15 ? "Quincena actual · 1 al 15" : `Quincena actual · 16 al ${lastDay}`,
+  };
+}
+
+function getTeacherPortalEntries(profile) {
+  if (!profile) {
+    return [];
+  }
+
+  return getConsolidatedTeacherAttendanceEntries()
+    .filter((entry) => entry.teacherId === profile.id)
+    .sort((left, right) => String(right.fecha || "").localeCompare(String(left.fecha || "")));
+}
+
+function getTeacherPortalPayrollEntries(profile, range = getTeacherPortalCurrentRange()) {
+  return getTeacherPortalEntries(profile).filter(
+    (entry) => isTeacherDateWithinRange(entry.fecha, range) && entry.estatus === "Asistió"
+  );
+}
+
+function getTeacherPortalRuleCards(profile) {
+  const specialty = normalizeTeacherSpecialty(profile?.especialidad);
+  if (specialty === "Barbería") {
+    return [
+      { label: "Matutino", value: "$500 por fecha válida" },
+      { label: "Vespertino", value: "$700 por fecha válida" },
+      { label: "Ambos", value: "$700 máximo por fecha" },
+      { label: "Blindaje", value: "Nunca suma doble el mismo día" },
+    ];
+  }
+
+  if (specialty === "COORD de maestras") {
+    return [
+      { label: "Tabulador", value: "Sin monto automático asignado" },
+      { label: "Periodo", value: "Se muestran jornadas reales" },
+      { label: "Blindaje", value: "Consolidado por fecha" },
+      { label: "Monto actual", value: "$0 hasta definir tabulador" },
+    ];
+  }
+
+  return [
+    { label: "Matutino", value: "$200 por turno válido" },
+    { label: "Vespertino", value: "$200 por turno válido" },
+    { label: "Ambos", value: "$400 por fecha válida" },
+    { label: "Blindaje", value: "Consolidado por fecha" },
+  ];
+}
+
+function getTeacherDirectorWhatsappUrl(profile) {
+  const teacherName = String(profile?.nombreCompleto || "la maestra").trim();
+  const branchLabel = profile?.sucursal ? ` de ${profile.sucursal}` : "";
+  const message = encodeURIComponent(
+    `Hola Dirección, soy ${teacherName}${branchLabel} y tengo una duda sobre mi portal de maestras.`
+  );
+  return `https://wa.me/522461379504?text=${message}`;
+}
+
+function renderTeacherPortalDashboard() {
+  const user = getCurrentInternalUser();
+  const profile = getTeacherProfileByInternalUser(user);
+
+  if (!user || currentAccessMode !== "teacher") {
+    teacherPortalDashboard.hidden = true;
+    return;
+  }
+
+  if (!profile) {
+    teacherPortalHeroName.textContent = user.fullName || "Portal de Maestras";
+    teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Maestras.";
+    renderInfoList(teacherPortalHeroSummary, [
+      { label: "Usuario", value: user.username || "-" },
+      { label: "Sucursal", value: user.branch || "-" },
+      { label: "Rol", value: user.role || "-" },
+    ]);
+    renderInfoList(teacherPortalProfile, [
+      { label: "Estado", value: "Pendiente de enlace" },
+      { label: "Acción", value: "Solicita a Dirección que vincule tu perfil docente." },
+    ]);
+    renderInfoList(teacherPortalPayrollSummary, [
+      { label: "Periodo", value: getTeacherPortalCurrentRange().label },
+      { label: "Nómina", value: "$0" },
+      { label: "Estatus", value: "Sin configuración" },
+    ]);
+    renderInfoList(teacherPortalPayrollRules, [
+      { label: "Portal", value: "Pendiente de enlace" },
+    ]);
+    renderInfoList(teacherPortalPeriodInfo, [
+      { label: "Periodo actual", value: getTeacherPortalCurrentRange().label },
+    ]);
+    teacherPortalJornadasBody.innerHTML = "";
+    teacherPortalPayrollBody.innerHTML = "";
+    teacherPortalJornadasEmptyState.hidden = false;
+    teacherPortalPayrollEmptyState.hidden = false;
+    teacherPortalStatDays.textContent = "0";
+    teacherPortalStatShifts.textContent = "0";
+    teacherPortalStatIncidents.textContent = "0";
+    teacherPortalStatPayroll.textContent = formatCurrency(0);
+    teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl({ nombreCompleto: user.fullName, sucursal: user.branch });
+    teacherPortalDashboard.hidden = false;
+    return;
+  }
+
+  const allEntries = getTeacherPortalEntries(profile);
+  const period = getTeacherPortalCurrentRange();
+  const payrollEntries = getTeacherPortalPayrollEntries(profile, period);
+  const periodEntries = allEntries.filter((entry) => isTeacherDateWithinRange(entry.fecha, period));
+  const incidents = periodEntries.filter((entry) => entry.estatus === "Falta" || entry.estatus === "Permiso");
+  const totalDays = payrollEntries.length;
+  const totalShifts = payrollEntries.reduce((sum, entry) => sum + getTeacherCoveredTurnUnits(entry.turno), 0);
+  const totalPayroll = payrollEntries.reduce((sum, entry) => sum + Number(entry.estimatedPay || 0), 0);
+  const statusLabel = profile.estadoDocente || user.status || "Activo";
+
+  teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Portal de Maestras";
+  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.especialidad || "-"} · ${profile.puesto || "-"}`;
+  renderInfoList(teacherPortalHeroSummary, [
+    { label: "Sucursal", value: profile.sucursal || "-" },
+    { label: "Especialidad", value: profile.especialidad || "-" },
+    { label: "Puesto", value: profile.puesto || "-" },
+    { label: "Periodo", value: period.label },
+  ]);
+
+  teacherPortalStatDays.textContent = String(totalDays);
+  teacherPortalStatShifts.textContent = String(totalShifts);
+  teacherPortalStatIncidents.textContent = String(incidents.length);
+  teacherPortalStatPayroll.textContent = formatCurrency(totalPayroll);
+  teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl(profile);
+
+  renderInfoList(teacherPortalProfile, [
+    { label: "Nombre completo", value: profile.nombreCompleto || "-" },
+    { label: "Sucursal", value: profile.sucursal || "-" },
+    { label: "Especialidad docente", value: profile.especialidad || "-" },
+    { label: "Puesto", value: profile.puesto || "-" },
+    { label: "Estatus", value: statusLabel || "-" },
+    { label: "Usuario", value: profile.usuario || user.username || "-" },
+  ]);
+
+  renderInfoList(teacherPortalPayrollSummary, [
+    { label: "Periodo", value: period.label },
+    { label: "Turnos válidos", value: String(totalShifts) },
+    { label: "Total estimado", value: formatCurrency(totalPayroll) },
+  ]);
+
+  renderInfoList(teacherPortalPayrollRules, getTeacherPortalRuleCards(profile));
+  renderInfoList(teacherPortalPeriodInfo, [
+    { label: "Desde", value: period.from || "-" },
+    { label: "Hasta", value: period.to || "-" },
+    { label: "Días válidos", value: String(totalDays) },
+    { label: "Monto actual", value: formatCurrency(totalPayroll) },
+  ]);
+
+  teacherPortalJornadasBody.innerHTML = allEntries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(entry.fecha || "-")}</td>
+          <td>${escapeHtml(entry.turno || "-")}</td>
+          <td>${escapeHtml(entry.estatus || "-")}</td>
+          <td>${escapeHtml(entry.observacion || "-")}</td>
+        </tr>
+      `
+    )
+    .join("");
+  teacherPortalJornadasEmptyState.hidden = allEntries.length > 0;
+
+  teacherPortalPayrollBody.innerHTML = payrollEntries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(entry.fecha || "-")}</td>
+          <td>${escapeHtml(entry.turno || "-")}</td>
+          <td>${escapeHtml(entry.estatus || "-")}</td>
+          <td>${formatCurrency(entry.estimatedPay || 0)}</td>
+        </tr>
+      `
+    )
+    .join("");
+  teacherPortalPayrollEmptyState.hidden = payrollEntries.length > 0;
+
+  teacherPortalDashboard.hidden = false;
+}
+
 function editFinanceRecord(id) {
   const record = financeRecords.find((item) => item.id === id);
   if (!record) {
@@ -5648,6 +5901,8 @@ function setActiveModule(module) {
   const allowedModule =
     currentAccessMode === "student"
       ? "mi-venezia"
+      : currentAccessMode === "teacher"
+        ? "portal-maestras"
       : currentAccessMode === "internal"
         ? hasInternalAccess(module)
           ? module
@@ -5676,6 +5931,7 @@ function setActiveModule(module) {
     "usuarios-accesos": "Usuarios y accesos",
     personal: "Personal",
     "mi-venezia": "Mi Venezia",
+    "portal-maestras": "Portal Maestras",
     "web-venezia": "Web Venezia",
   };
 
@@ -5683,6 +5939,10 @@ function setActiveModule(module) {
   document.body.classList.toggle(
     "student-portal-active",
     currentAccessMode === "student" && allowedModule === "mi-venezia"
+  );
+  document.body.classList.toggle(
+    "teacher-portal-active",
+    currentAccessMode === "teacher" && allowedModule === "portal-maestras"
   );
 }
 
@@ -5712,6 +5972,7 @@ function renderAll() {
     renderStudentFile(activeStudentFileId);
   }
   renderMiVeneziaDashboard();
+  renderTeacherPortalDashboard();
   renderWebCourses();
   renderWebWhatsappLinks();
   renderWebScholarshipSection();
@@ -5829,7 +6090,7 @@ internalLoginForm.addEventListener("submit", async (event) => {
   });
 
   currentInternalUserId = user.id;
-  currentAccessMode = "internal";
+  currentAccessMode = user.role === "Maestra" ? "teacher" : "internal";
   publicAccessPanelOpen = false;
   dataService.sessions.setInternal(user.id);
   updateSessionUI();
@@ -6103,6 +6364,7 @@ clearAltaButton.addEventListener("click", resetAltaForm);
 financeClearButton.addEventListener("click", resetFinanceForm);
 balanceExpenseClearButton.addEventListener("click", resetBalanceExpenseForm);
 miVeneziaLogoutButton.addEventListener("click", logoutMiVenezia);
+teacherPortalLogoutButton.addEventListener("click", logoutInternalSession);
 internalLogoutButton.addEventListener("click", logoutInternalSession);
 internalLoginForm.addEventListener("input", () => {
   internalLoginError.hidden = true;
@@ -6460,6 +6722,10 @@ navItems.forEach((item) => {
       return;
     }
 
+    if (currentAccessMode === "teacher" && module !== "portal-maestras") {
+      return;
+    }
+
     if (currentAccessMode === "internal" && !hasInternalAccess(module)) {
       alert("No tienes permiso para acceder a este módulo.");
       return;
@@ -6477,6 +6743,7 @@ navItems.forEach((item) => {
       module === "usuarios-accesos" ||
       module === "personal" ||
       module === "mi-venezia" ||
+      module === "portal-maestras" ||
       module === "web-venezia"
     ) {
       setActiveModule(module);
