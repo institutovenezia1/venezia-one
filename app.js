@@ -245,6 +245,7 @@ const miVeneziaResumenAsistencias = document.getElementById("miVeneziaResumenAsi
 const miVeneziaAsistenciasBody = document.getElementById("miVeneziaAsistenciasBody");
 const miVeneziaAsistenciasEmptyState = document.getElementById("miVeneziaAsistenciasEmptyState");
 const miVeneziaAvance = document.getElementById("miVeneziaAvance");
+const miVeneziaPaymentSchedule = document.getElementById("miVeneziaPaymentSchedule");
 const miVeneziaHeroName = document.getElementById("miVeneziaHeroName");
 const miVeneziaHeroMeta = document.getElementById("miVeneziaHeroMeta");
 const miVeneziaHeroSummary = document.getElementById("miVeneziaHeroSummary");
@@ -3307,6 +3308,33 @@ function parsePaymentAmount(value) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function getShortBranchLabel(branch) {
+  const normalizedBranch = String(branch || "").trim().toLowerCase();
+  if (normalizedBranch === "tlaxcala") return "Tlx";
+  if (normalizedBranch === "puebla") return "Pue";
+  return branch || "-";
+}
+
+function getStudentPaymentSchedule(course) {
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  const baseSchedule = [
+    { label: "Men1", value: "Clase 1" },
+    { label: "Men2", value: "Clase 4" },
+    { label: "Men3", value: "Clase 8" },
+    { label: "Men4", value: "Clase 12" },
+  ];
+
+  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
+    return baseSchedule.concat({ label: "Men5", value: "Clase 16" });
+  }
+
+  if (["uñas", "unas", "pestañas", "pestanas", "maquillaje"].includes(normalizedCourse)) {
+    return baseSchedule;
+  }
+
+  return [];
+}
+
 function getFilteredStudentsForPayments() {
   const normalizedSearch = activePaymentsSearch.trim().toLowerCase();
 
@@ -3341,7 +3369,7 @@ function renderPaymentsTable() {
               <small>${escapeHtml(student.studentCode || student.telefono || "-")}</small>
             </div>
           </td>
-          <td>${escapeHtml(student.sucursal)}</td>
+          <td>${escapeHtml(getShortBranchLabel(student.sucursal))}</td>
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
           <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
@@ -4252,6 +4280,13 @@ function renderMiVeneziaDashboard() {
     { label: "Método más reciente", value: payment.metodoPago || "-" },
     { label: "Estatus", value: hasPendingPayments ? "Con pendientes" : paymentEntries.length ? "Al corriente" : "Sin registros" },
   ]);
+
+  renderInfoList(
+    miVeneziaPaymentSchedule,
+    getStudentPaymentSchedule(student.curso).length > 0
+      ? getStudentPaymentSchedule(student.curso)
+      : [{ label: "Calendario", value: "Sin calendario definido para este curso." }]
+  );
 
   renderInfoList(miVeneziaResumenAsistencias, [
     { label: "Total de sesiones", value: String(totalClasesPlaneadas) },
