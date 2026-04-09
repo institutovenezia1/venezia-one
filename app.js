@@ -77,6 +77,15 @@ const BASE_ROLE_PERMISSIONS = {
 };
 
 const BRANCH_LIMITED_ROLES = new Set(["Director de sucursal", "Maestra", "Asesora"]);
+const TEACHER_ACCESS_ROLE_LABELS = new Set([
+  "maestra",
+  "miss de unas",
+  "miss de pestanas",
+  "miss de maquillaje",
+  "miss de barberia",
+  "coord de maestras",
+  "coordinadora de maestras",
+]);
 const ALL_MODULE_PERMISSIONS = [
   "dashboard",
   "crm-prospectos",
@@ -828,6 +837,97 @@ async function saveInternalUsers() {
     }
   });
   await dataService.entities.internalUsers.setAll(internalUsers);
+}
+
+function normalizeInternalLookupValue(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function isTeacherRoleLabel(role) {
+  return TEACHER_ACCESS_ROLE_LABELS.has(normalizeInternalLookupValue(role));
+}
+
+function getLinkedTeacherStaffRecordForUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  const normalizedUsername = normalizeInternalLookupValue(user.username);
+  const normalizedFullName = normalizeInternalLookupValue(user.fullName);
+  const normalizedBranch = normalizeInternalLookupValue(user.branch);
+
+  return (
+    staffRecords.find(
+      (record) => isEligibleTeacherStaffPosition(record.puesto) && record.linkedUserId === user.id
+    ) ||
+    staffRecords.find(
+      (record) =>
+        isEligibleTeacherStaffPosition(record.puesto) &&
+        normalizedUsername &&
+        normalizeInternalLookupValue(getTeacherStaffAccessUsername(record)) === normalizedUsername
+    ) ||
+    staffRecords.find(
+      (record) =>
+        isEligibleTeacherStaffPosition(record.puesto) &&
+        normalizedFullName &&
+        normalizeInternalLookupValue(record.nombre) === normalizedFullName &&
+        (!normalizedBranch || normalizeInternalLookupValue(record.sucursal) === normalizedBranch)
+    ) ||
+    null
+  );
+}
+
+function getLinkedTeacherConfigForUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  const normalizedUsername = normalizeInternalLookupValue(user.username);
+  const normalizedFullName = normalizeInternalLookupValue(user.fullName);
+  const normalizedBranch = normalizeInternalLookupValue(user.branch);
+
+  return (
+    teacherRecords.find((record) => record.linkedUserId && record.linkedUserId === user.id) ||
+    teacherRecords.find(
+      (record) =>
+        normalizedUsername &&
+        normalizeInternalLookupValue(record.legacyUsuario || record.usuario) === normalizedUsername
+    ) ||
+    teacherRecords.find(
+      (record) =>
+        normalizedFullName &&
+        normalizeInternalLookupValue(
+          record.nombreCompleto || record.legacyNombreCompleto || record.nombre || record.teacherName
+        ) === normalizedFullName &&
+        (!normalizedBranch || normalizeInternalLookupValue(record.sucursal) === normalizedBranch)
+    ) ||
+    null
+  );
+}
+
+function isTeacherInternalUser(user) {
+  return Boolean(
+    user &&
+      (isTeacherRoleLabel(user.role) ||
+        getLinkedTeacherStaffRecordForUser(user) ||
+        getLinkedTeacherConfigForUser(user))
+  );
+}
+
+function getBasePermissionsForRole(role) {
+  if (role === "Director General") {
+    return [...ALL_MODULE_PERMISSIONS];
+  }
+
+  if (isTeacherRoleLabel(role)) {
+    return [...(BASE_ROLE_PERMISSIONS.Maestra || [])];
+  }
+
+  return [...(BASE_ROLE_PERMISSIONS[role] || [])];
 }
 
 function getStaffRoleFromPosition(position) {
@@ -2424,10 +2524,7 @@ async function normalizeInternalUsers() {
       normalized.permissions = [...staffFallbackPermissions];
       changed = true;
     } else if (!Array.isArray(normalized.permissions) || normalized.permissions.length === 0) {
-      normalized.permissions =
-        normalized.role === "Director General"
-          ? [...ALL_MODULE_PERMISSIONS]
-          : [...(BASE_ROLE_PERMISSIONS[normalized.role] || [])];
+      normalized.permissions = getBasePermissionsForRole(normalized.role);
       changed = true;
     }
 
@@ -2441,10 +2538,7 @@ async function normalizeInternalUsers() {
       changed = true;
     }
 
-    if (
-      ["Director General", "Director de sucursal", "Maestra"].includes(normalized.role) &&
-      !normalized.permissions.includes("maestras")
-    ) {
+    if ((["Director General", "Director de sucursal"].includes(normalized.role) || isTeacherInternalUser(normalized)) && !normalized.permissions.includes("maestras")) {
       normalized.permissions = [...new Set(normalized.permissions.concat("maestras"))];
       changed = true;
     }
@@ -2765,7 +2859,7 @@ function hasInternalAccess(module) {
 
 function isRoleBranchLimited() {
   const user = getCurrentInternalUser();
-  return Boolean(user && BRANCH_LIMITED_ROLES.has(user.role));
+  return Boolean(user && (BRANCH_LIMITED_ROLES.has(user.role) || isTeacherInternalUser(user)));
 }
 
 function getAllowedBranch() {
@@ -2874,7 +2968,13 @@ function restoreInternalAccessFromSavedSession() {
     return false;
   }
 
-  currentAccessMode = user.role === "Maestra" ? "teacher" : "internal";
+  const teacherMode = isTeacherInternalUser(user);
+  console.info("[Portal Maestras] Restaurando sesión", {
+    username: user.username,
+    role: user.role,
+    teacherMode,
+  });
+  currentAccessMode = teacherMode ? "teacher" : "internal";
   publicAccessPanelOpen = false;
   internalLoginError.hidden = true;
   updateSessionUI();
@@ -5518,26 +5618,13 @@ function getTeacherProfileByInternalUser(user = getCurrentInternalUser()) {
     return null;
   }
 
-  const linkedStaff =
-    staffRecords.find(
-      (record) => isEligibleTeacherStaffPosition(record.puesto) && record.linkedUserId === user.id
-    ) ||
-    staffRecords.find(
-      (record) =>
-        isEligibleTeacherStaffPosition(record.puesto) &&
-        String(getTeacherStaffAccessUsername(record) || "").trim().toLowerCase() === String(user.username || "").trim().toLowerCase()
-    );
+  const linkedStaff = getLinkedTeacherStaffRecordForUser(user);
 
   if (linkedStaff) {
     return getTeacherProfileById(linkedStaff.id);
   }
 
-  const linkedConfig =
-    teacherRecords.find((record) => record.linkedUserId && record.linkedUserId === user.id) ||
-    teacherRecords.find(
-      (record) =>
-        String(record.legacyUsuario || record.usuario || "").trim().toLowerCase() === String(user.username || "").trim().toLowerCase()
-    );
+  const linkedConfig = getLinkedTeacherConfigForUser(user);
 
   return linkedConfig ? getTeacherProfileById(linkedConfig.id) : null;
 }
@@ -5611,7 +5698,19 @@ function getTeacherDirectorWhatsappUrl(profile) {
 
 function renderTeacherPortalDashboard() {
   const user = getCurrentInternalUser();
+  const linkedStaff = getLinkedTeacherStaffRecordForUser(user);
+  const linkedConfig = getLinkedTeacherConfigForUser(user);
   const profile = getTeacherProfileByInternalUser(user);
+
+  console.info("[Portal Maestras] Render", {
+    username: user?.username || "",
+    role: user?.role || "",
+    currentAccessMode,
+    teacherMode: isTeacherInternalUser(user),
+    linkedStaffId: linkedStaff?.id || "",
+    linkedConfigId: linkedConfig?.id || "",
+    profileFound: Boolean(profile),
+  });
 
   if (!user || currentAccessMode !== "teacher") {
     teacherPortalDashboard.hidden = true;
@@ -5944,6 +6043,15 @@ function setActiveModule(module) {
     "teacher-portal-active",
     currentAccessMode === "teacher" && allowedModule === "portal-maestras"
   );
+
+  if (currentAccessMode === "teacher" || allowedModule === "portal-maestras") {
+    console.info("[Portal Maestras] Activando sección", {
+      requestedModule: module,
+      allowedModule,
+      currentAccessMode,
+      sectionActive: moduleSections["portal-maestras"]?.classList.contains("active") || false,
+    });
+  }
 }
 
 function renderAll() {
@@ -6089,8 +6197,17 @@ internalLoginForm.addEventListener("submit", async (event) => {
     permissionsBeforeSession: user.permissions || [],
   });
 
+  const teacherMode = isTeacherInternalUser(user);
+  console.info("[Portal Maestras] Login encontrado", {
+    username: user.username,
+    role: user.role,
+    teacherMode,
+    linkedStaffId: getLinkedTeacherStaffRecordForUser(user)?.id || "",
+    linkedConfigId: getLinkedTeacherConfigForUser(user)?.id || "",
+  });
+
   currentInternalUserId = user.id;
-  currentAccessMode = user.role === "Maestra" ? "teacher" : "internal";
+  currentAccessMode = teacherMode ? "teacher" : "internal";
   publicAccessPanelOpen = false;
   dataService.sessions.setInternal(user.id);
   updateSessionUI();
@@ -6100,7 +6217,14 @@ internalLoginForm.addEventListener("submit", async (event) => {
     username: user.username,
     permissionsAfterSession: getCurrentInternalUser()?.permissions || [],
   });
-  setActiveModule(getDefaultModuleForCurrentContext());
+  const targetModule = getDefaultModuleForCurrentContext();
+  console.info("[Portal Maestras] Redirección post-login", {
+    username: user.username,
+    role: user.role,
+    teacherMode,
+    targetModule,
+  });
+  setActiveModule(targetModule);
   internalLoginForm.reset();
 });
 
