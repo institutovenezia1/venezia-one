@@ -38,13 +38,13 @@ const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
-  { key: "certificadoP1", label: "Certificado P1" },
-  { key: "certificadoP2", label: "Certificado P2" },
-  { key: "mensualidad1", label: "1ra mensualidad" },
-  { key: "mensualidad2", label: "2da mensualidad" },
-  { key: "mensualidad3", label: "3ra mensualidad" },
-  { key: "mensualidad4", label: "4ta mensualidad" },
-  { key: "mensualidad5", label: "5ta mensualidad" },
+  { key: "certificadoP1", label: "Pago C1" },
+  { key: "certificadoP2", label: "Pago C2" },
+  { key: "mensualidad1", label: "Mensualidad 1" },
+  { key: "mensualidad2", label: "Mensualidad 2" },
+  { key: "mensualidad3", label: "Mensualidad 3" },
+  { key: "mensualidad4", label: "Mensualidad 4" },
+  { key: "mensualidad5", label: "Mensualidad 5" },
 ];
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
@@ -218,6 +218,10 @@ const balanceExpenseSubmitButton = document.getElementById("balanceExpenseSubmit
 const balanceExpenseClearButton = document.getElementById("balanceExpenseClearButton");
 const balanceExpenseTableBody = document.getElementById("balanceExpenseTableBody");
 const balanceExpenseEmptyState = document.getElementById("balanceExpenseEmptyState");
+const balanceExpenseDateField = document.getElementById("balanceExpenseDate");
+const balanceExpenseBranchField = document.getElementById("balanceExpenseBranch");
+const balanceExpenseTotalField = document.getElementById("balanceExpenseTotalField");
+const balanceExpenseResponsibleField = document.getElementById("balanceExpenseResponsible");
 
 const financeCategoria = document.getElementById("financeCategoria");
 const financeTipo = document.getElementById("financeTipo");
@@ -1754,7 +1758,7 @@ function applyBranchRestrictionsToUI() {
   if (branchLocked) {
     document.getElementById("altaSucursal").value = allowedBranch;
     document.getElementById("financeSucursal").value = allowedBranch;
-    document.getElementById("balanceExpenseBranch").value = allowedBranch;
+    balanceExpenseBranchField.value = allowedBranch;
     attendanceSucursalFilter.value = allowedBranch;
     balanceBranchFilter.value = allowedBranch;
     financeBranchFilter.value = allowedBranch;
@@ -1764,14 +1768,15 @@ function applyBranchRestrictionsToUI() {
   document.getElementById("altaSucursal").disabled = branchLocked;
   document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
   document.getElementById("financeSucursal").disabled = branchLocked;
-  document.getElementById("balanceExpenseBranch").value = branchLocked ? allowedBranch : document.getElementById("balanceExpenseBranch").value;
-  document.getElementById("balanceExpenseBranch").disabled = branchLocked;
+  balanceExpenseBranchField.value = branchLocked ? allowedBranch : balanceExpenseBranchField.value;
+  balanceExpenseBranchField.disabled = branchLocked;
   document.getElementById("staffSucursal").value = branchLocked ? allowedBranch : document.getElementById("staffSucursal").value;
   document.getElementById("staffSucursal").disabled = branchLocked;
   attendanceSucursalFilter.disabled = branchLocked;
   balanceBranchFilter.disabled = branchLocked;
   financeBranchFilter.disabled = branchLocked;
   dashboardBranchFilter.disabled = branchLocked || !hasInternalAccess("dashboard");
+  syncBalanceExpenseResponsible();
 }
 
 function logoutInternalSession() {
@@ -3469,6 +3474,51 @@ function getBalanceIncomeConcept(record) {
   return "Pago registrado";
 }
 
+function getBalanceResponsibleSuggestion(branch) {
+  const normalizedBranch = String(branch || "").trim().toLowerCase();
+  if (!normalizedBranch) {
+    return "";
+  }
+
+  const matchingStaff = staffRecords.filter((record) => {
+    const recordBranch = String(record.sucursal || "").trim().toLowerCase();
+    const position = String(record.puesto || "").trim().toLowerCase();
+    const status = String(record.estado || "").trim().toLowerCase();
+
+    return (
+      recordBranch === normalizedBranch &&
+      status !== "inactivo" &&
+      (position === "director de sucursal" ||
+        position === "director administrativo de sucursal" ||
+        position === "gerente de sucursal")
+    );
+  });
+
+  const prioritizedRecord =
+    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "director de sucursal") ||
+    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "director administrativo de sucursal") ||
+    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "gerente de sucursal");
+
+  return prioritizedRecord?.nombre || "";
+}
+
+function syncBalanceExpenseResponsible({ force = false } = {}) {
+  if (!balanceExpenseResponsibleField || !balanceExpenseBranchField) {
+    return;
+  }
+
+  const suggestedResponsible = getBalanceResponsibleSuggestion(balanceExpenseBranchField.value);
+  const previousSuggested = balanceExpenseResponsibleField.dataset.autoFilledValue || "";
+  const currentValue = balanceExpenseResponsibleField.value.trim();
+  const shouldReplace = force || !currentValue || currentValue === previousSuggested;
+
+  if (shouldReplace) {
+    balanceExpenseResponsibleField.value = suggestedResponsible;
+  }
+
+  balanceExpenseResponsibleField.dataset.autoFilledValue = suggestedResponsible;
+}
+
 function getBalanceIncomeRows() {
   const studentsById = new Map(students.map((student) => [student.id, student]));
 
@@ -3527,19 +3577,20 @@ function syncBalanceExpenseTotal() {
   const quantity = Number(document.getElementById("balanceExpenseQuantity").value || 0);
   const unitCost = Number(document.getElementById("balanceExpenseUnitCost").value || 0);
   const total = quantity > 0 && unitCost > 0 ? quantity * unitCost : 0;
-  document.getElementById("balanceExpenseTotalField").value = total ? String(total.toFixed(2)) : "";
+  balanceExpenseTotalField.value = total ? String(total.toFixed(2)) : "";
 }
 
 function resetBalanceExpenseForm() {
   balanceExpenseForm.reset();
   document.getElementById("balanceExpenseId").value = "";
-  document.getElementById("balanceExpenseDate").value = formatDateForInput(new Date());
-  document.getElementById("balanceExpenseTotalField").value = "";
+  balanceExpenseDateField.value = formatDateForInput(new Date());
+  balanceExpenseTotalField.value = "";
   if (getAllowedBranch()) {
-    document.getElementById("balanceExpenseBranch").value = getAllowedBranch();
+    balanceExpenseBranchField.value = getAllowedBranch();
   }
   balanceExpenseSubmitButton.textContent = "Guardar egreso";
   syncBalanceExpenseTotal();
+  syncBalanceExpenseResponsible({ force: true });
 }
 
 function getBalanceExpenseFormData() {
@@ -3588,18 +3639,9 @@ function renderBalanceIncomeTable() {
       (record) => `
         <tr>
           <td>${escapeHtml(record.fecha || "-")}</td>
-          <td>${escapeHtml(record.alumna)}</td>
           <td>${escapeHtml(record.concepto)}</td>
           <td>${formatCurrency(record.monto)}</td>
-          <td>${escapeHtml(record.sucursal || "-")}</td>
           <td>${escapeHtml(record.metodoPago || "-")}</td>
-          <td>
-            <div class="actions-cell">
-              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${record.studentId}">
-                Ver expediente
-              </button>
-            </div>
-          </td>
         </tr>
       `
     )
@@ -3643,13 +3685,13 @@ function updateBalanceSummary() {
   const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
   const cashTotal = incomeTotal - expenseTotal;
 
-  [balanceIncomeTotal, balanceSummaryIncome].forEach((element) => {
+  [balanceIncomeTotal, balanceSummaryIncome].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(incomeTotal);
   });
-  [balanceExpenseTotal, balanceSummaryExpense].forEach((element) => {
+  [balanceExpenseTotal, balanceSummaryExpense].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(expenseTotal);
   });
-  [balanceCashTotal, balanceSummaryCash].forEach((element) => {
+  [balanceCashTotal, balanceSummaryCash].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(cashTotal);
   });
 }
@@ -3667,14 +3709,15 @@ function editBalanceExpense(id) {
   }
 
   document.getElementById("balanceExpenseId").value = record.id;
-  document.getElementById("balanceExpenseDate").value = record.fecha || "";
-  document.getElementById("balanceExpenseBranch").value = record.sucursal || "";
+  balanceExpenseDateField.value = record.fecha || "";
+  balanceExpenseBranchField.value = record.sucursal || "";
   document.getElementById("balanceExpenseName").value = record.nombreGasto || "";
   document.getElementById("balanceExpenseQuantity").value = String(record.cantidad || "");
   document.getElementById("balanceExpenseUnitCost").value = String(record.costoUnitario || "");
-  document.getElementById("balanceExpenseResponsible").value = record.responsableGasto || "";
+  balanceExpenseResponsibleField.value = record.responsableGasto || "";
   document.getElementById("balanceExpenseNote").value = record.nota || "";
-  document.getElementById("balanceExpenseTotalField").value = record.total ? String(Number(record.total).toFixed(2)) : "";
+  balanceExpenseTotalField.value = record.total ? String(Number(record.total).toFixed(2)) : "";
+  balanceExpenseResponsibleField.dataset.autoFilledValue = getBalanceResponsibleSuggestion(record.sucursal || "");
   balanceExpenseSubmitButton.textContent = "Actualizar egreso";
   setActiveModule("balance");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4995,6 +5038,9 @@ paymentsSearchInput.addEventListener("input", (event) => {
 
 balanceBranchFilter.addEventListener("change", renderBalanceModule);
 balanceDateFilter.addEventListener("change", renderBalanceModule);
+balanceExpenseBranchField.addEventListener("change", () => {
+  syncBalanceExpenseResponsible();
+});
 
 financeBranchFilter.addEventListener("change", () => {
   renderFinanceTable();

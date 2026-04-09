@@ -1105,34 +1105,6 @@
             </article>
           </section>
 
-          <section class="panel table-panel balance-income-panel">
-            <div class="section-heading">
-              <p class="eyebrow">Ingresos automáticos</p>
-              <h3>Ingresos provenientes de Pagos</h3>
-            </div>
-
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Alumna</th>
-                    <th>Concepto</th>
-                    <th>Monto</th>
-                    <th>Sucursal</th>
-                    <th>Método de pago</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="balanceIncomeTableBody"></tbody>
-              </table>
-            </div>
-
-            <p id="balanceIncomeEmptyState" class="empty-state">
-              No hay ingresos de Pagos para los filtros seleccionados.
-            </p>
-          </section>
-
           <section class="panel balance-expense-form-panel">
             <div class="section-heading">
               <p class="eyebrow">Registro</p>
@@ -1193,6 +1165,31 @@
             </form>
           </section>
 
+          <section class="panel table-panel balance-income-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Ingresos automáticos</p>
+              <h3>Ingresos provenientes de Pagos</h3>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th>Monto</th>
+                    <th>Método de pago</th>
+                  </tr>
+                </thead>
+                <tbody id="balanceIncomeTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="balanceIncomeEmptyState" class="empty-state">
+              No hay ingresos de Pagos para los filtros seleccionados.
+            </p>
+          </section>
+
           <section class="panel table-panel balance-expense-list-panel">
             <div class="section-heading">
               <p class="eyebrow">Consulta</p>
@@ -1221,21 +1218,6 @@
             <p id="balanceExpenseEmptyState" class="empty-state">
               No hay egresos registrados para los filtros seleccionados.
             </p>
-          </section>
-
-          <section class="stats-grid balance-stats-grid balance-summary-grid" aria-label="Resumen final de balance">
-            <article class="stat-card">
-              <p>Total ingresos</p>
-              <strong id="balanceSummaryIncome">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total egresos</p>
-              <strong id="balanceSummaryExpense">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total en caja</p>
-              <strong id="balanceSummaryCash">$0</strong>
-            </article>
           </section>
         </section>
 
