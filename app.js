@@ -2,6 +2,8 @@ const PROSPECTS_STORAGE_KEY = "venezia-one-v2-prospectos";
 const STUDENTS_STORAGE_KEY = "venezia-one-v2-altas";
 const ATTENDANCE_STORAGE_KEY = "venezia-one-v2-asistencias";
 const PAYMENTS_STORAGE_KEY = "venezia-one-v2-pagos";
+const TEACHERS_STORAGE_KEY = "venezia-one-v2-maestras";
+const TEACHER_ATTENDANCE_STORAGE_KEY = "venezia-one-v2-maestras-asistencias";
 const FINANCE_STORAGE_KEY = "venezia-one-v2-finanzas";
 const STUDENT_ACCESS_STORAGE_KEY = "venezia-one-v2-student-access";
 const INTERNAL_USERS_STORAGE_KEY = "venezia-one-v2-internal-users";
@@ -35,6 +37,10 @@ const EXPENSE_CATEGORIES = [
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
+const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería"];
+const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
+const TEACHER_ATTENDANCE_STATUS_OPTIONS = ["Asistió", "Falta", "Permiso"];
+const TEACHER_PAYMENT_TYPE = "Por turnos trabajados";
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
@@ -53,11 +59,11 @@ const ATTENDANCE_STATUS_LABELS = {
 };
 
 const BASE_ROLE_PERMISSIONS = {
-  "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "pagos", "balance", "finanzas", "web-venezia", "mi-venezia"],
+  "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "maestras", "pagos", "balance", "finanzas", "web-venezia", "mi-venezia"],
   Gerente: ["crm-prospectos", "altas"],
-  "Director de sucursal": ["altas", "asistencias", "pagos", "balance", "finanzas"],
+  "Director de sucursal": ["altas", "asistencias", "maestras", "pagos", "balance", "finanzas"],
   Asesora: ["crm-prospectos"],
-  Maestra: ["asistencias"],
+  Maestra: ["asistencias", "maestras"],
   Alumna: ["mi-venezia"],
 };
 
@@ -67,6 +73,7 @@ const ALL_MODULE_PERMISSIONS = [
   "crm-prospectos",
   "altas",
   "asistencias",
+  "maestras",
   "pagos",
   "balance",
   "finanzas",
@@ -178,6 +185,35 @@ const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle")
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
 const attendanceHistoryEmptyState = document.getElementById("attendanceHistoryEmptyState");
 const attendanceGroupCount = document.getElementById("attendanceGroupCount");
+const teacherForm = document.getElementById("teacherForm");
+const teacherClearButton = document.getElementById("teacherClearButton");
+const teacherSubmitButton = document.getElementById("teacherSubmitButton");
+const teachersTableBody = document.getElementById("teachersTableBody");
+const teachersEmptyState = document.getElementById("teachersEmptyState");
+const teacherAttendanceForm = document.getElementById("teacherAttendanceForm");
+const teacherAttendanceClearButton = document.getElementById("teacherAttendanceClearButton");
+const teacherAttendanceSubmitButton = document.getElementById("teacherAttendanceSubmitButton");
+const teacherAttendanceHelper = document.getElementById("teacherAttendanceHelper");
+const teacherAttendanceDate = document.getElementById("teacherAttendanceDate");
+const teacherAttendanceBranch = document.getElementById("teacherAttendanceBranch");
+const teacherAttendanceTeacherId = document.getElementById("teacherAttendanceTeacherId");
+const teacherAttendanceSpecialty = document.getElementById("teacherAttendanceSpecialty");
+const teacherAttendanceShift = document.getElementById("teacherAttendanceShift");
+const teacherAttendanceStatus = document.getElementById("teacherAttendanceStatus");
+const teacherAttendanceTableBody = document.getElementById("teacherAttendanceTableBody");
+const teacherAttendanceEmptyState = document.getElementById("teacherAttendanceEmptyState");
+const teacherSummaryBranchFilter = document.getElementById("teacherSummaryBranchFilter");
+const teacherSummaryTeacherFilter = document.getElementById("teacherSummaryTeacherFilter");
+const teacherSummaryMonthFilter = document.getElementById("teacherSummaryMonthFilter");
+const teacherSummaryFortnightFilter = document.getElementById("teacherSummaryFortnightFilter");
+const teacherSummaryDateFromFilter = document.getElementById("teacherSummaryDateFromFilter");
+const teacherSummaryDateToFilter = document.getElementById("teacherSummaryDateToFilter");
+const teacherSummaryTableBody = document.getElementById("teacherSummaryTableBody");
+const teacherSummaryEmptyState = document.getElementById("teacherSummaryEmptyState");
+const teacherCountStat = document.getElementById("teacherCountStat");
+const teacherWorkedDaysStat = document.getElementById("teacherWorkedDaysStat");
+const teacherIncidentsStat = document.getElementById("teacherIncidentsStat");
+const teacherPayrollStat = document.getElementById("teacherPayrollStat");
 const studentFileOverlay = document.getElementById("studentFileOverlay");
 const studentFileCloseButton = document.getElementById("studentFileCloseButton");
 const studentFileTitle = document.getElementById("studentFileTitle");
@@ -281,6 +317,7 @@ const moduleSections = {
   "crm-prospectos": document.getElementById("crmSection"),
   altas: document.getElementById("altasSection"),
   asistencias: document.getElementById("asistenciasSection"),
+  maestras: document.getElementById("maestrasSection"),
   pagos: document.getElementById("pagosSection"),
   balance: document.getElementById("balanceSection"),
   finanzas: document.getElementById("finanzasSection"),
@@ -421,6 +458,8 @@ let prospects = dataService.entities.prospects.getAll(() => []);
 let students = dataService.entities.students.getAll(() => []);
 let attendanceRecords = dataService.entities.attendance.getAll(() => []);
 let paymentRecords = dataService.entities.payments.getAll(() => []);
+let teacherRecords = dataService.entities.teachers.getAll(() => []);
+let teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
 let balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
 let financeRecords = dataService.entities.financialMovements.getAll(() => []);
 let studentAccessRecords = dataService.entities.studentPortalAccess.getAll(() => []);
@@ -459,6 +498,8 @@ altasMonthFilter.value = selectedAltasMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
+teacherAttendanceDate.value = formatDateForInput(new Date());
+teacherSummaryMonthFilter.value = selectedMonth;
 
 function seedProspects() {
   return [];
@@ -793,7 +834,7 @@ function getPermissionFallbackFromStaff(user) {
 
   const normalizedPosition = String(linkedStaffRecord.puesto || "").trim().toLowerCase();
   if (normalizedPosition === "coordinadora de maestras") {
-    return ["asistencias", "crm-prospectos", "altas"];
+    return ["maestras", "asistencias", "crm-prospectos", "altas"];
   }
 
   return [];
@@ -947,6 +988,766 @@ async function saveStaffRecord(record) {
   }
 
   return result;
+}
+
+function saveTeachersCollection() {
+  dataService.entities.teachers.setAll(teacherRecords);
+}
+
+function saveTeacherAttendanceCollection() {
+  dataService.entities.teacherAttendance.setAll(teacherAttendanceRecords);
+}
+
+function normalizeTeacherSpecialty(value) {
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "unas" || normalized === "una" || normalized === "uñas") return "Uñas";
+  if (normalized === "pestanas" || normalized === "pestañas") return "Pestañas";
+  if (normalized === "maquillaje") return "Maquillaje";
+  if (normalized === "barberia" || normalized === "barbería") return "Barbería";
+  return "";
+}
+
+function normalizeTeacherShift(value) {
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "matutino") return "Matutino";
+  if (normalized === "vespertino") return "Vespertino";
+  if (normalized === "ambos") return "Ambos";
+  return "";
+}
+
+function normalizeTeacherAttendanceStatus(value) {
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === "asistio" || normalized === "asistió") return "Asistió";
+  if (normalized === "falta") return "Falta";
+  if (normalized === "permiso") return "Permiso";
+  return "";
+}
+
+function normalizeTeacherPaymentType(value) {
+  return String(value || "").trim() ? TEACHER_PAYMENT_TYPE : TEACHER_PAYMENT_TYPE;
+}
+
+function getTeacherDisplayName(record) {
+  return record?.nombreCompleto || record?.nombre || record?.teacherName || "Maestra";
+}
+
+function getTeacherById(teacherId) {
+  return teacherRecords.find((record) => record.id === teacherId) || null;
+}
+
+function getTeacherSpecialtyKey(value) {
+  const normalized = normalizeTeacherSpecialty(value);
+  if (normalized === "Uñas") return "unas";
+  if (normalized === "Pestañas") return "pestanas";
+  if (normalized === "Maquillaje") return "maquillaje";
+  if (normalized === "Barbería") return "barberia";
+  return "";
+}
+
+function getTeacherShiftPriority(specialty, shift) {
+  const normalizedShift = normalizeTeacherShift(shift);
+  const specialtyKey = getTeacherSpecialtyKey(specialty);
+  if (specialtyKey === "barberia") {
+    return {
+      Ambos: 3,
+      Vespertino: 2,
+      Matutino: 1,
+    }[normalizedShift] || 0;
+  }
+  return {
+    Ambos: 3,
+    Vespertino: 2,
+    Matutino: 1,
+  }[normalizedShift] || 0;
+}
+
+function resolveTeacherShiftForPayroll(specialty, shifts = []) {
+  const specialtyKey = getTeacherSpecialtyKey(specialty);
+  const normalizedShifts = Array.from(new Set(shifts.map((value) => normalizeTeacherShift(value)).filter(Boolean)));
+
+  if (normalizedShifts.length === 0) {
+    return "";
+  }
+
+  if (normalizedShifts.includes("Ambos")) {
+    return "Ambos";
+  }
+
+  if (
+    specialtyKey !== "barberia" &&
+    normalizedShifts.includes("Matutino") &&
+    normalizedShifts.includes("Vespertino")
+  ) {
+    return "Ambos";
+  }
+
+  return normalizedShifts.sort(
+    (left, right) => getTeacherShiftPriority(specialty, right) - getTeacherShiftPriority(specialty, left)
+  )[0];
+}
+
+function getTeacherEstimatedPay(specialty, shift, status = "Asistió") {
+  if (normalizeTeacherAttendanceStatus(status) !== "Asistió") {
+    return 0;
+  }
+
+  const specialtyKey = getTeacherSpecialtyKey(specialty);
+  const normalizedShift = normalizeTeacherShift(shift);
+
+  if (!specialtyKey || !normalizedShift) {
+    return 0;
+  }
+
+  if (specialtyKey === "barberia") {
+    if (normalizedShift === "Matutino") return 500;
+    if (normalizedShift === "Vespertino") return 700;
+    if (normalizedShift === "Ambos") return 700;
+    return 0;
+  }
+
+  if (normalizedShift === "Ambos") return 400;
+  if (normalizedShift === "Matutino" || normalizedShift === "Vespertino") return 200;
+  return 0;
+}
+
+function getTeacherCoveredTurnUnits(shift) {
+  return normalizeTeacherShift(shift) === "Ambos" ? 2 : normalizeTeacherShift(shift) ? 1 : 0;
+}
+
+function getTeacherAttendanceLogicalKey(record) {
+  return `${record.teacherId || ""}::${record.fecha || ""}`;
+}
+
+function getVisibleTeacherRecords() {
+  return teacherRecords
+    .filter((record) => matchesCurrentBranch(record.sucursal))
+    .sort((left, right) => getTeacherDisplayName(left).localeCompare(getTeacherDisplayName(right), "es-MX"));
+}
+
+function buildTeacherSelectOptions(records, selectedValue, defaultLabel = "Selecciona una opcion") {
+  return [`<option value="">${escapeHtml(defaultLabel)}</option>`]
+    .concat(
+      records.map(
+        (record) =>
+          `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
+            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${record.especialidad || "-"}`
+          )}</option>`
+      )
+    )
+    .join("");
+}
+
+function populateTeacherSelects() {
+  const visibleTeachers = getVisibleTeacherRecords();
+  const attendanceBranchValue = teacherAttendanceBranch.value;
+  const filteredForAttendance = visibleTeachers.filter(
+    (record) => !attendanceBranchValue || record.sucursal === attendanceBranchValue
+  );
+  const summaryBranchValue = teacherSummaryBranchFilter.value;
+  const filteredForSummary = visibleTeachers.filter(
+    (record) => !summaryBranchValue || record.sucursal === summaryBranchValue
+  );
+
+  const previousAttendanceTeacher = teacherAttendanceTeacherId.value;
+  teacherAttendanceTeacherId.innerHTML = buildTeacherSelectOptions(
+    filteredForAttendance,
+    filteredForAttendance.some((record) => record.id === previousAttendanceTeacher) ? previousAttendanceTeacher : "",
+    "Selecciona una opcion"
+  );
+
+  const previousSummaryTeacher = teacherSummaryTeacherFilter.value;
+  teacherSummaryTeacherFilter.innerHTML = buildTeacherSelectOptions(
+    filteredForSummary,
+    filteredForSummary.some((record) => record.id === previousSummaryTeacher) ? previousSummaryTeacher : "",
+    "Todas"
+  );
+}
+
+function getTeacherFormData() {
+  const formData = new FormData(teacherForm);
+  const existingId = document.getElementById("teacherId").value;
+  const existingRecord = teacherRecords.find((record) => record.id === existingId);
+  const allowedBranch = getAllowedBranch();
+
+  return {
+    id: existingId || crypto.randomUUID(),
+    nombreCompleto: String(formData.get("nombreCompleto") || "").trim(),
+    sucursal: allowedBranch || String(formData.get("sucursal") || "").trim(),
+    especialidad: normalizeTeacherSpecialty(formData.get("especialidad")),
+    tipoPago: normalizeTeacherPaymentType(formData.get("tipoPago")),
+    usuario: String(formData.get("usuario") || "").trim(),
+    password: String(formData.get("password") || "").trim(),
+    linkedUserId: document.getElementById("teacherLinkedUserId").value || existingRecord?.linkedUserId || "",
+    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getTeacherAttendanceFormData() {
+  const formData = new FormData(teacherAttendanceForm);
+  const selectedTeacher = getTeacherById(String(formData.get("maestraId") || "").trim());
+  const existingId = document.getElementById("teacherAttendanceId").value;
+  const existingRecord = teacherAttendanceRecords.find((record) => record.id === existingId);
+  const existingLogicalRecord = teacherAttendanceRecords.find(
+    (record) =>
+      record.teacherId === String(formData.get("maestraId") || "").trim() &&
+      record.fecha === String(formData.get("fecha") || "").trim()
+  );
+  const allowedBranch = getAllowedBranch();
+
+  return {
+    id: existingLogicalRecord?.id || existingRecord?.id || existingId || crypto.randomUUID(),
+    teacherId: selectedTeacher?.id || "",
+    teacherName: getTeacherDisplayName(selectedTeacher),
+    fecha: String(formData.get("fecha") || "").trim(),
+    sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
+    especialidad: normalizeTeacherSpecialty(selectedTeacher?.especialidad || formData.get("especialidad")),
+    turno: normalizeTeacherShift(formData.get("turno")),
+    estatus: normalizeTeacherAttendanceStatus(formData.get("estatus")),
+    observacion: String(formData.get("observacion") || "").trim(),
+    recordedBy: getCurrentInternalUser()?.id || "",
+    createdAt: existingLogicalRecord?.createdAt || existingRecord?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getTeacherUserConflict(record) {
+  const normalizedUsername = String(record.usuario || "").trim().toLowerCase();
+  if (!normalizedUsername) {
+    return null;
+  }
+
+  const teacherConflict = teacherRecords.find(
+    (item) => item.id !== record.id && String(item.usuario || "").trim().toLowerCase() === normalizedUsername
+  );
+  if (teacherConflict) {
+    return "Ya existe otra maestra con ese usuario.";
+  }
+
+  const linkedUser = internalUsers.find((user) => user.id === record.linkedUserId);
+  const internalUserConflict = internalUsers.find(
+    (user) =>
+      user.id !== linkedUser?.id &&
+      String(user.username || "").trim().toLowerCase() === normalizedUsername
+  );
+
+  if (internalUserConflict) {
+    return "Ese usuario ya existe en accesos internos. Usa otro para esta maestra.";
+  }
+
+  return null;
+}
+
+async function syncTeacherInternalAccess(record) {
+  const existingUser =
+    internalUsers.find((user) => user.id === record.linkedUserId) ||
+    internalUsers.find((user) => user.username === record.usuario);
+  const permissions = Array.from(
+    new Set([...(Array.isArray(existingUser?.permissions) ? existingUser.permissions : []), "maestras"])
+  );
+  const internalUserPayload = {
+    id: existingUser?.id || record.linkedUserId || crypto.randomUUID(),
+    fullName: record.nombreCompleto || "",
+    username: record.usuario || "",
+    phone: existingUser?.phone || "",
+    password: record.password || "",
+    role: "Maestra",
+    branch: record.sucursal || existingUser?.branch || "",
+    status: existingUser?.status || "Activo",
+    permissions,
+  };
+  const result = await dataService.entities.internalUsers.upsertOne(internalUserPayload, { alertOnFailure: false });
+  const nextUser = {
+    ...internalUserPayload,
+    ...result.record,
+    permissions,
+  };
+  const existingIndex = internalUsers.findIndex((user) => user.id === nextUser.id);
+
+  if (existingIndex >= 0) {
+    internalUsers[existingIndex] = nextUser;
+  } else {
+    internalUsers.unshift(nextUser);
+  }
+
+  setInternalUserPermissionOverride(nextUser.id, nextUser.permissions);
+  return {
+    ...result,
+    record: nextUser,
+  };
+}
+
+async function saveTeacherRecord(record) {
+  const internalAccessResult = await syncTeacherInternalAccess(record);
+  const nextRecord = {
+    ...record,
+    linkedUserId: internalAccessResult.record.id,
+  };
+  const existingIndex = teacherRecords.findIndex((item) => item.id === nextRecord.id);
+
+  if (existingIndex >= 0) {
+    teacherRecords[existingIndex] = nextRecord;
+  } else {
+    teacherRecords.unshift(nextRecord);
+  }
+
+  saveTeachersCollection();
+  return {
+    record: nextRecord,
+    synced: internalAccessResult.synced,
+  };
+}
+
+function saveTeacherAttendanceRecord(record) {
+  const nextRecord = {
+    ...record,
+    teacherName: record.teacherName || getTeacherDisplayName(getTeacherById(record.teacherId)),
+    especialidad: normalizeTeacherSpecialty(record.especialidad),
+    turno: normalizeTeacherShift(record.turno),
+    estatus: normalizeTeacherAttendanceStatus(record.estatus),
+  };
+
+  teacherAttendanceRecords = teacherAttendanceRecords.filter(
+    (item) =>
+      item.id !== nextRecord.id &&
+      !(
+        item.teacherId === nextRecord.teacherId &&
+        item.fecha === nextRecord.fecha
+      )
+  );
+  teacherAttendanceRecords.unshift(nextRecord);
+  saveTeacherAttendanceCollection();
+  return nextRecord;
+}
+
+function getLatestTeacherObservation(records = []) {
+  return (
+    [...records]
+      .sort((left, right) =>
+        String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
+      )
+      .find((record) => String(record.observacion || "").trim())?.observacion || ""
+  );
+}
+
+function consolidateTeacherAttendanceGroup(records = []) {
+  if (records.length === 0) {
+    return null;
+  }
+
+  const latestRecord = [...records].sort((left, right) =>
+    String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
+  )[0];
+  const teacher = getTeacherById(latestRecord.teacherId);
+  const specialty = normalizeTeacherSpecialty(
+    latestRecord.especialidad || teacher?.especialidad || records.find((record) => record.especialidad)?.especialidad
+  );
+  const attendedRecords = records.filter(
+    (record) => normalizeTeacherAttendanceStatus(record.estatus) === "Asistió"
+  );
+  let status = "Falta";
+
+  if (attendedRecords.length > 0) {
+    status = "Asistió";
+  } else if (records.some((record) => normalizeTeacherAttendanceStatus(record.estatus) === "Permiso")) {
+    status = "Permiso";
+  }
+
+  const shift = resolveTeacherShiftForPayroll(
+    specialty,
+    (attendedRecords.length > 0 ? attendedRecords : records).map((record) => record.turno)
+  );
+  const estimatedPay = getTeacherEstimatedPay(specialty, shift, status);
+
+  return {
+    id: getTeacherAttendanceLogicalKey(latestRecord),
+    rawIds: records.map((record) => record.id),
+    duplicateCount: records.length,
+    teacherId: latestRecord.teacherId || "",
+    teacherName: latestRecord.teacherName || getTeacherDisplayName(teacher),
+    fecha: latestRecord.fecha || "",
+    sucursal: latestRecord.sucursal || teacher?.sucursal || "",
+    especialidad: specialty,
+    turno: shift,
+    estatus: status,
+    observacion: getLatestTeacherObservation(records),
+    estimatedPay,
+  };
+}
+
+function getConsolidatedTeacherAttendanceEntries(sourceRecords = teacherAttendanceRecords) {
+  const groupedRecords = sourceRecords.reduce((accumulator, record) => {
+    const teacherId = record.teacherId || "";
+    const fecha = record.fecha || "";
+    if (!teacherId || !fecha) {
+      return accumulator;
+    }
+    const key = `${teacherId}::${fecha}`;
+    if (!accumulator.has(key)) {
+      accumulator.set(key, []);
+    }
+    accumulator.get(key).push(record);
+    return accumulator;
+  }, new Map());
+
+  return Array.from(groupedRecords.values())
+    .map((records) => consolidateTeacherAttendanceGroup(records))
+    .filter(Boolean)
+    .sort((left, right) => {
+      const dateCompare = String(right.fecha || "").localeCompare(String(left.fecha || ""));
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+      return String(left.teacherName || "").localeCompare(String(right.teacherName || ""), "es-MX");
+    });
+}
+
+function getTeacherSummaryRange() {
+  const dateFrom = teacherSummaryDateFromFilter.value;
+  const dateTo = teacherSummaryDateToFilter.value;
+
+  if (dateFrom || dateTo) {
+    return {
+      from: dateFrom || "",
+      to: dateTo || "",
+    };
+  }
+
+  const monthValue = teacherSummaryMonthFilter.value || selectedMonth;
+  if (!monthValue) {
+    return { from: "", to: "" };
+  }
+
+  const [year, month] = monthValue.split("-");
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const fortnight = teacherSummaryFortnightFilter.value;
+
+  if (fortnight === "1") {
+    return {
+      from: `${monthValue}-01`,
+      to: `${monthValue}-15`,
+    };
+  }
+
+  if (fortnight === "2") {
+    return {
+      from: `${monthValue}-16`,
+      to: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+
+  return {
+    from: `${monthValue}-01`,
+    to: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function isTeacherDateWithinRange(dateValue, range) {
+  if (!dateValue) {
+    return false;
+  }
+  if (range.from && dateValue < range.from) {
+    return false;
+  }
+  if (range.to && dateValue > range.to) {
+    return false;
+  }
+  return true;
+}
+
+function getFilteredTeacherSummaryEntries() {
+  const range = getTeacherSummaryRange();
+  return getConsolidatedTeacherAttendanceEntries().filter((entry) => {
+    if (!matchesCurrentBranch(entry.sucursal)) {
+      return false;
+    }
+    if (teacherSummaryBranchFilter.value && entry.sucursal !== teacherSummaryBranchFilter.value) {
+      return false;
+    }
+    if (teacherSummaryTeacherFilter.value && entry.teacherId !== teacherSummaryTeacherFilter.value) {
+      return false;
+    }
+    return isTeacherDateWithinRange(entry.fecha, range);
+  });
+}
+
+function getTeacherSummaryRows() {
+  const summaryMap = getFilteredTeacherSummaryEntries().reduce((accumulator, entry) => {
+    const key = entry.teacherId || entry.teacherName;
+    if (!accumulator.has(key)) {
+      accumulator.set(key, {
+        teacherId: entry.teacherId,
+        teacherName: entry.teacherName,
+        sucursal: entry.sucursal,
+        especialidad: entry.especialidad,
+        diasLaborados: 0,
+        turnosCubiertos: 0,
+        turnosMatutinos: 0,
+        turnosVespertinos: 0,
+        turnosAmbos: 0,
+        faltas: 0,
+        permisos: 0,
+        totalEstimado: 0,
+      });
+    }
+
+    const row = accumulator.get(key);
+    row.sucursal = row.sucursal || entry.sucursal;
+    row.especialidad = row.especialidad || entry.especialidad;
+
+    if (entry.estatus === "Asistió") {
+      row.diasLaborados += 1;
+      row.turnosCubiertos += getTeacherCoveredTurnUnits(entry.turno);
+      if (entry.turno === "Matutino") row.turnosMatutinos += 1;
+      if (entry.turno === "Vespertino") row.turnosVespertinos += 1;
+      if (entry.turno === "Ambos") row.turnosAmbos += 1;
+      row.totalEstimado += entry.estimatedPay;
+    }
+
+    if (entry.estatus === "Falta") {
+      row.faltas += 1;
+    }
+
+    if (entry.estatus === "Permiso") {
+      row.permisos += 1;
+    }
+
+    return accumulator;
+  }, new Map());
+
+  return Array.from(summaryMap.values()).sort((left, right) => {
+    const payCompare = right.totalEstimado - left.totalEstimado;
+    if (payCompare !== 0) {
+      return payCompare;
+    }
+    return String(left.teacherName || "").localeCompare(String(right.teacherName || ""), "es-MX");
+  });
+}
+
+function updateTeacherAttendanceHelper() {
+  const teacherId = teacherAttendanceTeacherId.value;
+  const dateValue = teacherAttendanceDate.value;
+
+  if (!teacherId || !dateValue) {
+    teacherAttendanceHelper.textContent =
+      "Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.";
+    return;
+  }
+
+  const duplicates = teacherAttendanceRecords.filter(
+    (record) => record.teacherId === teacherId && record.fecha === dateValue
+  );
+
+  if (duplicates.length > 1) {
+    teacherAttendanceHelper.textContent =
+      "Se detectaron registros viejos duplicados para esa fecha. Al guardar se consolidarán en un solo registro seguro.";
+    return;
+  }
+
+  if (duplicates.length === 1) {
+    teacherAttendanceHelper.textContent =
+      "Ya existe una asistencia para esa maestra y fecha. Guardar actualizará el registro existente.";
+    return;
+  }
+
+  teacherAttendanceHelper.textContent =
+    "Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.";
+}
+
+function syncTeacherAttendanceFields() {
+  const selectedTeacher = getTeacherById(teacherAttendanceTeacherId.value);
+  const allowedBranch = getAllowedBranch();
+
+  if (selectedTeacher) {
+    teacherAttendanceBranch.value = allowedBranch || selectedTeacher.sucursal || teacherAttendanceBranch.value;
+    teacherAttendanceSpecialty.value = selectedTeacher.especialidad || "";
+  } else {
+    teacherAttendanceSpecialty.value = "";
+  }
+
+  updateTeacherAttendanceHelper();
+}
+
+function resetTeacherForm() {
+  const allowedBranch = getAllowedBranch();
+  teacherForm.reset();
+  document.getElementById("teacherId").value = "";
+  document.getElementById("teacherLinkedUserId").value = "";
+  document.getElementById("teacherBranch").value = allowedBranch || "";
+  document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
+  teacherSubmitButton.textContent = "Guardar maestra";
+}
+
+function resetTeacherAttendanceForm() {
+  const allowedBranch = getAllowedBranch();
+  teacherAttendanceForm.reset();
+  document.getElementById("teacherAttendanceId").value = "";
+  teacherAttendanceDate.value = formatDateForInput(new Date());
+  teacherAttendanceBranch.value = allowedBranch || "";
+  populateTeacherSelects();
+  teacherAttendanceSubmitButton.textContent = "Guardar asistencia";
+  syncTeacherAttendanceFields();
+}
+
+function renderTeachersTable() {
+  const visibleTeachers = getVisibleTeacherRecords();
+
+  teachersTableBody.innerHTML = visibleTeachers
+    .map(
+      (record) => `
+        <tr>
+          <td>${escapeHtml(getTeacherDisplayName(record))}</td>
+          <td>${escapeHtml(record.sucursal || "-")}</td>
+          <td>${escapeHtml(record.especialidad || "-")}</td>
+          <td>${escapeHtml(record.tipoPago || TEACHER_PAYMENT_TYPE)}</td>
+          <td>${escapeHtml(record.usuario || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-teacher" data-id="${record.id}">Editar</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  teachersEmptyState.hidden = visibleTeachers.length > 0;
+}
+
+function renderTeacherAttendanceTable() {
+  const entries = getConsolidatedTeacherAttendanceEntries().filter((entry) => matchesCurrentBranch(entry.sucursal));
+
+  teacherAttendanceTableBody.innerHTML = entries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(entry.fecha || "-")}</td>
+          <td>${escapeHtml(entry.teacherName || "-")}</td>
+          <td>${escapeHtml(entry.sucursal || "-")}</td>
+          <td>${escapeHtml(entry.especialidad || "-")}</td>
+          <td>${escapeHtml(entry.turno || "-")}</td>
+          <td>${escapeHtml(entry.estatus || "-")}${entry.duplicateCount > 1 ? ` <small>(${entry.duplicateCount} registros)</small>` : ""}</td>
+          <td>${formatCurrency(entry.estimatedPay || 0)}</td>
+          <td>${escapeHtml(entry.observacion || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-teacher-attendance" data-teacher-id="${entry.teacherId}" data-date="${entry.fecha}">Editar</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  teacherAttendanceEmptyState.hidden = entries.length > 0;
+}
+
+function renderTeacherSummaryTable() {
+  const summaryRows = getTeacherSummaryRows();
+
+  teacherSummaryTableBody.innerHTML = summaryRows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.teacherName || "-")}</td>
+          <td>${escapeHtml(row.sucursal || "-")}</td>
+          <td>${escapeHtml(row.especialidad || "-")}</td>
+          <td>${escapeHtml(String(row.diasLaborados))}</td>
+          <td>${escapeHtml(String(row.turnosCubiertos))}</td>
+          <td>${escapeHtml(`Mat ${row.turnosMatutinos} · Ves ${row.turnosVespertinos} · Ambos ${row.turnosAmbos}`)}</td>
+          <td>${escapeHtml(String(row.faltas))}</td>
+          <td>${escapeHtml(String(row.permisos))}</td>
+          <td>${formatCurrency(row.totalEstimado || 0)}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  teacherSummaryEmptyState.hidden = summaryRows.length > 0;
+}
+
+function updateTeacherModuleStats() {
+  const summaryRows = getTeacherSummaryRows();
+  const visibleTeachers = getVisibleTeacherRecords().filter(
+    (record) =>
+      (!teacherSummaryBranchFilter.value || record.sucursal === teacherSummaryBranchFilter.value) &&
+      (!teacherSummaryTeacherFilter.value || record.id === teacherSummaryTeacherFilter.value)
+  );
+  const totalDays = summaryRows.reduce((sum, row) => sum + row.diasLaborados, 0);
+  const totalIncidents = summaryRows.reduce((sum, row) => sum + row.faltas + row.permisos, 0);
+  const totalPayroll = summaryRows.reduce((sum, row) => sum + row.totalEstimado, 0);
+
+  teacherCountStat.textContent = visibleTeachers.length;
+  teacherWorkedDaysStat.textContent = totalDays;
+  teacherIncidentsStat.textContent = totalIncidents;
+  teacherPayrollStat.textContent = formatCurrency(totalPayroll);
+}
+
+function renderTeachersModule() {
+  populateTeacherSelects();
+  syncTeacherAttendanceFields();
+  renderTeachersTable();
+  renderTeacherAttendanceTable();
+  renderTeacherSummaryTable();
+  updateTeacherModuleStats();
+}
+
+function editTeacherRecord(id) {
+  const record = getTeacherById(id);
+  if (!record) {
+    return;
+  }
+
+  document.getElementById("teacherId").value = record.id;
+  document.getElementById("teacherLinkedUserId").value = record.linkedUserId || "";
+  document.getElementById("teacherFullName").value = getTeacherDisplayName(record);
+  document.getElementById("teacherBranch").value = record.sucursal || "";
+  document.getElementById("teacherSpecialty").value = record.especialidad || "";
+  document.getElementById("teacherPaymentType").value = record.tipoPago || TEACHER_PAYMENT_TYPE;
+  document.getElementById("teacherUsername").value = record.usuario || "";
+  document.getElementById("teacherPassword").value = record.password || "";
+  teacherSubmitButton.textContent = "Actualizar maestra";
+  setActiveModule("maestras");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function editTeacherAttendanceRecord(teacherId, dateValue) {
+  const entry = getConsolidatedTeacherAttendanceEntries().find(
+    (record) => record.teacherId === teacherId && record.fecha === dateValue
+  );
+
+  if (!entry) {
+    return;
+  }
+
+  document.getElementById("teacherAttendanceId").value = entry.rawIds[0] || "";
+  teacherAttendanceDate.value = entry.fecha || "";
+  teacherAttendanceBranch.value = entry.sucursal || "";
+  populateTeacherSelects();
+  teacherAttendanceTeacherId.value = entry.teacherId || "";
+  teacherAttendanceSpecialty.value = entry.especialidad || "";
+  teacherAttendanceShift.value = entry.turno || "";
+  teacherAttendanceStatus.value = entry.estatus || "";
+  document.getElementById("teacherAttendanceObservation").value = entry.observacion || "";
+  teacherAttendanceSubmitButton.textContent = "Actualizar asistencia";
+  updateTeacherAttendanceHelper();
+  setActiveModule("maestras");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function getCurrentMonthValue() {
@@ -1324,6 +2125,14 @@ async function normalizeInternalUsers() {
 
     if (normalized.role === "Director General" && !normalized.permissions.includes("usuarios-accesos")) {
       normalized.permissions = [...new Set(normalized.permissions.concat("usuarios-accesos"))];
+      changed = true;
+    }
+
+    if (
+      ["Director General", "Director de sucursal", "Maestra"].includes(normalized.role) &&
+      !normalized.permissions.includes("maestras")
+    ) {
+      normalized.permissions = [...new Set(normalized.permissions.concat("maestras"))];
       changed = true;
     }
 
@@ -1760,6 +2569,9 @@ function applyBranchRestrictionsToUI() {
 
   if (branchLocked) {
     document.getElementById("altaSucursal").value = allowedBranch;
+    document.getElementById("teacherBranch").value = allowedBranch;
+    teacherAttendanceBranch.value = allowedBranch;
+    teacherSummaryBranchFilter.value = allowedBranch;
     document.getElementById("financeSucursal").value = allowedBranch;
     balanceExpenseBranchField.value = allowedBranch;
     attendanceSucursalFilter.value = allowedBranch;
@@ -1769,6 +2581,8 @@ function applyBranchRestrictionsToUI() {
   }
 
   document.getElementById("altaSucursal").disabled = branchLocked;
+  document.getElementById("teacherBranch").disabled = branchLocked;
+  teacherAttendanceBranch.disabled = branchLocked;
   document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
   document.getElementById("financeSucursal").disabled = branchLocked;
   balanceExpenseBranchField.value = branchLocked ? allowedBranch : balanceExpenseBranchField.value;
@@ -1776,6 +2590,7 @@ function applyBranchRestrictionsToUI() {
   document.getElementById("staffSucursal").value = branchLocked ? allowedBranch : document.getElementById("staffSucursal").value;
   document.getElementById("staffSucursal").disabled = branchLocked;
   attendanceSucursalFilter.disabled = branchLocked;
+  teacherSummaryBranchFilter.disabled = branchLocked;
   balanceBranchFilter.disabled = branchLocked;
   financeBranchFilter.disabled = branchLocked;
   dashboardBranchFilter.disabled = branchLocked || !hasInternalAccess("dashboard");
@@ -4560,6 +5375,7 @@ function setActiveModule(module) {
     "crm-prospectos": "CRM Prospectos",
     altas: "Altas",
     asistencias: "Asistencias",
+    maestras: "Maestras",
     pagos: "Pagos",
     balance: "Balance",
     finanzas: "Finanzas",
@@ -4584,6 +5400,7 @@ function renderAll() {
   renderPendingAltas();
   renderAltaHistory();
   populateAttendanceFilters();
+  renderTeachersModule();
   if (getAllowedBranch()) {
     attendanceSucursalFilter.value = getAllowedBranch();
   }
@@ -4785,6 +5602,52 @@ staffForm.addEventListener("submit", async (event) => {
   resetStaffForm();
 });
 
+teacherForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const teacherData = getTeacherFormData();
+  const isEditingExistingTeacher = Boolean(document.getElementById("teacherId").value);
+  const userConflictMessage = getTeacherUserConflict(teacherData);
+
+  if (!teacherData.nombreCompleto || !teacherData.sucursal || !teacherData.especialidad || !teacherData.usuario || !teacherData.password) {
+    alert("Completa todos los campos obligatorios de la maestra.");
+    return;
+  }
+
+  if (userConflictMessage) {
+    alert(userConflictMessage);
+    return;
+  }
+
+  await saveTeacherRecord(teacherData);
+  renderAll();
+  resetTeacherForm();
+  alert(isEditingExistingTeacher ? "Maestra actualizada correctamente." : "Maestra guardada correctamente.");
+});
+
+teacherAttendanceForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const attendanceData = getTeacherAttendanceFormData();
+  const isUpdatingExistingRecord = teacherAttendanceRecords.some(
+    (record) =>
+      record.id === attendanceData.id ||
+      (record.teacherId === attendanceData.teacherId && record.fecha === attendanceData.fecha)
+  );
+
+  if (!attendanceData.teacherId || !attendanceData.fecha || !attendanceData.turno || !attendanceData.estatus) {
+    alert("Completa fecha, maestra, turno y estatus para guardar la asistencia laboral.");
+    return;
+  }
+
+  saveTeacherAttendanceRecord(attendanceData);
+  renderTeachersModule();
+  resetTeacherAttendanceForm();
+  alert(
+    isUpdatingExistingRecord
+      ? "La asistencia laboral se actualizó sobre la fecha existente."
+      : "La asistencia laboral se guardó correctamente."
+  );
+});
+
 openStudentPortalButton.addEventListener("click", () => {
   currentInternalUserId = "";
   currentAccessMode = "student";
@@ -4946,6 +5809,8 @@ balanceExpenseForm.addEventListener("submit", (event) => {
 clearButton.addEventListener("click", resetForm);
 internalUserClearButton.addEventListener("click", resetInternalUserForm);
 staffClearButton.addEventListener("click", resetStaffForm);
+teacherClearButton.addEventListener("click", resetTeacherForm);
+teacherAttendanceClearButton.addEventListener("click", resetTeacherAttendanceForm);
 clearAltaButton.addEventListener("click", resetAltaForm);
 financeClearButton.addEventListener("click", resetFinanceForm);
 balanceExpenseClearButton.addEventListener("click", resetBalanceExpenseForm);
@@ -4984,6 +5849,22 @@ altaForm.addEventListener("input", () => {
   document.getElementById(id).addEventListener("input", syncStaffAccessFields);
   document.getElementById(id).addEventListener("change", syncStaffAccessFields);
 });
+
+["teacherAttendanceDate", "teacherAttendanceTeacherId"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", syncTeacherAttendanceFields);
+});
+
+teacherAttendanceBranch.addEventListener("change", () => {
+  populateTeacherSelects();
+  syncTeacherAttendanceFields();
+});
+
+teacherSummaryBranchFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryTeacherFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryMonthFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryFortnightFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryDateFromFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryDateToFilter.addEventListener("change", renderTeachersModule);
 
 webVeneziaSection.addEventListener("click", (event) => {
   const courseButton = event.target.closest(".web-course-btn");
@@ -5263,6 +6144,24 @@ staffTableBody.addEventListener("click", async (event) => {
   if (action === "delete-staff") await deleteStaffRecord(id);
 });
 
+teachersTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action='edit-teacher']");
+  if (!actionButton) {
+    return;
+  }
+
+  editTeacherRecord(actionButton.dataset.id);
+});
+
+teacherAttendanceTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action='edit-teacher-attendance']");
+  if (!actionButton) {
+    return;
+  }
+
+  editTeacherAttendanceRecord(actionButton.dataset.teacherId, actionButton.dataset.date);
+});
+
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const module = item.dataset.module;
@@ -5281,6 +6180,7 @@ navItems.forEach((item) => {
       module === "crm-prospectos" ||
       module === "altas" ||
       module === "asistencias" ||
+      module === "maestras" ||
       module === "pagos" ||
       module === "balance" ||
       module === "finanzas" ||
@@ -5301,6 +6201,8 @@ async function initApp() {
   students = await dataService.entities.students.getAllPrimary(() => []);
   attendanceRecords = await dataService.entities.attendance.getAllPrimary(() => []);
   paymentRecords = await dataService.entities.payments.getAllPrimary(() => []);
+  teacherRecords = dataService.entities.teachers.getAll(() => []);
+  teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
   balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
   financeRecords = await dataService.entities.financialMovements.getAllPrimary(() => []);
   studentAccessRecords = await dataService.entities.studentPortalAccess.getAllPrimary(() => []);
@@ -5312,6 +6214,8 @@ async function initApp() {
   resetForm();
   resetInternalUserForm();
   resetStaffForm();
+  resetTeacherForm();
+  resetTeacherAttendanceForm();
   resetAltaForm();
   resetBalanceExpenseForm();
   resetFinanceForm();

@@ -101,6 +101,7 @@
           <button class="nav-item" type="button" data-module="pagos">Pagos</button>
           <button class="nav-item" type="button" data-module="balance">Balance</button>
           <button class="nav-item" type="button" data-module="asistencias">Asistencias</button>
+          <button class="nav-item" type="button" data-module="maestras">Maestras</button>
           <button class="nav-item" type="button" data-module="mi-venezia">Mi Venezia</button>
           <button class="nav-item" type="button" data-module="dashboard">Dashboard</button>
           <button class="nav-item" type="button" data-module="finanzas">Finanzas</button>
@@ -980,6 +981,290 @@
           </section>
         </section>
 
+        <section class="module-section" id="maestrasSection">
+          <section class="stats-grid" aria-label="Resumen de maestras">
+            <article class="stat-card">
+              <p>Maestras registradas</p>
+              <strong id="teacherCountStat">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Días laborados</p>
+              <strong id="teacherWorkedDaysStat">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Incidencias sin pago</p>
+              <strong id="teacherIncidentsStat">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Nómina estimada</p>
+              <strong id="teacherPayrollStat">$0</strong>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Alta</p>
+                <h3>Registrar maestra</h3>
+              </div>
+
+              <form id="teacherForm" class="prospect-form">
+                <input type="hidden" id="teacherId" />
+                <input type="hidden" id="teacherLinkedUserId" />
+
+                <label>
+                  <span>Nombre completo</span>
+                  <input id="teacherFullName" name="nombreCompleto" type="text" required />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="teacherBranch" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Especialidad</span>
+                  <select id="teacherSpecialty" name="especialidad" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Uñas</option>
+                    <option>Pestañas</option>
+                    <option>Maquillaje</option>
+                    <option>Barbería</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Tipo de pago</span>
+                  <select id="teacherPaymentType" name="tipoPago" required>
+                    <option>Por turnos trabajados</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Usuario</span>
+                  <input id="teacherUsername" name="usuario" type="text" required />
+                </label>
+
+                <label>
+                  <span>Contraseña</span>
+                  <input id="teacherPassword" name="password" type="text" required />
+                </label>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="teacherSubmitButton">Guardar maestra</button>
+                  <button class="secondary-btn" type="button" id="teacherClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Directorio</p>
+                <h3>Maestras registradas</h3>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Sucursal</th>
+                      <th>Especialidad</th>
+                      <th>Tipo de pago</th>
+                      <th>Usuario</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teachersTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="teachersEmptyState" class="empty-state">
+                No hay maestras registradas.
+              </p>
+            </section>
+          </section>
+
+          <section class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <p class="eyebrow">Asistencia laboral</p>
+                <h3>Registrar jornada</h3>
+              </div>
+
+              <form id="teacherAttendanceForm" class="prospect-form">
+                <input type="hidden" id="teacherAttendanceId" />
+
+                <label>
+                  <span>Fecha</span>
+                  <input id="teacherAttendanceDate" name="fecha" type="date" required />
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="teacherAttendanceBranch" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Maestra</span>
+                  <select id="teacherAttendanceTeacherId" name="maestraId" required>
+                    <option value="">Selecciona una opcion</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Especialidad</span>
+                  <input id="teacherAttendanceSpecialty" name="especialidad" type="text" readonly required />
+                </label>
+
+                <label>
+                  <span>Turno</span>
+                  <select id="teacherAttendanceShift" name="turno" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Matutino</option>
+                    <option>Vespertino</option>
+                    <option>Ambos</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Estatus</span>
+                  <select id="teacherAttendanceStatus" name="estatus" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Asistió</option>
+                    <option>Falta</option>
+                    <option>Permiso</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Observación breve</span>
+                  <textarea id="teacherAttendanceObservation" name="observacion" rows="3"></textarea>
+                </label>
+
+                <p id="teacherAttendanceHelper" class="module-helper-copy">
+                  Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.
+                </p>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="teacherAttendanceSubmitButton">Guardar asistencia</button>
+                  <button class="secondary-btn" type="button" id="teacherAttendanceClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Historial</p>
+                <h3>Asistencias laborales</h3>
+              </div>
+
+              <div class="table-wrapper teacher-attendance-table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Maestra</th>
+                      <th>Sucursal</th>
+                      <th>Especialidad</th>
+                      <th>Turno válido</th>
+                      <th>Estatus</th>
+                      <th>Pago estimado</th>
+                      <th>Observación</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teacherAttendanceTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="teacherAttendanceEmptyState" class="empty-state">
+                No hay asistencias laborales registradas.
+              </p>
+            </section>
+          </section>
+
+          <section class="panel table-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Resumen</p>
+              <h3>Resumen quincenal</h3>
+            </div>
+
+            <div class="prospect-form attendance-filters teacher-summary-filters">
+              <label>
+                <span>Sucursal</span>
+                <select id="teacherSummaryBranchFilter">
+                  <option value="">Todas</option>
+                  <option>Tlaxcala</option>
+                  <option>Puebla</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Maestra</span>
+                <select id="teacherSummaryTeacherFilter">
+                  <option value="">Todas</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Mes</span>
+                <input id="teacherSummaryMonthFilter" type="month" />
+              </label>
+
+              <label>
+                <span>Quincena</span>
+                <select id="teacherSummaryFortnightFilter">
+                  <option value="">Todas</option>
+                  <option value="1">1 al 15</option>
+                  <option value="2">16 al cierre</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Desde</span>
+                <input id="teacherSummaryDateFromFilter" type="date" />
+              </label>
+
+              <label>
+                <span>Hasta</span>
+                <input id="teacherSummaryDateToFilter" type="date" />
+              </label>
+            </div>
+
+            <div class="table-wrapper teacher-summary-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Maestra</th>
+                    <th>Sucursal</th>
+                    <th>Especialidad</th>
+                    <th>Días laborados</th>
+                    <th>Turnos cubiertos</th>
+                    <th>Detalle turnos</th>
+                    <th>Faltas</th>
+                    <th>Permisos</th>
+                    <th>Total estimado</th>
+                  </tr>
+                </thead>
+                <tbody id="teacherSummaryTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="teacherSummaryEmptyState" class="empty-state">
+              No hay información de maestras para los filtros seleccionados.
+            </p>
+          </section>
+        </section>
+
         <section class="module-section" id="pagosSection">
           <section class="stats-grid payments-stats-grid" aria-label="Resumen de pagos">
             <article class="stat-card">
@@ -1432,6 +1717,7 @@
                     <label><input type="checkbox" name="permissions" value="crm-prospectos" /> CRM Prospectos</label>
                     <label><input type="checkbox" name="permissions" value="altas" /> Altas</label>
                     <label><input type="checkbox" name="permissions" value="asistencias" /> Asistencias</label>
+                    <label><input type="checkbox" name="permissions" value="maestras" /> Maestras</label>
                     <label><input type="checkbox" name="permissions" value="pagos" /> Pagos</label>
                     <label><input type="checkbox" name="permissions" value="balance" /> Balance</label>
                     <label><input type="checkbox" name="permissions" value="finanzas" /> Finanzas</label>
