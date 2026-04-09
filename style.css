@@ -1739,11 +1739,64 @@ td select {
 .mi-venezia-payment-schedule {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
+  padding: 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 248, 239, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 246, 0.54) 0%, rgba(244, 237, 228, 0.34) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    0 10px 24px rgba(140, 126, 111, 0.08);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
 }
 
 .mi-venezia-payment-schedule .info-item {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(216, 208, 197, 0.88);
+  --payment-glass-tint: rgba(243, 221, 226, 0.68);
+  padding: 0.8rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.48) 0%, var(--payment-glass-tint) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 8px 18px rgba(131, 116, 103, 0.10);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.mi-venezia-payment-schedule .info-item strong {
+  color: #6f6258;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-payment-schedule .info-item span {
+  color: #231d18;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.mi-venezia-payment-schedule .info-item:nth-child(1) {
+  --payment-glass-tint: rgba(243, 221, 226, 0.74);
+}
+
+.mi-venezia-payment-schedule .info-item:nth-child(2) {
+  --payment-glass-tint: rgba(232, 223, 243, 0.74);
+}
+
+.mi-venezia-payment-schedule .info-item:nth-child(3) {
+  --payment-glass-tint: rgba(244, 231, 218, 0.76);
+}
+
+.mi-venezia-payment-schedule .info-item:nth-child(4) {
+  --payment-glass-tint: rgba(239, 228, 200, 0.78);
+}
+
+.mi-venezia-payment-schedule .info-item:nth-child(5) {
+  --payment-glass-tint: rgba(242, 221, 210, 0.78);
 }
 
 .mi-venezia-simple-table table {
@@ -1753,11 +1806,6 @@ td select {
 .mi-venezia-simple-table th,
 .mi-venezia-simple-table td {
   padding: 0.62rem 0.68rem;
-}
-
-#miVeneziaPaymentSchedule .info-item {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(216, 208, 197, 0.88);
 }
 
 @media (max-width: 920px) {
