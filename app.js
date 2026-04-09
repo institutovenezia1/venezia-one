@@ -37,6 +37,15 @@ const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
+const BALANCE_PAYMENT_CONCEPT_FIELDS = [
+  { key: "certificadoP1", label: "Certificado P1" },
+  { key: "certificadoP2", label: "Certificado P2" },
+  { key: "mensualidad1", label: "1ra mensualidad" },
+  { key: "mensualidad2", label: "2da mensualidad" },
+  { key: "mensualidad3", label: "3ra mensualidad" },
+  { key: "mensualidad4", label: "4ta mensualidad" },
+  { key: "mensualidad5", label: "5ta mensualidad" },
+];
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
   Permiso: "P",
@@ -3433,15 +3442,35 @@ function updatePaymentsSummary() {
 }
 
 function getBalancePaymentDate(record) {
-  const baseDate = String(record.updatedAt || record.createdAt || "").slice(0, 10);
+  const baseDate = String(record.createdAt || record.updatedAt || "").slice(0, 10);
   if (baseDate) {
     return baseDate;
   }
   return record.mesPago ? `${record.mesPago}-01` : "";
 }
 
+function matchesBalanceDate(value) {
+  return !balanceDateFilter.value || String(value || "").slice(0, 10) === balanceDateFilter.value;
+}
+
+function getBalanceIncomeConcept(record) {
+  const paidConcepts = BALANCE_PAYMENT_CONCEPT_FIELDS
+    .filter(({ key }) => record[key] === "Pagado" || record[key] === "Parcial")
+    .map(({ label }) => label);
+
+  if (paidConcepts.length > 0) {
+    return paidConcepts.join(", ");
+  }
+
+  if (record.mesPago) {
+    return `Pago ${record.mesPago}`;
+  }
+
+  return "Pago registrado";
+}
+
 function getBalanceIncomeRows() {
-  const studentsById = new Map(getActiveStudents().map((student) => [student.id, student]));
+  const studentsById = new Map(students.map((student) => [student.id, student]));
 
   return paymentRecords
     .map((record) => {
@@ -3461,7 +3490,7 @@ function getBalanceIncomeRows() {
         studentId: record.studentId,
         fecha,
         alumna: student.nombre || "-",
-        concepto: record.mesPago ? `Pago ${record.mesPago}` : "Pago registrado",
+        concepto: getBalanceIncomeConcept(record),
         monto,
         sucursal: student.sucursal || "",
         metodoPago: record.metodoPago || "-",
@@ -3470,16 +3499,28 @@ function getBalanceIncomeRows() {
     .filter(Boolean)
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
-    .filter((record) => !balanceDateFilter.value || record.fecha === balanceDateFilter.value)
-    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+    .filter((record) => matchesBalanceDate(record.fecha))
+    .sort((a, b) => {
+      const dateComparison = String(b.fecha || "").localeCompare(String(a.fecha || ""));
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      return String(b.id || "").localeCompare(String(a.id || ""));
+    });
 }
 
 function getFilteredBalanceExpenses() {
   return balanceExpenses
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
-    .filter((record) => !balanceDateFilter.value || record.fecha === balanceDateFilter.value)
-    .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
+    .filter((record) => matchesBalanceDate(record.fecha))
+    .sort((a, b) => {
+      const dateComparison = String(b.fecha || "").localeCompare(String(a.fecha || ""));
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    });
 }
 
 function syncBalanceExpenseTotal() {
@@ -3498,6 +3539,7 @@ function resetBalanceExpenseForm() {
     document.getElementById("balanceExpenseBranch").value = getAllowedBranch();
   }
   balanceExpenseSubmitButton.textContent = "Guardar egreso";
+  syncBalanceExpenseTotal();
 }
 
 function getBalanceExpenseFormData() {
