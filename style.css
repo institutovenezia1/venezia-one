@@ -1687,12 +1687,63 @@ td select {
   border: 1px solid rgba(216, 208, 197, 0.88);
 }
 
+.whatsapp-director-btn {
+  background: linear-gradient(180deg, #35c75a 0%, #1ea64a 100%);
+  border-color: #1b8b3f;
+  color: #fff;
+  box-shadow: none;
+}
+
+.whatsapp-director-btn:hover {
+  background: linear-gradient(180deg, #2fb452 0%, #1c9344 100%);
+}
+
 .mi-venezia-stats-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .mi-venezia-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mi-venezia-subsection-heading {
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.mi-venezia-subsection-heading .eyebrow {
+  margin-bottom: 0.2rem;
+}
+
+.mi-venezia-payments-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.mi-venezia-payments-summary .info-item {
+  gap: 0.2rem;
+  padding: 0.62rem 0.7rem;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(216, 208, 197, 0.88);
+}
+
+.mi-venezia-payments-summary .info-item strong {
+  font-size: 0.72rem;
+}
+
+.mi-venezia-payments-summary .info-item span {
+  font-size: 0.9rem;
+}
+
+.mi-venezia-payment-schedule {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.mi-venezia-payment-schedule .info-item {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(216, 208, 197, 0.88);
 }
 
 .mi-venezia-simple-table table {
@@ -1716,6 +1767,11 @@ td select {
 
   .mi-venezia-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mi-venezia-payments-summary,
+  .mi-venezia-payment-schedule {
+    grid-template-columns: 1fr;
   }
 }
 

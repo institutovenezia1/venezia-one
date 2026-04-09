@@ -3318,14 +3318,14 @@ function getShortBranchLabel(branch) {
 function getStudentPaymentSchedule(course) {
   const normalizedCourse = String(course || "").trim().toLowerCase();
   const baseSchedule = [
-    { label: "Men1", value: "Clase 1" },
-    { label: "Men2", value: "Clase 4" },
-    { label: "Men3", value: "Clase 8" },
-    { label: "Men4", value: "Clase 12" },
+    { label: "Men1", sessionIndex: 0 },
+    { label: "Men2", sessionIndex: 3 },
+    { label: "Men3", sessionIndex: 7 },
+    { label: "Men4", sessionIndex: 11 },
   ];
 
   if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
-    return baseSchedule.concat({ label: "Men5", value: "Clase 16" });
+    return baseSchedule.concat({ label: "Men5", sessionIndex: 15 });
   }
 
   if (["uñas", "unas", "pestañas", "pestanas", "maquillaje"].includes(normalizedCourse)) {
@@ -3333,6 +3333,24 @@ function getStudentPaymentSchedule(course) {
   }
 
   return [];
+}
+
+function getStudentPortalSessionDates(student) {
+  const sessionCount = getAttendanceSessionCountForCourse(student.curso);
+  const baseDate = getAttendanceBaseDate([student]);
+  return getAttendanceSessionDates(baseDate, sessionCount);
+}
+
+function getStudentPaymentScheduleEntries(student) {
+  const sessions = getStudentPortalSessionDates(student);
+
+  return getStudentPaymentSchedule(student.curso).map((entry) => {
+    const session = sessions[entry.sessionIndex];
+    return {
+      label: entry.label,
+      value: session?.date ? formatDisplayDate(session.date) : "-",
+    };
+  });
 }
 
 function getFilteredStudentsForPayments() {
@@ -4146,6 +4164,14 @@ function getStudentPortalWhatsappUrl(student) {
   return `https://wa.me/${WEB_DEFAULT_WHATSAPP_NUMBER}?text=${message}`;
 }
 
+function getStudentDirectorWhatsappUrl(student) {
+  const studentName = String(student?.nombre || "la alumna").trim();
+  const message = encodeURIComponent(
+    `Hola directora, soy ${studentName} y tengo una duda sobre mi información en Mi Venezia.`
+  );
+  return `https://wa.me/522461379504?text=${message}`;
+}
+
 function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
     <div class="web-access-grid">
@@ -4262,7 +4288,7 @@ function renderMiVeneziaDashboard() {
   miVeneziaStatAttendance.textContent = `${asistencias} de ${totalClasesPlaneadas}`;
   miVeneziaStatPayments.textContent = `${registeredPayments} registrados`;
   miVeneziaStatStatus.textContent = student.estado || "Activa";
-  miVeneziaContactButton.href = getStudentPortalWhatsappUrl(student);
+  miVeneziaContactButton.href = getStudentDirectorWhatsappUrl(student);
 
   renderInfoList(miVeneziaPerfil, [
     { label: "Nombre completo", value: student.nombre || "-" },
@@ -4275,16 +4301,15 @@ function renderMiVeneziaDashboard() {
   ]);
 
   renderInfoList(miVeneziaPagos, [
-    { label: "Mensualidad asignada", value: payment.mensualidadPactada || student.mensualidad || "-" },
-    { label: "Pagos registrados", value: String(paymentEntries.length) },
-    { label: "Método más reciente", value: payment.metodoPago || "-" },
+    { label: "Mens. asignada", value: payment.mensualidadPactada || student.mensualidad || "-" },
+    { label: "Pagos reg.", value: String(paymentEntries.length) },
     { label: "Estatus", value: hasPendingPayments ? "Con pendientes" : paymentEntries.length ? "Al corriente" : "Sin registros" },
   ]);
 
   renderInfoList(
     miVeneziaPaymentSchedule,
-    getStudentPaymentSchedule(student.curso).length > 0
-      ? getStudentPaymentSchedule(student.curso)
+    getStudentPaymentScheduleEntries(student).length > 0
+      ? getStudentPaymentScheduleEntries(student)
       : [{ label: "Calendario", value: "Sin calendario definido para este curso." }]
   );
 
