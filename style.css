@@ -74,6 +74,24 @@ textarea {
   box-shadow: var(--shadow-soft);
 }
 
+.teacher-portal-shell {
+  min-height: 100vh;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(233, 214, 189, 0.62), transparent 28%),
+    linear-gradient(180deg, #f7efe4 0%, #ede0cf 100%);
+}
+
+.teacher-portal-shell .module-section {
+  display: block;
+}
+
+.teacher-portal-shell #teacherPortalSection {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
 .login-panel-header {
   display: flex;
   justify-content: flex-end;

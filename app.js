@@ -103,6 +103,7 @@ const ALL_MODULE_PERMISSIONS = [
 
 const form = document.getElementById("prospectForm");
 const loginShell = document.getElementById("loginShell");
+const teacherPortalShell = document.getElementById("teacherPortalShell");
 const appShell = document.getElementById("appShell");
 const sidebarShell = document.querySelector(".sidebar");
 const topbarShell = document.querySelector(".topbar");
@@ -371,6 +372,17 @@ const moduleSections = {
   "portal-maestras": document.getElementById("teacherPortalSection"),
   "web-venezia": document.getElementById("webVeneziaSection"),
 };
+
+function mountTeacherPortalShell() {
+  const teacherPortalSection = moduleSections["portal-maestras"];
+  if (!teacherPortalShell || !teacherPortalSection) {
+    return;
+  }
+
+  if (teacherPortalSection.parentElement !== teacherPortalShell) {
+    teacherPortalShell.appendChild(teacherPortalSection);
+  }
+}
 
 const statProspectos = document.getElementById("statProspectos");
 const statInformaciones = document.getElementById("statInformaciones");
@@ -2968,6 +2980,7 @@ function applyRoleToSidebar() {
 
 function updateSessionUI() {
   const user = getCurrentInternalUser();
+  mountTeacherPortalShell();
   if (currentAccessMode !== "student" && isTeacherInternalUser(user) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Corrigiendo modo de acceso a teacher", {
       username: user?.username || "",
@@ -2985,9 +2998,11 @@ function updateSessionUI() {
   document.body.classList.toggle("student-portal-mode", studentPortalMode);
   document.body.classList.toggle("teacher-portal-mode", teacherPortalMode);
   loginShell.hidden = inApp || !publicAccessPanelOpen;
-  appShell.hidden = false;
+  teacherPortalShell.hidden = !teacherPortalMode;
+  appShell.hidden = teacherPortalMode;
   loginShell.style.display = inApp || !publicAccessPanelOpen ? "none" : "grid";
-  appShell.style.display = "grid";
+  teacherPortalShell.style.display = teacherPortalMode ? "block" : "none";
+  appShell.style.display = teacherPortalMode ? "none" : "grid";
 
   if (sidebarShell) {
     sidebarShell.hidden = teacherPortalMode;
@@ -7006,6 +7021,7 @@ async function initApp() {
 
   await normalizeLegacyProspects();
   await normalizeInternalUsers();
+  mountTeacherPortalShell();
   resetForm();
   resetInternalUserForm();
   resetStaffForm();
