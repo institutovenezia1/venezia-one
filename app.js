@@ -37,7 +37,7 @@ const EXPENSE_CATEGORIES = [
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
-const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería"];
+const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería", "COORD de maestras"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
 const TEACHER_ATTENDANCE_STATUS_OPTIONS = ["Asistió", "Falta", "Permiso"];
 const TEACHER_OPERATIONAL_STATUS_OPTIONS = ["Activo", "Inactivo"];
@@ -1022,6 +1022,13 @@ function normalizeTeacherSpecialty(value) {
   if (normalized === "pestanas" || normalized === "pestañas") return "Pestañas";
   if (normalized === "maquillaje") return "Maquillaje";
   if (normalized === "barberia" || normalized === "barbería") return "Barbería";
+  if (
+    normalized === "coord de maestras" ||
+    normalized === "coordinadora de maestras" ||
+    normalized === "coord maestras"
+  ) {
+    return "COORD de maestras";
+  }
   return "";
 }
 
@@ -1077,6 +1084,7 @@ function getDefaultTeacherSpecialtyFromPosition(position) {
   if (normalizedPosition === "miss de pestanas" || normalizedPosition === "miss de pestañas") return "Pestañas";
   if (normalizedPosition === "miss de maquillaje") return "Maquillaje";
   if (normalizedPosition === "miss de barberia" || normalizedPosition === "miss de barbería") return "Barbería";
+  if (normalizedPosition === "coordinadora de maestras") return "COORD de maestras";
   return "";
 }
 
