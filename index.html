@@ -2082,7 +2082,7 @@
 
         <section class="module-section" id="teacherPortalSection">
           <section class="module-section-inner" id="teacherPortalDashboard" hidden>
-            <section class="panel">
+            <section class="panel teacher-portal-header-panel">
               <div class="section-heading">
                 <p class="eyebrow">Cuenta</p>
                 <h3>PORTAL DE MAESTRA</h3>
@@ -2106,29 +2106,29 @@
               <div class="form-actions">
                 <a class="primary-btn whatsapp-director-btn" id="teacherPortalContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Dudas con Dirección</a>
               </div>
+
+              <section class="stats-grid mi-venezia-stats-grid teacher-portal-stats-grid" aria-label="Resumen de maestra">
+                <article class="stat-card">
+                  <p>Días laborados</p>
+                  <strong id="teacherPortalStatDays">0</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Turnos cubiertos</p>
+                  <strong id="teacherPortalStatShifts">0</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Incidencias / permisos</p>
+                  <strong id="teacherPortalStatIncidents">0</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Nómina estimada</p>
+                  <strong id="teacherPortalStatPayroll">$0</strong>
+                </article>
+              </section>
             </section>
 
-            <section class="stats-grid mi-venezia-stats-grid teacher-portal-stats-grid" aria-label="Resumen de maestra">
-              <article class="stat-card">
-                <p>Días laborados</p>
-                <strong id="teacherPortalStatDays">0</strong>
-              </article>
-              <article class="stat-card">
-                <p>Turnos cubiertos</p>
-                <strong id="teacherPortalStatShifts">0</strong>
-              </article>
-              <article class="stat-card">
-                <p>Incidencias / permisos</p>
-                <strong id="teacherPortalStatIncidents">0</strong>
-              </article>
-              <article class="stat-card">
-                <p>Nómina estimada</p>
-                <strong id="teacherPortalStatPayroll">$0</strong>
-              </article>
-            </section>
-
-            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid">
-              <section class="panel">
+            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-secondary-row">
+              <section class="panel teacher-portal-equal-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Perfil</p>
                   <h3>Mi información docente</h3>
@@ -2136,7 +2136,7 @@
                 <div id="teacherPortalProfile" class="info-list"></div>
               </section>
 
-              <section class="panel">
+              <section class="panel teacher-portal-equal-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Nómina</p>
                   <h3>Mi nómina estimada</h3>
@@ -2150,8 +2150,8 @@
               </section>
             </section>
 
-            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid">
-              <section class="panel">
+            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-tertiary-row">
+              <section class="panel teacher-portal-equal-panel teacher-portal-table-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Jornadas</p>
                   <h3>Mis jornadas</h3>
@@ -2174,7 +2174,7 @@
                 </p>
               </section>
 
-              <section class="panel">
+              <section class="panel teacher-portal-equal-panel teacher-portal-table-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Periodo actual</p>
                   <h3>Turnos válidos considerados</h3>

@@ -92,6 +92,11 @@ textarea {
   margin: 0 auto;
 }
 
+.teacher-portal-shell #teacherPortalDashboard {
+  display: grid;
+  gap: 1rem;
+}
+
 .login-panel-header {
   display: flex;
   justify-content: flex-end;
@@ -1817,7 +1822,7 @@ td select {
 .teacher-portal-hero-panel {
   position: relative;
   overflow: hidden;
-  padding: 1.8rem;
+  padding: 1.5rem;
   border: 1px solid rgba(188, 155, 86, 0.34);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 32%),
@@ -1825,6 +1830,7 @@ td select {
   box-shadow:
     0 24px 48px rgba(131, 110, 71, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  gap: 0.85rem;
 }
 
 .teacher-portal-hero-panel::after {
@@ -1839,12 +1845,42 @@ td select {
 }
 
 .teacher-portal-stamp {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.3rem;
   color: #8c6a21;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
+}
+
+.teacher-portal-header-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.teacher-portal-header-panel .section-heading {
+  margin-bottom: 0;
+}
+
+.teacher-portal-header-panel .eyebrow {
+  margin-bottom: 0.15rem;
+}
+
+.teacher-portal-header-panel h3 {
+  font-size: 1.24rem;
+}
+
+.teacher-portal-header-panel .form-actions {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.teacher-portal-header-panel .secondary-btn {
+  padding: 0.52rem 0.82rem;
+  font-size: 0.8rem;
 }
 
 .mi-venezia-hero-copy h3 {
@@ -1879,11 +1915,58 @@ td select {
 
 .mi-venezia-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.teacher-portal-stats-grid {
+  margin: 0.1rem 0 0;
+  gap: 0.7rem;
+}
+
+.teacher-portal-stats-grid .stat-card {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+}
+
+.teacher-portal-stats-grid .stat-card p {
+  margin-bottom: 0.38rem;
+  font-size: 0.78rem;
+}
+
+.teacher-portal-stats-grid .stat-card strong {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+.teacher-portal-content-grid {
+  gap: 1rem;
+}
+
+.teacher-portal-equal-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.teacher-portal-equal-panel .section-heading:last-of-type {
+  margin-bottom: 0.7rem;
+}
+
+.teacher-portal-equal-panel .info-list:last-child,
+.teacher-portal-equal-panel .table-wrapper {
+  flex: 1;
+}
+
+.teacher-portal-table-panel .table-wrapper {
+  min-height: 300px;
+}
+
+.teacher-portal-payroll-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .mi-venezia-subsection-heading {
-  margin-top: 1rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.65rem;
 }
 
 .mi-venezia-subsection-heading .eyebrow {
@@ -1984,11 +2067,12 @@ td select {
 }
 
 .teacher-portal-payroll-summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 .teacher-portal-payroll-rules {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 body.teacher-portal-mode .sidebar,
@@ -2067,6 +2151,19 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
   .mi-venezia-payment-schedule,
   .teacher-portal-payroll-rules {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-portal-payroll-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-portal-header-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .teacher-portal-table-panel .table-wrapper {
+    min-height: 0;
   }
 }
 
