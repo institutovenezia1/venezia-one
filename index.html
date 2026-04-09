@@ -982,7 +982,7 @@
         </section>
 
         <section class="module-section" id="maestrasSection">
-          <section class="stats-grid" aria-label="Resumen de maestras">
+          <section class="stats-grid maestras-stats-grid" aria-label="Resumen de maestras">
             <article class="stat-card">
               <p>Maestras registradas</p>
               <strong id="teacherCountStat">0</strong>
@@ -1001,8 +1001,8 @@
             </article>
           </section>
 
-          <section class="content-grid">
-            <section class="panel">
+          <section class="content-grid maestras-capture-grid">
+            <section class="panel maestras-capture-panel">
               <div class="section-heading">
                 <p class="eyebrow">Alta</p>
                 <h3>Registrar maestra</h3>
@@ -1061,36 +1061,7 @@
               </form>
             </section>
 
-            <section class="panel table-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Directorio</p>
-                <h3>Maestras registradas</h3>
-              </div>
-
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Nombre completo</th>
-                      <th>Sucursal</th>
-                      <th>Especialidad</th>
-                      <th>Tipo de pago</th>
-                      <th>Usuario</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody id="teachersTableBody"></tbody>
-                </table>
-              </div>
-
-              <p id="teachersEmptyState" class="empty-state">
-                No hay maestras registradas.
-              </p>
-            </section>
-          </section>
-
-          <section class="content-grid">
-            <section class="panel">
+            <section class="panel maestras-capture-panel">
               <div class="section-heading">
                 <p class="eyebrow">Asistencia laboral</p>
                 <h3>Registrar jornada</h3>
@@ -1160,8 +1131,37 @@
                 </div>
               </form>
             </section>
+          </section>
 
-            <section class="panel table-panel">
+          <section class="maestras-stack">
+            <section class="panel table-panel maestras-data-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Directorio</p>
+                <h3>Maestras registradas</h3>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Sucursal</th>
+                      <th>Especialidad</th>
+                      <th>Tipo de pago</th>
+                      <th>Usuario</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teachersTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="teachersEmptyState" class="empty-state">
+                No hay maestras registradas.
+              </p>
+            </section>
+
+            <section class="panel table-panel maestras-data-panel">
               <div class="section-heading">
                 <p class="eyebrow">Historial</p>
                 <h3>Asistencias laborales</h3>
@@ -1190,78 +1190,78 @@
                 No hay asistencias laborales registradas.
               </p>
             </section>
-          </section>
 
-          <section class="panel table-panel">
-            <div class="section-heading">
-              <p class="eyebrow">Resumen</p>
-              <h3>Resumen quincenal</h3>
-            </div>
+            <section class="panel table-panel maestras-data-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Resumen</p>
+                <h3>Resumen quincenal</h3>
+              </div>
 
-            <div class="prospect-form attendance-filters teacher-summary-filters">
-              <label>
-                <span>Sucursal</span>
-                <select id="teacherSummaryBranchFilter">
-                  <option value="">Todas</option>
-                  <option>Tlaxcala</option>
-                  <option>Puebla</option>
-                </select>
-              </label>
+              <div class="prospect-form attendance-filters teacher-summary-filters">
+                <label>
+                  <span>Sucursal</span>
+                  <select id="teacherSummaryBranchFilter">
+                    <option value="">Todas</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Maestra</span>
-                <select id="teacherSummaryTeacherFilter">
-                  <option value="">Todas</option>
-                </select>
-              </label>
+                <label>
+                  <span>Maestra</span>
+                  <select id="teacherSummaryTeacherFilter">
+                    <option value="">Todas</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Mes</span>
-                <input id="teacherSummaryMonthFilter" type="month" />
-              </label>
+                <label>
+                  <span>Mes</span>
+                  <input id="teacherSummaryMonthFilter" type="month" />
+                </label>
 
-              <label>
-                <span>Quincena</span>
-                <select id="teacherSummaryFortnightFilter">
-                  <option value="">Todas</option>
-                  <option value="1">1 al 15</option>
-                  <option value="2">16 al cierre</option>
-                </select>
-              </label>
+                <label>
+                  <span>Quincena</span>
+                  <select id="teacherSummaryFortnightFilter">
+                    <option value="">Todas</option>
+                    <option value="1">1 al 15</option>
+                    <option value="2">16 al cierre</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Desde</span>
-                <input id="teacherSummaryDateFromFilter" type="date" />
-              </label>
+                <label>
+                  <span>Desde</span>
+                  <input id="teacherSummaryDateFromFilter" type="date" />
+                </label>
 
-              <label>
-                <span>Hasta</span>
-                <input id="teacherSummaryDateToFilter" type="date" />
-              </label>
-            </div>
+                <label>
+                  <span>Hasta</span>
+                  <input id="teacherSummaryDateToFilter" type="date" />
+                </label>
+              </div>
 
-            <div class="table-wrapper teacher-summary-table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Maestra</th>
-                    <th>Sucursal</th>
-                    <th>Especialidad</th>
-                    <th>Días laborados</th>
-                    <th>Turnos cubiertos</th>
-                    <th>Detalle turnos</th>
-                    <th>Faltas</th>
-                    <th>Permisos</th>
-                    <th>Total estimado</th>
-                  </tr>
-                </thead>
-                <tbody id="teacherSummaryTableBody"></tbody>
-              </table>
-            </div>
+              <div class="table-wrapper teacher-summary-table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Maestra</th>
+                      <th>Sucursal</th>
+                      <th>Especialidad</th>
+                      <th>Días laborados</th>
+                      <th>Turnos cubiertos</th>
+                      <th>Detalle turnos</th>
+                      <th>Faltas</th>
+                      <th>Permisos</th>
+                      <th>Total estimado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teacherSummaryTableBody"></tbody>
+                </table>
+              </div>
 
-            <p id="teacherSummaryEmptyState" class="empty-state">
-              No hay información de maestras para los filtros seleccionados.
-            </p>
+              <p id="teacherSummaryEmptyState" class="empty-state">
+                No hay información de maestras para los filtros seleccionados.
+              </p>
+            </section>
           </section>
         </section>
 
