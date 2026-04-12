@@ -2105,15 +2105,15 @@ td select {
 }
 
 .mi-venezia-payment-schedule .info-item {
-  --payment-glass-tint: rgba(243, 221, 226, 0.68);
+  --payment-glass-tint: rgba(243, 221, 226, 0.82);
   padding: 0.8rem 0.9rem;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.48) 0%, var(--payment-glass-tint) 100%);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.42) 0%, var(--payment-glass-tint) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    0 8px 18px rgba(131, 116, 103, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 8px 18px rgba(131, 116, 103, 0.12);
   backdrop-filter: blur(18px) saturate(125%);
   -webkit-backdrop-filter: blur(18px) saturate(125%);
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -2133,23 +2133,23 @@ td select {
 }
 
 .mi-venezia-payment-schedule .info-item:nth-child(1) {
-  --payment-glass-tint: rgba(243, 221, 226, 0.74);
+  --payment-glass-tint: rgba(243, 221, 226, 0.9);
 }
 
 .mi-venezia-payment-schedule .info-item:nth-child(2) {
-  --payment-glass-tint: rgba(232, 223, 243, 0.74);
+  --payment-glass-tint: rgba(232, 223, 243, 0.9);
 }
 
 .mi-venezia-payment-schedule .info-item:nth-child(3) {
-  --payment-glass-tint: rgba(244, 231, 218, 0.76);
+  --payment-glass-tint: rgba(244, 231, 218, 0.92);
 }
 
 .mi-venezia-payment-schedule .info-item:nth-child(4) {
-  --payment-glass-tint: rgba(239, 228, 200, 0.78);
+  --payment-glass-tint: rgba(239, 228, 200, 0.94);
 }
 
 .mi-venezia-payment-schedule .info-item:nth-child(5) {
-  --payment-glass-tint: rgba(242, 221, 210, 0.78);
+  --payment-glass-tint: rgba(242, 221, 210, 0.94);
 }
 
 .mi-venezia-simple-table table {

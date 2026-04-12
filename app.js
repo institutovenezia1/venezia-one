@@ -5802,6 +5802,10 @@ function renderMiVeneziaDashboard() {
   );
 
   renderInfoList(miVeneziaResumenAsistencias, [
+    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
+    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
+    { label: "Acceso", value: student.accesoElegido || "-" },
+    { label: "Status", value: student.estado || "Activa" },
     { label: "Total de clases", value: String(totalClasesPlaneadas) },
     { label: "Asistencias registradas", value: String(asistencias) },
     { label: "Faltas", value: String(faltas) },
@@ -5835,12 +5839,7 @@ function renderMiVeneziaDashboard() {
     .join("");
   miVeneziaPagosEmptyState.hidden = paymentEntries.length > 0;
 
-  renderInfoList(miVeneziaAvance, [
-    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
-    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
-    { label: "Acceso", value: student.accesoElegido || "-" },
-    { label: "Status", value: student.estado || "Activa" },
-  ]);
+  miVeneziaAvance.innerHTML = "";
 
   miVeneziaLoginPanel.hidden = true;
   miVeneziaDashboard.hidden = false;
