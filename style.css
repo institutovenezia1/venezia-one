@@ -4010,20 +4010,29 @@ body.public-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-stats-grid {
     gap: 0.45rem;
     margin-bottom: 0.8rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-mini-stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     padding: 0.72rem 0.78rem;
     border-radius: 18px;
+    min-height: 78px;
+    height: 100%;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-mini-stat p {
     margin-bottom: 0.18rem;
     font-size: 0.68rem;
+    line-height: 1.1;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-mini-stat strong {
     font-size: 0.98rem;
+    line-height: 1.15;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-content-grid {
@@ -4153,6 +4162,24 @@ body.public-mode .module-section.active {
 @media (max-width: 520px) {
   body.student-portal-mode.student-portal-active .main-content {
     padding: 0.4rem 0.6rem 0.9rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.38rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat {
+    min-height: 72px;
+    padding: 0.64rem 0.68rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat p {
+    font-size: 0.64rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat strong {
+    font-size: 0.9rem;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-hero-panel,
