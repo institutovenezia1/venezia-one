@@ -2066,6 +2066,87 @@ td select {
   padding: 0.62rem 0.68rem;
 }
 
+.mi-venezia-reglamento-panel {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(214, 187, 130, 0.18), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(244, 224, 229, 0.34), transparent 24%),
+    linear-gradient(135deg, #fffdfa 0%, #f5eee6 100%);
+}
+
+.mi-venezia-reglamento-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -72px -88px auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 161, 74, 0.12) 0%, rgba(201, 161, 74, 0) 72%);
+  pointer-events: none;
+}
+
+.mi-venezia-reglamento-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mi-venezia-reglamento-copy {
+  max-width: 760px;
+  margin: -0.2rem 0 0;
+  color: #5f554b;
+  line-height: 1.65;
+}
+
+.mi-venezia-reglamento-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.mi-venezia-reglamento-meta .info-item {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(216, 208, 197, 0.88);
+}
+
+.mi-venezia-reglamento-actions {
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.mi-venezia-reglamento-actions .primary-btn,
+.mi-venezia-reglamento-actions .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180px;
+  text-decoration: none;
+}
+
+.mi-venezia-reglamento-status {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mi-venezia-reglamento-status.is-confirmed {
+  background: linear-gradient(180deg, #eef7eb 0%, #dcefd8 100%);
+  color: #4b7152;
+  border-color: rgba(92, 148, 103, 0.24);
+}
+
+.mi-venezia-reglamento-actions .primary-btn:disabled {
+  cursor: default;
+  opacity: 1;
+  transform: none;
+  box-shadow: none;
+  background: linear-gradient(180deg, #e8efe4 0%, #d6e3d2 100%);
+  color: #4b7152;
+}
+
 .teacher-portal-payroll-summary {
   gap: 0.55rem;
 }
@@ -2149,12 +2230,17 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
 
   .mi-venezia-payments-summary,
   .mi-venezia-payment-schedule,
+  .mi-venezia-reglamento-meta,
   .teacher-portal-payroll-rules {
     grid-template-columns: 1fr;
   }
 
   .teacher-portal-payroll-summary {
     grid-template-columns: 1fr;
+  }
+
+  .mi-venezia-reglamento-header {
+    flex-direction: column;
   }
 
   .teacher-portal-header-panel {

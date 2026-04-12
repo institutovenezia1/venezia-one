@@ -329,8 +329,11 @@
       "Asesora que inscribió",
       "Método de pago",
       "Tipo de pago",
+      "Inscripción pagada",
       "Cantidad de pago",
       "Mensualidad asignada",
+      "Colegiatura",
+      "Promoción",
       "Apoyo gobierno",
       "Documentación",
       "Tiene hijos",
@@ -339,6 +342,8 @@
       "Usuario alta",
       "Usuario Mi Venezia",
       "Password Mi Venezia",
+      "Lectura reglamento",
+      "Fecha lectura reglamento",
     ]);
 
     return String(notes || "")
@@ -349,6 +354,45 @@
       })
       .join(" | ")
       .trim();
+  }
+
+  function buildStudentNotes(record) {
+    const normalizeValue = (value) => String(value || "").trim() || "-";
+
+    return [
+      stripAltaMetadata(record.observaciones || ""),
+      `ID Alumna: ${normalizeValue(record.studentCode)}`,
+      `Fecha de inscripción: ${normalizeValue(record.fechaInscripcion)}`,
+      `Día de clases: ${normalizeValue(record.diaClases)}`,
+      `Correo: ${normalizeValue(record.correo)}`,
+      `Dirección: ${normalizeValue(record.direccion)}`,
+      `Fecha de nacimiento: ${normalizeValue(record.fechaNacimiento)}`,
+      `Tutor: ${normalizeValue(record.tutor)}`,
+      `Escolaridad: ${normalizeValue(record.escolaridad)}`,
+      `Contacto de emergencia: ${normalizeValue(record.contactoEmergencia)}`,
+      `Asesor que inscribió: ${normalizeValue(record.asesoraInscribio)}`,
+      `Método de pago: ${normalizeValue(record.metodoPago)}`,
+      `Tipo de pago: ${normalizeValue(record.tipoPago)}`,
+      `Inscripción pagada: ${normalizeValue(record.inscripcionPagada)}`,
+      `Cantidad de pago: ${normalizeValue(record.cantidadPago)}`,
+      `Mensualidad asignada: ${normalizeValue(record.mensualidad)}`,
+      `Colegiatura: ${normalizeValue(record.colegiatura)}`,
+      `Promoción: ${normalizeValue(record.promocion)}`,
+      `Apoyo gobierno: ${normalizeValue(record.apoyoGobierno)}`,
+      `Documentación: ${normalizeValue(record.documentos)}`,
+      `Tiene hijos: ${normalizeValue(record.tieneHijos)}`,
+      `Trabaja actualmente: ${normalizeValue(record.trabajaActualmente)}`,
+      `Notas médicas: ${normalizeValue(record.notasMedicas)}`,
+      `Usuario alta: ${normalizeValue(record.usuarioAlta)}`,
+      `Usuario Mi Venezia: ${normalizeValue(record.portalUser || record.telefono)}`,
+      `Password Mi Venezia: ${normalizeValue(record.portalPassword)}`,
+      record.lecturaReglamento ? "Lectura reglamento: Sí" : "",
+      record.fechaLecturaReglamento
+        ? `Fecha lectura reglamento: ${record.fechaLecturaReglamento}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
   }
 
   function extractStaffMetadata(notes, label) {
@@ -474,7 +518,7 @@
       password: record.portalPassword || "",
       status: record.estado || "Activa",
       source_prospect_id: record.prospectId || null,
-      notes: record.observaciones || "",
+      notes: buildStudentNotes(record),
       created_at: record.createdAt || null,
     }),
     fromDb: (record) => ({
@@ -512,6 +556,11 @@
       notasMedicas: extractAltaMetadata(record.notes, "Notas médicas"),
       portalUser: extractAltaMetadata(record.notes, "Usuario Mi Venezia") || record.phone || "",
       portalPassword: record.password || "",
+      lecturaReglamento:
+        ["si", "sí", "true", "confirmada"].includes(
+          extractAltaMetadata(record.notes, "Lectura reglamento").trim().toLowerCase()
+        ) || Boolean(extractAltaMetadata(record.notes, "Fecha lectura reglamento")),
+      fechaLecturaReglamento: extractAltaMetadata(record.notes, "Fecha lectura reglamento"),
       estado: record.status || "Activa",
       prospectId: record.source_prospect_id || "",
       observaciones: stripAltaMetadata(record.notes),

@@ -13,6 +13,7 @@ const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
+const REGLAMENTO_PDF_PATH = "/docs/reglamento-interno-venezia.pdf";
 
 const INCOME_CATEGORIES = [
   "Inscripción",
@@ -317,6 +318,11 @@ const miVeneziaStatCourse = document.getElementById("miVeneziaStatCourse");
 const miVeneziaStatAttendance = document.getElementById("miVeneziaStatAttendance");
 const miVeneziaStatPayments = document.getElementById("miVeneziaStatPayments");
 const miVeneziaStatStatus = document.getElementById("miVeneziaStatStatus");
+const miVeneziaReglamentoStatus = document.getElementById("miVeneziaReglamentoStatus");
+const miVeneziaReglamentoMeta = document.getElementById("miVeneziaReglamentoMeta");
+const miVeneziaViewReglamentoButton = document.getElementById("miVeneziaViewReglamentoButton");
+const miVeneziaDownloadReglamentoButton = document.getElementById("miVeneziaDownloadReglamentoButton");
+const miVeneziaConfirmReadButton = document.getElementById("miVeneziaConfirmReadButton");
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
@@ -623,6 +629,15 @@ async function saveStudentRecord(record) {
     created_at: record.createdAt || null,
   });
   const result = await dataService.entities.students.upsertOne(record, { alertOnFailure: false });
+  const nextRecord = result.record;
+  const existingIndex = students.findIndex((item) => item.id === nextRecord.id);
+
+  if (existingIndex >= 0) {
+    students[existingIndex] = nextRecord;
+  } else {
+    students.unshift(nextRecord);
+  }
+
   if (!result.synced) {
     console.log('Supabase write to "students" failed.');
     console.log('Supabase response for "students" write:', result.response);
@@ -636,15 +651,6 @@ async function saveStudentRecord(record) {
       nombre: record.nombre,
     });
   } else {
-    const nextRecord = result.record;
-    const existingIndex = students.findIndex((item) => item.id === nextRecord.id);
-
-    if (existingIndex >= 0) {
-      students[existingIndex] = nextRecord;
-    } else {
-      students.unshift(nextRecord);
-    }
-
     console.log('Supabase write to "students" succeeded.', {
       id: nextRecord.id,
     });
@@ -2366,6 +2372,25 @@ function formatDisplayDate(dateValue) {
   });
 }
 
+function formatDisplayDateTime(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return dateValue;
+  }
+
+  return date.toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function getProspectFollowupMeta(dateValue) {
   if (!dateValue) {
     return {
@@ -2727,6 +2752,8 @@ function getAltaFormData() {
     observaciones: [rawObservaciones, ...metadataSegments].filter(Boolean).join(" | "),
     portalUser,
     portalPassword,
+    lecturaReglamento: existingStudent?.lecturaReglamento || false,
+    fechaLecturaReglamento: existingStudent?.fechaLecturaReglamento || "",
     estado: "Activa",
     createdAt: existingStudent?.createdAt || new Date().toISOString(),
   };
@@ -4141,6 +4168,14 @@ function getStudentById(studentId) {
   return students.find((student) => student.id === studentId);
 }
 
+function getStudentReglamentoStatus(student) {
+  const fechaConfirmacion = String(student?.fechaLecturaReglamento || "").trim();
+  return {
+    confirmado: Boolean(student?.lecturaReglamento || fechaConfirmacion),
+    fechaConfirmacion,
+  };
+}
+
 function loadStudentIntoAlta(studentId) {
   const student = getStudentById(studentId);
   if (!student) {
@@ -5509,6 +5544,73 @@ function getStudentDirectorWhatsappUrl(student) {
   return `https://wa.me/522461379504?text=${message}`;
 }
 
+function renderMiVeneziaReglamento(student) {
+  const { confirmado, fechaConfirmacion } = getStudentReglamentoStatus(student);
+
+  if (miVeneziaViewReglamentoButton) {
+    miVeneziaViewReglamentoButton.href = REGLAMENTO_PDF_PATH;
+  }
+
+  if (miVeneziaDownloadReglamentoButton) {
+    miVeneziaDownloadReglamentoButton.href = REGLAMENTO_PDF_PATH;
+  }
+
+  if (miVeneziaReglamentoStatus) {
+    miVeneziaReglamentoStatus.textContent = confirmado ? "Lectura confirmada" : "Lectura pendiente";
+    miVeneziaReglamentoStatus.className = confirmado
+      ? "status-pill mi-venezia-reglamento-status is-confirmed"
+      : "status-pill status-pill-default mi-venezia-reglamento-status";
+  }
+
+  renderInfoList(miVeneziaReglamentoMeta, [
+    { label: "Documento", value: "Reglamento Interno del Instituto Venezia" },
+    { label: "Estado", value: confirmado ? "Reglamento leído" : "Pendiente de confirmación" },
+    {
+      label: "Fecha de lectura",
+      value: fechaConfirmacion ? formatDisplayDateTime(fechaConfirmacion) : "Aún sin confirmar",
+    },
+  ]);
+
+  if (miVeneziaConfirmReadButton) {
+    miVeneziaConfirmReadButton.disabled = confirmado;
+    miVeneziaConfirmReadButton.textContent = confirmado ? "Reglamento leído" : "Confirmo lectura";
+  }
+}
+
+async function handleMiVeneziaReglamentoConfirmation() {
+  const student = getStudentById(currentPortalStudentId);
+  if (!student) {
+    return;
+  }
+
+  const { confirmado } = getStudentReglamentoStatus(student);
+  if (confirmado) {
+    renderMiVeneziaReglamento(student);
+    return;
+  }
+
+  if (miVeneziaConfirmReadButton) {
+    miVeneziaConfirmReadButton.disabled = true;
+    miVeneziaConfirmReadButton.textContent = "Guardando...";
+  }
+
+  const updatedStudent = {
+    ...student,
+    lecturaReglamento: true,
+    fechaLecturaReglamento: new Date().toISOString(),
+  };
+  const saveResult = await saveStudentRecord(updatedStudent);
+
+  renderMiVeneziaDashboard();
+
+  if (!saveResult.synced) {
+    alert("La lectura del reglamento se guardó en respaldo local, pero no se pudo sincronizar con Supabase.");
+    return;
+  }
+
+  alert("La lectura del reglamento quedó confirmada.");
+}
+
 function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
     <div class="web-access-grid">
@@ -5626,6 +5728,7 @@ function renderMiVeneziaDashboard() {
   miVeneziaStatPayments.textContent = `${registeredPayments} registrados`;
   miVeneziaStatStatus.textContent = student.estado || "Activa";
   miVeneziaContactButton.href = getStudentDirectorWhatsappUrl(student);
+  renderMiVeneziaReglamento(student);
 
   renderInfoList(miVeneziaPerfil, [
     { label: "Nombre completo", value: student.nombre || "-" },
@@ -6476,6 +6579,10 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   currentPortalStudentId = student.id;
   renderMiVeneziaDashboard();
   miVeneziaLoginForm.reset();
+});
+
+miVeneziaConfirmReadButton.addEventListener("click", () => {
+  handleMiVeneziaReglamentoConfirmation();
 });
 
 async function handleWebLeadSubmit(event) {
