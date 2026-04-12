@@ -13,7 +13,7 @@ const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
-const REGLAMENTO_PDF_PATH = "/reglamento-interno-venezia.pdf";
+const REGLAMENTO_PDF_PATH = "/docs/reglamento-interno-venezia.pdf";
 
 const INCOME_CATEGORIES = [
   "Inscripción",
