@@ -2334,14 +2334,11 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
   .mi-venezia-payments-summary,
   .mi-venezia-payment-schedule,
   .mi-venezia-reglamento-meta,
-  .teacher-portal-payroll-rules {
-    grid-template-columns: 1fr;
-  }
-
   .mi-venezia-profile-list,
   .mi-venezia-attendance-summary,
-  .mi-venezia-attendance-meta {
-    grid-template-columns: 1fr;
+  .mi-venezia-attendance-meta,
+  .teacher-portal-payroll-rules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .teacher-portal-payroll-summary {
@@ -3943,6 +3940,15 @@ body.public-mode .module-section.active {
     padding: 0.45rem 0.75rem 1rem;
   }
 
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel {
+    margin-bottom: 0;
+  }
+
   body.student-portal-mode.student-portal-active #miVeneziaSection {
     padding-top: 0;
   }
@@ -3974,6 +3980,127 @@ body.public-mode .module-section.active {
   body.student-portal-mode.student-portal-active #miVeneziaDashboard > .panel:first-child .secondary-btn {
     padding: 0.45rem 0.7rem;
     font-size: 0.76rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-panel {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-summary .info-item {
+    min-height: 0;
+    padding: 0.55rem 0.62rem;
+    border-radius: 16px;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-summary .info-item strong {
+    font-size: 0.67rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-summary .info-item span {
+    font-size: 0.84rem;
+    line-height: 1.22;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-stats-grid {
+    gap: 0.45rem;
+    margin-bottom: 0.8rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat {
+    padding: 0.72rem 0.78rem;
+    border-radius: 18px;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat p {
+    margin-bottom: 0.18rem;
+    font-size: 0.68rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-mini-stat strong {
+    font-size: 0.98rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-content-grid {
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-compact-panel,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-panel {
+    padding: 0.9rem;
+    border-radius: 20px;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-profile-list,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta,
+  body.student-portal-mode.student-portal-active .mi-venezia-payments-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-profile-list .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item {
+    padding: 0.52rem 0.58rem;
+    border-radius: 14px;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-profile-list .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item strong {
+    font-size: 0.64rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-profile-list .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item span {
+    font-size: 0.81rem;
+    line-height: 1.18;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-panel {
+    gap: 0.65rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-simple-table th,
+  body.student-portal-mode.student-portal-active .mi-venezia-simple-table td {
+    padding: 0.42rem 0.46rem;
+    font-size: 0.76rem;
+    line-height: 1.15;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-simple-table th {
+    font-size: 0.68rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions {
+    flex-direction: row;
+    gap: 0.45rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions .primary-btn,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions .secondary-btn {
+    min-width: calc(50% - 0.225rem);
+    padding: 0.62rem 0.72rem;
+    font-size: 0.78rem;
   }
 
   body.teacher-portal-mode.teacher-portal-active .sidebar,
@@ -4020,5 +4147,32 @@ body.public-mode .module-section.active {
   body.teacher-portal-mode.teacher-portal-active #teacherPortalDashboard > .panel:first-child .secondary-btn {
     padding: 0.45rem 0.7rem;
     font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 520px) {
+  body.student-portal-mode.student-portal-active .main-content {
+    padding: 0.4rem 0.6rem 0.9rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-panel,
+  body.student-portal-mode.student-portal-active .mi-venezia-compact-panel,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-panel {
+    padding: 0.8rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-hero-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-profile-list,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta,
+  body.student-portal-mode.student-portal-active .mi-venezia-payments-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta {
+    gap: 0.35rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions .primary-btn,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions .secondary-btn {
+    min-width: 100%;
   }
 }
