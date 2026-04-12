@@ -13,7 +13,7 @@ const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
-const REGLAMENTO_PDF_PATH = "images/reglamentooficial-venezia.pdf";
+const REGLAMENTO_PDF_PATH = "/images/reglamentooficial-venezia.pdf";
 
 const INCOME_CATEGORIES = [
   "Inscripción",
@@ -5749,8 +5749,6 @@ function renderMiVeneziaDashboard() {
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
   const totalClasesPlaneadas = getAttendanceSessionCountForCourse(student.curso);
-  const totalClasesRegistradas = attendanceHistory.length;
-  const clasesPendientes = Math.max(totalClasesPlaneadas - totalClasesRegistradas, 0);
   const registeredPayments = countStudentRegisteredPayments(student);
   const hasPendingPayments = [
     payment.certificadoP1,
@@ -5841,9 +5839,7 @@ function renderMiVeneziaDashboard() {
     { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
     { label: "Fecha de inicio", value: student.fechaInicio || "-" },
     { label: "Acceso", value: student.accesoElegido || "-" },
-    { label: "Estatus académico", value: student.estado || "Activa" },
-    { label: "Clases registradas", value: String(totalClasesRegistradas) },
-    { label: "Clases pendientes", value: String(clasesPendientes) },
+    { label: "Status", value: student.estado || "Activa" },
   ]);
 
   miVeneziaLoginPanel.hidden = true;

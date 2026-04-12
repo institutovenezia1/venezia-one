@@ -1988,39 +1988,40 @@
             </section>
 
             <section class="stats-grid mi-venezia-stats-grid" aria-label="Resumen de alumna">
-              <article class="stat-card">
+              <article class="stat-card mi-venezia-mini-stat">
                 <p>Curso</p>
                 <strong id="miVeneziaStatCourse">-</strong>
               </article>
-              <article class="stat-card">
+              <article class="stat-card mi-venezia-mini-stat">
                 <p>Asistencias</p>
                 <strong id="miVeneziaStatAttendance">0 de 0</strong>
               </article>
-              <article class="stat-card">
+              <article class="stat-card mi-venezia-mini-stat">
                 <p>Pagos</p>
                 <strong id="miVeneziaStatPayments">0 registrados</strong>
               </article>
-              <article class="stat-card">
+              <article class="stat-card mi-venezia-mini-stat">
                 <p>Estatus</p>
                 <strong id="miVeneziaStatStatus">-</strong>
               </article>
             </section>
 
             <section class="content-grid mi-venezia-content-grid">
-              <section class="panel">
+              <section class="panel mi-venezia-compact-panel mi-venezia-profile-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Perfil</p>
                   <h3>Mis datos</h3>
                 </div>
-                <div id="miVeneziaPerfil" class="info-list"></div>
+                <div id="miVeneziaPerfil" class="info-list mi-venezia-profile-list"></div>
               </section>
 
-              <section class="panel">
+              <section class="panel mi-venezia-compact-panel mi-venezia-attendance-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Asistencia</p>
                   <h3>Mis asistencias</h3>
                 </div>
-                <div id="miVeneziaResumenAsistencias" class="info-list"></div>
+                <div id="miVeneziaResumenAsistencias" class="info-list mi-venezia-attendance-summary"></div>
+                <div id="miVeneziaAvance" class="info-list mi-venezia-attendance-meta"></div>
                 <div class="table-wrapper mi-venezia-simple-table">
                   <table>
                     <thead>
@@ -2039,43 +2040,33 @@
               </section>
             </section>
 
-            <section class="content-grid mi-venezia-content-grid">
-              <section class="panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Pagos</p>
-                  <h3>Mis pagos</h3>
-                </div>
-                <div id="miVeneziaPagos" class="info-list mi-venezia-payments-summary"></div>
-                <div class="section-heading mi-venezia-subsection-heading">
-                  <p class="eyebrow">Calendario</p>
-                  <h3>Fechas de pago</h3>
-                </div>
-                <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
-                <div class="table-wrapper mi-venezia-simple-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Concepto</th>
-                        <th>Monto</th>
-                        <th>Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody id="miVeneziaPagosBody"></tbody>
-                  </table>
-                </div>
-                <p id="miVeneziaPagosEmptyState" class="empty-state">
-                  Aún no hay pagos registrados para tu perfil.
-                </p>
-              </section>
-
-              <section class="panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Estado</p>
-                  <h3>Mi estatus</h3>
-                </div>
-                <div id="miVeneziaAvance" class="info-list"></div>
-              </section>
+            <section class="panel mi-venezia-compact-panel mi-venezia-payments-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Pagos</p>
+                <h3>Mis pagos</h3>
+              </div>
+              <div id="miVeneziaPagos" class="info-list mi-venezia-payments-summary"></div>
+              <div class="section-heading mi-venezia-subsection-heading">
+                <p class="eyebrow">Calendario</p>
+                <h3>Fechas de pago</h3>
+              </div>
+              <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
+              <div class="table-wrapper mi-venezia-simple-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Concepto</th>
+                      <th>Monto</th>
+                      <th>Estatus</th>
+                    </tr>
+                  </thead>
+                  <tbody id="miVeneziaPagosBody"></tbody>
+                </table>
+              </div>
+              <p id="miVeneziaPagosEmptyState" class="empty-state">
+                Aún no hay pagos registrados para tu perfil.
+              </p>
             </section>
 
             <section class="panel mi-venezia-reglamento-panel">
@@ -2100,7 +2091,7 @@
                 <a
                   class="secondary-btn"
                   id="miVeneziaViewReglamentoButton"
-                  href="images/reglamentooficial-venezia.pdf"
+                  href="/images/reglamentooficial-venezia.pdf"
                   target="_blank"
                   rel="noopener"
                 >
@@ -2109,7 +2100,7 @@
                 <a
                   class="secondary-btn"
                   id="miVeneziaDownloadReglamentoButton"
-                  href="images/reglamentooficial-venezia.pdf"
+                  href="/images/reglamentooficial-venezia.pdf"
                   download="reglamentooficial-venezia.pdf"
                 >
                   Descargar PDF

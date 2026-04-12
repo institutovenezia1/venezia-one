@@ -1911,11 +1911,106 @@ td select {
 
 .mi-venezia-stats-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1rem;
 }
 
 .mi-venezia-content-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mi-venezia-mini-stat {
+  padding: 0.9rem 0.95rem;
+  border-radius: 20px;
+  min-height: 0;
+}
+
+.mi-venezia-mini-stat p {
+  margin: 0 0 0.25rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-mini-stat strong {
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  line-height: 1.15;
+}
+
+.mi-venezia-compact-panel {
+  padding: 1rem 1.05rem;
+  border-radius: 24px;
+}
+
+.mi-venezia-compact-panel .section-heading {
+  margin-bottom: 0.75rem;
+}
+
+.mi-venezia-compact-panel .section-heading .eyebrow {
+  margin-bottom: 0.18rem;
+}
+
+.mi-venezia-compact-panel .section-heading h3 {
+  font-size: 1.02rem;
+}
+
+.mi-venezia-profile-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.mi-venezia-profile-list .info-item,
+.mi-venezia-attendance-summary .info-item,
+.mi-venezia-attendance-meta .info-item {
+  gap: 0.14rem;
+  padding: 0.58rem 0.68rem;
+  min-height: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(216, 208, 197, 0.82);
+}
+
+.mi-venezia-profile-list .info-item strong,
+.mi-venezia-attendance-summary .info-item strong,
+.mi-venezia-attendance-meta .info-item strong {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7a6f63;
+}
+
+.mi-venezia-profile-list .info-item span,
+.mi-venezia-attendance-summary .info-item span,
+.mi-venezia-attendance-meta .info-item span {
+  font-size: 0.88rem;
+  line-height: 1.25;
+  color: #201a15;
+}
+
+.mi-venezia-attendance-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.mi-venezia-attendance-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.mi-venezia-attendance-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.mi-venezia-attendance-meta .info-item span {
+  font-weight: 700;
+}
+
+.mi-venezia-payments-panel {
+  margin-bottom: 1rem;
 }
 
 .teacher-portal-stats-grid {
@@ -2063,7 +2158,15 @@ td select {
 
 .mi-venezia-simple-table th,
 .mi-venezia-simple-table td {
-  padding: 0.62rem 0.68rem;
+  padding: 0.52rem 0.62rem;
+}
+
+.mi-venezia-simple-table th {
+  font-size: 0.74rem;
+}
+
+.mi-venezia-simple-table td {
+  font-size: 0.84rem;
 }
 
 .mi-venezia-reglamento-panel {
@@ -2232,6 +2335,12 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
   .mi-venezia-payment-schedule,
   .mi-venezia-reglamento-meta,
   .teacher-portal-payroll-rules {
+    grid-template-columns: 1fr;
+  }
+
+  .mi-venezia-profile-list,
+  .mi-venezia-attendance-summary,
+  .mi-venezia-attendance-meta {
     grid-template-columns: 1fr;
   }
 
