@@ -13,7 +13,7 @@ const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
-const REGLAMENTO_PDF_PATH = "/docs/reglamento-interno-venezia.pdf";
+const REGLAMENTO_PDF_PATH = "images/reglamento-interno-venezia.pdf";
 
 const INCOME_CATEGORIES = [
   "Inscripción",
@@ -4176,6 +4176,55 @@ function getStudentReglamentoStatus(student) {
   };
 }
 
+function getStudentAttendanceBaseDate(student, history = []) {
+  const explicitStartDate = String(student?.fechaInicio || "").trim();
+  const fallbackStartDate =
+    history
+      .map((record) => String(record.fecha || "").trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b))[0] || "";
+  const sourceDate = explicitStartDate || fallbackStartDate;
+
+  if (!sourceDate) {
+    return "";
+  }
+
+  return alignDateToSelectedClassDay(sourceDate, student?.diaClases || "");
+}
+
+function getStudentAttendanceCalendar(student) {
+  if (!student) {
+    return [];
+  }
+
+  const history = attendanceRecords
+    .filter((record) => record.studentId === student.id)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const baseDate = getStudentAttendanceBaseDate(student, history);
+
+  if (!baseDate) {
+    return [];
+  }
+
+  const recordsByDate = new Map();
+  history.forEach((record) => {
+    if (!recordsByDate.has(record.fecha)) {
+      recordsByDate.set(record.fecha, record);
+    }
+  });
+
+  return getAttendanceSessionDates(baseDate, getAttendanceSessionCountForCourse(student.curso)).map((session, index) => {
+    const record = recordsByDate.get(session.date) || null;
+
+    return {
+      classLabel: `S${index + 1}`,
+      date: session.date,
+      resultLabel: record ? ATTENDANCE_STATUS_LABELS[record.estado] || record.estado || "-" : "Pendiente",
+      record,
+    };
+  });
+}
+
 function loadStudentIntoAlta(studentId) {
   const student = getStudentById(studentId);
   if (!student) {
@@ -5694,6 +5743,7 @@ function renderMiVeneziaDashboard() {
   const attendanceHistory = attendanceRecords
     .filter((record) => record.studentId === student.id)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const attendanceCalendar = getStudentAttendanceCalendar(student);
 
   const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
@@ -5760,18 +5810,18 @@ function renderMiVeneziaDashboard() {
     { label: "Permisos", value: String(permisos) },
   ]);
 
-  miVeneziaAsistenciasBody.innerHTML = attendanceHistory
+  miVeneziaAsistenciasBody.innerHTML = attendanceCalendar
     .map(
-      (record, index) => `
+      (entry) => `
         <tr>
-          <td>S${index + 1}</td>
-          <td>${escapeHtml(ATTENDANCE_STATUS_LABELS[record.estado] || record.estado || "-")}</td>
-          <td>${escapeHtml(record.fecha || "-")}</td>
+          <td>${escapeHtml(entry.classLabel)}</td>
+          <td>${escapeHtml(entry.resultLabel)}</td>
+          <td>${escapeHtml(entry.date || "-")}</td>
         </tr>
       `
     )
     .join("");
-  miVeneziaAsistenciasEmptyState.hidden = attendanceHistory.length > 0;
+  miVeneziaAsistenciasEmptyState.hidden = attendanceCalendar.length > 0;
 
   miVeneziaPagosBody.innerHTML = paymentEntries
     .map(
