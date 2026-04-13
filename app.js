@@ -246,6 +246,7 @@ const teacherAttendanceShift = document.getElementById("teacherAttendanceShift")
 const teacherAttendanceStatus = document.getElementById("teacherAttendanceStatus");
 const teacherAttendanceTableBody = document.getElementById("teacherAttendanceTableBody");
 const teacherAttendanceEmptyState = document.getElementById("teacherAttendanceEmptyState");
+const teacherAttendanceHistoryPanel = document.getElementById("teacherAttendanceHistoryPanel");
 const teacherOperationalStatus = document.getElementById("teacherOperationalStatus");
 const teacherSummaryBranchFilter = document.getElementById("teacherSummaryBranchFilter");
 const teacherSummaryTeacherFilter = document.getElementById("teacherSummaryTeacherFilter");
@@ -255,6 +256,7 @@ const teacherSummaryDateFromFilter = document.getElementById("teacherSummaryDate
 const teacherSummaryDateToFilter = document.getElementById("teacherSummaryDateToFilter");
 const teacherSummaryTableBody = document.getElementById("teacherSummaryTableBody");
 const teacherSummaryEmptyState = document.getElementById("teacherSummaryEmptyState");
+const teacherQuincenalSummaryPanel = document.getElementById("teacherQuincenalSummaryPanel");
 const teacherCountStat = document.getElementById("teacherCountStat");
 const teacherWorkedDaysStat = document.getElementById("teacherWorkedDaysStat");
 const teacherIncidentsStat = document.getElementById("teacherIncidentsStat");
@@ -1137,6 +1139,24 @@ function getPermissionFallbackFromStaff(user) {
   }
 
   return [];
+}
+
+function isCoordinatorTeacherStaff(user = getCurrentInternalUser()) {
+  const linkedStaffRecord = getLinkedTeacherStaffRecordForUser(user);
+  const normalizedPosition = String(linkedStaffRecord?.puesto || "").trim().toLowerCase();
+  return normalizedPosition === "coordinadora de maestras";
+}
+
+function canViewTeacherHistoryAndSummary(user = getCurrentInternalUser()) {
+  if (!user || user.status !== "Activo") {
+    return false;
+  }
+
+  return (
+    user.role === "Director General" ||
+    user.role === "Director de sucursal" ||
+    isCoordinatorTeacherStaff(user)
+  );
 }
 
 function getStaffBranchPrefix(branch) {
@@ -2320,15 +2340,33 @@ function updateTeacherModuleStats() {
 }
 
 function renderTeachersModule() {
+  const canViewRestrictedTeacherPanels = canViewTeacherHistoryAndSummary();
   normalizeTeacherDataAgainstStaff();
   populateTeacherConfigStaffOptions();
   populateTeacherSelects();
   syncTeacherConfigFields();
   syncTeacherAttendanceFields();
+  if (teacherAttendanceHistoryPanel) {
+    teacherAttendanceHistoryPanel.hidden = !canViewRestrictedTeacherPanels;
+  }
+  if (teacherQuincenalSummaryPanel) {
+    teacherQuincenalSummaryPanel.hidden = !canViewRestrictedTeacherPanels;
+  }
   renderTeachersTable();
-  renderTeacherAttendanceTable();
-  renderTeacherSummaryTable();
-  updateTeacherModuleStats();
+  if (canViewRestrictedTeacherPanels) {
+    renderTeacherAttendanceTable();
+    renderTeacherSummaryTable();
+    updateTeacherModuleStats();
+  } else {
+    teacherAttendanceTableBody.innerHTML = "";
+    teacherSummaryTableBody.innerHTML = "";
+    teacherAttendanceEmptyState.hidden = false;
+    teacherSummaryEmptyState.hidden = false;
+    teacherCountStat.textContent = "0";
+    teacherWorkedDaysStat.textContent = "0";
+    teacherIncidentsStat.textContent = "0";
+    teacherPayrollStat.textContent = formatCurrency(0);
+  }
 }
 
 function editTeacherRecord(id) {
