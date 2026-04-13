@@ -323,6 +323,9 @@ const miVeneziaReglamentoMeta = document.getElementById("miVeneziaReglamentoMeta
 const miVeneziaViewReglamentoButton = document.getElementById("miVeneziaViewReglamentoButton");
 const miVeneziaDownloadReglamentoButton = document.getElementById("miVeneziaDownloadReglamentoButton");
 const miVeneziaConfirmReadButton = document.getElementById("miVeneziaConfirmReadButton");
+const miVeneziaPasswordForm = document.getElementById("miVeneziaPasswordForm");
+const miVeneziaPasswordFeedback = document.getElementById("miVeneziaPasswordFeedback");
+const miVeneziaPasswordSubmitButton = document.getElementById("miVeneziaPasswordSubmitButton");
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
@@ -341,6 +344,9 @@ const teacherPortalStatShifts = document.getElementById("teacherPortalStatShifts
 const teacherPortalStatIncidents = document.getElementById("teacherPortalStatIncidents");
 const teacherPortalStatPayroll = document.getElementById("teacherPortalStatPayroll");
 const teacherPortalPeriodInfo = document.getElementById("teacherPortalPeriodInfo");
+const teacherPortalPasswordForm = document.getElementById("teacherPortalPasswordForm");
+const teacherPortalPasswordFeedback = document.getElementById("teacherPortalPasswordFeedback");
+const teacherPortalPasswordSubmitButton = document.getElementById("teacherPortalPasswordSubmitButton");
 const webLeadForm = document.getElementById("webLeadForm");
 const webSuccessAlert = document.getElementById("webSuccessAlert");
 const webErrorAlert = document.getElementById("webErrorAlert");
@@ -820,6 +826,20 @@ function saveStudentAccessRecords() {
   dataService.entities.studentPortalAccess.setAll(studentAccessRecords);
 }
 
+async function saveStudentPortalAccessRecord(record) {
+  const result = await dataService.entities.studentPortalAccess.upsertOne(record, { alertOnFailure: false });
+  const nextRecord = result.record;
+  const existingIndex = studentAccessRecords.findIndex((item) => item.id === nextRecord.id);
+
+  if (existingIndex >= 0) {
+    studentAccessRecords[existingIndex] = nextRecord;
+  } else {
+    studentAccessRecords.unshift(nextRecord);
+  }
+
+  return result;
+}
+
 function getInternalUserPermissionOverrides() {
   try {
     return JSON.parse(localStorage.getItem(INTERNAL_USER_PERMISSIONS_STORAGE_KEY) || "{}");
@@ -859,6 +879,113 @@ async function saveInternalUsers() {
     }
   });
   await dataService.entities.internalUsers.setAll(internalUsers);
+}
+
+async function saveInternalUserRecord(record) {
+  const result = await dataService.entities.internalUsers.upsertOne(record, { alertOnFailure: false });
+  const nextUser = {
+    ...record,
+    ...result.record,
+    permissions: Array.isArray(record.permissions) ? [...record.permissions] : [],
+  };
+  const existingIndex = internalUsers.findIndex((user) => user.id === nextUser.id);
+
+  if (existingIndex >= 0) {
+    internalUsers[existingIndex] = nextUser;
+  } else {
+    internalUsers.unshift(nextUser);
+  }
+
+  setInternalUserPermissionOverride(nextUser.id, nextUser.permissions);
+
+  return {
+    ...result,
+    record: nextUser,
+  };
+}
+
+function cloneSerializable(value) {
+  return JSON.parse(JSON.stringify(value ?? []));
+}
+
+function restoreCollectionFromSnapshot(key, snapshot) {
+  const restored = cloneSerializable(snapshot);
+  localStorage.setItem(key, JSON.stringify(restored));
+  return restored;
+}
+
+function getSupabaseClientOrThrow() {
+  const client = window.VeneziaSupabase?.client;
+  if (!client) {
+    throw new Error("No hay conexión disponible con el registro principal.");
+  }
+  return client;
+}
+
+async function validateSupabasePassword({ table, id, passwordField = "password", currentPassword, entityLabel }) {
+  const client = getSupabaseClientOrThrow();
+  const { data, error } = await client
+    .from(table)
+    .select(`id, ${passwordField}`)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`No se pudo validar la contraseña actual en el registro principal de ${entityLabel}.`);
+  }
+
+  if (!data) {
+    throw new Error(`No se encontró el registro principal de ${entityLabel}.`);
+  }
+
+  if (String(data[passwordField] || "") !== String(currentPassword || "")) {
+    throw new Error("La contraseña actual no coincide.");
+  }
+}
+
+function getPasswordChangeValidationError({ currentPassword, newPassword, confirmPassword }) {
+  if (!currentPassword) {
+    return "Escribe tu contraseña actual.";
+  }
+
+  if (!newPassword) {
+    return "Escribe una nueva contraseña.";
+  }
+
+  if (newPassword.length < 6) {
+    return "La nueva contraseña debe tener mínimo 6 caracteres.";
+  }
+
+  if (!confirmPassword) {
+    return "Confirma la nueva contraseña.";
+  }
+
+  if (newPassword !== confirmPassword) {
+    return "La nueva contraseña y la confirmación no coinciden.";
+  }
+
+  return "";
+}
+
+function setPortalPasswordFeedback(element, message = "", tone = "") {
+  if (!element) {
+    return;
+  }
+
+  element.hidden = !message;
+  element.textContent = message;
+  element.classList.remove("is-error", "is-success", "is-warning");
+
+  if (message && tone) {
+    element.classList.add(`is-${tone}`);
+  }
+}
+
+function resetPortalPasswordForm(form, feedbackElement) {
+  if (form) {
+    form.reset();
+  }
+  setPortalPasswordFeedback(feedbackElement);
 }
 
 function normalizeInternalLookupValue(value) {
@@ -3155,6 +3282,8 @@ function logoutInternalSession() {
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
   teacherPortalDashboard.hidden = true;
+  resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+  resetPortalPasswordForm(teacherPortalPasswordForm, teacherPortalPasswordFeedback);
   updateSessionUI();
 }
 
@@ -5852,6 +5981,200 @@ function logoutMiVenezia() {
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
   dataService.sessions.clearStudent();
+  resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+}
+
+async function handleMiVeneziaPasswordChange(event) {
+  event.preventDefault();
+
+  if (!currentPortalStudentId) {
+    return;
+  }
+
+  const formData = new FormData(miVeneziaPasswordForm);
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+  const validationError = getPasswordChangeValidationError({
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
+
+  if (validationError) {
+    setPortalPasswordFeedback(miVeneziaPasswordFeedback, validationError, "error");
+    return;
+  }
+
+  const originalButtonLabel = miVeneziaPasswordSubmitButton.textContent;
+  miVeneziaPasswordSubmitButton.disabled = true;
+  miVeneziaPasswordSubmitButton.textContent = "Guardando...";
+  setPortalPasswordFeedback(miVeneziaPasswordFeedback);
+
+  try {
+    await validateSupabasePassword({
+      table: "students",
+      id: currentPortalStudentId,
+      passwordField: "password",
+      currentPassword,
+      entityLabel: "la alumna",
+    });
+
+    students = await dataService.entities.students.getAllPrimary(() => []);
+    studentAccessRecords = await dataService.entities.studentPortalAccess.getAllPrimary(() => []);
+
+    const latestStudent = getStudentById(currentPortalStudentId);
+    if (!latestStudent) {
+      throw new Error("No se encontró tu registro actual de Mi Venezia.");
+    }
+
+    const studentSnapshot = cloneSerializable(students);
+    const studentAccessSnapshot = cloneSerializable(studentAccessRecords);
+    const studentSaveResult = await saveStudentRecord({
+      ...latestStudent,
+      portalPassword: newPassword,
+    });
+
+    if (!studentSaveResult.synced) {
+      students = restoreCollectionFromSnapshot(dataService.keys.students, studentSnapshot);
+      throw new Error("No se pudo guardar la nueva contraseña en el registro principal de alumnas.");
+    }
+
+    let accessWarning = "";
+    const existingAccessRecord = studentAccessRecords.find((record) => record.studentId === latestStudent.id);
+    const accessRecordPayload = {
+      id: existingAccessRecord?.id || crypto.randomUUID(),
+      studentId: latestStudent.id,
+      telefono: normalizePhone(latestStudent.telefono),
+      password: newPassword,
+      notes: existingAccessRecord?.notes || "",
+      createdAt: existingAccessRecord?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const accessSaveResult = await saveStudentPortalAccessRecord(accessRecordPayload);
+
+    if (!accessSaveResult.synced) {
+      studentAccessRecords = restoreCollectionFromSnapshot(
+        dataService.keys.studentPortalAccess,
+        studentAccessSnapshot
+      );
+      accessWarning =
+        " La contraseña principal sí quedó actualizada; el espejo interno de acceso no se pudo refrescar.";
+    }
+
+    renderMiVeneziaDashboard();
+    resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+    setPortalPasswordFeedback(
+      miVeneziaPasswordFeedback,
+      `Tu contraseña quedó actualizada.${accessWarning}`,
+      accessWarning ? "warning" : "success"
+    );
+  } catch (error) {
+    setPortalPasswordFeedback(
+      miVeneziaPasswordFeedback,
+      error?.message || "No se pudo actualizar la contraseña.",
+      "error"
+    );
+  } finally {
+    miVeneziaPasswordSubmitButton.disabled = false;
+    miVeneziaPasswordSubmitButton.textContent = originalButtonLabel;
+  }
+}
+
+async function handleTeacherPortalPasswordChange(event) {
+  event.preventDefault();
+
+  const currentUserId = currentInternalUserId;
+  if (!currentUserId || currentAccessMode !== "teacher") {
+    return;
+  }
+
+  const formData = new FormData(teacherPortalPasswordForm);
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+  const confirmPassword = String(formData.get("confirmPassword") || "");
+  const validationError = getPasswordChangeValidationError({
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
+
+  if (validationError) {
+    setPortalPasswordFeedback(teacherPortalPasswordFeedback, validationError, "error");
+    return;
+  }
+
+  const originalButtonLabel = teacherPortalPasswordSubmitButton.textContent;
+  teacherPortalPasswordSubmitButton.disabled = true;
+  teacherPortalPasswordSubmitButton.textContent = "Guardando...";
+  setPortalPasswordFeedback(teacherPortalPasswordFeedback);
+
+  try {
+    await validateSupabasePassword({
+      table: "internal_users",
+      id: currentUserId,
+      passwordField: "password",
+      currentPassword,
+      entityLabel: "la maestra",
+    });
+
+    internalUsers = await dataService.entities.internalUsers.getAllPrimary(() => []);
+    staffRecords = await dataService.entities.staff.getAllPrimary(() => []);
+    await normalizeInternalUsers();
+
+    const latestUser = internalUsers.find((user) => user.id === currentUserId);
+    if (!latestUser) {
+      throw new Error("No se encontró tu registro principal de acceso.");
+    }
+
+    const internalUsersSnapshot = cloneSerializable(internalUsers);
+    const staffSnapshot = cloneSerializable(staffRecords);
+    const internalUserSaveResult = await saveInternalUserRecord({
+      ...latestUser,
+      password: newPassword,
+    });
+
+    if (!internalUserSaveResult.synced) {
+      internalUsers = restoreCollectionFromSnapshot(dataService.keys.internalUsers, internalUsersSnapshot);
+      throw new Error("No se pudo guardar la nueva contraseña en el registro principal de maestras.");
+    }
+
+    let staffWarning = "";
+    const linkedStaffRecord =
+      staffRecords.find((record) => record.linkedUserId === latestUser.id) ||
+      staffRecords.find((record) => record.username && record.username === latestUser.username) ||
+      null;
+
+    if (linkedStaffRecord) {
+      const staffSaveResult = await saveStaffRecord({
+        ...linkedStaffRecord,
+        password: newPassword,
+      });
+
+      if (!staffSaveResult.synced) {
+        staffRecords = restoreCollectionFromSnapshot(dataService.keys.staff, staffSnapshot);
+        staffWarning =
+          " La cuenta principal sí quedó actualizada; no se pudo reflejar el cambio en Personal.";
+      }
+    }
+
+    renderTeacherPortalDashboard();
+    resetPortalPasswordForm(teacherPortalPasswordForm, teacherPortalPasswordFeedback);
+    setPortalPasswordFeedback(
+      teacherPortalPasswordFeedback,
+      `Tu contraseña quedó actualizada.${staffWarning}`,
+      staffWarning ? "warning" : "success"
+    );
+  } catch (error) {
+    setPortalPasswordFeedback(
+      teacherPortalPasswordFeedback,
+      error?.message || "No se pudo actualizar la contraseña.",
+      "error"
+    );
+  } finally {
+    teacherPortalPasswordSubmitButton.disabled = false;
+    teacherPortalPasswordSubmitButton.textContent = originalButtonLabel;
+  }
 }
 
 function getTeacherProfileByInternalUser(user = getCurrentInternalUser()) {
@@ -6622,6 +6945,7 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   }
 
   currentPortalStudentId = student.id;
+  resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
   renderMiVeneziaDashboard();
   miVeneziaLoginForm.reset();
 });
@@ -6629,6 +6953,9 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
 miVeneziaConfirmReadButton.addEventListener("click", () => {
   handleMiVeneziaReglamentoConfirmation();
 });
+
+miVeneziaPasswordForm.addEventListener("submit", handleMiVeneziaPasswordChange);
+teacherPortalPasswordForm.addEventListener("submit", handleTeacherPortalPasswordChange);
 
 async function handleWebLeadSubmit(event) {
   console.log("WEB ENVIAR SOLICITUD CLICKED");

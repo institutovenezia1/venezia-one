@@ -2069,6 +2069,63 @@
               </p>
             </section>
 
+            <section class="panel mi-venezia-compact-panel portal-security-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Seguridad</p>
+                <h3>Cambiar contraseña</h3>
+              </div>
+
+              <p class="portal-security-copy">
+                Actualiza tu contraseña de Mi Venezia desde aquí. El cambio se guarda directamente en tu registro principal.
+              </p>
+
+              <form id="miVeneziaPasswordForm" class="portal-security-form">
+                <div class="portal-password-fields">
+                  <label>
+                    <span>Contraseña actual</span>
+                    <input
+                      id="miVeneziaCurrentPassword"
+                      name="currentPassword"
+                      type="password"
+                      autocomplete="current-password"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    <span>Nueva contraseña</span>
+                    <input
+                      id="miVeneziaNewPassword"
+                      name="newPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="6"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    <span>Confirmar nueva contraseña</span>
+                    <input
+                      id="miVeneziaConfirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="6"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div class="portal-security-actions">
+                  <button class="primary-btn" type="submit" id="miVeneziaPasswordSubmitButton">Guardar nueva contraseña</button>
+                  <p class="portal-password-hint">Mínimo 6 caracteres.</p>
+                </div>
+
+                <p class="portal-password-feedback" id="miVeneziaPasswordFeedback" hidden aria-live="polite"></p>
+              </form>
+            </section>
+
             <section class="panel mi-venezia-reglamento-panel">
               <div class="mi-venezia-reglamento-header">
                 <div class="section-heading">
@@ -2179,6 +2236,63 @@
                 </div>
                 <div id="teacherPortalPayrollRules" class="info-list mi-venezia-payment-schedule teacher-portal-payroll-rules"></div>
               </section>
+            </section>
+
+            <section class="panel teacher-portal-equal-panel portal-security-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Seguridad</p>
+                <h3>Cambiar contraseña</h3>
+              </div>
+
+              <p class="portal-security-copy">
+                Cambia la contraseña de tu Portal de Maestra sin salir de tu cuenta. El cambio se guarda en tu acceso real.
+              </p>
+
+              <form id="teacherPortalPasswordForm" class="portal-security-form">
+                <div class="portal-password-fields">
+                  <label>
+                    <span>Contraseña actual</span>
+                    <input
+                      id="teacherPortalCurrentPassword"
+                      name="currentPassword"
+                      type="password"
+                      autocomplete="current-password"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    <span>Nueva contraseña</span>
+                    <input
+                      id="teacherPortalNewPassword"
+                      name="newPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="6"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    <span>Confirmar nueva contraseña</span>
+                    <input
+                      id="teacherPortalConfirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="6"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div class="portal-security-actions">
+                  <button class="primary-btn" type="submit" id="teacherPortalPasswordSubmitButton">Actualizar contraseña</button>
+                  <p class="portal-password-hint">Mínimo 6 caracteres.</p>
+                </div>
+
+                <p class="portal-password-feedback" id="teacherPortalPasswordFeedback" hidden aria-live="polite"></p>
+              </form>
             </section>
 
             <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-tertiary-row">
