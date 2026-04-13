@@ -3121,7 +3121,16 @@ function getMixedAdministrativeModules(user) {
 }
 
 function shouldShowAccessSelector(user) {
-  return Boolean(user && isTeacherInternalUser(user) && getMixedAdministrativeModules(user).length > 0);
+  if (!user || user.status !== "Activo") {
+    return false;
+  }
+
+  const hasTeacherAccess = isTeacherInternalUser(user);
+  if (hasTeacherAccess && getMixedAdministrativeModules(user).length === 0) {
+    return false;
+  }
+
+  return getPlatformAccessCards(user).length > 1;
 }
 
 function shouldForceTeacherPortalAccess(user) {
@@ -3217,7 +3226,7 @@ function renderAccessSelector() {
   accessSelectorName.textContent = user.fullName || "Venezia One";
   accessSelectorSummary.textContent =
     cards.length > 0
-      ? "Selecciona a dónde deseas ingresar según la tarea que vas a realizar."
+      ? "Selecciona la plataforma a la que deseas ingresar según la tarea que vas a realizar."
       : "Tu usuario no tiene plataformas disponibles para esta sesión.";
 
   accessSelectorCards.innerHTML = cards
