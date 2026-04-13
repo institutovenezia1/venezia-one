@@ -78,6 +78,19 @@ const BASE_ROLE_PERMISSIONS = {
 };
 
 const BRANCH_LIMITED_ROLES = new Set(["Director de sucursal", "Maestra", "Asesora"]);
+const TEACHER_BASE_INTERNAL_MODULES = new Set(["asistencias", "maestras"]);
+const INTERNAL_PLATFORM_MODULE_ORDER = [
+  "dashboard",
+  "crm-prospectos",
+  "altas",
+  "asistencias",
+  "maestras",
+  "pagos",
+  "balance",
+  "finanzas",
+  "personal",
+  "usuarios-accesos",
+];
 const TEACHER_ACCESS_ROLE_LABELS = new Set([
   "maestra",
   "miss de unas",
@@ -193,6 +206,10 @@ const pendingAltasEmptyState = document.getElementById("pendingAltasEmptyState")
 const submitButton = document.getElementById("submitButton");
 const navItems = document.querySelectorAll(".nav-item");
 const moduleBadge = document.getElementById("moduleBadge");
+const accessSelectorName = document.getElementById("accessSelectorName");
+const accessSelectorSummary = document.getElementById("accessSelectorSummary");
+const accessSelectorCards = document.getElementById("accessSelectorCards");
+const accessSelectorLogoutButton = document.getElementById("accessSelectorLogoutButton");
 
 const attendanceDate = document.getElementById("attendanceDate");
 const attendanceSearchInput = document.getElementById("attendanceSearchInput");
@@ -370,6 +387,7 @@ const heroSliderPrevButton = heroSlider ? heroSlider.querySelector("[data-hero-s
 const heroSliderNextButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-next]") : null;
 
 const moduleSections = {
+  "access-selector": document.getElementById("accessSelectorSection"),
   dashboard: document.getElementById("dashboardSection"),
   "crm-prospectos": document.getElementById("crmSection"),
   altas: document.getElementById("altasSection"),
@@ -3088,6 +3106,160 @@ function matchesCurrentBranch(branch) {
   return !allowedBranch || branch === allowedBranch;
 }
 
+function getUserInternalPlatformModules(user) {
+  if (!user || user.status !== "Activo") {
+    return [];
+  }
+
+  return INTERNAL_PLATFORM_MODULE_ORDER.filter(
+    (module) => Array.isArray(user.permissions) && user.permissions.includes(module) && hasInternalAccess(module)
+  );
+}
+
+function getMixedAdministrativeModules(user) {
+  return getUserInternalPlatformModules(user).filter((module) => !TEACHER_BASE_INTERNAL_MODULES.has(module));
+}
+
+function shouldShowAccessSelector(user) {
+  return Boolean(user && isTeacherInternalUser(user) && getMixedAdministrativeModules(user).length > 0);
+}
+
+function shouldForceTeacherPortalAccess(user) {
+  return Boolean(user && isTeacherInternalUser(user) && !shouldShowAccessSelector(user));
+}
+
+function getPlatformAccessCards(user = getCurrentInternalUser()) {
+  const cardMap = {
+    dashboard: {
+      title: "Dashboard",
+      description: "Consulta el resumen operativo general y los indicadores activos.",
+      eyebrow: "Sistema interno",
+    },
+    "crm-prospectos": {
+      title: "CRM Prospectos",
+      description: "Da seguimiento comercial, agenda y estatus de prospectas.",
+      eyebrow: "Sistema interno",
+    },
+    altas: {
+      title: "Altas",
+      description: "Captura y actualiza expedientes de nuevas alumnas.",
+      eyebrow: "Sistema interno",
+    },
+    asistencias: {
+      title: "Asistencias",
+      description: "Registra y revisa asistencias académicas de alumnas.",
+      eyebrow: "Sistema interno",
+    },
+    maestras: {
+      title: "Maestras",
+      description: "Administra configuración docente y asistencias laborales.",
+      eyebrow: "Sistema interno",
+    },
+    pagos: {
+      title: "Pagos",
+      description: "Consulta y actualiza pagos, mensualidades y pendientes.",
+      eyebrow: "Sistema interno",
+    },
+    balance: {
+      title: "Balance",
+      description: "Revisa ingresos, egresos y saldos operativos.",
+      eyebrow: "Sistema interno",
+    },
+    finanzas: {
+      title: "Finanzas",
+      description: "Gestiona movimientos financieros y su seguimiento.",
+      eyebrow: "Sistema interno",
+    },
+    personal: {
+      title: "Personal",
+      description: "Consulta y actualiza registros del equipo interno.",
+      eyebrow: "Sistema interno",
+    },
+    "usuarios-accesos": {
+      title: "Usuarios y accesos",
+      description: "Administra cuentas, permisos y accesos internos.",
+      eyebrow: "Sistema interno",
+    },
+    "portal-maestras": {
+      title: "Portal de Maestra",
+      description: "Entra a tu portal docente para revisar jornadas y nómina estimada.",
+      eyebrow: "Portal docente",
+    },
+  };
+
+  const cards = getUserInternalPlatformModules(user).map((module) => ({
+    module,
+    ...cardMap[module],
+  }));
+
+  if (isTeacherInternalUser(user)) {
+    cards.push({
+      module: "portal-maestras",
+      ...cardMap["portal-maestras"],
+    });
+  }
+
+  return cards;
+}
+
+function renderAccessSelector() {
+  const user = getCurrentInternalUser();
+  if (!accessSelectorCards || !accessSelectorName || !accessSelectorSummary) {
+    return;
+  }
+
+  if (!user || currentAccessMode !== "access-selector") {
+    accessSelectorCards.innerHTML = "";
+    return;
+  }
+
+  const cards = getPlatformAccessCards(user);
+  accessSelectorName.textContent = user.fullName || "Venezia One";
+  accessSelectorSummary.textContent =
+    cards.length > 0
+      ? "Selecciona a dónde deseas ingresar según la tarea que vas a realizar."
+      : "Tu usuario no tiene plataformas disponibles para esta sesión.";
+
+  accessSelectorCards.innerHTML = cards
+    .map(
+      (card) => `
+        <button class="access-selector-card" type="button" data-platform-module="${card.module}">
+          <span class="access-selector-card-eyebrow">${escapeHtml(card.eyebrow || "Acceso")}</span>
+          <strong>${escapeHtml(card.title || card.module)}</strong>
+          <p>${escapeHtml(card.description || "Abrir acceso disponible.")}</p>
+        </button>
+      `
+    )
+    .join("");
+}
+
+function enterSelectedPlatform(module) {
+  const user = getCurrentInternalUser();
+  if (!user) {
+    return;
+  }
+
+  if (module === "portal-maestras") {
+    currentAccessMode = "teacher";
+    publicAccessPanelOpen = false;
+    updateSessionUI();
+    renderAll();
+    setActiveModule("portal-maestras");
+    return;
+  }
+
+  if (!hasInternalAccess(module)) {
+    alert("No tienes permiso para acceder a esta plataforma.");
+    return;
+  }
+
+  currentAccessMode = "internal";
+  publicAccessPanelOpen = false;
+  updateSessionUI();
+  renderAll();
+  setActiveModule(module);
+}
+
 function getDefaultModuleForCurrentContext() {
   if (currentAccessMode === "student") {
     return "mi-venezia";
@@ -3095,6 +3267,10 @@ function getDefaultModuleForCurrentContext() {
 
   if (currentAccessMode === "teacher") {
     return "portal-maestras";
+  }
+
+  if (currentAccessMode === "access-selector") {
+    return "access-selector";
   }
 
   if (currentAccessMode !== "internal") {
@@ -3135,7 +3311,7 @@ function applyRoleToSidebar() {
 function updateSessionUI() {
   const user = getCurrentInternalUser();
   mountTeacherPortalShell();
-  if (currentAccessMode !== "student" && isTeacherInternalUser(user) && currentAccessMode !== "teacher") {
+  if (currentAccessMode !== "student" && shouldForceTeacherPortalAccess(user) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Corrigiendo modo de acceso a teacher", {
       username: user?.username || "",
       role: user?.role || "",
@@ -3143,7 +3319,12 @@ function updateSessionUI() {
     });
     currentAccessMode = "teacher";
   }
-  const inApp = currentAccessMode === "internal" || currentAccessMode === "student" || currentAccessMode === "teacher";
+  const selectorMode = currentAccessMode === "access-selector";
+  const inApp =
+    currentAccessMode === "internal" ||
+    currentAccessMode === "student" ||
+    currentAccessMode === "teacher" ||
+    selectorMode;
   const publicMode = !inApp;
   const studentPortalMode = currentAccessMode === "student";
   const teacherPortalMode = currentAccessMode === "teacher";
@@ -3151,6 +3332,7 @@ function updateSessionUI() {
   document.body.classList.toggle("public-mode", publicMode);
   document.body.classList.toggle("student-portal-mode", studentPortalMode);
   document.body.classList.toggle("teacher-portal-mode", teacherPortalMode);
+  document.body.classList.toggle("access-selector-mode", selectorMode);
   loginShell.hidden = inApp || !publicAccessPanelOpen;
   teacherPortalShell.hidden = !teacherPortalMode;
   appShell.hidden = teacherPortalMode;
@@ -3159,17 +3341,23 @@ function updateSessionUI() {
   appShell.style.display = teacherPortalMode ? "none" : "grid";
 
   if (sidebarShell) {
-    sidebarShell.hidden = teacherPortalMode;
-    sidebarShell.style.display = teacherPortalMode ? "none" : "";
+    sidebarShell.hidden = teacherPortalMode || selectorMode;
+    sidebarShell.style.display = teacherPortalMode || selectorMode ? "none" : "";
   }
 
   if (topbarShell) {
-    topbarShell.hidden = teacherPortalMode;
-    topbarShell.style.display = teacherPortalMode ? "none" : "";
+    topbarShell.hidden = teacherPortalMode || selectorMode;
+    topbarShell.style.display = teacherPortalMode || selectorMode ? "none" : "";
   }
 
   if (mainContentShell) {
-    mainContentShell.dataset.portalMode = teacherPortalMode ? "teacher" : studentPortalMode ? "student" : "admin";
+    mainContentShell.dataset.portalMode = selectorMode
+      ? "selector"
+      : teacherPortalMode
+        ? "teacher"
+        : studentPortalMode
+          ? "student"
+          : "admin";
   }
 
   Object.entries(moduleSections).forEach(([key, section]) => {
@@ -3177,8 +3365,9 @@ function updateSessionUI() {
       return;
     }
     const shouldHideForTeacher = teacherPortalMode && key !== "portal-maestras";
-    section.hidden = shouldHideForTeacher;
-    section.style.display = shouldHideForTeacher ? "none" : "";
+    const shouldHideForSelector = selectorMode && key !== "access-selector";
+    section.hidden = shouldHideForTeacher || shouldHideForSelector;
+    section.style.display = shouldHideForTeacher || shouldHideForSelector ? "none" : "";
   });
 
   if (currentAccessMode === "internal" && user) {
@@ -3194,6 +3383,10 @@ function updateSessionUI() {
   } else if (currentAccessMode === "teacher" && user) {
     userBadge.hidden = false;
     userBadge.textContent = `Portal Maestras | ${user.fullName || "Maestra"}`;
+    internalLogoutButton.hidden = false;
+    internalLoginError.hidden = true;
+  } else if (selectorMode && user) {
+    userBadge.hidden = true;
     internalLogoutButton.hidden = false;
     internalLoginError.hidden = true;
   } else {
@@ -3221,7 +3414,11 @@ function restoreInternalAccessFromSavedSession() {
     role: user.role,
     teacherMode,
   });
-  currentAccessMode = teacherMode ? "teacher" : "internal";
+  currentAccessMode = shouldShowAccessSelector(user)
+    ? "access-selector"
+    : teacherMode
+      ? "teacher"
+      : "internal";
   publicAccessPanelOpen = false;
   internalLoginError.hidden = true;
   updateSessionUI();
@@ -6587,7 +6784,7 @@ function loadProspectIntoAlta(id) {
 
 function setActiveModule(module) {
   const currentUser = getCurrentInternalUser();
-  if (currentAccessMode !== "student" && isTeacherInternalUser(currentUser) && currentAccessMode !== "teacher") {
+  if (currentAccessMode !== "student" && shouldForceTeacherPortalAccess(currentUser) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Forzando modo teacher al activar módulo", {
       username: currentUser?.username || "",
       role: currentUser?.role || "",
@@ -6602,6 +6799,8 @@ function setActiveModule(module) {
       ? "mi-venezia"
       : currentAccessMode === "teacher"
         ? "portal-maestras"
+      : currentAccessMode === "access-selector"
+        ? "access-selector"
       : currentAccessMode === "internal"
         ? hasInternalAccess(module)
           ? module
@@ -6631,6 +6830,7 @@ function setActiveModule(module) {
     personal: "Personal",
     "mi-venezia": "Mi Venezia",
     "portal-maestras": "Portal Maestras",
+    "access-selector": "Selección de acceso",
     "web-venezia": "Web Venezia",
   };
 
@@ -6656,6 +6856,7 @@ function setActiveModule(module) {
 
 function renderAll() {
   applyBranchRestrictionsToUI();
+  renderAccessSelector();
   populateStaffLinkedUsers();
   renderDashboard();
   renderTable();
@@ -6807,7 +7008,11 @@ internalLoginForm.addEventListener("submit", async (event) => {
   });
 
   currentInternalUserId = user.id;
-  currentAccessMode = teacherMode ? "teacher" : "internal";
+  currentAccessMode = shouldShowAccessSelector(user)
+    ? "access-selector"
+    : teacherMode
+      ? "teacher"
+      : "internal";
   publicAccessPanelOpen = false;
   dataService.sessions.setInternal(user.id);
   updateSessionUI();
@@ -7450,6 +7655,10 @@ navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const module = item.dataset.module;
 
+    if (currentAccessMode === "access-selector") {
+      return;
+    }
+
     if (currentAccessMode === "student" && module !== "mi-venezia") {
       return;
     }
@@ -7483,6 +7692,21 @@ navItems.forEach((item) => {
     }
   });
 });
+
+if (accessSelectorCards) {
+  accessSelectorCards.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-platform-module]");
+    if (!actionButton) {
+      return;
+    }
+
+    enterSelectedPlatform(actionButton.dataset.platformModule);
+  });
+}
+
+if (accessSelectorLogoutButton) {
+  accessSelectorLogoutButton.addEventListener("click", logoutInternalSession);
+}
 
 async function initApp() {
   // Supabase-based modules load here first, with local cache fallback.

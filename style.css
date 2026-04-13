@@ -379,6 +379,115 @@ textarea {
   background: linear-gradient(180deg, #ffffff 0%, #fcfbf8 100%);
 }
 
+.access-selector-section {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.access-selector-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(216, 189, 123, 0.16), transparent 28%),
+    linear-gradient(135deg, #fffdf8 0%, #f7f1e6 48%, #efe5d6 100%);
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  box-shadow:
+    0 28px 54px rgba(110, 84, 38, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.access-selector-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -68px -86px auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.18) 0%, rgba(201, 162, 39, 0) 72%);
+  pointer-events: none;
+}
+
+.access-selector-heading h3 {
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  line-height: 0.96;
+}
+
+.access-selector-heading h3 span {
+  color: var(--color-accent);
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+}
+
+.access-selector-copy {
+  margin: 0 0 1.5rem;
+  max-width: 54rem;
+  color: #50463d;
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.access-selector-actions {
+  margin: 0 0 1.35rem;
+}
+
+.access-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.access-selector-card {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+  min-height: 210px;
+  padding: 1.3rem;
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.78), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 244, 236, 0.94) 100%);
+  color: #241d17;
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    0 16px 32px rgba(92, 70, 31, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.access-selector-card:hover,
+.access-selector-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(201, 162, 39, 0.4);
+  box-shadow:
+    0 20px 38px rgba(92, 70, 31, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  outline: none;
+}
+
+.access-selector-card-eyebrow {
+  color: #907144;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.access-selector-card strong {
+  font-size: 1.32rem;
+  line-height: 1.05;
+}
+
+.access-selector-card p {
+  margin: 0;
+  color: #5a4d42;
+  line-height: 1.55;
+}
+
 .section-heading {
   margin-bottom: 1rem;
 }
@@ -2465,6 +2574,14 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
 }
 
 @media (max-width: 920px) {
+  .access-selector-panel {
+    padding: 1.35rem;
+  }
+
+  .access-selector-grid {
+    grid-template-columns: 1fr;
+  }
+
   .mi-venezia-content-grid {
     grid-template-columns: 1fr;
   }
@@ -3816,6 +3933,34 @@ body.public-mode .module-section {
 }
 
 body.public-mode .module-section.active {
+  display: block;
+}
+
+body.access-selector-mode .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body.access-selector-mode .sidebar,
+body.access-selector-mode .topbar {
+  display: none !important;
+}
+
+body.access-selector-mode .main-content {
+  min-height: 100vh;
+  padding: 2rem;
+  display: grid;
+  align-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(201, 162, 39, 0.12), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(236, 219, 192, 0.5), transparent 24%),
+    linear-gradient(180deg, #fcf8f1 0%, #f4ecdf 100%);
+}
+
+body.access-selector-mode .module-section {
+  display: none;
+}
+
+body.access-selector-mode .module-section.active {
   display: block;
 }
 
