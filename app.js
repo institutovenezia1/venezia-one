@@ -2746,7 +2746,9 @@ async function normalizeInternalUsers() {
       changed = true;
     }
 
-    if (storedPermissions && storedPermissions.length > 0) {
+    if (Array.isArray(normalized.permissions) && normalized.permissions.length > 0) {
+      normalized.permissions = [...new Set(normalized.permissions)];
+    } else if (storedPermissions && storedPermissions.length > 0) {
       normalized.permissions = [...storedPermissions];
       changed = true;
     } else if (staffFallbackPermissions.length > 0 && (!Array.isArray(normalized.permissions) || normalized.permissions.length === 0)) {
@@ -3074,8 +3076,7 @@ function getCurrentInternalUser() {
   return internalUsers.find((user) => user.id === currentInternalUserId) || null;
 }
 
-function hasInternalAccess(module) {
-  const user = getCurrentInternalUser();
+function hasModuleAccessForUser(user, module) {
   if (!user) {
     return false;
   }
@@ -3086,6 +3087,10 @@ function hasInternalAccess(module) {
     return user.role === "Director General" && Array.isArray(user.permissions) && user.permissions.includes(module);
   }
   return Array.isArray(user.permissions) && user.permissions.includes(module);
+}
+
+function hasInternalAccess(module) {
+  return hasModuleAccessForUser(getCurrentInternalUser(), module);
 }
 
 function isRoleBranchLimited() {
@@ -3112,7 +3117,7 @@ function getUserInternalPlatformModules(user) {
   }
 
   return INTERNAL_PLATFORM_MODULE_ORDER.filter(
-    (module) => Array.isArray(user.permissions) && user.permissions.includes(module) && hasInternalAccess(module)
+    (module) => hasModuleAccessForUser(user, module)
   );
 }
 
@@ -3407,13 +3412,22 @@ function updateSessionUI() {
 }
 
 function openPublicAccessPanel() {
+  activeModule = "web-venezia";
+  currentAccessMode = "logged-out";
   publicAccessPanelOpen = true;
+  internalLoginForm.reset();
+  internalLoginError.hidden = true;
   updateSessionUI();
 }
 
-function restoreInternalAccessFromSavedSession() {
+async function restoreInternalAccessFromSavedSession() {
+  internalUsers = await dataService.entities.internalUsers.getAllPrimary(() => []);
+  await normalizeInternalUsers();
+
   const user = getCurrentInternalUser();
   if (!currentInternalUserId || !user || user.status !== "Activo") {
+    currentInternalUserId = "";
+    dataService.sessions.clearInternal();
     return false;
   }
 
@@ -3423,6 +3437,7 @@ function restoreInternalAccessFromSavedSession() {
     role: user.role,
     teacherMode,
   });
+  activeModule = "web-venezia";
   currentAccessMode = shouldShowAccessSelector(user)
     ? "access-selector"
     : teacherMode
@@ -7016,6 +7031,7 @@ internalLoginForm.addEventListener("submit", async (event) => {
     linkedConfigId: getLinkedTeacherConfigForUser(user)?.id || "",
   });
 
+  activeModule = "web-venezia";
   currentInternalUserId = user.id;
   currentAccessMode = shouldShowAccessSelector(user)
     ? "access-selector"
@@ -7238,8 +7254,8 @@ if (webLeadSubmitButton) {
 [publicInternalAccessButton, footerInternalAccessButton]
   .filter(Boolean)
   .forEach((button) => {
-    button.addEventListener("click", () => {
-      if (restoreInternalAccessFromSavedSession()) {
+    button.addEventListener("click", async () => {
+      if (await restoreInternalAccessFromSavedSession()) {
         return;
       }
       openPublicAccessPanel();
