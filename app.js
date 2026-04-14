@@ -4,6 +4,7 @@ const ATTENDANCE_STORAGE_KEY = "venezia-one-v2-asistencias";
 const PAYMENTS_STORAGE_KEY = "venezia-one-v2-pagos";
 const TEACHERS_STORAGE_KEY = "venezia-one-v2-maestras";
 const TEACHER_ATTENDANCE_STORAGE_KEY = "venezia-one-v2-maestras-asistencias";
+const TEACHER_PAYMENTS_STORAGE_KEY = "venezia-one-v2-maestras-pagos";
 const FINANCE_STORAGE_KEY = "venezia-one-v2-finanzas";
 const STUDENT_ACCESS_STORAGE_KEY = "venezia-one-v2-student-access";
 const INTERNAL_USERS_STORAGE_KEY = "venezia-one-v2-internal-users";
@@ -261,6 +262,20 @@ const teacherCountStat = document.getElementById("teacherCountStat");
 const teacherWorkedDaysStat = document.getElementById("teacherWorkedDaysStat");
 const teacherIncidentsStat = document.getElementById("teacherIncidentsStat");
 const teacherPayrollStat = document.getElementById("teacherPayrollStat");
+const teacherPaidStat = document.getElementById("teacherPaidStat");
+const teacherPendingStat = document.getElementById("teacherPendingStat");
+const teacherPaymentForm = document.getElementById("teacherPaymentForm");
+const teacherPaymentClearButton = document.getElementById("teacherPaymentClearButton");
+const teacherPaymentSubmitButton = document.getElementById("teacherPaymentSubmitButton");
+const teacherPaymentTeacherId = document.getElementById("teacherPaymentTeacherId");
+const teacherPaymentBranch = document.getElementById("teacherPaymentBranch");
+const teacherPaymentDate = document.getElementById("teacherPaymentDate");
+const teacherPaymentMonth = document.getElementById("teacherPaymentMonth");
+const teacherPaymentFortnight = document.getElementById("teacherPaymentFortnight");
+const teacherPaymentHelper = document.getElementById("teacherPaymentHelper");
+const teacherPaymentsHistoryPanel = document.getElementById("teacherPaymentsHistoryPanel");
+const teacherPaymentsTableBody = document.getElementById("teacherPaymentsTableBody");
+const teacherPaymentsEmptyState = document.getElementById("teacherPaymentsEmptyState");
 const studentFileOverlay = document.getElementById("studentFileOverlay");
 const studentFileCloseButton = document.getElementById("studentFileCloseButton");
 const studentFileTitle = document.getElementById("studentFileTitle");
@@ -549,6 +564,7 @@ let attendanceRecords = dataService.entities.attendance.getAll(() => []);
 let paymentRecords = dataService.entities.payments.getAll(() => []);
 let teacherRecords = dataService.entities.teachers.getAll(() => []);
 let teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
+let teacherPaymentRecords = dataService.entities.teacherPayments.getAll(() => []);
 let balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
 let financeRecords = dataService.entities.financialMovements.getAll(() => []);
 let studentAccessRecords = dataService.entities.studentPortalAccess.getAll(() => []);
@@ -592,6 +608,12 @@ attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
 teacherAttendanceDate.value = formatDateForInput(new Date());
 teacherSummaryMonthFilter.value = selectedMonth;
+if (teacherPaymentDate) {
+  teacherPaymentDate.value = formatDateForInput(new Date());
+}
+if (teacherPaymentMonth) {
+  teacherPaymentMonth.value = selectedMonth;
+}
 
 function seedProspects() {
   return [];
@@ -1377,6 +1399,10 @@ function saveTeacherAttendanceCollection() {
   dataService.entities.teacherAttendance.setAll(teacherAttendanceRecords);
 }
 
+function saveTeacherPaymentsCollection() {
+  dataService.entities.teacherPayments.setAll(teacherPaymentRecords);
+}
+
 function normalizeTeacherSpecialty(value) {
   const normalized = String(value || "")
     .normalize("NFD")
@@ -1702,10 +1728,23 @@ function normalizeTeacherDataAgainstStaff() {
     };
   });
 
+  const nextTeacherPaymentRecords = teacherPaymentRecords.map((record) => {
+    const canonicalTeacherId = legacyToCanonicalTeacherId.get(record.teacherId) || record.teacherId;
+    const teacherProfile = getTeacherProfileById(canonicalTeacherId, nextTeacherRecords);
+    return {
+      ...record,
+      teacherId: canonicalTeacherId,
+      teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
+      sucursal: teacherProfile?.sucursal || record.sucursal || "",
+    };
+  });
+
   const previousTeacherSnapshot = JSON.stringify(teacherRecords);
   const nextTeacherSnapshot = JSON.stringify(nextTeacherRecords);
   const previousAttendanceSnapshot = JSON.stringify(teacherAttendanceRecords);
   const nextAttendanceSnapshot = JSON.stringify(nextTeacherAttendanceRecords);
+  const previousPaymentsSnapshot = JSON.stringify(teacherPaymentRecords);
+  const nextPaymentsSnapshot = JSON.stringify(nextTeacherPaymentRecords);
 
   if (previousTeacherSnapshot !== nextTeacherSnapshot) {
     teacherRecords = nextTeacherRecords;
@@ -1719,6 +1758,13 @@ function normalizeTeacherDataAgainstStaff() {
     saveTeacherAttendanceCollection();
   } else {
     teacherAttendanceRecords = nextTeacherAttendanceRecords;
+  }
+
+  if (previousPaymentsSnapshot !== nextPaymentsSnapshot) {
+    teacherPaymentRecords = nextTeacherPaymentRecords;
+    saveTeacherPaymentsCollection();
+  } else {
+    teacherPaymentRecords = nextTeacherPaymentRecords;
   }
 }
 
@@ -1893,6 +1939,61 @@ function populateTeacherSelects() {
   );
 }
 
+function populateTeacherPaymentSelects() {
+  const visibleTeachers = getSelectableTeacherProfiles({ includeInactive: true });
+  const paymentBranchValue = teacherPaymentBranch.value;
+  const filteredForPayments = visibleTeachers.filter(
+    (record) => !paymentBranchValue || record.sucursal === paymentBranchValue
+  );
+  const previousPaymentTeacher = teacherPaymentTeacherId.value;
+
+  teacherPaymentTeacherId.innerHTML = buildTeacherSelectOptions(
+    filteredForPayments,
+    filteredForPayments.some((record) => record.id === previousPaymentTeacher) ? previousPaymentTeacher : "",
+    "Selecciona una opcion"
+  );
+}
+
+function getTeacherPeriodRange(monthValue, fortnight) {
+  if (!monthValue || !fortnight) {
+    return { from: "", to: "" };
+  }
+
+  const [year, month] = String(monthValue).split("-").map(Number);
+  if (!year || !month) {
+    return { from: "", to: "" };
+  }
+
+  const lastDay = new Date(year, month, 0).getDate();
+  if (String(fortnight) === "1") {
+    return {
+      from: `${monthValue}-01`,
+      to: `${monthValue}-15`,
+    };
+  }
+
+  return {
+    from: `${monthValue}-16`,
+    to: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function buildTeacherPaymentPeriodLabel(monthValue, fortnight) {
+  const range = getTeacherPeriodRange(monthValue, fortnight);
+  if (!range.from || !range.to) {
+    return "";
+  }
+
+  const monthLabel = new Date(`${range.from}T12:00:00`).toLocaleDateString("es-MX", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return String(fortnight) === "1"
+    ? `${monthLabel} · 1 al 15`
+    : `${monthLabel} · 16 al ${range.to.slice(-2)}`;
+}
+
 function getTeacherFormData() {
   const formData = new FormData(teacherForm);
   const selectedStaffId = String(formData.get("staffId") || "").trim();
@@ -1951,6 +2052,37 @@ function getTeacherAttendanceFormData() {
   };
 }
 
+function getTeacherPaymentFormData() {
+  const formData = new FormData(teacherPaymentForm);
+  const teacherId = String(formData.get("maestraId") || "").trim();
+  const selectedTeacher = getTeacherProfileById(teacherId);
+  const existingId = document.getElementById("teacherPaymentId").value;
+  const existingRecord = teacherPaymentRecords.find((record) => record.id === existingId);
+  const allowedBranch = getAllowedBranch();
+  const periodMonth = String(formData.get("periodoMes") || "").trim();
+  const fortnight = String(formData.get("quincena") || "").trim();
+  const periodRange = getTeacherPeriodRange(periodMonth, fortnight);
+
+  return {
+    id: existingRecord?.id || existingId || crypto.randomUUID(),
+    teacherId: selectedTeacher?.id || teacherId,
+    teacherName: selectedTeacher?.nombreCompleto || existingRecord?.teacherName || "",
+    sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
+    fechaPago: String(formData.get("fechaPago") || "").trim(),
+    periodMonth,
+    fortnight,
+    periodLabel: buildTeacherPaymentPeriodLabel(periodMonth, fortnight),
+    periodFrom: periodRange.from,
+    periodTo: periodRange.to,
+    montoPagado: Number(formData.get("montoPagado") || 0),
+    metodoPago: String(formData.get("metodoPago") || "").trim(),
+    nota: String(formData.get("nota") || "").trim(),
+    recordedBy: getCurrentInternalUser()?.id || "",
+    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 async function saveTeacherRecord(record) {
   teacherRecords = teacherRecords.filter(
     (item) => item.id !== record.id && item.staffId !== record.staffId
@@ -1984,6 +2116,20 @@ function saveTeacherAttendanceRecord(record) {
   );
   teacherAttendanceRecords.unshift(nextRecord);
   saveTeacherAttendanceCollection();
+  return nextRecord;
+}
+
+function saveTeacherPaymentRecord(record) {
+  const teacherProfile = getTeacherProfileById(record.teacherId);
+  const nextRecord = {
+    ...record,
+    teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
+    sucursal: teacherProfile?.sucursal || record.sucursal || "",
+  };
+
+  teacherPaymentRecords = teacherPaymentRecords.filter((item) => item.id !== nextRecord.id);
+  teacherPaymentRecords.unshift(nextRecord);
+  saveTeacherPaymentsCollection();
   return nextRecord;
 }
 
@@ -2138,6 +2284,53 @@ function getFilteredTeacherSummaryEntries() {
   });
 }
 
+function doesTeacherPaymentMatchRange(record, range) {
+  const paymentRange = {
+    from: String(record.periodFrom || "").trim(),
+    to: String(record.periodTo || "").trim(),
+  };
+
+  if (!range.from && !range.to) {
+    return true;
+  }
+
+  if (!paymentRange.from || !paymentRange.to) {
+    return false;
+  }
+
+  const effectiveFrom = range.from || paymentRange.from;
+  const effectiveTo = range.to || paymentRange.to;
+  return paymentRange.from <= effectiveTo && paymentRange.to >= effectiveFrom;
+}
+
+function getFilteredTeacherPaymentRecords() {
+  const range = getTeacherSummaryRange();
+  return teacherPaymentRecords
+    .filter((record) => matchesCurrentBranch(record.sucursal))
+    .filter((record) => !teacherSummaryBranchFilter.value || record.sucursal === teacherSummaryBranchFilter.value)
+    .filter((record) => !teacherSummaryTeacherFilter.value || record.teacherId === teacherSummaryTeacherFilter.value)
+    .filter((record) => doesTeacherPaymentMatchRange(record, range))
+    .sort((left, right) => {
+      const dateCompare = String(right.fechaPago || "").localeCompare(String(left.fechaPago || ""));
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+      return String(left.teacherName || "").localeCompare(String(right.teacherName || ""), "es-MX");
+    });
+}
+
+function getTeacherPaymentTotalsByTeacherId(records = getFilteredTeacherPaymentRecords()) {
+  return records.reduce((accumulator, record) => {
+    const teacherKey = record.teacherId || "";
+    if (!teacherKey) {
+      return accumulator;
+    }
+
+    accumulator.set(teacherKey, (accumulator.get(teacherKey) || 0) + Number(record.montoPagado || 0));
+    return accumulator;
+  }, new Map());
+}
+
 function getTeacherSummaryRows() {
   const summaryMap = getFilteredTeacherSummaryEntries().reduce((accumulator, entry) => {
     const key = entry.teacherId || entry.teacherName;
@@ -2155,6 +2348,8 @@ function getTeacherSummaryRows() {
         faltas: 0,
         permisos: 0,
         totalEstimado: 0,
+        totalPagado: 0,
+        saldoPendiente: 0,
       });
     }
 
@@ -2181,6 +2376,42 @@ function getTeacherSummaryRows() {
 
     return accumulator;
   }, new Map());
+
+  const filteredPaymentRecords = getFilteredTeacherPaymentRecords();
+  const paymentTotals = getTeacherPaymentTotalsByTeacherId(filteredPaymentRecords);
+  paymentTotals.forEach((totalPagado, teacherId) => {
+    if (!summaryMap.has(teacherId)) {
+      const teacherProfile = getTeacherProfileById(teacherId);
+      const teacherPaymentSample = filteredPaymentRecords.find((record) => record.teacherId === teacherId);
+      summaryMap.set(teacherId, {
+        teacherId,
+        teacherName: teacherProfile?.nombreCompleto || teacherPaymentSample?.teacherName || "",
+        sucursal: teacherProfile?.sucursal || teacherPaymentSample?.sucursal || "",
+        especialidad: getTeacherOperationalSpecialty(teacherProfile) || "",
+        diasLaborados: 0,
+        turnosCubiertos: 0,
+        turnosMatutinos: 0,
+        turnosVespertinos: 0,
+        turnosAmbos: 0,
+        faltas: 0,
+        permisos: 0,
+        totalEstimado: 0,
+        totalPagado: 0,
+        saldoPendiente: 0,
+      });
+    }
+
+    const row = summaryMap.get(teacherId);
+    row.totalPagado = totalPagado;
+    row.saldoPendiente = row.totalEstimado - row.totalPagado;
+  });
+
+  summaryMap.forEach((row) => {
+    if (!Number.isFinite(row.totalPagado)) {
+      row.totalPagado = 0;
+    }
+    row.saldoPendiente = row.totalEstimado - row.totalPagado;
+  });
 
   return Array.from(summaryMap.values()).sort((left, right) => {
     const payCompare = right.totalEstimado - left.totalEstimado;
@@ -2279,6 +2510,22 @@ function syncTeacherAttendanceFields() {
   updateTeacherAttendanceHelper();
 }
 
+function syncTeacherPaymentFields() {
+  const selectedTeacher = getTeacherProfileById(teacherPaymentTeacherId.value);
+  const allowedBranch = getAllowedBranch();
+
+  if (selectedTeacher) {
+    teacherPaymentBranch.value = allowedBranch || selectedTeacher.sucursal || teacherPaymentBranch.value;
+  }
+
+  populateTeacherPaymentSelects();
+
+  const periodLabel = buildTeacherPaymentPeriodLabel(teacherPaymentMonth.value, teacherPaymentFortnight.value);
+  teacherPaymentHelper.textContent = periodLabel
+    ? `El pago real quedará ligado al periodo ${periodLabel}. La nómina estimada sigue calculándose aparte con jornadas válidas.`
+    : "Registra aquí pagos reales ya entregados. La nómina estimada se sigue calculando aparte con jornadas y turnos.";
+}
+
 function resetTeacherForm() {
   teacherForm.reset();
   document.getElementById("teacherId").value = "";
@@ -2300,6 +2547,19 @@ function resetTeacherAttendanceForm() {
   populateTeacherSelects();
   teacherAttendanceSubmitButton.textContent = "Guardar asistencia";
   syncTeacherAttendanceFields();
+}
+
+function resetTeacherPaymentForm() {
+  const allowedBranch = getAllowedBranch();
+  teacherPaymentForm.reset();
+  document.getElementById("teacherPaymentId").value = "";
+  teacherPaymentDate.value = formatDateForInput(new Date());
+  teacherPaymentMonth.value = teacherSummaryMonthFilter.value || getCurrentMonthValue();
+  teacherPaymentFortnight.value = teacherSummaryFortnightFilter.value || "";
+  teacherPaymentBranch.value = allowedBranch || "";
+  populateTeacherPaymentSelects();
+  teacherPaymentSubmitButton.textContent = "Guardar pago";
+  syncTeacherPaymentFields();
 }
 
 function renderTeachersTable() {
@@ -2358,6 +2618,33 @@ function renderTeacherAttendanceTable() {
   teacherAttendanceEmptyState.hidden = entries.length > 0;
 }
 
+function renderTeacherPaymentsTable() {
+  const paymentRows = getFilteredTeacherPaymentRecords();
+
+  teacherPaymentsTableBody.innerHTML = paymentRows
+    .map(
+      (record) => `
+        <tr>
+          <td>${escapeHtml(formatDisplayDate(record.fechaPago) || "-")}</td>
+          <td>${escapeHtml(record.teacherName || "-")}</td>
+          <td>${escapeHtml(record.sucursal || "-")}</td>
+          <td>${escapeHtml(record.periodLabel || "-")}</td>
+          <td>${formatCurrency(record.montoPagado || 0)}</td>
+          <td>${escapeHtml(record.metodoPago || "-")}</td>
+          <td>${escapeHtml(record.nota || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-teacher-payment" data-id="${record.id}">Editar</button>
+            </div>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  teacherPaymentsEmptyState.hidden = paymentRows.length > 0;
+}
+
 function renderTeacherSummaryTable() {
   const summaryRows = getTeacherSummaryRows();
 
@@ -2374,6 +2661,8 @@ function renderTeacherSummaryTable() {
           <td>${escapeHtml(String(row.faltas))}</td>
           <td>${escapeHtml(String(row.permisos))}</td>
           <td>${formatCurrency(row.totalEstimado || 0)}</td>
+          <td>${formatCurrency(row.totalPagado || 0)}</td>
+          <td>${formatCurrency(row.saldoPendiente || 0)}</td>
         </tr>
       `
     )
@@ -2392,11 +2681,15 @@ function updateTeacherModuleStats() {
   const totalDays = summaryRows.reduce((sum, row) => sum + row.diasLaborados, 0);
   const totalIncidents = summaryRows.reduce((sum, row) => sum + row.faltas + row.permisos, 0);
   const totalPayroll = summaryRows.reduce((sum, row) => sum + row.totalEstimado, 0);
+  const totalPaid = summaryRows.reduce((sum, row) => sum + Number(row.totalPagado || 0), 0);
+  const totalPending = summaryRows.reduce((sum, row) => sum + Number(row.saldoPendiente || 0), 0);
 
   teacherCountStat.textContent = visibleTeachers.length;
   teacherWorkedDaysStat.textContent = totalDays;
   teacherIncidentsStat.textContent = totalIncidents;
   teacherPayrollStat.textContent = formatCurrency(totalPayroll);
+  teacherPaidStat.textContent = formatCurrency(totalPaid);
+  teacherPendingStat.textContent = formatCurrency(totalPending);
 }
 
 function renderTeachersModule() {
@@ -2404,10 +2697,15 @@ function renderTeachersModule() {
   normalizeTeacherDataAgainstStaff();
   populateTeacherConfigStaffOptions();
   populateTeacherSelects();
+  populateTeacherPaymentSelects();
   syncTeacherConfigFields();
   syncTeacherAttendanceFields();
+  syncTeacherPaymentFields();
   if (teacherAttendanceHistoryPanel) {
     teacherAttendanceHistoryPanel.hidden = !canViewRestrictedTeacherPanels;
+  }
+  if (teacherPaymentsHistoryPanel) {
+    teacherPaymentsHistoryPanel.hidden = !canViewRestrictedTeacherPanels;
   }
   if (teacherQuincenalSummaryPanel) {
     teacherQuincenalSummaryPanel.hidden = !canViewRestrictedTeacherPanels;
@@ -2415,17 +2713,22 @@ function renderTeachersModule() {
   renderTeachersTable();
   if (canViewRestrictedTeacherPanels) {
     renderTeacherAttendanceTable();
+    renderTeacherPaymentsTable();
     renderTeacherSummaryTable();
     updateTeacherModuleStats();
   } else {
     teacherAttendanceTableBody.innerHTML = "";
+    teacherPaymentsTableBody.innerHTML = "";
     teacherSummaryTableBody.innerHTML = "";
     teacherAttendanceEmptyState.hidden = false;
+    teacherPaymentsEmptyState.hidden = false;
     teacherSummaryEmptyState.hidden = false;
     teacherCountStat.textContent = "0";
     teacherWorkedDaysStat.textContent = "0";
     teacherIncidentsStat.textContent = "0";
     teacherPayrollStat.textContent = formatCurrency(0);
+    teacherPaidStat.textContent = formatCurrency(0);
+    teacherPendingStat.textContent = formatCurrency(0);
   }
 }
 
@@ -2467,6 +2770,28 @@ function editTeacherAttendanceRecord(teacherId, dateValue) {
   document.getElementById("teacherAttendanceObservation").value = entry.observacion || "";
   teacherAttendanceSubmitButton.textContent = "Actualizar asistencia";
   updateTeacherAttendanceHelper();
+  setActiveModule("maestras");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function editTeacherPaymentRecord(paymentId) {
+  const record = teacherPaymentRecords.find((item) => item.id === paymentId);
+  if (!record) {
+    return;
+  }
+
+  document.getElementById("teacherPaymentId").value = record.id;
+  teacherPaymentBranch.value = record.sucursal || "";
+  populateTeacherPaymentSelects();
+  teacherPaymentTeacherId.value = record.teacherId || "";
+  teacherPaymentDate.value = record.fechaPago || "";
+  teacherPaymentMonth.value = record.periodMonth || "";
+  teacherPaymentFortnight.value = record.fortnight || "";
+  document.getElementById("teacherPaymentAmount").value = record.montoPagado || "";
+  document.getElementById("teacherPaymentMethod").value = record.metodoPago || "";
+  document.getElementById("teacherPaymentNote").value = record.nota || "";
+  teacherPaymentSubmitButton.textContent = "Actualizar pago";
+  syncTeacherPaymentFields();
   setActiveModule("maestras");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -3563,6 +3888,7 @@ function applyBranchRestrictionsToUI() {
     document.getElementById("altaSucursal").value = allowedBranch;
     document.getElementById("teacherBranch").value = allowedBranch;
     teacherAttendanceBranch.value = allowedBranch;
+    teacherPaymentBranch.value = allowedBranch;
     teacherSummaryBranchFilter.value = allowedBranch;
     document.getElementById("financeSucursal").value = allowedBranch;
     balanceExpenseBranchField.value = allowedBranch;
@@ -3575,6 +3901,7 @@ function applyBranchRestrictionsToUI() {
   document.getElementById("altaSucursal").disabled = branchLocked;
   document.getElementById("teacherBranch").disabled = branchLocked;
   teacherAttendanceBranch.disabled = branchLocked;
+  teacherPaymentBranch.disabled = branchLocked;
   document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
   document.getElementById("financeSucursal").disabled = branchLocked;
   balanceExpenseBranchField.value = branchLocked ? allowedBranch : balanceExpenseBranchField.value;
@@ -7251,6 +7578,31 @@ teacherAttendanceForm.addEventListener("submit", (event) => {
   );
 });
 
+teacherPaymentForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const paymentData = getTeacherPaymentFormData();
+  const isUpdatingExistingPayment = teacherPaymentRecords.some((record) => record.id === paymentData.id);
+
+  if (
+    !paymentData.teacherId ||
+    !paymentData.sucursal ||
+    !paymentData.fechaPago ||
+    !paymentData.periodMonth ||
+    !paymentData.fortnight ||
+    !Number.isFinite(paymentData.montoPagado) ||
+    paymentData.montoPagado <= 0 ||
+    !paymentData.metodoPago
+  ) {
+    alert("Completa maestra, sucursal, fecha, periodo, quincena, monto y método de pago para registrar el pago real.");
+    return;
+  }
+
+  saveTeacherPaymentRecord(paymentData);
+  renderTeachersModule();
+  resetTeacherPaymentForm();
+  alert(isUpdatingExistingPayment ? "El pago real se actualizó correctamente." : "El pago real se guardó correctamente.");
+});
+
 openStudentPortalButton.addEventListener("click", () => {
   currentInternalUserId = "";
   currentAccessMode = "student";
@@ -7422,6 +7774,7 @@ internalUserClearButton.addEventListener("click", resetInternalUserForm);
 staffClearButton.addEventListener("click", resetStaffForm);
 teacherClearButton.addEventListener("click", resetTeacherForm);
 teacherAttendanceClearButton.addEventListener("click", resetTeacherAttendanceForm);
+teacherPaymentClearButton.addEventListener("click", resetTeacherPaymentForm);
 clearAltaButton.addEventListener("click", resetAltaForm);
 financeClearButton.addEventListener("click", resetFinanceForm);
 balanceExpenseClearButton.addEventListener("click", resetBalanceExpenseForm);
@@ -7471,6 +7824,15 @@ teacherStaffId.addEventListener("change", syncTeacherConfigFields);
 teacherAttendanceBranch.addEventListener("change", () => {
   populateTeacherSelects();
   syncTeacherAttendanceFields();
+});
+
+teacherPaymentBranch.addEventListener("change", () => {
+  populateTeacherPaymentSelects();
+  syncTeacherPaymentFields();
+});
+
+["teacherPaymentTeacherId", "teacherPaymentMonth", "teacherPaymentFortnight"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", syncTeacherPaymentFields);
 });
 
 teacherSummaryBranchFilter.addEventListener("change", renderTeachersModule);
@@ -7776,6 +8138,15 @@ teacherAttendanceTableBody.addEventListener("click", (event) => {
   editTeacherAttendanceRecord(actionButton.dataset.teacherId, actionButton.dataset.date);
 });
 
+teacherPaymentsTableBody.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-action='edit-teacher-payment']");
+  if (!actionButton) {
+    return;
+  }
+
+  editTeacherPaymentRecord(actionButton.dataset.id);
+});
+
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const module = item.dataset.module;
@@ -7851,6 +8222,7 @@ async function initApp() {
   await refreshSharedSupabaseState({ force: true, render: false });
   teacherRecords = dataService.entities.teachers.getAll(() => []);
   teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
+  teacherPaymentRecords = dataService.entities.teacherPayments.getAll(() => []);
   balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
 
   await normalizeLegacyProspects();
@@ -7860,6 +8232,7 @@ async function initApp() {
   resetStaffForm();
   resetTeacherForm();
   resetTeacherAttendanceForm();
+  resetTeacherPaymentForm();
   resetAltaForm();
   resetBalanceExpenseForm();
   resetFinanceForm();

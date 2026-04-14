@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260409-teacher-portal" />
+    <link rel="stylesheet" href="style.css?v=20260414-teacher-real-payments" />
   </head>
   <body>
     <section class="login-shell" id="loginShell" hidden>
@@ -1019,6 +1019,14 @@
               <p>Nómina estimada</p>
               <strong id="teacherPayrollStat">$0</strong>
             </article>
+            <article class="stat-card">
+              <p>Total pagado</p>
+              <strong id="teacherPaidStat">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Saldo pendiente</p>
+              <strong id="teacherPendingStat">$0</strong>
+            </article>
           </section>
 
           <section class="content-grid maestras-capture-grid">
@@ -1183,6 +1191,80 @@
                 </div>
               </form>
             </section>
+
+            <section class="panel maestras-capture-panel" id="teacherPaymentsCapturePanel">
+              <div class="section-heading">
+                <p class="eyebrow">Pagos reales</p>
+                <h3>Registrar pago real</h3>
+              </div>
+
+              <form id="teacherPaymentForm" class="prospect-form">
+                <input type="hidden" id="teacherPaymentId" />
+
+                <label>
+                  <span>Maestra</span>
+                  <select id="teacherPaymentTeacherId" name="maestraId" required>
+                    <option value="">Selecciona una opcion</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Sucursal</span>
+                  <select id="teacherPaymentBranch" name="sucursal" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Tlaxcala</option>
+                    <option>Puebla</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Fecha de pago</span>
+                  <input id="teacherPaymentDate" name="fechaPago" type="date" required />
+                </label>
+
+                <label>
+                  <span>Periodo</span>
+                  <input id="teacherPaymentMonth" name="periodoMes" type="month" required />
+                </label>
+
+                <label>
+                  <span>Quincena</span>
+                  <select id="teacherPaymentFortnight" name="quincena" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option value="1">1 al 15</option>
+                    <option value="2">16 al cierre</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Monto pagado</span>
+                  <input id="teacherPaymentAmount" name="montoPagado" type="number" min="0.01" step="0.01" required />
+                </label>
+
+                <label>
+                  <span>Método de pago</span>
+                  <select id="teacherPaymentMethod" name="metodoPago" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Efectivo</option>
+                    <option>Transferencia</option>
+                  </select>
+                </label>
+
+                <label class="full-width">
+                  <span>Nota / observación</span>
+                  <textarea id="teacherPaymentNote" name="nota" rows="3"></textarea>
+                </label>
+
+                <p id="teacherPaymentHelper" class="module-helper-copy">
+                  Registra aquí pagos reales ya entregados. La nómina estimada se sigue calculando aparte con jornadas y turnos.
+                </p>
+
+                <div class="form-actions full-width">
+                  <button class="primary-btn" type="submit" id="teacherPaymentSubmitButton">Guardar pago</button>
+                  <button class="secondary-btn" type="button" id="teacherPaymentClearButton">Limpiar</button>
+                </div>
+              </form>
+            </section>
           </section>
 
           <section class="maestras-stack">
@@ -1243,6 +1325,35 @@
 
               <p id="teacherAttendanceEmptyState" class="empty-state">
                 No hay asistencias laborales registradas.
+              </p>
+            </section>
+
+            <section class="panel table-panel maestras-data-panel" id="teacherPaymentsHistoryPanel">
+              <div class="section-heading">
+                <p class="eyebrow">Pagos reales</p>
+                <h3>Historial de pagos realizados</h3>
+              </div>
+
+              <div class="table-wrapper teacher-payments-table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Maestra</th>
+                      <th>Sucursal</th>
+                      <th>Periodo / quincena</th>
+                      <th>Monto pagado</th>
+                      <th>Método de pago</th>
+                      <th>Nota</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teacherPaymentsTableBody"></tbody>
+                </table>
+              </div>
+
+              <p id="teacherPaymentsEmptyState" class="empty-state">
+                No hay pagos reales registrados para los filtros seleccionados.
               </p>
             </section>
 
@@ -1307,6 +1418,8 @@
                       <th>Faltas</th>
                       <th>Permisos</th>
                       <th>Total estimado</th>
+                      <th>Total pagado</th>
+                      <th>Saldo pendiente</th>
                     </tr>
                   </thead>
                   <tbody id="teacherSummaryTableBody"></tbody>
@@ -2820,7 +2933,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
-    <script src="dataService.js?v=20260324c"></script>
-    <script src="app.js?v=20260324c"></script>
+    <script src="dataService.js?v=20260414-teacher-real-payments"></script>
+    <script src="app.js?v=20260414-teacher-real-payments"></script>
   </body>
 </html>
