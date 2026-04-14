@@ -1,5 +1,5 @@
 // Supabase migration layer:
-// - `internal_users`, `staff`, and `prospects` now use Supabase as primary.
+// - `internal_users`, `staff`, `prospects`, and `students` now use Supabase as primary.
 // - localStorage remains as cache/fallback for graceful offline behavior.
 // - all other entities still use localStorage until later migrations.
 (function initDataService(globalScope) {
@@ -90,6 +90,8 @@
     fromDb,
     uiLabel,
     hydrateEmptyFromFallback = true,
+    useLocalFallbackWhenRemoteEmpty = true,
+    persistLocalOnMutationFailure = true,
   }) {
     const localService = createLocalEntityService(key);
 
@@ -153,6 +155,11 @@
           const remoteRecords = await selectAllFromSupabase();
 
           if (remoteRecords.length === 0) {
+            if (!useLocalFallbackWhenRemoteEmpty) {
+              localService.setAll([]);
+              return [];
+            }
+
             const fallbackRecords = localService.getAll(activeFallbackFactory);
             if (hydrateEmptyFromFallback && fallbackRecords.length > 0) {
               await upsertManyToSupabase(fallbackRecords);
@@ -223,7 +230,11 @@
         } catch (error) {
           console.error(`Supabase ${operationLabel} failed for ${table}. Full error:`, error);
           console.error(`Supabase ${operationLabel} message for ${table}:`, getSupabaseErrorMessage(error));
-          localService.setAll(mergeRecord(existingRecords, record));
+          if (persistLocalOnMutationFailure) {
+            localService.setAll(mergeRecord(existingRecords, record));
+          } else {
+            localService.setAll(existingRecords);
+          }
           if (uiLabel && options.alertOnFailure !== false) {
             globalScope.alert(`No se pudo guardar ${uiLabel} en Supabase.`);
           }
@@ -506,6 +517,9 @@
     orderBy: "created_at",
     fallbackFactory: studentsFallbackFactory,
     uiLabel: "altas",
+    hydrateEmptyFromFallback: false,
+    useLocalFallbackWhenRemoteEmpty: false,
+    persistLocalOnMutationFailure: false,
     toDb: (record) => ({
       id: record.id,
       full_name: record.nombre || "",

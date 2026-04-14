@@ -542,7 +542,7 @@ function applyDataResetIfNeeded() {
 applyDataResetIfNeeded();
 
 // Supabase-backed modules now hydrate from local cache first and refresh from
-// Supabase during init: internal users, staff, prospects.
+// Supabase during init; `students` is revalidated against the shared source.
 let prospects = dataService.entities.prospects.getAll(() => []);
 let students = dataService.entities.students.getAll(() => []);
 let attendanceRecords = dataService.entities.attendance.getAll(() => []);
@@ -581,6 +581,9 @@ let currentAccessMode = "logged-out";
 let publicAccessPanelOpen = false;
 let activeAdvisorFilter = "";
 let pendingAltaConfirmation = null;
+const SHARED_DATA_REFRESH_INTERVAL_MS = 15000;
+let sharedDataRefreshPromise = null;
+let lastSharedDataRefreshAt = 0;
 
 monthFilter.value = selectedMonth;
 altasMonthFilter.value = selectedAltasMonth;
@@ -655,14 +658,6 @@ async function saveStudentRecord(record) {
     created_at: record.createdAt || null,
   });
   const result = await dataService.entities.students.upsertOne(record, { alertOnFailure: false });
-  const nextRecord = result.record;
-  const existingIndex = students.findIndex((item) => item.id === nextRecord.id);
-
-  if (existingIndex >= 0) {
-    students[existingIndex] = nextRecord;
-  } else {
-    students.unshift(nextRecord);
-  }
 
   if (!result.synced) {
     console.log('Supabase write to "students" failed.');
@@ -672,21 +667,86 @@ async function saveStudentRecord(record) {
       'Supabase error message for "students" write:',
       result.error?.message || result.error?.details || String(result.error)
     );
-    console.warn("Alta saved only to local fallback cache after Supabase write failure.", {
+    console.warn("Alta write rejected because Supabase could not confirm the shared record.", {
       id: record.id,
       nombre: record.nombre,
     });
   } else {
+    students = await dataService.entities.students.getAllPrimary(() => []);
     console.log('Supabase write to "students" succeeded.', {
-      id: nextRecord.id,
+      id: result.record.id,
     });
     console.log('Supabase response for "students" write:', result.response);
     console.log("ALTA -> students success", {
-      id: nextRecord.id,
+      id: result.record.id,
     });
   }
 
   return result;
+}
+
+async function refreshSharedSupabaseState({ force = false, render = true } = {}) {
+  if (!dataService.supabaseReady) {
+    return false;
+  }
+
+  const now = Date.now();
+  if (!force && sharedDataRefreshPromise) {
+    return sharedDataRefreshPromise;
+  }
+
+  if (!force && now - lastSharedDataRefreshAt < SHARED_DATA_REFRESH_INTERVAL_MS) {
+    return false;
+  }
+
+  sharedDataRefreshPromise = (async () => {
+    const [
+      nextInternalUsers,
+      nextStudents,
+      nextAttendanceRecords,
+      nextPaymentRecords,
+      nextFinanceRecords,
+      nextStudentAccessRecords,
+      nextStaffRecords,
+      nextProspects,
+    ] = await Promise.all([
+      dataService.entities.internalUsers.getAllPrimary(() => []),
+      dataService.entities.students.getAllPrimary(() => []),
+      dataService.entities.attendance.getAllPrimary(() => []),
+      dataService.entities.payments.getAllPrimary(() => []),
+      dataService.entities.financialMovements.getAllPrimary(() => []),
+      dataService.entities.studentPortalAccess.getAllPrimary(() => []),
+      dataService.entities.staff.getAllPrimary(() => []),
+      dataService.entities.prospects.getAllPrimary(() => []),
+    ]);
+
+    internalUsers = nextInternalUsers;
+    students = nextStudents;
+    attendanceRecords = nextAttendanceRecords;
+    paymentRecords = nextPaymentRecords;
+    financeRecords = nextFinanceRecords;
+    studentAccessRecords = nextStudentAccessRecords;
+    staffRecords = nextStaffRecords;
+    prospects = nextProspects;
+
+    await normalizeInternalUsers();
+    lastSharedDataRefreshAt = Date.now();
+
+    if (render) {
+      renderAll();
+    }
+
+    return true;
+  })()
+    .catch((error) => {
+      console.error("No se pudieron refrescar los datos compartidos desde Supabase.", error);
+      return false;
+    })
+    .finally(() => {
+      sharedDataRefreshPromise = null;
+    });
+
+  return sharedDataRefreshPromise;
 }
 
 function saveAttendanceRecords() {
@@ -6041,7 +6101,7 @@ async function handleMiVeneziaReglamentoConfirmation() {
   renderMiVeneziaDashboard();
 
   if (!saveResult.synced) {
-    alert("La lectura del reglamento se guardó en respaldo local, pero no se pudo sincronizar con Supabase.");
+    alert("No se pudo confirmar la lectura del reglamento en el registro central.");
     return;
   }
 
@@ -6986,7 +7046,7 @@ async function finalizeAltaSubmission(altaData) {
   console.log("ALTA -> students result", studentSaveResult);
   if (!studentSaveResult.synced) {
     renderAll();
-    alert("No se pudo guardar la alta en Supabase. Se conservó sólo en el respaldo local.");
+    alert("No se pudo guardar la alta en el registro central. No se aplicó el cambio.");
     return;
   }
 
@@ -7007,6 +7067,7 @@ async function finalizeAltaSubmission(altaData) {
       return;
     }
   }
+  await refreshSharedSupabaseState({ force: true, render: false });
   syncStudentAccessRecords();
   renderAll();
   resetAltaForm();
@@ -7015,6 +7076,7 @@ async function finalizeAltaSubmission(altaData) {
 
 altaForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  await refreshSharedSupabaseState({ force: true, render: false });
   const altaData = getAltaFormData();
   const validationErrors = getAltaValidationErrors(altaData);
 
@@ -7771,22 +7833,27 @@ if (accessSelectorLogoutButton) {
   accessSelectorLogoutButton.addEventListener("click", logoutInternalSession);
 }
 
+window.addEventListener("focus", () => {
+  void refreshSharedSupabaseState();
+});
+
+window.addEventListener("pageshow", () => {
+  void refreshSharedSupabaseState({ force: true });
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    void refreshSharedSupabaseState();
+  }
+});
+
 async function initApp() {
-  // Supabase-based modules load here first, with local cache fallback.
-  internalUsers = await dataService.entities.internalUsers.getAllPrimary(() => []);
-  students = await dataService.entities.students.getAllPrimary(() => []);
-  attendanceRecords = await dataService.entities.attendance.getAllPrimary(() => []);
-  paymentRecords = await dataService.entities.payments.getAllPrimary(() => []);
+  await refreshSharedSupabaseState({ force: true, render: false });
   teacherRecords = dataService.entities.teachers.getAll(() => []);
   teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
   balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
-  financeRecords = await dataService.entities.financialMovements.getAllPrimary(() => []);
-  studentAccessRecords = await dataService.entities.studentPortalAccess.getAllPrimary(() => []);
-  staffRecords = await dataService.entities.staff.getAllPrimary(() => []);
-  prospects = await dataService.entities.prospects.getAllPrimary(() => []);
 
   await normalizeLegacyProspects();
-  await normalizeInternalUsers();
   mountTeacherPortalShell();
   resetForm();
   resetInternalUserForm();
