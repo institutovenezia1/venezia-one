@@ -1535,6 +1535,51 @@ function getTeacherConfigByStaffId(staffId, configs = teacherRecords) {
   return configs.find((record) => record.staffId === staffId || record.id === staffId) || null;
 }
 
+function getTeacherConfigForStaffRecord(staffRecord, configs = teacherRecords) {
+  if (!staffRecord) {
+    return null;
+  }
+
+  const directMatch = getTeacherConfigByStaffId(staffRecord.id, configs);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const linkedUserId = String(staffRecord.linkedUserId || "").trim();
+  if (linkedUserId) {
+    const linkedUserMatch = configs.find((record) => String(record.linkedUserId || "").trim() === linkedUserId);
+    if (linkedUserMatch) {
+      return linkedUserMatch;
+    }
+  }
+
+  const normalizedUsername = normalizeInternalLookupValue(getTeacherStaffAccessUsername(staffRecord));
+  if (normalizedUsername) {
+    const usernameMatch = configs.find(
+      (record) => normalizedUsername === normalizeInternalLookupValue(record.legacyUsuario || record.usuario)
+    );
+    if (usernameMatch) {
+      return usernameMatch;
+    }
+  }
+
+  const normalizedName = normalizeInternalLookupValue(staffRecord.nombre);
+  const normalizedBranch = normalizeInternalLookupValue(staffRecord.sucursal);
+  return (
+    configs.find((record) => {
+      const recordName = normalizeInternalLookupValue(
+        record.nombreCompleto || record.legacyNombreCompleto || record.nombre || record.teacherName
+      );
+      const recordBranch = normalizeInternalLookupValue(record.legacySucursal || record.sucursal);
+      return (
+        normalizedName &&
+        recordName === normalizedName &&
+        (!normalizedBranch || !recordBranch || recordBranch === normalizedBranch)
+      );
+    }) || null
+  );
+}
+
 function getEligibleTeacherStaffRecords() {
   return staffRecords
     .filter(
@@ -1619,24 +1664,25 @@ function buildLegacyTeacherProfile(configRecord) {
 }
 
 function buildTeacherProfileFromStaff(staffRecord, configRecord = null) {
+  const resolvedConfig = configRecord || getTeacherConfigForStaffRecord(staffRecord);
   return {
     id: staffRecord.id,
     staffId: staffRecord.id,
-    linkedUserId: staffRecord.linkedUserId || configRecord?.linkedUserId || "",
+    linkedUserId: staffRecord.linkedUserId || resolvedConfig?.linkedUserId || "",
     nombreCompleto: staffRecord.nombre || "",
     puesto: staffRecord.puesto || "",
     sucursal: staffRecord.sucursal || "",
     usuario: getTeacherStaffAccessUsername(staffRecord),
     especialidad:
-      normalizeTeacherSpecialty(configRecord?.especialidad) ||
+      normalizeTeacherSpecialty(resolvedConfig?.especialidad) ||
       getDefaultTeacherSpecialtyFromPosition(staffRecord.puesto),
-    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(configRecord?.coberturaEspecialidad),
-    tipoPago: normalizeTeacherPaymentType(configRecord?.tipoPago || TEACHER_PAYMENT_TYPE),
+    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(resolvedConfig?.coberturaEspecialidad),
+    tipoPago: normalizeTeacherPaymentType(resolvedConfig?.tipoPago || TEACHER_PAYMENT_TYPE),
     estadoDocente: normalizeTeacherOperationalStatus(
-      configRecord?.estadoDocente || staffRecord.estado || "Activo"
+      resolvedConfig?.estadoDocente || staffRecord.estado || "Activo"
     ),
-    configuracionOperativa: configRecord?.configuracionOperativa || "",
-    isConfigured: Boolean(configRecord),
+    configuracionOperativa: resolvedConfig?.configuracionOperativa || "",
+    isConfigured: Boolean(resolvedConfig),
     source: "staff",
   };
 }
@@ -1644,7 +1690,7 @@ function buildTeacherProfileFromStaff(staffRecord, configRecord = null) {
 function getTeacherProfileById(teacherId, configs = teacherRecords) {
   const staffRecord = staffRecords.find((record) => record.id === teacherId);
   if (staffRecord && isEligibleTeacherStaffPosition(staffRecord.puesto)) {
-    return buildTeacherProfileFromStaff(staffRecord, getTeacherConfigByStaffId(staffRecord.id, configs));
+    return buildTeacherProfileFromStaff(staffRecord, getTeacherConfigForStaffRecord(staffRecord, configs));
   }
 
   const configRecord = getTeacherConfigById(teacherId, configs);
@@ -1679,6 +1725,12 @@ function normalizeTeacherDataAgainstStaff() {
       (left, right) => getTeacherConfigTimestamp(right.record).localeCompare(getTeacherConfigTimestamp(left.record))
     )[0];
     const matchedStaff = entries.map((entry) => entry.matchedStaff).find(Boolean) || null;
+    const preservedOperationalStatus =
+      entries.find((entry) => String(entry.record.estadoDocente || "").trim())?.record?.estadoDocente ||
+      latestEntry.record.estadoDocente ||
+      latestEntry.record.status ||
+      matchedStaff?.estado ||
+      "Activo";
     const specialty =
       normalizeTeacherSpecialty(
         latestEntry.record.especialidad ||
@@ -1697,9 +1749,7 @@ function normalizeTeacherDataAgainstStaff() {
             ?.coberturaEspecialidad
       ),
       tipoPago: normalizeTeacherPaymentType(latestEntry.record.tipoPago || TEACHER_PAYMENT_TYPE),
-      estadoDocente: normalizeTeacherOperationalStatus(
-        latestEntry.record.estadoDocente || latestEntry.record.status || matchedStaff?.estado || "Activo"
-      ),
+      estadoDocente: normalizeTeacherOperationalStatus(preservedOperationalStatus),
       configuracionOperativa:
         latestEntry.record.configuracionOperativa ||
         latestEntry.record.observacionesOperativas ||
@@ -1853,7 +1903,7 @@ function getTeacherAttendanceLogicalKey(record) {
 
 function getVisibleTeacherRecords() {
   return getEligibleTeacherStaffRecords().map((staffRecord) =>
-    buildTeacherProfileFromStaff(staffRecord, getTeacherConfigByStaffId(staffRecord.id))
+    buildTeacherProfileFromStaff(staffRecord, getTeacherConfigForStaffRecord(staffRecord))
   );
 }
 
@@ -1881,7 +1931,7 @@ function buildTeacherStaffOptions(records, selectedValue, defaultLabel = "Selecc
   return [`<option value="">${escapeHtml(defaultLabel)}</option>`]
     .concat(
       records.map((record) => {
-        const profile = buildTeacherProfileFromStaff(record, getTeacherConfigByStaffId(record.id));
+        const profile = buildTeacherProfileFromStaff(record, getTeacherConfigForStaffRecord(record));
         const statusLabel = profile.isConfigured ? "Configurada" : "Pendiente";
         return `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
           `${record.nombre || "-"} · ${record.puesto || "-"} · ${record.sucursal || "-"} · ${statusLabel}`
@@ -1998,7 +2048,7 @@ function getTeacherFormData() {
   const formData = new FormData(teacherForm);
   const selectedStaffId = String(formData.get("staffId") || "").trim();
   const selectedStaff = staffRecords.find((record) => record.id === selectedStaffId);
-  const existingRecord = getTeacherConfigByStaffId(selectedStaffId);
+  const existingRecord = selectedStaff ? getTeacherConfigForStaffRecord(selectedStaff) : null;
 
   if (!selectedStaff) {
     return null;
@@ -2084,13 +2134,46 @@ function getTeacherPaymentFormData() {
 }
 
 async function saveTeacherRecord(record) {
-  teacherRecords = teacherRecords.filter(
-    (item) => item.id !== record.id && item.staffId !== record.staffId
+  const matchedStaff = staffRecords.find((item) => item.id === record.staffId || item.id === record.id) || null;
+  const existingRecord =
+    (matchedStaff ? getTeacherConfigForStaffRecord(matchedStaff) : null) ||
+    getTeacherConfigByStaffId(record.staffId || record.id) ||
+    getTeacherConfigById(record.id);
+  const normalizedName = normalizeInternalLookupValue(
+    record.legacyNombreCompleto || record.nombreCompleto || record.nombre || record.teacherName
   );
-  teacherRecords.unshift(record);
+  const normalizedBranch = normalizeInternalLookupValue(record.legacySucursal || record.sucursal);
+
+  const nextRecord = {
+    ...existingRecord,
+    ...record,
+    id: matchedStaff?.id || record.staffId || record.id || existingRecord?.id || crypto.randomUUID(),
+    staffId: matchedStaff?.id || record.staffId || record.id || existingRecord?.staffId || "",
+    linkedUserId: record.linkedUserId || existingRecord?.linkedUserId || matchedStaff?.linkedUserId || "",
+    estadoDocente: normalizeTeacherOperationalStatus(record.estadoDocente || existingRecord?.estadoDocente || "Activo"),
+    createdAt: existingRecord?.createdAt || record.createdAt || new Date().toISOString(),
+    updatedAt: record.updatedAt || new Date().toISOString(),
+  };
+
+  teacherRecords = teacherRecords.filter(
+    (item) =>
+      item.id !== nextRecord.id &&
+      item.staffId !== nextRecord.staffId &&
+      !(nextRecord.linkedUserId && item.linkedUserId === nextRecord.linkedUserId) &&
+      !(
+        normalizedName &&
+        normalizeInternalLookupValue(
+          item.legacyNombreCompleto || item.nombreCompleto || item.nombre || item.teacherName
+        ) === normalizedName &&
+        (!normalizedBranch ||
+          !normalizeInternalLookupValue(item.legacySucursal || item.sucursal) ||
+          normalizeInternalLookupValue(item.legacySucursal || item.sucursal) === normalizedBranch)
+      )
+  );
+  teacherRecords.unshift(nextRecord);
   saveTeachersCollection();
   return {
-    record,
+    record: nextRecord,
     synced: true,
   };
 }
@@ -2454,7 +2537,7 @@ function updateTeacherAttendanceHelper() {
 
 function syncTeacherConfigFields() {
   const selectedStaff = staffRecords.find((record) => record.id === teacherStaffId.value);
-  const existingConfig = selectedStaff ? getTeacherConfigByStaffId(selectedStaff.id) : null;
+  const existingConfig = selectedStaff ? getTeacherConfigForStaffRecord(selectedStaff) : null;
 
   if (!selectedStaff) {
     document.getElementById("teacherId").value = "";
@@ -7701,7 +7784,8 @@ staffForm.addEventListener("submit", async (event) => {
 teacherForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const teacherData = getTeacherFormData();
-  const isEditingExistingTeacher = Boolean(getTeacherConfigByStaffId(teacherStaffId.value));
+  const selectedStaff = staffRecords.find((record) => record.id === teacherStaffId.value) || null;
+  const isEditingExistingTeacher = Boolean(selectedStaff && getTeacherConfigForStaffRecord(selectedStaff));
 
   if (!teacherData || !teacherData.staffId || !teacherData.especialidad) {
     alert("Selecciona a una persona desde Personal y define la especialidad docente.");
