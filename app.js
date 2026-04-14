@@ -3253,12 +3253,14 @@ function getAltaFormData() {
   const telefono = normalizePhone(formData.get("telefono"));
   const allowedBranch = getAllowedBranch();
   const sucursal = allowedBranch || String(formData.get("sucursal") || "").trim();
+  const fechaInicio = String(
+    formData.get("fechaInicio") || formData.get("fechaInscripcion") || formatDateForInput(new Date())
+  ).trim();
   const studentCode = String(
-    formData.get("studentCode") || generateStudentCode(sucursal, formData.get("fechaInscripcion"))
+    formData.get("studentCode") || generateStudentCode(sucursal, fechaInicio)
   ).trim();
   const existingStudentId = String(formData.get("studentId") || "").trim();
   const existingStudent = students.find((student) => student.id === existingStudentId);
-  const fechaInscripcion = String(formData.get("fechaInscripcion") || formatDateForInput(new Date())).trim();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
   const portalPassword = buildStudentPortalPassword(fechaNacimiento);
@@ -3266,7 +3268,7 @@ function getAltaFormData() {
   const rawObservaciones = String(formData.get("observaciones") || "").trim();
   const metadataSegments = [
     `ID Alumna: ${studentCode}`,
-    `Fecha de inscripción: ${fechaInscripcion}`,
+    `Fecha de inicio: ${fechaInicio}`,
     `Día de clases: ${String(formData.get("diaClases") || "").trim() || "-"}`,
     `Correo: ${String(formData.get("correo") || "").trim() || "-"}`,
     `Dirección: ${String(formData.get("direccion") || "").trim() || "-"}`,
@@ -3293,7 +3295,7 @@ function getAltaFormData() {
     id: existingStudentId || crypto.randomUUID(),
     prospectId: document.getElementById("altaProspectId").value,
     studentCode,
-    fechaInscripcion,
+    fechaInscripcion: fechaInicio,
     nombre: formData.get("nombre").trim(),
     telefono,
     sucursal,
@@ -3301,7 +3303,7 @@ function getAltaFormData() {
     accesoElegido: formData.get("accesoElegido"),
     horario: formData.get("horario").trim(),
     diaClases: String(formData.get("diaClases") || "").trim(),
-    fechaInicio: formData.get("fechaInicio"),
+    fechaInicio,
     correo: String(formData.get("correo") || "").trim(),
     direccion: String(formData.get("direccion") || "").trim(),
     fechaNacimiento,
@@ -3428,17 +3430,19 @@ function syncAltaAutoFields() {
   const fechaNacimiento = document.getElementById("altaFechaNacimiento").value;
   const sucursal = document.getElementById("altaSucursal").value;
   const studentCodeField = document.getElementById("altaStudentCode");
-  const fechaInscripcionField = document.getElementById("altaFechaInscripcion");
+  const fechaInicioField = document.getElementById("altaFechaInscripcion");
+  const hiddenFechaInicioField = document.getElementById("altaFechaInicio");
   const portalUserField = document.getElementById("altaPortalUser");
   const portalPasswordField = document.getElementById("altaPassword");
 
-  if (!fechaInscripcionField.value) {
-    fechaInscripcionField.value = formatDateForInput(new Date());
+  if (!fechaInicioField.value) {
+    fechaInicioField.value = formatDateForInput(new Date());
   }
+  hiddenFechaInicioField.value = fechaInicioField.value;
   if (sucursal) {
     const expectedPrefix = sucursal === "Tlaxcala" ? "TLX" : sucursal === "Puebla" ? "PUE" : "ALT";
-    if (!studentCodeField.value || !studentCodeField.value.startsWith(`${expectedPrefix}-${fechaInscripcionField.value.slice(2, 4)}-`)) {
-      studentCodeField.value = generateStudentCode(sucursal, fechaInscripcionField.value);
+    if (!studentCodeField.value || !studentCodeField.value.startsWith(`${expectedPrefix}-${fechaInicioField.value.slice(2, 4)}-`)) {
+      studentCodeField.value = generateStudentCode(sucursal, fechaInicioField.value);
     }
   }
 
@@ -3471,6 +3475,15 @@ function buildStudentPortalPassword(dateValue) {
   return birthYear ? `Venezia${birthYear}` : "Venezia0000";
 }
 
+function getStudentStartDateValue(student) {
+  const createdAt = String(student?.createdAt || "").trim();
+  return String(student?.fechaInicio || student?.fechaInscripcion || (createdAt ? createdAt.slice(0, 10) : "")).trim();
+}
+
+function isStudentDeleted(student) {
+  return String(student?.estado || "").trim().toLowerCase() === "eliminada";
+}
+
 function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
   const normalizedBranch = String(branch || "").trim();
   const prefix = normalizedBranch === "Tlaxcala" ? "TLX" : normalizedBranch === "Puebla" ? "PUE" : "ALT";
@@ -3480,7 +3493,7 @@ function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Da
     if (student.sucursal !== normalizedBranch) {
       return false;
     }
-    const baseDate = String(student.fechaInscripcion || student.createdAt || "").trim();
+    const baseDate = getStudentStartDateValue(student);
     return baseDate.includes(`20${yearValue}`);
   });
   const existingMaxCode = students.reduce((maxValue, student) => {
@@ -3943,8 +3956,13 @@ function syncStudentAccessRecords() {
   let changed = false;
   const allOperationalStudents = students.filter((student) => {
     const prospect = prospects.find((item) => item.id === student.prospectId);
-    return !prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita";
+    return !isStudentDeleted(student) && (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita");
   });
+  const operationalStudentIds = new Set(allOperationalStudents.map((student) => student.id));
+
+  if (studentAccessRecords.some((record) => !operationalStudentIds.has(record.studentId))) {
+    changed = true;
+  }
 
   studentAccessRecords = allOperationalStudents.map((student) => {
     const existing = accessByStudentId.get(student.id);
@@ -4867,12 +4885,12 @@ function renderPendingAltas() {
 }
 
 function getStudentInscriptionDate(student) {
-  return student.fechaInscripcion || (student.createdAt ? String(student.createdAt).slice(0, 10) : "");
+  return getStudentStartDateValue(student);
 }
 
 function getFilteredAltaHistory() {
   return students
-    .filter((student) => matchesCurrentBranch(student.sucursal))
+    .filter((student) => matchesCurrentBranch(student.sucursal) && !isStudentDeleted(student))
     .filter((student) => isDateInMonth(getStudentInscriptionDate(student), selectedAltasMonth))
     .sort((a, b) => {
       const dateA = getStudentInscriptionDate(a) || "0000-00-00";
@@ -4919,6 +4937,7 @@ function renderAltaHistory() {
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+              <button class="table-action action-delete" type="button" data-action="delete-student" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
         </tr>
@@ -4934,6 +4953,7 @@ function getActiveStudents() {
     const prospect = prospects.find((item) => item.id === student.prospectId);
     return (
       matchesCurrentBranch(student.sucursal) &&
+      !isStudentDeleted(student) &&
       (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita")
     );
   });
@@ -5006,10 +5026,12 @@ function loadStudentIntoAlta(studentId) {
     return;
   }
 
+  const startDate = getStudentStartDateValue(student) || formatDateForInput(new Date());
+
   document.getElementById("altaStudentId").value = student.id;
   document.getElementById("altaProspectId").value = student.prospectId || "";
   document.getElementById("altaStudentCode").value = student.studentCode || "";
-  document.getElementById("altaFechaInscripcion").value = student.fechaInscripcion || formatDateForInput(new Date());
+  document.getElementById("altaFechaInscripcion").value = startDate;
   document.getElementById("altaNombre").value = student.nombre || "";
   document.getElementById("altaTelefono").value = student.telefono || "";
   document.getElementById("altaCorreo").value = student.correo || "";
@@ -5022,7 +5044,7 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaCurso").value = student.curso || "";
   document.getElementById("altaAccesoElegido").value = student.accesoElegido || "";
   document.getElementById("altaHorario").value = student.horario || "";
-  document.getElementById("altaFechaInicio").value = student.fechaInicio || "";
+  document.getElementById("altaFechaInicio").value = startDate;
   document.getElementById("altaDiaClases").value = student.diaClases || "";
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(student.asesoraInscribio || student.usuarioAlta);
   document.getElementById("altaMetodoPago").value = student.metodoPago || "";
@@ -5317,6 +5339,7 @@ function renderAttendanceTable() {
               <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
+              <button class="table-action action-delete" type="button" data-action="delete-attendance" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
         </tr>
@@ -5603,6 +5626,7 @@ function renderPaymentsTable() {
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
               <button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+              <button class="table-action action-delete" type="button" data-action="delete-payment" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
         </tr>
@@ -6205,7 +6229,7 @@ function renderStudentFile(studentId) {
   `;
 
   renderStudentFileInfoList(studentFileGeneral, [
-    { label: "Fecha de inscripción", value: student.fechaInscripcion || "-" },
+    { label: "Fecha de inicio", value: getStudentStartDateValue(student) || "-" },
     { label: "Nombre completo", value: student.nombre || "-", highlight: true },
     { label: "Teléfono/Whatsapp", value: student.telefono || "-" },
     { label: "Correo electrónico", value: student.correo || "-" },
@@ -6220,7 +6244,6 @@ function renderStudentFile(studentId) {
     { label: "Sucursal", value: student.sucursal || "-", badge: true, tone: "blue" },
     { label: "Curso inscrito", value: student.curso || "-", badge: true, tone: "purple" },
     { label: "Tipo de acceso", value: student.accesoElegido || "-", badge: true, tone: "gold" },
-    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
     { label: "Horario elegido", value: student.horario || "-" },
     { label: "Asesor que inscribió", value: student.asesoraInscribio || student.usuarioAlta || "-" },
   ]);
@@ -6308,6 +6331,9 @@ function getStudentPortalLoginMatch(identifier, password) {
   }
 
   return students.find((student) => {
+    if (isStudentDeleted(student)) {
+      return false;
+    }
     const portalUser = String(student.portalUser || "").trim().toLowerCase();
     return portalUser === normalizedIdentifier && String(student.portalPassword || "") === normalizedPassword;
   }) || null;
@@ -6506,8 +6532,9 @@ function renderWebScholarshipSection() {
 
 function renderMiVeneziaDashboard() {
   const student = getStudentById(currentPortalStudentId);
-  if (!student) {
+  if (!student || isStudentDeleted(student)) {
     dataService.sessions.clearStudent();
+    currentPortalStudentId = "";
     miVeneziaLoginPanel.hidden = false;
     miVeneziaDashboard.hidden = true;
     return;
@@ -6542,7 +6569,7 @@ function renderMiVeneziaDashboard() {
     { label: "Sucursal", value: student.sucursal || "-" },
     { label: "Curso", value: student.curso || "-" },
     { label: "Horario", value: student.horario || "-" },
-    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
+    { label: "Fecha de inicio", value: getStudentStartDateValue(student) || "-" },
     { label: "Acceso", value: student.accesoElegido || "-" },
   ]);
 
@@ -6577,8 +6604,8 @@ function renderMiVeneziaDashboard() {
   );
 
   renderInfoList(miVeneziaResumenAsistencias, [
-    { label: "Fecha de alta", value: student.fechaInscripcion || student.createdAt?.slice(0, 10) || "-" },
-    { label: "Fecha de inicio", value: student.fechaInicio || "-" },
+    { label: "Fecha de inicio", value: getStudentStartDateValue(student) || "-" },
+    { label: "Fecha de registro", value: student.createdAt?.slice(0, 10) || "-" },
     { label: "Acceso", value: student.accesoElegido || "-" },
     { label: "Status", value: student.estado || "Activa" },
     { label: "Total de clases", value: String(totalClasesPlaneadas) },
@@ -7149,6 +7176,139 @@ async function deleteProspect(id) {
   }
 }
 
+async function deleteStudentRecord(id) {
+  const student = getStudentById(id);
+  if (!student) {
+    return;
+  }
+
+  const startDate = getStudentStartDateValue(student);
+  const confirmed = window.confirm(
+    `Vas a eliminar a ${student.nombre || "esta alumna"} del módulo Altas.\n\n` +
+      "Esta acción puede afectar expediente, pagos, asistencias, acceso Mi Venezia y datos relacionados.\n" +
+      "Para preservar consistencia, la alumna se marcará como eliminada y dejará de aparecer en módulos activos, " +
+      "pero el historial relacionado no se borrará físicamente.\n\n¿Deseas continuar?"
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  const saveResult = await saveStudentRecord({
+    ...student,
+    fechaInscripcion: startDate,
+    fechaInicio: startDate,
+    estado: "Eliminada",
+    deletedAt: new Date().toISOString(),
+    deletedBy: getCurrentInternalUser()?.id || "",
+  });
+
+  if (!saveResult.synced) {
+    alert("No se pudo marcar la alumna como eliminada en el registro central.");
+    return;
+  }
+
+  syncStudentAccessRecords();
+  if (document.getElementById("altaStudentId").value === id) {
+    resetAltaForm();
+  }
+  if (currentPortalStudentId === id) {
+    dataService.sessions.clearStudent();
+    currentPortalStudentId = "";
+  }
+  renderAll();
+  alert("La alumna quedó marcada como eliminada y se ocultó de los módulos activos.");
+}
+
+function getVisibleAttendanceRecordsForStudent(studentId) {
+  const studentsList = getFilteredStudentsForAttendance();
+  const selectedDate = attendanceDate.value || getAttendanceBaseDate(studentsList);
+  const sessions = getAttendanceSessionDates(selectedDate, getAttendanceSessionCount(studentsList));
+  const visibleDates = new Set(sessions.map((session) => session.date));
+  return attendanceRecords.filter((record) => record.studentId === studentId && visibleDates.has(record.fecha));
+}
+
+async function deleteAttendanceForStudent(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    return;
+  }
+
+  const recordsToDelete = getVisibleAttendanceRecordsForStudent(studentId);
+  if (recordsToDelete.length === 0) {
+    alert("No hay asistencias visibles para eliminar en el periodo seleccionado.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Se eliminarán ${recordsToDelete.length} registro(s) de asistencia de ${student.nombre || "esta alumna"} ` +
+      `del bloque visible iniciado en ${attendanceDate.value || "-"}.\n\n¿Deseas continuar?`
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  let synced = true;
+  for (const record of recordsToDelete) {
+    const deleteResult = await dataService.entities.attendance.deleteOne(record.id, { alertOnFailure: false });
+    attendanceRecords = deleteResult.synced
+      ? await dataService.entities.attendance.getAllPrimary(() => [])
+      : deleteResult.records;
+    if (!deleteResult.synced) {
+      synced = false;
+      break;
+    }
+  }
+
+  renderAttendanceTable();
+  updateAttendanceSummary();
+  if (selectedAttendanceStudentId === studentId) {
+    renderAttendanceHistory(studentId);
+  }
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
+
+  if (!synced) {
+    alert("No se pudo eliminar toda la asistencia en Supabase.");
+  }
+}
+
+async function deletePaymentForStudent(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    return;
+  }
+
+  const payment = getPaymentRecord(studentId);
+  if (!payment.id) {
+    alert("No hay un registro de pago guardado para el periodo seleccionado.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Se eliminará el registro de pago de ${student.nombre || "esta alumna"} para el periodo ${selectedPaymentsMonth}.\n\n¿Deseas continuar?`
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  const deleteResult = await dataService.entities.payments.deleteOne(payment.id, { alertOnFailure: false });
+  paymentRecords = deleteResult.synced
+    ? await dataService.entities.payments.getAllPrimary(() => [])
+    : deleteResult.records;
+
+  renderPaymentsTable();
+  updatePaymentsSummary();
+  renderDashboard();
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
+
+  if (!deleteResult.synced) {
+    alert("No se pudo eliminar el pago en Supabase.");
+  }
+}
+
 function openWhatsApp(id) {
   const prospect = prospects.find((item) => item.id === id);
   if (!prospect) {
@@ -7220,7 +7380,7 @@ function loadProspectIntoAlta(id) {
       sucursal: prospect.sucursal,
       accesoElegido: prospect.accesoInteres || "",
       horario: document.getElementById("altaHorario").value,
-      fechaInicio: document.getElementById("altaFechaInicio").value,
+      fechaInicio: document.getElementById("altaFechaInscripcion").value,
       metodoPago: document.getElementById("altaMetodoPago").value,
       cantidadPago: document.getElementById("altaCantidadPago").value,
       portalUser: document.getElementById("altaPortalUser").value,
@@ -8007,7 +8167,7 @@ pendingAltasTableBody.addEventListener("click", (event) => {
   }
 });
 
-altaHistoryTableBody.addEventListener("click", (event) => {
+altaHistoryTableBody.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) {
     return;
@@ -8017,6 +8177,9 @@ altaHistoryTableBody.addEventListener("click", (event) => {
   }
   if (actionButton.dataset.action === "edit-student") {
     loadStudentIntoAlta(actionButton.dataset.id);
+  }
+  if (actionButton.dataset.action === "delete-student") {
+    await deleteStudentRecord(actionButton.dataset.id);
   }
 });
 
@@ -8034,6 +8197,9 @@ attendanceTableBody.addEventListener("click", async (event) => {
   if (action === "edit-student") loadStudentIntoAlta(id);
   if (action === "view-student-file") openStudentFile(id);
   if (action === "view-history") renderAttendanceHistory(id);
+  if (action === "delete-attendance") {
+    await deleteAttendanceForStudent(id);
+  }
 });
 
 paymentsTableBody.addEventListener("click", async (event) => {
@@ -8053,6 +8219,10 @@ paymentsTableBody.addEventListener("click", async (event) => {
 
   if (actionButton.dataset.action === "view-student-file") {
     openStudentFile(actionButton.dataset.id);
+  }
+
+  if (actionButton.dataset.action === "delete-payment") {
+    await deletePaymentForStudent(actionButton.dataset.id);
   }
 });
 

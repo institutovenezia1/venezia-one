@@ -907,8 +907,14 @@ td select {
 }
 
 .action-delete {
-  background: rgba(26, 26, 26, 0.08);
-  color: var(--color-text);
+  background: linear-gradient(180deg, #f6d8d3 0%, #efc7c1 100%);
+  color: #8f4338;
+  border-color: rgba(176, 95, 82, 0.22);
+}
+
+.action-delete:hover {
+  background: linear-gradient(180deg, #f3cfc9 0%, #ebbcb4 100%);
+  color: #7b362c;
 }
 
 .empty-state {

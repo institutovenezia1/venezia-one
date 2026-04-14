@@ -326,9 +326,14 @@
     return targetSegment ? targetSegment.slice(label.length + 2).trim() : "";
   }
 
+  function extractAltaMetadataAny(notes, labels) {
+    return labels.map((label) => extractAltaMetadata(notes, label)).find(Boolean) || "";
+  }
+
   function stripAltaMetadata(notes) {
     const metadataLabels = new Set([
       "ID Alumna",
+      "Fecha de inicio",
       "Fecha de inscripción",
       "Día de clases",
       "Correo",
@@ -370,11 +375,12 @@
 
   function buildStudentNotes(record) {
     const normalizeValue = (value) => String(value || "").trim() || "-";
+    const startDate = normalizeValue(record.fechaInicio || record.fechaInscripcion);
 
     return [
       stripAltaMetadata(record.observaciones || ""),
       `ID Alumna: ${normalizeValue(record.studentCode)}`,
-      `Fecha de inscripción: ${normalizeValue(record.fechaInscripcion)}`,
+      `Fecha de inicio: ${startDate}`,
       `Día de clases: ${normalizeValue(record.diaClases)}`,
       `Correo: ${normalizeValue(record.correo)}`,
       `Dirección: ${normalizeValue(record.direccion)}`,
@@ -543,10 +549,14 @@
       sucursal: record.branch || "",
       curso: record.course || "",
       studentCode: extractAltaMetadata(record.notes, "ID Alumna"),
-      fechaInscripcion: extractAltaMetadata(record.notes, "Fecha de inscripción"),
+      fechaInscripcion:
+        record.start_date ||
+        extractAltaMetadataAny(record.notes, ["Fecha de inicio", "Fecha de inscripción"]),
       horario: record.schedule || "",
       diaClases: extractAltaMetadata(record.notes, "Día de clases"),
-      fechaInicio: record.start_date || "",
+      fechaInicio:
+        record.start_date ||
+        extractAltaMetadataAny(record.notes, ["Fecha de inicio", "Fecha de inscripción"]),
       accesoElegido: record.access_selected || "",
       correo: extractAltaMetadata(record.notes, "Correo"),
       direccion: extractAltaMetadata(record.notes, "Dirección"),
