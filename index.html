@@ -1234,9 +1234,35 @@
                 </label>
 
                 <label>
+                  <span>Especialidad operativa</span>
+                  <select id="teacherPaymentSpecialty" name="especialidadOperativa" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Uñas</option>
+                    <option>Pestañas</option>
+                    <option>Maquillaje</option>
+                    <option>Barbería</option>
+                    <option>COORD de maestras</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Turno</span>
+                  <select id="teacherPaymentShift" name="turno" required>
+                    <option value="">Selecciona una opcion</option>
+                    <option>Matutino</option>
+                    <option>Vespertino</option>
+                    <option>Ambos</option>
+                  </select>
+                </label>
+
+                <label>
                   <span>Monto pagado</span>
                   <input id="teacherPaymentAmount" name="montoPagado" type="number" min="0.01" step="0.01" required />
                 </label>
+
+                <p id="teacherPaymentAmountHint" class="module-helper-copy full-width">
+                  Calculado automáticamente según especialidad y turno. Puedes ajustarlo manualmente si hay una excepción.
+                </p>
 
                 <label>
                   <span>Método de pago</span>

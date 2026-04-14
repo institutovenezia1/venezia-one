@@ -272,6 +272,10 @@ const teacherPaymentBranch = document.getElementById("teacherPaymentBranch");
 const teacherPaymentDate = document.getElementById("teacherPaymentDate");
 const teacherPaymentMonth = document.getElementById("teacherPaymentMonth");
 const teacherPaymentFortnight = document.getElementById("teacherPaymentFortnight");
+const teacherPaymentSpecialty = document.getElementById("teacherPaymentSpecialty");
+const teacherPaymentShift = document.getElementById("teacherPaymentShift");
+const teacherPaymentAmount = document.getElementById("teacherPaymentAmount");
+const teacherPaymentAmountHint = document.getElementById("teacherPaymentAmountHint");
 const teacherPaymentHelper = document.getElementById("teacherPaymentHelper");
 const teacherPaymentsHistoryPanel = document.getElementById("teacherPaymentsHistoryPanel");
 const teacherPaymentsTableBody = document.getElementById("teacherPaymentsTableBody");
@@ -1893,6 +1897,22 @@ function getTeacherEstimatedPay(specialty, shift, status = "Asistió") {
   return 0;
 }
 
+function getTeacherAutoPaymentAmountForForm(specialty, shift) {
+  const normalizedSpecialty = normalizeTeacherSpecialty(specialty);
+  const normalizedShift = normalizeTeacherShift(shift);
+
+  if (!normalizedSpecialty || !normalizedShift) {
+    return null;
+  }
+
+  if (normalizedSpecialty === "Barbería" && normalizedShift === "Vespertino") {
+    return null;
+  }
+
+  const amount = getTeacherEstimatedPay(normalizedSpecialty, normalizedShift, "Asistió");
+  return amount > 0 ? amount : null;
+}
+
 function getTeacherCoveredTurnUnits(shift) {
   return normalizeTeacherShift(shift) === "Ambos" ? 2 : normalizeTeacherShift(shift) ? 1 : 0;
 }
@@ -2118,6 +2138,12 @@ function getTeacherPaymentFormData() {
     teacherId: selectedTeacher?.id || teacherId,
     teacherName: selectedTeacher?.nombreCompleto || existingRecord?.teacherName || "",
     sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
+    especialidadOperativa:
+      normalizeTeacherSpecialty(formData.get("especialidadOperativa")) ||
+      getTeacherOperationalSpecialty(selectedTeacher) ||
+      existingRecord?.especialidadOperativa ||
+      "",
+    turno: normalizeTeacherShift(formData.get("turno")) || existingRecord?.turno || "",
     fechaPago: String(formData.get("fechaPago") || "").trim(),
     periodMonth,
     fortnight,
@@ -2208,6 +2234,11 @@ function saveTeacherPaymentRecord(record) {
     ...record,
     teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
     sucursal: teacherProfile?.sucursal || record.sucursal || "",
+    especialidadOperativa:
+      normalizeTeacherSpecialty(record.especialidadOperativa) ||
+      getTeacherOperationalSpecialty(teacherProfile) ||
+      "",
+    turno: normalizeTeacherShift(record.turno),
   };
 
   teacherPaymentRecords = teacherPaymentRecords.filter((item) => item.id !== nextRecord.id);
@@ -2596,17 +2627,57 @@ function syncTeacherAttendanceFields() {
 function syncTeacherPaymentFields() {
   const selectedTeacher = getTeacherProfileById(teacherPaymentTeacherId.value);
   const allowedBranch = getAllowedBranch();
+  const operationalSpecialty = getTeacherOperationalSpecialty(selectedTeacher);
 
   if (selectedTeacher) {
     teacherPaymentBranch.value = allowedBranch || selectedTeacher.sucursal || teacherPaymentBranch.value;
+    if (!teacherPaymentSpecialty.value) {
+      teacherPaymentSpecialty.value = operationalSpecialty || "";
+    }
+  } else if (!teacherPaymentTeacherId.value) {
+    teacherPaymentSpecialty.value = "";
+    teacherPaymentShift.value = "";
   }
 
   populateTeacherPaymentSelects();
 
   const periodLabel = buildTeacherPaymentPeriodLabel(teacherPaymentMonth.value, teacherPaymentFortnight.value);
+  const autoAmount = getTeacherAutoPaymentAmountForForm(teacherPaymentSpecialty.value, teacherPaymentShift.value);
+  const specialtyLabel = operationalSpecialty || teacherPaymentSpecialty.value || "";
+  const autoAmountLabel =
+    autoAmount === null
+      ? specialtyLabel && normalizeTeacherSpecialty(specialtyLabel) === "Barbería" && normalizeTeacherShift(teacherPaymentShift.value) === "Vespertino"
+        ? " En Barbería vespertino no se autocompleta monto; queda editable para captura manual."
+        : ""
+      : ` Monto sugerido automático: ${formatCurrency(autoAmount)}.`;
+
   teacherPaymentHelper.textContent = periodLabel
-    ? `El pago real quedará ligado al periodo ${periodLabel}. La nómina estimada sigue calculándose aparte con jornadas válidas.`
-    : "Registra aquí pagos reales ya entregados. La nómina estimada se sigue calculando aparte con jornadas y turnos.";
+    ? `El pago real quedará ligado al periodo ${periodLabel}. La nómina estimada sigue calculándose aparte con jornadas válidas.${autoAmountLabel}`
+    : `Registra aquí pagos reales ya entregados. La nómina estimada se sigue calculando aparte con jornadas y turnos.${autoAmountLabel}`;
+
+  if (teacherPaymentAmountHint) {
+    teacherPaymentAmountHint.textContent =
+      autoAmount === null &&
+      normalizeTeacherSpecialty(teacherPaymentSpecialty.value) === "Barbería" &&
+      normalizeTeacherShift(teacherPaymentShift.value) === "Vespertino"
+        ? "Barbería vespertino no tiene monto automático. Puedes capturarlo manualmente."
+        : "Calculado automáticamente según especialidad y turno. Puedes ajustarlo manualmente si hay una excepción.";
+  }
+}
+
+function applyTeacherPaymentAutoAmount({ force = false } = {}) {
+  const autoAmount = getTeacherAutoPaymentAmountForForm(teacherPaymentSpecialty.value, teacherPaymentShift.value);
+
+  if (autoAmount === null) {
+    if (force) {
+      teacherPaymentAmount.value = "";
+    }
+    return;
+  }
+
+  if (force || !String(teacherPaymentAmount.value || "").trim()) {
+    teacherPaymentAmount.value = String(autoAmount);
+  }
 }
 
 function resetTeacherForm() {
@@ -2640,6 +2711,9 @@ function resetTeacherPaymentForm() {
   teacherPaymentMonth.value = teacherSummaryMonthFilter.value || getCurrentMonthValue();
   teacherPaymentFortnight.value = teacherSummaryFortnightFilter.value || "";
   teacherPaymentBranch.value = allowedBranch || "";
+  teacherPaymentSpecialty.value = "";
+  teacherPaymentShift.value = "";
+  teacherPaymentAmount.value = "";
   populateTeacherPaymentSelects();
   teacherPaymentSubmitButton.textContent = "Guardar pago";
   syncTeacherPaymentFields();
@@ -2870,6 +2944,8 @@ function editTeacherPaymentRecord(paymentId) {
   teacherPaymentDate.value = record.fechaPago || "";
   teacherPaymentMonth.value = record.periodMonth || "";
   teacherPaymentFortnight.value = record.fortnight || "";
+  teacherPaymentSpecialty.value = normalizeTeacherSpecialty(record.especialidadOperativa) || "";
+  teacherPaymentShift.value = normalizeTeacherShift(record.turno) || "";
   document.getElementById("teacherPaymentAmount").value = record.montoPagado || "";
   document.getElementById("teacherPaymentMethod").value = record.metodoPago || "";
   document.getElementById("teacherPaymentNote").value = record.nota || "";
@@ -7830,6 +7906,8 @@ teacherPaymentForm.addEventListener("submit", (event) => {
   if (
     !paymentData.teacherId ||
     !paymentData.sucursal ||
+    !paymentData.especialidadOperativa ||
+    !paymentData.turno ||
     !paymentData.fechaPago ||
     !paymentData.periodMonth ||
     !paymentData.fortnight ||
@@ -7837,7 +7915,7 @@ teacherPaymentForm.addEventListener("submit", (event) => {
     paymentData.montoPagado <= 0 ||
     !paymentData.metodoPago
   ) {
-    alert("Completa maestra, sucursal, fecha, periodo, quincena, monto y método de pago para registrar el pago real.");
+    alert("Completa maestra, sucursal, especialidad operativa, turno, fecha, periodo, quincena, monto y método de pago para registrar el pago real.");
     return;
   }
 
@@ -8073,10 +8151,25 @@ teacherAttendanceBranch.addEventListener("change", () => {
 teacherPaymentBranch.addEventListener("change", () => {
   populateTeacherPaymentSelects();
   syncTeacherPaymentFields();
+  applyTeacherPaymentAutoAmount();
 });
 
-["teacherPaymentTeacherId", "teacherPaymentMonth", "teacherPaymentFortnight"].forEach((id) => {
+teacherPaymentTeacherId.addEventListener("change", () => {
+  const selectedTeacher = getTeacherProfileById(teacherPaymentTeacherId.value);
+  teacherPaymentSpecialty.value = getTeacherOperationalSpecialty(selectedTeacher) || "";
+  syncTeacherPaymentFields();
+  applyTeacherPaymentAutoAmount({ force: true });
+});
+
+["teacherPaymentMonth", "teacherPaymentFortnight"].forEach((id) => {
   document.getElementById(id).addEventListener("change", syncTeacherPaymentFields);
+});
+
+["teacherPaymentSpecialty", "teacherPaymentShift"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", () => {
+    applyTeacherPaymentAutoAmount({ force: true });
+    syncTeacherPaymentFields();
+  });
 });
 
 teacherSummaryBranchFilter.addEventListener("change", renderTeachersModule);
