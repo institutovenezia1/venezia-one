@@ -15,6 +15,7 @@ const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
 const REGLAMENTO_PDF_PATH = "/images/reglamentooficial-venezia.pdf";
+const CONTRATO_ALUMNO_PDF_PATH = "/images/CONTRATO-ALUMNO.pdf";
 
 const INCOME_CATEGORIES = [
   "Inscripción",
@@ -373,6 +374,11 @@ const miVeneziaReglamentoMeta = document.getElementById("miVeneziaReglamentoMeta
 const miVeneziaViewReglamentoButton = document.getElementById("miVeneziaViewReglamentoButton");
 const miVeneziaDownloadReglamentoButton = document.getElementById("miVeneziaDownloadReglamentoButton");
 const miVeneziaConfirmReadButton = document.getElementById("miVeneziaConfirmReadButton");
+const miVeneziaContratoStatus = document.getElementById("miVeneziaContratoStatus");
+const miVeneziaContratoMeta = document.getElementById("miVeneziaContratoMeta");
+const miVeneziaViewContratoButton = document.getElementById("miVeneziaViewContratoButton");
+const miVeneziaDownloadContratoButton = document.getElementById("miVeneziaDownloadContratoButton");
+const miVeneziaConfirmContratoButton = document.getElementById("miVeneziaConfirmContratoButton");
 const miVeneziaPasswordForm = document.getElementById("miVeneziaPasswordForm");
 const miVeneziaPasswordFeedback = document.getElementById("miVeneziaPasswordFeedback");
 const miVeneziaPasswordSubmitButton = document.getElementById("miVeneziaPasswordSubmitButton");
@@ -3484,6 +3490,8 @@ function getAltaFormData() {
     portalPassword,
     lecturaReglamento: existingStudent?.lecturaReglamento || false,
     fechaLecturaReglamento: existingStudent?.fechaLecturaReglamento || "",
+    lecturaContrato: existingStudent?.lecturaContrato || false,
+    fechaLecturaContrato: existingStudent?.fechaLecturaContrato || "",
     estado: "Activa",
     createdAt: existingStudent?.createdAt || new Date().toISOString(),
   };
@@ -5182,6 +5190,33 @@ function getStudentReglamentoStatus(student) {
   };
 }
 
+function getStudentContratoStatus(student) {
+  const fechaConfirmacion = String(student?.fechaLecturaContrato || "").trim();
+  return {
+    confirmado: Boolean(student?.lecturaContrato || fechaConfirmacion),
+    fechaConfirmacion,
+  };
+}
+
+function getStudentDocumentBadge(student) {
+  const reglamento = getStudentReglamentoStatus(student);
+  const contrato = getStudentContratoStatus(student);
+
+  if (reglamento.confirmado && contrato.confirmado) {
+    return "Ambos";
+  }
+
+  if (reglamento.confirmado) {
+    return "Reg";
+  }
+
+  if (contrato.confirmado) {
+    return "Cont";
+  }
+
+  return "—";
+}
+
 function getStudentAttendanceBaseDate(student, history = []) {
   const explicitStartDate = getStudentStartDateValue(student);
   const fallbackStartDate =
@@ -5518,8 +5553,8 @@ function renderAttendanceTable() {
 
   attendanceTableHead.innerHTML = `
     <tr>
-      <th>REGLAMENTO</th>
       <th>#</th>
+      <th>DOC</th>
       <th>Nombre del alumno</th>
       <th>Celular</th>
       <th>PAGO C1</th>
@@ -5543,16 +5578,11 @@ function renderAttendanceTable() {
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
+      const documentBadge = getStudentDocumentBadge(student);
       return `
         <tr>
-          <td>
-            <select data-attendance-field="reglamento" data-student-id="${student.id}">
-              <option value="">-</option>
-              <option value="Sí" ${getAttendanceNotesValue(metadataRecord, "Reglamento firmado") === "Sí" ? "selected" : ""}>Sí</option>
-              <option value="No" ${getAttendanceNotesValue(metadataRecord, "Reglamento firmado") === "No" ? "selected" : ""}>No</option>
-            </select>
-          </td>
           <td>${index + 1}</td>
+          <td><span class="status-pill attendance-doc-pill">${escapeHtml(documentBadge)}</span></td>
           <td>
             <div class="attendance-student-cell">
               <strong>${escapeHtml(student.nombre)}</strong>
@@ -5623,9 +5653,9 @@ async function saveAttendanceForStudent(studentId) {
   const sessionFields = Array.from(
     attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
   );
-  const reglamentoField = attendanceTableBody.querySelector(`[data-attendance-field="reglamento"][data-student-id="${studentId}"]`);
   const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
   const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
+  const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
   const firstSelectedSessionDate = sessionFields.find((field) => field.value)?.dataset.sessionDate || date;
   const recordsToSave = sessionFields
     .filter((field) => field.value)
@@ -5640,7 +5670,7 @@ async function saveAttendanceForStudent(studentId) {
         observaciones:
           sessionDate === date || sessionDate === firstSelectedSessionDate
             ? buildAttendanceNotes({
-                reglamento: reglamentoField?.value || "",
+                reglamento: automaticReglamentoStatus,
                 reportes: reportesField?.value.trim() || "",
                 observaciones: observacionesField?.value.trim() || "",
               })
@@ -6681,6 +6711,44 @@ function renderMiVeneziaReglamento(student) {
   }
 }
 
+function renderMiVeneziaContrato(student) {
+  const { confirmado, fechaConfirmacion } = getStudentContratoStatus(student);
+
+  if (miVeneziaViewContratoButton) {
+    miVeneziaViewContratoButton.href = CONTRATO_ALUMNO_PDF_PATH;
+  }
+
+  if (miVeneziaDownloadContratoButton) {
+    miVeneziaDownloadContratoButton.href = CONTRATO_ALUMNO_PDF_PATH;
+  }
+
+  if (miVeneziaContratoStatus) {
+    miVeneziaContratoStatus.textContent = confirmado ? "Lectura confirmada" : "Lectura pendiente";
+    miVeneziaContratoStatus.className = confirmado
+      ? "status-pill mi-venezia-reglamento-status is-confirmed"
+      : "status-pill status-pill-default mi-venezia-reglamento-status";
+  }
+
+  renderInfoList(miVeneziaContratoMeta, [
+    { label: "Documento", value: "Contrato de inscripción" },
+    { label: "Estado", value: confirmado ? "Contrato leído" : "Pendiente de confirmación" },
+    {
+      label: "Fecha de lectura",
+      value: fechaConfirmacion ? formatDisplayDateTime(fechaConfirmacion) : "Aún sin confirmar",
+    },
+  ]);
+
+  if (miVeneziaConfirmContratoButton) {
+    miVeneziaConfirmContratoButton.disabled = confirmado;
+    miVeneziaConfirmContratoButton.textContent = confirmado ? "Contrato leído" : "Confirmo lectura";
+  }
+}
+
+function renderMiVeneziaDocuments(student) {
+  renderMiVeneziaReglamento(student);
+  renderMiVeneziaContrato(student);
+}
+
 async function handleMiVeneziaReglamentoConfirmation() {
   const student = getStudentById(currentPortalStudentId);
   if (!student) {
@@ -6713,6 +6781,40 @@ async function handleMiVeneziaReglamentoConfirmation() {
   }
 
   alert("La lectura del reglamento quedó confirmada.");
+}
+
+async function handleMiVeneziaContratoConfirmation() {
+  const student = getStudentById(currentPortalStudentId);
+  if (!student) {
+    return;
+  }
+
+  const { confirmado } = getStudentContratoStatus(student);
+  if (confirmado) {
+    renderMiVeneziaContrato(student);
+    return;
+  }
+
+  if (miVeneziaConfirmContratoButton) {
+    miVeneziaConfirmContratoButton.disabled = true;
+    miVeneziaConfirmContratoButton.textContent = "Guardando...";
+  }
+
+  const updatedStudent = {
+    ...student,
+    lecturaContrato: true,
+    fechaLecturaContrato: new Date().toISOString(),
+  };
+  const saveResult = await saveStudentRecord(updatedStudent);
+
+  renderMiVeneziaDashboard();
+
+  if (!saveResult.synced) {
+    alert("No se pudo confirmar la lectura del contrato en el registro central.");
+    return;
+  }
+
+  alert("La lectura del contrato quedó confirmada.");
 }
 
 function renderWebScholarshipSection() {
@@ -6832,7 +6934,7 @@ function renderMiVeneziaDashboard() {
   miVeneziaStatPayments.textContent = `${registeredPayments} registrados`;
   miVeneziaStatStatus.textContent = student.estado || "Activa";
   miVeneziaContactButton.href = getStudentDirectorWhatsappUrl(student);
-  renderMiVeneziaReglamento(student);
+  renderMiVeneziaDocuments(student);
 
   renderInfoList(miVeneziaPerfil, [
     { label: "Nombre completo", value: student.nombre || "-" },

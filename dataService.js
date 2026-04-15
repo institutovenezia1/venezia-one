@@ -363,6 +363,8 @@
       "Password Mi Venezia",
       "Lectura reglamento",
       "Fecha lectura reglamento",
+      "Lectura contrato",
+      "Fecha lectura contrato",
     ]);
 
     return String(notes || "")
@@ -410,6 +412,10 @@
       record.lecturaReglamento ? "Lectura reglamento: Sí" : "",
       record.fechaLecturaReglamento
         ? `Fecha lectura reglamento: ${record.fechaLecturaReglamento}`
+        : "",
+      record.lecturaContrato ? "Lectura contrato: Sí" : "",
+      record.fechaLecturaContrato
+        ? `Fecha lectura contrato: ${record.fechaLecturaContrato}`
         : "",
     ]
       .filter(Boolean)
@@ -590,6 +596,11 @@
           extractAltaMetadata(record.notes, "Lectura reglamento").trim().toLowerCase()
         ) || Boolean(extractAltaMetadata(record.notes, "Fecha lectura reglamento")),
       fechaLecturaReglamento: extractAltaMetadata(record.notes, "Fecha lectura reglamento"),
+      lecturaContrato:
+        ["si", "sí", "true", "confirmada"].includes(
+          extractAltaMetadata(record.notes, "Lectura contrato").trim().toLowerCase()
+        ) || Boolean(extractAltaMetadata(record.notes, "Fecha lectura contrato")),
+      fechaLecturaContrato: extractAltaMetadata(record.notes, "Fecha lectura contrato"),
       estado: record.status || "Activa",
       prospectId: record.source_prospect_id || "",
       observaciones: stripAltaMetadata(record.notes),
