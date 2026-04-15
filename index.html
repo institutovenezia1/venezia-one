@@ -498,11 +498,6 @@
                     </label>
 
                     <label>
-                      <span>Fecha de inicio</span>
-                      <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" />
-                    </label>
-
-                    <label>
                       <span>Nombre completo</span>
                       <input id="altaNombre" name="nombre" type="text" required />
                     </label>
@@ -530,6 +525,11 @@
                     <label>
                       <span>Nombre de tutor si es menor de edad</span>
                       <input id="altaTutor" name="tutor" type="text" />
+                    </label>
+
+                    <label>
+                      <span id="altaClaveElectorLabel">Clave de elector</span>
+                      <input id="altaClaveElector" name="claveElector" type="text" />
                     </label>
 
                     <label>
@@ -570,6 +570,11 @@
                     <strong>Configuración del arranque</strong>
                   </div>
                   <div class="alta-form-block-grid">
+                    <label>
+                      <span>Fecha de inicio</span>
+                      <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" />
+                    </label>
+
                     <label>
                       <span>Tipo de acceso</span>
                       <select id="altaAccesoElegido" name="accesoElegido" required>
@@ -641,7 +646,7 @@
                     </label>
 
                     <label>
-                      <span>Cantidad de pago</span>
+                      <span>Cantidad de pago de inscripción</span>
                       <input id="altaCantidadPago" name="cantidadPago" type="text" required />
                     </label>
 
@@ -772,7 +777,7 @@
                     <strong id="altaConfirmMetodoPago">-</strong>
                   </div>
                   <div class="alta-summary-item">
-                    <span>Cantidad de pago</span>
+                    <span>Cantidad de pago de inscripción</span>
                     <strong id="altaConfirmCantidadPago">-</strong>
                   </div>
                   <div class="alta-summary-item">
@@ -836,7 +841,7 @@
                     <th>Tipo de acceso</th>
                     <th>Horario elegido</th>
                     <th>Método de pago</th>
-                    <th>Cantidad de pago</th>
+                    <th>Cantidad de pago de inscripción</th>
                     <th>Asesor que inscribió</th>
                     <th>Acción</th>
                   </tr>

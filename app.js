@@ -171,6 +171,8 @@ const altaSummaryMetodoPago = document.getElementById("altaSummaryMetodoPago");
 const altaSummaryCantidadPago = document.getElementById("altaSummaryCantidadPago");
 const altaSummaryPortalUser = document.getElementById("altaSummaryPortalUser");
 const altaSummaryPortalPassword = document.getElementById("altaSummaryPortalPassword");
+const altaClaveElector = document.getElementById("altaClaveElector");
+const altaClaveElectorLabel = document.getElementById("altaClaveElectorLabel");
 const altaConfirmCard = document.getElementById("altaConfirmCard");
 const altaConfirmMessage = document.getElementById("altaConfirmMessage");
 const altaConfirmStudentCode = document.getElementById("altaConfirmStudentCode");
@@ -1342,6 +1344,7 @@ async function syncStaffInternalAccess(record) {
   const existingUser =
     internalUsers.find((user) => user.id === record.linkedUserId) ||
     internalUsers.find((user) => user.username === record.username);
+  const preservedAllBranchesScope = isAllBranchesScope(existingUser?.branch) ? "Todas" : "";
   const internalUserPayload = {
     id: existingUser?.id || record.linkedUserId || crypto.randomUUID(),
     fullName: record.nombre || "",
@@ -1349,7 +1352,7 @@ async function syncStaffInternalAccess(record) {
     phone: record.telefono || "",
     password: record.password || "",
     role: existingUser?.role || mappedRole,
-    branch: record.sucursal || existingUser?.branch || "",
+    branch: preservedAllBranchesScope || record.sucursal || existingUser?.branch || "",
     status: record.estado || existingUser?.status || "Activo",
     permissions:
       Array.isArray(existingUser?.permissions) && existingUser.permissions.length > 0
@@ -3427,12 +3430,13 @@ function getAltaFormData() {
     `Dirección: ${String(formData.get("direccion") || "").trim() || "-"}`,
     `Fecha de nacimiento: ${fechaNacimiento || "-"}`,
     `Tutor: ${String(formData.get("tutor") || "").trim() || "-"}`,
+    `Clave de elector: ${String(formData.get("claveElector") || "").trim() || "-"}`,
     `Escolaridad: ${String(formData.get("escolaridad") || "").trim() || "-"}`,
     `Contacto de emergencia: ${String(formData.get("contactoEmergencia") || "").trim() || "-"}`,
     `Asesor que inscribió: ${asesorInscribio || "-"}`,
     `Método de pago: ${String(formData.get("metodoPago") || "").trim() || "-"}`,
     `Tipo de pago: ${String(formData.get("tipoPago") || "").trim() || "-"}`,
-    `Cantidad de pago: ${String(formData.get("cantidadPago") || "").trim() || "-"}`,
+    `Cantidad de pago de inscripción: ${String(formData.get("cantidadPago") || "").trim() || "-"}`,
     `Mensualidad asignada: ${String(formData.get("mensualidad") || "").trim() || "-"}`,
     `Apoyo gobierno: ${String(formData.get("apoyoGobierno") || "").trim() || "-"}`,
     `Documentación: ${String(formData.get("documentos") || "").trim() || "-"}`,
@@ -3461,6 +3465,7 @@ function getAltaFormData() {
     direccion: String(formData.get("direccion") || "").trim(),
     fechaNacimiento,
     tutor: String(formData.get("tutor") || "").trim(),
+    claveElector: String(formData.get("claveElector") || "").trim(),
     escolaridad: String(formData.get("escolaridad") || "").trim(),
     contactoEmergencia: String(formData.get("contactoEmergencia") || "").trim(),
     asesoraInscribio: asesorInscribio,
@@ -3555,7 +3560,7 @@ function getAltaValidationErrors(altaData) {
   if (!altaData.asesoraInscribio) errors.push("Asesor que inscribió");
   if (!altaData.metodoPago) errors.push("Método de pago");
   if (!altaData.tipoPago) errors.push("Pago completo o Apartó lugar");
-  if (!altaData.cantidadPago) errors.push("Cantidad de pago");
+  if (!altaData.cantidadPago) errors.push("Cantidad de pago de inscripción");
   if (!altaData.mensualidad) errors.push("Mensualidad asignada");
   if (!altaData.documentos) errors.push("Documentación");
   return errors;
@@ -3568,7 +3573,7 @@ function openAltaConfirmation(altaData) {
     `Vas a ${actionLabel} ${altaData.nombre || "esta alumna"} con folio ${altaData.studentCode || "-"} ` +
     `en ${altaData.curso || "su curso"} ` +
     `(${altaData.sucursal || "sin sucursal"}) con ${altaData.accesoElegido || "acceso pendiente"}, ` +
-    `${altaData.metodoPago || "método de pago pendiente"} y pago de ${altaData.cantidadPago || "-"}.`;
+    `${altaData.metodoPago || "método de pago pendiente"} y cantidad de pago de inscripción de ${altaData.cantidadPago || "-"}.`;
   renderAltaConfirmation(getAltaSummaryData(altaData));
   altaConfirmCard.hidden = false;
 }
@@ -3601,6 +3606,7 @@ function syncAltaAutoFields() {
 
   portalUserField.value = telefono;
   portalPasswordField.value = buildStudentPortalPassword(fechaNacimiento);
+  updateAltaElectorFieldLabel();
 }
 
 function normalizePhone(phone) {
@@ -3613,6 +3619,50 @@ function getBirthYear(dateValue) {
     return "";
   }
   return normalized.slice(0, 4);
+}
+
+function getAgeFromBirthDate(dateValue) {
+  const normalized = String(dateValue || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+
+  const birthDate = new Date(`${normalized}T12:00:00`);
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDelta = today.getMonth() - birthDate.getMonth();
+
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+
+  return age;
+}
+
+function isStudentMinorByBirthDate(dateValue) {
+  const age = getAgeFromBirthDate(dateValue);
+  return age === null ? false : age < 18;
+}
+
+function updateAltaElectorFieldLabel() {
+  if (!altaClaveElectorLabel) {
+    return;
+  }
+
+  const birthDate = document.getElementById("altaFechaNacimiento")?.value || "";
+  const tutorName = document.getElementById("altaTutor")?.value || "";
+  const isMinor = isStudentMinorByBirthDate(birthDate);
+  const usesTutor = isMinor && String(tutorName).trim();
+
+  altaClaveElectorLabel.textContent = usesTutor
+    ? "Clave de elector del tutor"
+    : isMinor
+      ? "Clave de elector (alumna o tutor)"
+      : "Clave de elector de la alumna";
 }
 
 function normalizeAdvisorName(value) {
@@ -3631,6 +3681,10 @@ function buildStudentPortalPassword(dateValue) {
 function getStudentStartDateValue(student) {
   const createdAt = String(student?.createdAt || "").trim();
   return String(student?.fechaInicio || student?.fechaInscripcion || (createdAt ? createdAt.slice(0, 10) : "")).trim();
+}
+
+function isAllBranchesScope(branch) {
+  return String(branch || "").trim().toLowerCase() === "todas";
 }
 
 function isStudentDeleted(student) {
@@ -3692,7 +3746,7 @@ function getAllowedBranch() {
   if (!user || !isRoleBranchLimited()) {
     return "";
   }
-  return user.branch;
+  return isAllBranchesScope(user.branch) ? "" : user.branch;
 }
 
 function matchesCurrentBranch(branch) {
@@ -5129,7 +5183,7 @@ function getStudentReglamentoStatus(student) {
 }
 
 function getStudentAttendanceBaseDate(student, history = []) {
-  const explicitStartDate = String(student?.fechaInicio || "").trim();
+  const explicitStartDate = getStudentStartDateValue(student);
   const fallbackStartDate =
     history
       .map((record) => String(record.fecha || "").trim())
@@ -5144,7 +5198,7 @@ function getStudentAttendanceBaseDate(student, history = []) {
   return alignDateToSelectedClassDay(sourceDate, student?.diaClases || "");
 }
 
-function getStudentAttendanceCalendar(student) {
+function getStudentAttendanceSessionDates(student) {
   if (!student) {
     return [];
   }
@@ -5158,6 +5212,21 @@ function getStudentAttendanceCalendar(student) {
     return [];
   }
 
+  return getAttendanceSessionDates(baseDate, getAttendanceSessionCountForCourse(student.curso)).map((session, index) => ({
+    ...session,
+    index,
+    classLabel: `Clase ${index + 1}`,
+  }));
+}
+
+function getStudentAttendanceCalendar(student) {
+  if (!student) {
+    return [];
+  }
+
+  const history = attendanceRecords
+    .filter((record) => record.studentId === student.id)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
   const recordsByDate = new Map();
   history.forEach((record) => {
     if (!recordsByDate.has(record.fecha)) {
@@ -5165,7 +5234,7 @@ function getStudentAttendanceCalendar(student) {
     }
   });
 
-  return getAttendanceSessionDates(baseDate, getAttendanceSessionCountForCourse(student.curso)).map((session, index) => {
+  return getStudentAttendanceSessionDates(student).map((session, index) => {
     const record = recordsByDate.get(session.date) || null;
 
     return {
@@ -5195,6 +5264,7 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaDireccion").value = student.direccion || "";
   document.getElementById("altaFechaNacimiento").value = student.fechaNacimiento || "";
   document.getElementById("altaTutor").value = student.tutor || "";
+  document.getElementById("altaClaveElector").value = student.claveElector || "";
   document.getElementById("altaEscolaridad").value = student.escolaridad || "";
   document.getElementById("altaContactoEmergencia").value = student.contactoEmergencia || "";
   document.getElementById("altaSucursal").value = student.sucursal || "";
@@ -5370,7 +5440,7 @@ function alignDateToSelectedClassDay(dateValue, dayLabel) {
 function getAttendanceBaseDate(studentsList) {
   const firstStartDate =
     studentsList
-      .map((student) => student.fechaInicio)
+      .map((student) => getStudentStartDateValue(student))
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b))[0] || formatDateForInput(new Date());
   const selectedDay = attendanceDayFilter.value || studentsList[0]?.diaClases || "";
@@ -5381,6 +5451,24 @@ function getAttendanceSessionLabel(session) {
   const date = new Date(`${session.date}T12:00:00`);
   const dateLabel = date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
   return `${dateLabel} / ${session.key}`;
+}
+
+function getAttendanceColumnDefinitions(studentsList = []) {
+  const sessionCount = getAttendanceSessionCount(studentsList);
+  return Array.from({ length: sessionCount }, (_, index) => ({
+    key: `s${index + 1}`,
+    index,
+    label: `Clase ${index + 1}`,
+  }));
+}
+
+function getVisibleAttendanceKeysFromSelection(studentsList = []) {
+  return studentsList.reduce((visibleKeys, student) => {
+    getStudentAttendanceSessionDates(student).forEach((session) => {
+      visibleKeys.add(`${student.id}::${session.date}`);
+    });
+    return visibleKeys;
+  }, new Set());
 }
 
 function getLatestPaymentRecordForStudent(studentId) {
@@ -5407,11 +5495,10 @@ function getAttendanceNotesValue(record, label) {
   return getAttendanceMeta(record, label) || "";
 }
 
-function getAttendanceSummaryFromSelection(studentsList, sessions) {
-  const visibleStudentIds = new Set(studentsList.map((student) => student.id));
-  const visibleSessionDates = new Set(sessions.map((session) => session.date));
+function getAttendanceSummaryFromSelection(studentsList) {
+  const visibleKeys = getVisibleAttendanceKeysFromSelection(studentsList);
   const visibleRecords = attendanceRecords.filter(
-    (record) => visibleStudentIds.has(record.studentId) && visibleSessionDates.has(record.fecha)
+    (record) => visibleKeys.has(`${record.studentId}::${record.fecha}`)
   );
 
   return {
@@ -5427,7 +5514,7 @@ function renderAttendanceTable() {
   const studentsList = getFilteredStudentsForAttendance();
   const selectedDate = getAttendanceBaseDate(studentsList);
   attendanceDate.value = selectedDate;
-  const sessions = getAttendanceSessionDates(selectedDate, getAttendanceSessionCount(studentsList));
+  const sessionColumns = getAttendanceColumnDefinitions(studentsList);
 
   attendanceTableHead.innerHTML = `
     <tr>
@@ -5445,16 +5532,15 @@ function renderAttendanceTable() {
       <th>5ta M</th>
       <th>TRANS O EFEC</th>
       <th>OBSERVA.</th>
-      ${sessions.map((session) => `<th>${escapeHtml(getAttendanceSessionLabel(session))}</th>`).join("")}
+      ${sessionColumns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("")}
       <th>Acciones</th>
     </tr>
   `;
 
   attendanceTableBody.innerHTML = studentsList
     .map((student, index) => {
-      const baseRecord = getAttendanceRecord(student.id, selectedDate);
-      const sessionRecords = sessions.map((session) => getAttendanceRecord(student.id, session.date)).filter(Boolean);
-      const metadataRecord = baseRecord || sessionRecords.find((record) => record.observaciones);
+      const studentSessions = getStudentAttendanceSessionDates(student);
+      const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
       return `
@@ -5484,10 +5570,27 @@ function renderAttendanceTable() {
           <td>${escapeHtml(monthlyPayment5)}</td>
           <td>${escapeHtml(payment.metodoPago || "-")}</td>
           <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Observaciones") || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
-          ${sessions
-            .map((session) => {
+          ${sessionColumns
+            .map((column) => {
+              const session = studentSessions[column.index];
+              if (!session) {
+                return `<td class="attendance-session-empty">-</td>`;
+              }
               const record = getAttendanceRecord(student.id, session.date);
-              return `<td><select class="attendance-session-select" data-attendance-field="session" data-session-date="${session.date}" data-student-id="${student.id}">${renderAttendanceOptions(record?.estado || "")}</select></td>`;
+              return `
+                <td>
+                  <div class="attendance-session-cell">
+                    <small>${escapeHtml(formatDisplayDate(session.date) || "-")}</small>
+                    <select
+                      class="attendance-session-select"
+                      data-attendance-field="session"
+                      data-session-date="${session.date}"
+                      data-student-id="${student.id}"
+                      title="${escapeHtml(`${session.classLabel} · ${formatDisplayDate(session.date) || session.date}`)}"
+                    >${renderAttendanceOptions(record?.estado || "")}</select>
+                  </div>
+                </td>
+              `;
             })
             .join("")}
           <td>
@@ -5505,7 +5608,7 @@ function renderAttendanceTable() {
     .join("");
 
   attendanceEmptyState.hidden = studentsList.length > 0;
-  updateAttendanceSummary(studentsList, sessions);
+  updateAttendanceSummary(studentsList);
 }
 
 async function saveAttendanceForStudent(studentId) {
@@ -5515,7 +5618,8 @@ async function saveAttendanceForStudent(studentId) {
     return;
   }
 
-  const date = attendanceDate.value || formatDateForInput(new Date());
+  const studentSessions = getStudentAttendanceSessionDates(student);
+  const date = studentSessions[0]?.date || attendanceDate.value || formatDateForInput(new Date());
   const sessionFields = Array.from(
     attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
   );
@@ -5575,14 +5679,8 @@ async function saveAttendanceForStudent(studentId) {
   }
 }
 
-function updateAttendanceSummary(
-  studentsList = getFilteredStudentsForAttendance(),
-  sessions = getAttendanceSessionDates(
-    attendanceDate.value || formatDateForInput(new Date()),
-    getAttendanceSessionCount(studentsList)
-  )
-) {
-  const summary = getAttendanceSummaryFromSelection(studentsList, sessions);
+function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
+  const summary = getAttendanceSummaryFromSelection(studentsList);
   attendanceGroupCount.textContent = summary.groupCount;
   attendanceAsistencias.textContent = summary.asistencias;
   attendanceRetardos.textContent = summary.permisos;
@@ -5712,9 +5810,7 @@ function getStudentPaymentSchedule(course) {
 }
 
 function getStudentPortalSessionDates(student) {
-  const sessionCount = getAttendanceSessionCountForCourse(student.curso);
-  const baseDate = getAttendanceBaseDate([student]);
-  return getAttendanceSessionDates(baseDate, sessionCount);
+  return getStudentAttendanceSessionDates(student);
 }
 
 function getStudentPaymentScheduleEntries(student) {
@@ -6393,6 +6489,7 @@ function renderStudentFile(studentId) {
     { label: "Dirección del alumno o tutor", value: student.direccion || "-" },
     { label: "Fecha de nacimiento", value: student.fechaNacimiento || "-" },
     { label: "Tutor", value: student.tutor || "-" },
+    { label: "Clave de elector", value: student.claveElector || "-" },
     { label: "Escolaridad", value: student.escolaridad || "-" },
     { label: "Contacto de emergencia", value: student.contactoEmergencia || "-" },
   ]);
@@ -7377,10 +7474,12 @@ async function deleteStudentRecord(id) {
 }
 
 function getVisibleAttendanceRecordsForStudent(studentId) {
-  const studentsList = getFilteredStudentsForAttendance();
-  const selectedDate = attendanceDate.value || getAttendanceBaseDate(studentsList);
-  const sessions = getAttendanceSessionDates(selectedDate, getAttendanceSessionCount(studentsList));
-  const visibleDates = new Set(sessions.map((session) => session.date));
+  const student = getStudentById(studentId);
+  if (!student) {
+    return [];
+  }
+
+  const visibleDates = new Set(getStudentAttendanceSessionDates(student).map((session) => session.date));
   return attendanceRecords.filter((record) => record.studentId === studentId && visibleDates.has(record.fecha));
 }
 
@@ -7398,7 +7497,7 @@ async function deleteAttendanceForStudent(studentId) {
 
   const confirmed = window.confirm(
     `Se eliminarán ${recordsToDelete.length} registro(s) de asistencia de ${student.nombre || "esta alumna"} ` +
-      `del bloque visible iniciado en ${attendanceDate.value || "-"}.\n\n¿Deseas continuar?`
+      "del calendario individual visible de la alumna.\n\n¿Deseas continuar?"
   );
   if (!confirmed) {
     return;
@@ -7521,6 +7620,7 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaTelefono").value = prospect.telefono;
   document.getElementById("altaSucursal").value = prospect.sucursal;
   document.getElementById("altaCurso").value = prospect.curso;
+  document.getElementById("altaClaveElector").value = "";
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
   document.getElementById("altaDiaClases").value = "";
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
