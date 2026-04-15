@@ -1606,34 +1606,6 @@ td select {
   margin-bottom: 1.1rem;
 }
 
-#maestrasSection > .maestras-stats-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 0.7rem;
-  margin-bottom: 1rem;
-}
-
-#maestrasSection > .maestras-stats-grid .stat-card {
-  flex: 0 0 154px;
-  width: 154px;
-  max-width: 154px;
-  min-width: 154px;
-  padding: 0.82rem 0.9rem;
-  border-radius: 18px;
-}
-
-#maestrasSection > .maestras-stats-grid .stat-card p {
-  margin: 0 0 0.26rem;
-  font-size: 0.78rem;
-  line-height: 1.2;
-}
-
-#maestrasSection > .maestras-stats-grid .stat-card strong {
-  font-size: clamp(1.15rem, 1.9vw, 1.58rem);
-}
-
 .maestras-capture-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
@@ -1657,6 +1629,10 @@ td select {
 .maestras-capture-panel .prospect-form {
   flex: 1;
   align-content: start;
+}
+
+.maestras-summary-panel .teacher-summary-helper {
+  margin: 0 0 0.95rem;
 }
 
 .maestras-stack {
@@ -1686,7 +1662,7 @@ td select {
 }
 
 .teacher-summary-table-wrapper table {
-  min-width: 1340px;
+  min-width: 980px;
 }
 
 .teacher-attendance-table-wrapper th,
@@ -4085,13 +4061,6 @@ body.access-selector-mode .module-section.active {
   .prospect-form,
   .sidebar-nav {
     grid-template-columns: 1fr;
-  }
-
-  #maestrasSection > .maestras-stats-grid .stat-card {
-    flex: 1 1 100%;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
   }
 
   .crm-priority-strip {

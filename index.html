@@ -999,33 +999,6 @@
         </section>
 
         <section class="module-section" id="maestrasSection">
-          <section class="stats-grid maestras-stats-grid" aria-label="Resumen de maestras">
-            <article class="stat-card">
-              <p>Personal docente</p>
-              <strong id="teacherCountStat">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Días laborados</p>
-              <strong id="teacherWorkedDaysStat">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Incidencias sin pago</p>
-              <strong id="teacherIncidentsStat">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Nómina estimada</p>
-              <strong id="teacherPayrollStat">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total pagado</p>
-              <strong id="teacherPaidStat">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Saldo pendiente</p>
-              <strong id="teacherPendingStat">$0</strong>
-            </article>
-          </section>
-
           <section class="content-grid maestras-capture-grid">
             <section class="panel maestras-capture-panel">
               <div class="section-heading">
@@ -1038,7 +1011,7 @@
                 <input type="hidden" id="teacherLinkedUserId" />
 
                 <label>
-                  <span>Personal</span>
+                  <span>Selecciona desde Personal</span>
                   <select id="teacherStaffId" name="staffId" required>
                     <option value="">Selecciona desde Personal</option>
                   </select>
@@ -1189,104 +1162,68 @@
               </form>
             </section>
 
-            <section class="panel maestras-capture-panel" id="teacherPaymentsCapturePanel">
+            <section class="panel maestras-capture-panel maestras-summary-panel" id="teacherQuincenalSummaryPanel">
               <div class="section-heading">
-                <p class="eyebrow">Pagos reales</p>
-                <h3>Registrar pago real</h3>
+                <p class="eyebrow">Nómina automática</p>
+                <h3>Resumen quincenal de nómina</h3>
               </div>
 
-              <form id="teacherPaymentForm" class="prospect-form">
-                <input type="hidden" id="teacherPaymentId" />
+              <p class="module-helper-copy teacher-summary-helper">
+                Este bloque se alimenta automáticamente con las jornadas válidas registradas en <strong>Registrar jornada</strong>.
+              </p>
 
-                <label>
-                  <span>Maestra</span>
-                  <select id="teacherPaymentTeacherId" name="maestraId" required>
-                    <option value="">Selecciona una opcion</option>
-                  </select>
-                </label>
-
+              <div class="prospect-form attendance-filters teacher-summary-filters">
                 <label>
                   <span>Sucursal</span>
-                  <select id="teacherPaymentBranch" name="sucursal" required>
-                    <option value="">Selecciona una opcion</option>
+                  <select id="teacherSummaryBranchFilter">
+                    <option value="">Todas</option>
                     <option>Tlaxcala</option>
                     <option>Puebla</option>
                   </select>
                 </label>
 
                 <label>
-                  <span>Fecha de pago</span>
-                  <input id="teacherPaymentDate" name="fechaPago" type="date" required />
+                  <span>Maestra</span>
+                  <select id="teacherSummaryTeacherFilter">
+                    <option value="">Todas</option>
+                  </select>
                 </label>
 
                 <label>
-                  <span>Periodo</span>
-                  <input id="teacherPaymentMonth" name="periodoMes" type="month" required />
+                  <span>Mes</span>
+                  <input id="teacherSummaryMonthFilter" type="month" />
                 </label>
 
                 <label>
                   <span>Quincena</span>
-                  <select id="teacherPaymentFortnight" name="quincena" required>
-                    <option value="">Selecciona una opcion</option>
+                  <select id="teacherSummaryFortnightFilter">
+                    <option value="">Todas</option>
                     <option value="1">1 al 15</option>
                     <option value="2">16 al cierre</option>
                   </select>
                 </label>
+              </div>
 
-                <label>
-                  <span>Especialidad operativa</span>
-                  <select id="teacherPaymentSpecialty" name="especialidadOperativa" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Uñas</option>
-                    <option>Pestañas</option>
-                    <option>Maquillaje</option>
-                    <option>Barbería</option>
-                    <option>COORD de maestras</option>
-                  </select>
-                </label>
+              <div class="table-wrapper teacher-summary-table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Maestra</th>
+                      <th>Sucursal</th>
+                      <th>Especialidad</th>
+                      <th>Días laborados</th>
+                      <th>Turnos cubiertos</th>
+                      <th>Detalle de turnos</th>
+                      <th>Total quincenal estimado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teacherSummaryTableBody"></tbody>
+                </table>
+              </div>
 
-                <label>
-                  <span>Turno</span>
-                  <select id="teacherPaymentShift" name="turno" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Matutino</option>
-                    <option>Vespertino</option>
-                    <option>Ambos</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Monto pagado</span>
-                  <input id="teacherPaymentAmount" name="montoPagado" type="number" min="0.01" step="0.01" required />
-                </label>
-
-                <p id="teacherPaymentAmountHint" class="module-helper-copy full-width">
-                  Calculado automáticamente según especialidad y turno. Puedes ajustarlo manualmente si hay una excepción.
-                </p>
-
-                <label>
-                  <span>Método de pago</span>
-                  <select id="teacherPaymentMethod" name="metodoPago" required>
-                    <option value="">Selecciona una opcion</option>
-                    <option>Efectivo</option>
-                    <option>Transferencia</option>
-                  </select>
-                </label>
-
-                <label class="full-width">
-                  <span>Nota / observación</span>
-                  <textarea id="teacherPaymentNote" name="nota" rows="3"></textarea>
-                </label>
-
-                <p id="teacherPaymentHelper" class="module-helper-copy">
-                  Registra aquí pagos reales ya entregados. La nómina estimada se sigue calculando aparte con jornadas y turnos.
-                </p>
-
-                <div class="form-actions full-width">
-                  <button class="primary-btn" type="submit" id="teacherPaymentSubmitButton">Guardar pago</button>
-                  <button class="secondary-btn" type="button" id="teacherPaymentClearButton">Limpiar</button>
-                </div>
-              </form>
+              <p id="teacherSummaryEmptyState" class="empty-state">
+                No hay jornadas válidas para los filtros seleccionados.
+              </p>
             </section>
           </section>
 
@@ -1348,109 +1285,6 @@
 
               <p id="teacherAttendanceEmptyState" class="empty-state">
                 No hay asistencias laborales registradas.
-              </p>
-            </section>
-
-            <section class="panel table-panel maestras-data-panel" id="teacherPaymentsHistoryPanel">
-              <div class="section-heading">
-                <p class="eyebrow">Pagos reales</p>
-                <h3>Historial de pagos realizados</h3>
-              </div>
-
-              <div class="table-wrapper teacher-payments-table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Maestra</th>
-                      <th>Sucursal</th>
-                      <th>Periodo / quincena</th>
-                      <th>Monto pagado</th>
-                      <th>Método de pago</th>
-                      <th>Nota</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody id="teacherPaymentsTableBody"></tbody>
-                </table>
-              </div>
-
-              <p id="teacherPaymentsEmptyState" class="empty-state">
-                No hay pagos reales registrados para los filtros seleccionados.
-              </p>
-            </section>
-
-            <section class="panel table-panel maestras-data-panel" id="teacherQuincenalSummaryPanel">
-              <div class="section-heading">
-                <p class="eyebrow">Resumen</p>
-                <h3>Resumen quincenal</h3>
-              </div>
-
-              <div class="prospect-form attendance-filters teacher-summary-filters">
-                <label>
-                  <span>Sucursal</span>
-                  <select id="teacherSummaryBranchFilter">
-                    <option value="">Todas</option>
-                    <option>Tlaxcala</option>
-                    <option>Puebla</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Maestra</span>
-                  <select id="teacherSummaryTeacherFilter">
-                    <option value="">Todas</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Mes</span>
-                  <input id="teacherSummaryMonthFilter" type="month" />
-                </label>
-
-                <label>
-                  <span>Quincena</span>
-                  <select id="teacherSummaryFortnightFilter">
-                    <option value="">Todas</option>
-                    <option value="1">1 al 15</option>
-                    <option value="2">16 al cierre</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Desde</span>
-                  <input id="teacherSummaryDateFromFilter" type="date" />
-                </label>
-
-                <label>
-                  <span>Hasta</span>
-                  <input id="teacherSummaryDateToFilter" type="date" />
-                </label>
-              </div>
-
-              <div class="table-wrapper teacher-summary-table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Maestra</th>
-                      <th>Sucursal</th>
-                      <th>Especialidad</th>
-                      <th>Días laborados</th>
-                      <th>Turnos cubiertos</th>
-                      <th>Detalle turnos</th>
-                      <th>Faltas</th>
-                      <th>Permisos</th>
-                      <th>Total estimado</th>
-                      <th>Total pagado</th>
-                      <th>Saldo pendiente</th>
-                    </tr>
-                  </thead>
-                  <tbody id="teacherSummaryTableBody"></tbody>
-                </table>
-              </div>
-
-              <p id="teacherSummaryEmptyState" class="empty-state">
-                No hay información de maestras para los filtros seleccionados.
               </p>
             </section>
           </section>
