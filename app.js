@@ -6023,51 +6023,95 @@ function getBalanceIncomeConcept(record) {
   return "Pago registrado";
 }
 
-function getBalanceResponsibleSuggestion(branch) {
-  const normalizedBranch = String(branch || "").trim().toLowerCase();
-  if (!normalizedBranch) {
-    return "";
-  }
-
-  const matchingStaff = staffRecords.filter((record) => {
-    const recordBranch = String(record.sucursal || "").trim().toLowerCase();
-    const position = String(record.puesto || "").trim().toLowerCase();
-    const status = String(record.estado || "").trim().toLowerCase();
-
-    return (
-      recordBranch === normalizedBranch &&
-      status !== "inactivo" &&
-      (position === "director de sucursal" ||
-        position === "director administrativo de sucursal" ||
-        position === "gerente de sucursal")
-    );
-  });
-
-  const prioritizedRecord =
-    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "director de sucursal") ||
-    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "director administrativo de sucursal") ||
-    matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "gerente de sucursal");
-
-  if (prioritizedRecord?.nombre === "María Fernanda Pérez Flores") {
-    return "Directora — María Fernanda Pérez Flores";
-  }
-
-  return prioritizedRecord?.nombre || "";
+function isEligibleBalanceResponsiblePosition(position) {
+  const normalizedPosition = String(position || "").trim().toLowerCase();
+  return (
+    normalizedPosition === "director de sucursal" ||
+    normalizedPosition === "director administrativo de sucursal" ||
+    normalizedPosition === "gerente de sucursal"
+  );
 }
 
-function syncBalanceExpenseResponsible({ force = false } = {}) {
+function getBalanceResponsibleCandidates(branch) {
+  const normalizedBranch = String(branch || "").trim().toLowerCase();
+  if (!normalizedBranch) {
+    return [];
+  }
+
+  const getPriority = (position) => {
+    const normalizedPosition = String(position || "").trim().toLowerCase();
+    if (normalizedPosition === "director de sucursal") return 0;
+    if (normalizedPosition === "director administrativo de sucursal") return 1;
+    if (normalizedPosition === "gerente de sucursal") return 2;
+    return 99;
+  };
+
+  return staffRecords
+    .filter((record) => {
+      const recordBranch = String(record.sucursal || "").trim().toLowerCase();
+      const status = String(record.estado || "").trim().toLowerCase();
+
+      return (
+        recordBranch === normalizedBranch &&
+        status !== "inactivo" &&
+        isEligibleBalanceResponsiblePosition(record.puesto) &&
+        String(record.nombre || "").trim()
+      );
+    })
+    .sort((left, right) => {
+      const priorityDifference = getPriority(left.puesto) - getPriority(right.puesto);
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX");
+    });
+}
+
+function populateBalanceExpenseResponsibleOptions(selectedValue = "") {
+  if (!balanceExpenseResponsibleField || !balanceExpenseBranchField) {
+    return;
+  }
+
+  const normalizedSelectedValue = String(selectedValue || "").trim();
+  const options = [`<option value="">Selecciona una opcion</option>`];
+  const optionNames = new Set();
+
+  getBalanceResponsibleCandidates(balanceExpenseBranchField.value).forEach((record) => {
+    const name = String(record.nombre || "").trim();
+    const normalizedName = name.toLowerCase();
+    if (!name || optionNames.has(normalizedName)) {
+      return;
+    }
+
+    optionNames.add(normalizedName);
+    options.push(`<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`);
+  });
+
+  if (normalizedSelectedValue && !optionNames.has(normalizedSelectedValue.toLowerCase())) {
+    options.push(`<option value="${escapeHtml(normalizedSelectedValue)}">${escapeHtml(normalizedSelectedValue)}</option>`);
+  }
+
+  balanceExpenseResponsibleField.innerHTML = options.join("");
+  balanceExpenseResponsibleField.value = normalizedSelectedValue;
+}
+
+function getBalanceResponsibleSuggestion(branch) {
+  return getBalanceResponsibleCandidates(branch)[0]?.nombre || "";
+}
+
+function syncBalanceExpenseResponsible({ force = false, selectedValue = "" } = {}) {
   if (!balanceExpenseResponsibleField || !balanceExpenseBranchField) {
     return;
   }
 
   const suggestedResponsible = getBalanceResponsibleSuggestion(balanceExpenseBranchField.value);
   const previousSuggested = balanceExpenseResponsibleField.dataset.autoFilledValue || "";
-  const currentValue = balanceExpenseResponsibleField.value.trim();
+  const currentValue = String(selectedValue || balanceExpenseResponsibleField.value || "").trim();
   const shouldReplace = force || !currentValue || currentValue === previousSuggested;
+  const nextValue = shouldReplace ? suggestedResponsible : currentValue;
 
-  if (shouldReplace) {
-    balanceExpenseResponsibleField.value = suggestedResponsible;
-  }
+  populateBalanceExpenseResponsibleOptions(nextValue);
 
   balanceExpenseResponsibleField.dataset.autoFilledValue = suggestedResponsible;
 }
@@ -6250,6 +6294,7 @@ function updateBalanceSummary() {
 }
 
 function renderBalanceModule() {
+  syncBalanceExpenseResponsible();
   renderBalanceIncomeTable();
   renderBalanceExpensesTable();
   updateBalanceSummary();
@@ -6267,10 +6312,9 @@ function editBalanceExpense(id) {
   document.getElementById("balanceExpenseName").value = record.nombreGasto || "";
   document.getElementById("balanceExpenseQuantity").value = String(record.cantidad || "");
   document.getElementById("balanceExpenseUnitCost").value = String(record.costoUnitario || "");
-  balanceExpenseResponsibleField.value = record.responsableGasto || "";
   document.getElementById("balanceExpenseNote").value = record.nota || "";
   balanceExpenseTotalField.value = record.total ? String(Number(record.total).toFixed(2)) : "";
-  balanceExpenseResponsibleField.dataset.autoFilledValue = getBalanceResponsibleSuggestion(record.sucursal || "");
+  syncBalanceExpenseResponsible({ selectedValue: record.responsableGasto || "" });
   balanceExpenseSubmitButton.textContent = "Actualizar egreso";
   setActiveModule("balance");
   window.scrollTo({ top: 0, behavior: "smooth" });

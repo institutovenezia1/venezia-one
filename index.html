@@ -1203,8 +1203,8 @@
                   <span>Quincena</span>
                   <select id="teacherSummaryFortnightFilter">
                     <option value="">Todas</option>
-                    <option value="1">1 al 15</option>
-                    <option value="2">16 al cierre</option>
+                    <option value="1">Quincena 1</option>
+                    <option value="2">Quincena 2</option>
                   </select>
                 </label>
               </div>
@@ -1465,17 +1465,9 @@
 
               <label>
                 <span>Responsable del gasto</span>
-                <input
-                  id="balanceExpenseResponsible"
-                  name="responsableGasto"
-                  type="text"
-                  list="balanceExpenseResponsibleOptions"
-                  required
-                />
-                <datalist id="balanceExpenseResponsibleOptions">
-                  <option value="Directora — María Fernanda Pérez Flores"></option>
-                  <option value="Director"></option>
-                </datalist>
+                <select id="balanceExpenseResponsible" name="responsableGasto" required>
+                  <option value="">Selecciona una opcion</option>
+                </select>
               </label>
 
               <label class="full-width">
