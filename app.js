@@ -497,53 +497,18 @@ const WEB_DEFAULT_COURSES = [
     description: "Aprende con horarios pensados para tu ritmo de vida.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/unas.jpg",
-    availabilityTitle: "Horarios nuevos",
-    summaryBlocks: [
-      {
-        title: "Entre semana · 3 días de clases",
-        detail: "Turnos: 9am a 11am · 12pm a 2pm · 3pm a 5pm",
-      },
-      {
-        title: "Fin de semana · 1 día de clases",
-        detail: "Viernes o sábado",
-      },
-    ],
-    extraNote: "Domingo: solo matutino de 9am a 1pm",
-    capacityNote: "Grupos limitados a 7 cupos",
   },
   {
     name: "Pestañas",
     description: "Capacítate en fines de semana y da el primer paso para generar ingresos.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/pestanas.jpg",
-    availabilityTitle: "Horarios nuevos",
-    summaryBlocks: [
-      {
-        title: "Fin de semana · 1 día de clases",
-        detail: "Turnos: Viernes o sábado · 9am a 1pm o 2pm a 6pm",
-      },
-    ],
-    extraNote: "Domingo: solo matutino de 9am a 1pm",
-    capacityNote: "Grupos limitados a 7 cupos",
   },
   {
     name: "Barbería",
     description: "Elige el turno que mejor se adapte a ti.",
     statusLabel: "Curso activo y disponible",
     imagePath: "images/barberia.jpg",
-    availabilityTitle: "Horarios nuevos",
-    summaryBlocks: [
-      {
-        title: "Entre semana · 3 días de clases",
-        detail: "Turnos: 9am a 11am · 12pm a 2pm · 3pm a 5pm",
-      },
-      {
-        title: "Fin de semana · 1 día de clases",
-        detail: "Viernes o sábado",
-      },
-    ],
-    extraNote: "Domingo: solo matutino de 9am a 1pm",
-    capacityNote: "Grupos limitados a 7 cupos",
   },
   {
     name: "Maquillaje",
@@ -596,7 +561,7 @@ let webSettings = dataService.entities.webSettings.getAll(() => ({
   scholarshipActive: true,
   title: "Beca activa para nuevo ingreso",
   description: "Pregunta por beneficios especiales en inscripción y mensualidades para tu curso.",
-  availability: "Tiempo limitado | Cupos limitados",
+  availability: "Consulta disponibilidad vigente",
 }));
 let activeSearch = "";
 let activeBranchFilter = "";
@@ -4402,7 +4367,7 @@ function renderWebCourseAvailability(course) {
 
   return `
     <div class="web-course-availability">
-      <p class="web-course-availability-title">${escapeHtml(course.availabilityTitle || "Horarios nuevos")}</p>
+      <p class="web-course-availability-title">${escapeHtml(course.availabilityTitle || "Detalle del curso")}</p>
       ${course.summaryBlocks
         .map(
           (block) => `
@@ -6914,7 +6879,7 @@ function renderWebScholarshipSection() {
         <strong>Beca Venezia</strong>
         <p class="web-access-urgency">Solo 7 Becas Venezia disponibles</p>
         <p>Pregunta por la opción de beca disponible y conoce si puedes obtener apoyo especial en inscripción o beneficios según temporada y sucursal.</p>
-        <small>Cupos limitados y sujetos a disponibilidad real.</small>
+        <small>Sujeto a disponibilidad real según temporada y sucursal.</small>
       </article>
     </div>
     <div class="web-access-footer">
