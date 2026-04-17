@@ -1465,7 +1465,17 @@
 
               <label>
                 <span>Responsable del gasto</span>
-                <input id="balanceExpenseResponsible" name="responsableGasto" type="text" required />
+                <input
+                  id="balanceExpenseResponsible"
+                  name="responsableGasto"
+                  type="text"
+                  list="balanceExpenseResponsibleOptions"
+                  required
+                />
+                <datalist id="balanceExpenseResponsibleOptions">
+                  <option value="Directora — María Fernanda Pérez Flores"></option>
+                  <option value="Director"></option>
+                </datalist>
               </label>
 
               <label class="full-width">

@@ -6048,6 +6048,10 @@ function getBalanceResponsibleSuggestion(branch) {
     matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "director administrativo de sucursal") ||
     matchingStaff.find((record) => String(record.puesto || "").trim().toLowerCase() === "gerente de sucursal");
 
+  if (prioritizedRecord?.nombre === "María Fernanda Pérez Flores") {
+    return "Directora — María Fernanda Pérez Flores";
+  }
+
   return prioritizedRecord?.nombre || "";
 }
 
