@@ -74,6 +74,15 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "mensualidad4", label: "Mensualidad 4" },
   { key: "mensualidad5", label: "Mensualidad 5" },
 ];
+const STUDENT_PAYMENT_REFERENCE_RULES = [
+  { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
+  { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
+  { field: "certificadoP1", label: "C1", sessionIndex: 4 },
+  { field: "mensualidad3", label: "Men3", sessionIndex: 7 },
+  { field: "certificadoP2", label: "C2", sessionIndex: 8 },
+  { field: "mensualidad4", label: "Men4", sessionIndex: 11 },
+  { field: "mensualidad5", label: "Men5", sessionIndex: 15, onlyFifthMonth: true },
+];
 const ATTENDANCE_STATUS_LABELS = {
   Asistencia: "A",
   Permiso: "P",
@@ -5763,12 +5772,60 @@ function renderPaymentSelectOptions(selectedValue, options) {
     .join("");
 }
 
-function renderPaymentStatusSelect(field, student, payment) {
+function getStudentPaymentReferenceRule(field) {
+  return STUDENT_PAYMENT_REFERENCE_RULES.find((rule) => rule.field === field) || null;
+}
+
+function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentAttendanceSessionDates(student)) {
+  if (!rule) {
+    return null;
+  }
+
+  if (rule.onlyFifthMonth && !courseUsesFifthMonth(student?.curso)) {
+    return {
+      ...rule,
+      value: "No aplica",
+    };
+  }
+
+  const session = sessions[rule.sessionIndex];
+  return {
+    ...rule,
+    value: session?.date ? formatDisplayDate(session.date) : "-",
+  };
+}
+
+function getStudentPaymentReferenceByField(field, student, sessions = getStudentAttendanceSessionDates(student)) {
+  return buildStudentPaymentReferenceEntry(getStudentPaymentReferenceRule(field), student, sessions);
+}
+
+function getStudentPaymentScheduleEntries(student) {
+  const sessions = getStudentPortalSessionDates(student);
+
+  return STUDENT_PAYMENT_REFERENCE_RULES
+    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(student?.curso))
+    .map((rule) => buildStudentPaymentReferenceEntry(rule, student, sessions))
+    .filter(Boolean)
+    .map((entry) => ({
+      label: entry.label,
+      value: entry.value,
+    }));
+}
+
+function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceSessionDates(student)) {
   const selectedValue = field === "mensualidad5" && !courseUsesFifthMonth(student.curso)
     ? "No aplica"
     : payment[field] || "";
   const disabled = field === "mensualidad5" && !courseUsesFifthMonth(student.curso) ? "disabled" : "";
-  return `<select data-payment-field="${field}" data-student-id="${student.id}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>`;
+  const reference = getStudentPaymentReferenceByField(field, student, sessions);
+  const referenceLabel = reference?.value || "-";
+  const title = reference ? `${reference.label}: ${reference.value}` : "";
+  return `
+    <div class="payment-status-cell" ${title ? `title="${escapeHtml(title)}"` : ""}>
+      <small class="payment-reference-date">${escapeHtml(referenceLabel)}</small>
+      <select data-payment-field="${field}" data-student-id="${student.id}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>
+    </div>
+  `;
 }
 
 function parsePaymentAmount(value) {
@@ -5784,40 +5841,8 @@ function getShortBranchLabel(branch) {
   return branch || "-";
 }
 
-function getStudentPaymentSchedule(course) {
-  const normalizedCourse = String(course || "").trim().toLowerCase();
-  const baseSchedule = [
-    { label: "Men1", sessionIndex: 0 },
-    { label: "Men2", sessionIndex: 3 },
-    { label: "Men3", sessionIndex: 7 },
-    { label: "Men4", sessionIndex: 11 },
-  ];
-
-  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
-    return baseSchedule.concat({ label: "Men5", sessionIndex: 15 });
-  }
-
-  if (["uñas", "unas", "pestañas", "pestanas", "maquillaje"].includes(normalizedCourse)) {
-    return baseSchedule;
-  }
-
-  return [];
-}
-
 function getStudentPortalSessionDates(student) {
   return getStudentAttendanceSessionDates(student);
-}
-
-function getStudentPaymentScheduleEntries(student) {
-  const sessions = getStudentPortalSessionDates(student);
-
-  return getStudentPaymentSchedule(student.curso).map((entry) => {
-    const session = sessions[entry.sessionIndex];
-    return {
-      label: entry.label,
-      value: session?.date ? formatDisplayDate(session.date) : "-",
-    };
-  });
 }
 
 function getFilteredStudentsForPayments() {
@@ -5845,6 +5870,7 @@ function renderPaymentsTable() {
   paymentsTableBody.innerHTML = studentsList
     .map((student) => {
       const payment = getPaymentRecord(student.id);
+      const studentSessions = getStudentAttendanceSessionDates(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
       return `
         <tr>
@@ -5858,13 +5884,13 @@ function renderPaymentsTable() {
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
           <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
-          <td>${renderPaymentStatusSelect("certificadoP1", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("certificadoP2", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad1", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad2", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad3", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad4", student, payment)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad5", student, payment)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad1", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad2", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad3", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad4", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
