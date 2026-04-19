@@ -199,6 +199,9 @@ const altaConfirmPortalPassword = document.getElementById("altaConfirmPortalPass
 const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
 const altasMonthFilter = document.getElementById("altasMonthFilter");
+const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
+const altaActivePuebla = document.getElementById("altaActivePuebla");
+const altaActiveTotal = document.getElementById("altaActiveTotal");
 const altaHistoryTotal = document.getElementById("altaHistoryTotal");
 const altaHistoryBeca = document.getElementById("altaHistoryBeca");
 const altaHistoryTlaxcala = document.getElementById("altaHistoryTlaxcala");
@@ -5095,12 +5098,32 @@ function getFilteredAltaHistory() {
     });
 }
 
+function getActiveStudentBranchSummary() {
+  const activeStudents = getActiveStudents();
+  const tlaxcalaCount = activeStudents.filter(
+    (student) => String(student.sucursal || "").trim().toLowerCase() === "tlaxcala"
+  ).length;
+  const pueblaCount = activeStudents.filter(
+    (student) => String(student.sucursal || "").trim().toLowerCase() === "puebla"
+  ).length;
+
+  return {
+    tlaxcalaCount,
+    pueblaCount,
+    totalCount: activeStudents.length,
+  };
+}
+
 function renderAltaHistory() {
   const altaHistory = getFilteredAltaHistory();
+  const activeSummary = getActiveStudentBranchSummary();
   const becaCount = altaHistory.filter((student) => student.accesoElegido === "Beca Venezia").length;
   const tlaxcalaCount = altaHistory.filter((student) => student.sucursal === "Tlaxcala").length;
   const pueblaCount = altaHistory.filter((student) => student.sucursal === "Puebla").length;
 
+  altaActiveTlaxcala.textContent = activeSummary.tlaxcalaCount;
+  altaActivePuebla.textContent = activeSummary.pueblaCount;
+  altaActiveTotal.textContent = activeSummary.totalCount;
   altaHistoryTotal.textContent = altaHistory.length;
   altaHistoryBeca.textContent = becaCount;
   altaHistoryTlaxcala.textContent = tlaxcalaCount;
