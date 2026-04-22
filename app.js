@@ -5099,12 +5099,12 @@ function getFilteredAltaHistory() {
 }
 
 function getActiveStudentBranchSummary() {
-  const activeStudents = getActiveStudents();
+  const activeStudents = students.filter((student) => !isStudentDeleted(student));
   const tlaxcalaCount = activeStudents.filter(
-    (student) => String(student.sucursal || "").trim().toLowerCase() === "tlaxcala"
+    (student) => normalizeInternalLookupValue(student.sucursal) === "tlaxcala"
   ).length;
   const pueblaCount = activeStudents.filter(
-    (student) => String(student.sucursal || "").trim().toLowerCase() === "puebla"
+    (student) => normalizeInternalLookupValue(student.sucursal) === "puebla"
   ).length;
 
   return {
