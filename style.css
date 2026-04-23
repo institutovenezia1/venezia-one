@@ -2517,8 +2517,30 @@ td select {
 }
 
 .mi-venezia-hero-panel {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 1rem;
+  gap: 1.05rem;
+  padding: 1.45rem 1.5rem;
+  border: 1px solid rgba(207, 183, 139, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), transparent 34%),
+    radial-gradient(circle at 82% 18%, rgba(215, 189, 138, 0.22), transparent 24%),
+    linear-gradient(135deg, rgba(255, 250, 243, 0.98) 0%, rgba(243, 232, 219, 0.92) 54%, rgba(236, 222, 205, 0.9) 100%);
+  box-shadow:
+    0 24px 46px rgba(131, 110, 71, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.mi-venezia-hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -60px -86px auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 161, 74, 0.16) 0%, rgba(201, 161, 74, 0) 72%);
+  pointer-events: none;
 }
 
 .teacher-portal-hero-panel {
@@ -2668,8 +2690,23 @@ td select {
   font-size: 0.8rem;
 }
 
+.mi-venezia-hero-copy,
+.mi-venezia-hero-summary,
+.mi-venezia-hero-panel .form-actions {
+  position: relative;
+  z-index: 1;
+}
+
 .mi-venezia-hero-copy h3 {
   margin-bottom: 0.35rem;
+  font-size: clamp(1.72rem, 2.8vw, 2.4rem);
+  line-height: 1.08;
+}
+
+.mi-venezia-hero-copy .subtitle {
+  max-width: 42rem;
+  margin: 0;
+  color: #5f5348;
 }
 
 .mi-venezia-hero-summary {
@@ -2712,6 +2749,20 @@ td select {
   margin-bottom: 1rem;
 }
 
+.mi-venezia-priority-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mi-venezia-insights-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: stretch;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .mi-venezia-mini-stat {
   background:
     linear-gradient(145deg, var(--mi-glass-strong) 0%, rgba(255, 255, 255, 0.44) 100%),
@@ -2742,6 +2793,18 @@ td select {
   border-radius: 24px;
 }
 
+.mi-venezia-profile-panel,
+.mi-venezia-action-panel,
+.mi-venezia-upcoming-panel,
+.mi-venezia-attendance-panel,
+.mi-venezia-progress-panel,
+.mi-venezia-documents-summary-panel,
+.mi-venezia-sep-panel,
+.mi-venezia-payments-panel {
+  display: grid;
+  gap: 0.82rem;
+}
+
 .mi-venezia-compact-panel .section-heading {
   margin-bottom: 0.75rem;
 }
@@ -2761,7 +2824,8 @@ td select {
 
 .mi-venezia-profile-list .info-item,
 .mi-venezia-attendance-summary .info-item,
-.mi-venezia-attendance-meta .info-item {
+.mi-venezia-attendance-meta .info-item,
+.mi-venezia-progress-grid .info-item {
   gap: 0.14rem;
   padding: 0.58rem 0.68rem;
   min-height: 0;
@@ -2777,7 +2841,8 @@ td select {
 
 .mi-venezia-profile-list .info-item strong,
 .mi-venezia-attendance-summary .info-item strong,
-.mi-venezia-attendance-meta .info-item strong {
+.mi-venezia-attendance-meta .info-item strong,
+.mi-venezia-progress-grid .info-item strong {
   font-size: 0.68rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2786,7 +2851,8 @@ td select {
 
 .mi-venezia-profile-list .info-item span,
 .mi-venezia-attendance-summary .info-item span,
-.mi-venezia-attendance-meta .info-item span {
+.mi-venezia-attendance-meta .info-item span,
+.mi-venezia-progress-grid .info-item span {
   font-size: 0.88rem;
   line-height: 1.25;
   color: #1f1914;
@@ -2799,7 +2865,7 @@ td select {
 }
 
 .mi-venezia-attendance-summary {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -2810,6 +2876,142 @@ td select {
 
 .mi-venezia-attendance-meta .info-item span {
   font-weight: 700;
+}
+
+.mi-venezia-action-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem 1.05rem;
+  min-height: 100%;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.58) 0%, rgba(245, 235, 224, 0.9) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 12px 28px rgba(126, 106, 80, 0.09);
+  backdrop-filter: blur(18px) saturate(122%);
+  -webkit-backdrop-filter: blur(18px) saturate(122%);
+}
+
+.mi-venezia-action-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -50px -76px auto;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 161, 74, 0.14) 0%, rgba(201, 161, 74, 0) 72%);
+  pointer-events: none;
+}
+
+.mi-venezia-action-card.is-gold {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(244, 232, 203, 0.92) 100%);
+}
+
+.mi-venezia-action-card.is-rose {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(244, 224, 229, 0.92) 100%);
+}
+
+.mi-venezia-action-card.is-blue {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(223, 235, 246, 0.92) 100%);
+}
+
+.mi-venezia-action-card.is-green {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6) 0%, rgba(225, 239, 230, 0.94) 100%);
+}
+
+.mi-venezia-action-eyebrow {
+  position: relative;
+  z-index: 1;
+  color: #8c6a21;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-action-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.48rem;
+  align-content: start;
+}
+
+.mi-venezia-action-badge {
+  display: inline-flex;
+  justify-self: start;
+  align-items: center;
+  padding: 0.34rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(182, 161, 138, 0.34);
+  color: #5b4c3f;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-action-title {
+  font-size: 1.12rem;
+  line-height: 1.2;
+  color: #241d18;
+}
+
+.mi-venezia-action-copy {
+  margin: 0;
+  color: #5a4f45;
+  line-height: 1.55;
+}
+
+.mi-venezia-action-meta {
+  color: #7c6d60;
+  line-height: 1.45;
+}
+
+.mi-venezia-upcoming-list {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.mi-venezia-upcoming-item {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.82rem 0.9rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54) 0%, rgba(244, 234, 224, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 8px 18px rgba(131, 116, 103, 0.1);
+}
+
+.mi-venezia-upcoming-label {
+  color: #76685c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-upcoming-value {
+  color: #231d18;
+  font-size: 0.98rem;
+  line-height: 1.28;
+}
+
+.mi-venezia-upcoming-meta {
+  color: #7b6d60;
+  line-height: 1.42;
 }
 
 .mi-venezia-payments-panel {
@@ -2872,7 +3074,7 @@ td select {
 }
 
 .mi-venezia-payments-summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
@@ -2973,6 +3175,115 @@ td select {
 .mi-venezia-sep-list {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.6rem;
+}
+
+.mi-venezia-progress-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.mi-venezia-progress-grid .info-item span {
+  font-weight: 700;
+}
+
+.mi-venezia-progress-status {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.92rem 0.96rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54) 0%, rgba(245, 235, 224, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 8px 18px rgba(131, 116, 103, 0.1);
+}
+
+.mi-venezia-progress-status.is-good {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.56) 0%, rgba(226, 240, 229, 0.92) 100%);
+}
+
+.mi-venezia-progress-status.is-warm {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.56) 0%, rgba(247, 232, 214, 0.92) 100%);
+}
+
+.mi-venezia-progress-status strong {
+  font-size: 1rem;
+  color: #231d18;
+}
+
+.mi-venezia-progress-status p {
+  margin: 0;
+  color: #5a4f45;
+  line-height: 1.52;
+}
+
+.mi-venezia-progress-meter {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(219, 205, 189, 0.56);
+}
+
+.mi-venezia-progress-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d9b77a 0%, #9bbd8e 100%);
+}
+
+.mi-venezia-documents-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.mi-venezia-document-mini-card {
+  display: grid;
+  gap: 0.14rem;
+  padding: 0.86rem 0.92rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.52) 0%, rgba(245, 235, 224, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.64),
+    0 8px 18px rgba(131, 116, 103, 0.09);
+}
+
+.mi-venezia-document-mini-card.is-confirmed {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54) 0%, rgba(227, 240, 229, 0.92) 100%);
+}
+
+.mi-venezia-document-mini-card.is-pending {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54) 0%, rgba(247, 235, 214, 0.92) 100%);
+}
+
+.mi-venezia-document-mini-card-wide {
+  grid-column: 1 / -1;
+}
+
+.mi-venezia-document-mini-code {
+  color: #7b6d60;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mi-venezia-document-mini-card strong {
+  font-size: 1rem;
+  color: #231d18;
+}
+
+.mi-venezia-document-mini-card small {
+  color: #6d6053;
+  line-height: 1.42;
 }
 
 .mi-venezia-sep-list .info-item {
@@ -4936,9 +5247,12 @@ body.access-selector-mode .module-section.active {
     line-height: 1.15;
   }
 
-  body.student-portal-mode.student-portal-active .mi-venezia-content-grid {
+  body.student-portal-mode.student-portal-active .mi-venezia-priority-grid,
+  body.student-portal-mode.student-portal-active .mi-venezia-content-grid,
+  body.student-portal-mode.student-portal-active .mi-venezia-insights-grid {
     gap: 0.8rem;
     margin-bottom: 0.8rem;
+    grid-template-columns: 1fr;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-compact-panel,
@@ -4966,8 +5280,10 @@ body.access-selector-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary,
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta,
   body.student-portal-mode.student-portal-active .mi-venezia-payments-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid,
   body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule,
-  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta {
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta,
+  body.student-portal-mode.student-portal-active .mi-venezia-documents-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem;
   }
@@ -4981,6 +5297,7 @@ body.access-selector-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item,
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item,
   body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid .info-item,
   body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item,
   body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item {
     padding: 0.52rem 0.58rem;
@@ -4996,6 +5313,7 @@ body.access-selector-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item strong,
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item strong,
   body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item strong,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid .info-item strong,
   body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item strong,
   body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item strong {
     font-size: 0.64rem;
@@ -5009,10 +5327,30 @@ body.access-selector-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary .info-item span,
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta .info-item span,
   body.student-portal-mode.student-portal-active .mi-venezia-payments-summary .info-item span,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid .info-item span,
   body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item span,
   body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item span {
     font-size: 0.81rem;
     line-height: 1.18;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-action-card,
+  body.student-portal-mode.student-portal-active .mi-venezia-upcoming-item,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-status,
+  body.student-portal-mode.student-portal-active .mi-venezia-document-mini-card {
+    padding: 0.72rem 0.78rem;
+    border-radius: 16px;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-action-title {
+    font-size: 1rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-action-copy,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-status p,
+  body.student-portal-mode.student-portal-active .mi-venezia-document-mini-card small {
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-sep-list .info-item span {
@@ -5134,9 +5472,20 @@ body.access-selector-mode .module-section.active {
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-summary,
   body.student-portal-mode.student-portal-active .mi-venezia-attendance-meta,
   body.student-portal-mode.student-portal-active .mi-venezia-payments-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid,
   body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule,
-  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta {
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta,
+  body.student-portal-mode.student-portal-active .mi-venezia-documents-summary {
     gap: 0.35rem;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-progress-grid,
+  body.student-portal-mode.student-portal-active .mi-venezia-documents-summary {
+    grid-template-columns: 1fr;
+  }
+
+  body.student-portal-mode.student-portal-active .mi-venezia-document-mini-card-wide {
+    grid-column: auto;
   }
 
   body.student-portal-mode.student-portal-active .mi-venezia-reglamento-actions .primary-btn,
