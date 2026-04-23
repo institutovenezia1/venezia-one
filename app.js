@@ -6778,6 +6778,23 @@ function getFilteredFinanceRecords() {
   });
 }
 
+function populateFinanceBranchFilter() {
+  const branchOptions = [
+    ...new Set(
+      [
+        ...prospects.map((record) => record.sucursal),
+        ...students.map((record) => record.sucursal),
+        ...financeRecords.map((record) => record.sucursal),
+        ...staffRecords.map((record) => record.sucursal),
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  populateSelectWithValues(financeBranchFilter, branchOptions, "Todas");
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -6787,6 +6804,7 @@ function formatCurrency(amount) {
 }
 
 function renderFinanceTable() {
+  populateFinanceBranchFilter();
   const records = getFilteredFinanceRecords().sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   financeTableBody.innerHTML = records
@@ -6817,6 +6835,7 @@ function renderFinanceTable() {
 }
 
 function updateFinanceSummary() {
+  populateFinanceBranchFilter();
   const records = getFilteredFinanceRecords();
   const allRelevantRecords = getFinanceRecordsForScope({
     scope: "accumulated",
