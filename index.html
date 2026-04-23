@@ -2069,14 +2069,6 @@
                 <div id="miVeneziaPerfil" class="info-list mi-venezia-profile-list"></div>
               </section>
 
-              <section class="panel mi-venezia-compact-panel mi-venezia-action-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Guía</p>
-                  <h3>Próxima acción</h3>
-                </div>
-                <div id="miVeneziaNextAction" class="mi-venezia-action-card"></div>
-              </section>
-
               <section class="panel mi-venezia-compact-panel mi-venezia-upcoming-panel">
                 <div class="section-heading">
                   <p class="eyebrow">Agenda</p>
@@ -2084,35 +2076,35 @@
                 </div>
                 <div id="miVeneziaUpcoming" class="mi-venezia-upcoming-list"></div>
               </section>
-            </section>
 
-            <section class="panel mi-venezia-compact-panel mi-venezia-payments-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Pagos</p>
-                <h3>Mis pagos</h3>
-              </div>
-              <div id="miVeneziaPagos" class="info-list mi-venezia-payments-summary"></div>
-              <div class="section-heading mi-venezia-subsection-heading">
-                <p class="eyebrow">Calendario</p>
-                <h3>Fechas de pago</h3>
-              </div>
-              <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
-              <div class="table-wrapper mi-venezia-simple-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Concepto</th>
-                      <th>Monto</th>
-                      <th>Estatus</th>
-                    </tr>
-                  </thead>
-                  <tbody id="miVeneziaPagosBody"></tbody>
-                </table>
-              </div>
-              <p id="miVeneziaPagosEmptyState" class="empty-state">
-                Aún no hay pagos registrados para tu perfil.
-              </p>
+              <section class="panel mi-venezia-compact-panel mi-venezia-payments-panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Pagos</p>
+                  <h3>Mis pagos</h3>
+                </div>
+                <div id="miVeneziaPagos" class="info-list mi-venezia-payments-summary"></div>
+                <div class="section-heading mi-venezia-subsection-heading">
+                  <p class="eyebrow">Calendario</p>
+                  <h3>Fechas de pago</h3>
+                </div>
+                <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
+                <div class="table-wrapper mi-venezia-simple-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Monto</th>
+                        <th>Estatus</th>
+                      </tr>
+                    </thead>
+                    <tbody id="miVeneziaPagosBody"></tbody>
+                  </table>
+                </div>
+                <p id="miVeneziaPagosEmptyState" class="empty-state">
+                  Aún no hay pagos registrados para tu perfil.
+                </p>
+              </section>
             </section>
 
             <section class="content-grid mi-venezia-content-grid">
@@ -2134,6 +2126,11 @@
                     <tbody id="miVeneziaAsistenciasBody"></tbody>
                   </table>
                 </div>
+                <div class="form-actions mi-venezia-attendance-actions">
+                  <button class="secondary-btn mi-venezia-attendance-toggle" type="button" id="miVeneziaAttendanceToggle" hidden>
+                    Ver más
+                  </button>
+                </div>
                 <p id="miVeneziaAsistenciasEmptyState" class="empty-state">
                   Aún no hay asistencias registradas para tu perfil.
                 </p>
@@ -2149,38 +2146,25 @@
               </section>
             </section>
 
-            <section class="content-grid mi-venezia-insights-grid">
-              <section class="panel mi-venezia-compact-panel mi-venezia-documents-summary-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Documentos</p>
-                  <h3>Mi documentación</h3>
+            <section class="panel mi-venezia-compact-panel mi-venezia-sep-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Certificación</p>
+                <h3>Valor de tu certificado SEP</h3>
+              </div>
+              <div class="info-list mi-venezia-sep-list">
+                <div class="info-item info-item-highlight">
+                  <strong>Aval profesional</strong>
+                  <span>Es un certificado que respalda tu preparación para trabajar de forma profesional.</span>
                 </div>
-                <div id="miVeneziaDocumentsSummary" class="mi-venezia-documents-summary"></div>
-              </section>
-
-              <section class="panel mi-venezia-compact-panel mi-venezia-sep-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Certificación</p>
-                  <h3>Valor de tu certificado SEP</h3>
+                <div class="info-item info-item-highlight">
+                  <strong>Validez nacional</strong>
+                  <span>Te respalda para trabajar en cualquier estado del país con una base formal de capacitación.</span>
                 </div>
-                <p class="mi-venezia-sep-copy">
-                  Tu formación en Instituto Venezia puede respaldarse con un certificado SEP para fortalecer tu perfil profesional y abrir más oportunidades.
-                </p>
-                <div class="info-list mi-venezia-sep-list">
-                  <div class="info-item info-item-highlight">
-                    <strong>Aval profesional</strong>
-                    <span>Es un certificado que respalda tu preparación para trabajar de forma profesional.</span>
-                  </div>
-                  <div class="info-item info-item-highlight">
-                    <strong>Validez nacional</strong>
-                    <span>Te respalda para trabajar en cualquier estado del país con una base formal de capacitación.</span>
-                  </div>
-                  <div class="info-item info-item-highlight">
-                    <strong>Proyección internacional</strong>
-                    <span>También puede fortalecer tu perfil para oportunidades laborales en Estados Unidos y Canadá.</span>
-                  </div>
+                <div class="info-item info-item-highlight">
+                  <strong>Proyección internacional</strong>
+                  <span>También puede fortalecer tu perfil para oportunidades laborales en Estados Unidos y Canadá.</span>
                 </div>
-              </section>
+              </div>
             </section>
 
             <section class="panel mi-venezia-compact-panel portal-security-panel">

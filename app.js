@@ -385,6 +385,7 @@ const miVeneziaPagosEmptyState = document.getElementById("miVeneziaPagosEmptySta
 const miVeneziaResumenAsistencias = document.getElementById("miVeneziaResumenAsistencias");
 const miVeneziaAsistenciasBody = document.getElementById("miVeneziaAsistenciasBody");
 const miVeneziaAsistenciasEmptyState = document.getElementById("miVeneziaAsistenciasEmptyState");
+const miVeneziaAttendanceToggle = document.getElementById("miVeneziaAttendanceToggle");
 const miVeneziaAvance = document.getElementById("miVeneziaAvance");
 const miVeneziaPaymentSchedule = document.getElementById("miVeneziaPaymentSchedule");
 const miVeneziaHeroName = document.getElementById("miVeneziaHeroName");
@@ -605,6 +606,7 @@ let activePaymentsSearch = "";
 let activeStudentFileId = "";
 let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
+let miVeneziaAttendanceExpanded = false;
 let currentInternalUserId = "";
 let currentAccessMode = "logged-out";
 let publicAccessPanelOpen = false;
@@ -7921,6 +7923,7 @@ function renderMiVeneziaDashboard() {
   if (!student || isStudentDeleted(student)) {
     dataService.sessions.clearStudent();
     currentPortalStudentId = "";
+    miVeneziaAttendanceExpanded = false;
     miVeneziaLoginPanel.hidden = false;
     miVeneziaDashboard.hidden = true;
     return;
@@ -7936,12 +7939,6 @@ function renderMiVeneziaDashboard() {
   const paymentOverview = getMiVeneziaPaymentOverview(student, payment, paymentEntries, latestPayment);
   const attendanceOverview = getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCalendar);
   const documentsOverview = getMiVeneziaDocumentsOverview(student);
-  const nextAction = getMiVeneziaNextAction(student, {
-    documents: documentsOverview,
-    payments: paymentOverview,
-    attendance: attendanceOverview,
-  });
-
   miVeneziaHeroName.textContent = `¡Bienvenida, ${student.nombre || "alumna"}!`;
   miVeneziaHeroMeta.textContent = `${student.sucursal || "-"} · ${student.curso || "-"} · ${student.horario || "-"}${student.accesoElegido ? ` · ${student.accesoElegido}` : ""}`;
   renderInfoList(miVeneziaHeroSummary, [
@@ -7958,7 +7955,6 @@ function renderMiVeneziaDashboard() {
   miVeneziaStatStatus.textContent = documentsOverview.summaryLabel;
   miVeneziaContactButton.href = getStudentDirectorWhatsappUrl(student);
   renderMiVeneziaDocuments(student);
-  renderMiVeneziaActionCard(miVeneziaNextAction, nextAction);
   renderMiVeneziaUpcomingSummary(miVeneziaUpcoming, [
     {
       label: "Próxima clase",
@@ -7977,7 +7973,6 @@ function renderMiVeneziaDashboard() {
       meta: paymentOverview.statusLabel,
     },
   ]);
-  renderMiVeneziaDocumentsSummary(miVeneziaDocumentsSummary, documentsOverview);
 
   renderInfoList(miVeneziaPerfil, [
     { label: "Nombre completo", value: student.nombre || "-" },
@@ -8024,7 +8019,8 @@ function renderMiVeneziaDashboard() {
     },
   ]);
 
-  miVeneziaAsistenciasBody.innerHTML = attendanceCalendar
+  const visibleAttendanceEntries = miVeneziaAttendanceExpanded ? attendanceCalendar : attendanceCalendar.slice(0, 4);
+  miVeneziaAsistenciasBody.innerHTML = visibleAttendanceEntries
     .map(
       (entry) => `
         <tr>
@@ -8036,6 +8032,10 @@ function renderMiVeneziaDashboard() {
     )
     .join("");
   miVeneziaAsistenciasEmptyState.hidden = attendanceCalendar.length > 0;
+  if (miVeneziaAttendanceToggle) {
+    miVeneziaAttendanceToggle.hidden = attendanceCalendar.length <= 4;
+    miVeneziaAttendanceToggle.textContent = miVeneziaAttendanceExpanded ? "Ver menos" : "Ver más";
+  }
 
   miVeneziaPagosBody.innerHTML = paymentEntries
     .map(
@@ -8073,6 +8073,7 @@ function renderMiVeneziaDashboard() {
 
 function logoutMiVenezia() {
   currentPortalStudentId = "";
+  miVeneziaAttendanceExpanded = false;
   miVeneziaLoginForm.reset();
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
@@ -9231,6 +9232,7 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   }
 
   currentPortalStudentId = student.id;
+  miVeneziaAttendanceExpanded = false;
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
   renderMiVeneziaDashboard();
   miVeneziaLoginForm.reset();
@@ -9239,6 +9241,13 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
 miVeneziaConfirmReadButton.addEventListener("click", () => {
   handleMiVeneziaReglamentoConfirmation();
 });
+
+if (miVeneziaAttendanceToggle) {
+  miVeneziaAttendanceToggle.addEventListener("click", () => {
+    miVeneziaAttendanceExpanded = !miVeneziaAttendanceExpanded;
+    renderMiVeneziaDashboard();
+  });
+}
 
 miVeneziaPasswordForm.addEventListener("submit", handleMiVeneziaPasswordChange);
 teacherPortalPasswordForm.addEventListener("submit", handleTeacherPortalPasswordChange);
