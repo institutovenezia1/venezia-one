@@ -5009,6 +5009,23 @@ function getDashboardFinanceRecords() {
   });
 }
 
+function populateDashboardBranchFilter() {
+  const branchOptions = [
+    ...new Set(
+      [
+        ...prospects.map((record) => record.sucursal),
+        ...students.map((record) => record.sucursal),
+        ...financeRecords.map((record) => record.sucursal),
+        ...staffRecords.map((record) => record.sucursal),
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  populateSelectWithValues(dashboardBranchFilter, branchOptions, "Todas");
+}
+
 function normalizeDashboardOrigin(prospect) {
   const origen = normalizeLeadOrigin(prospect.origen);
 
@@ -5026,6 +5043,7 @@ function getAdvisorNameForProspect(prospect) {
 }
 
 function renderDashboard() {
+  populateDashboardBranchFilter();
   const relevantFinanceRecords = getDashboardFinanceRecords();
   const allRelevantFinanceRecords = getFinanceRecordsForScope({
     scope: "accumulated",
@@ -5036,30 +5054,10 @@ function renderDashboard() {
     month: selectedMonth,
     branch: dashboardBranchFilter.value,
   });
-  const branchMap = new Map(financeSummary.byBranch.map((item) => [item.branch, item]));
 
   statIngresosDashboard.textContent = formatCurrency(financeSummary.windows.month.ingresos);
   statEgresosDashboard.textContent = formatCurrency(financeSummary.windows.month.egresos);
   statBalanceDashboard.textContent = formatCurrency(financeSummary.windows.month.utilidad);
-
-  if (statTlaxcalaIncomeDashboard) {
-    statTlaxcalaIncomeDashboard.textContent = formatCurrency(branchMap.get("Tlaxcala")?.month.ingresos || 0);
-  }
-  if (statPueblaIncomeDashboard) {
-    statPueblaIncomeDashboard.textContent = formatCurrency(branchMap.get("Puebla")?.month.ingresos || 0);
-  }
-  if (dashboardFinancialAlerts) {
-    dashboardFinancialAlerts.innerHTML = financeSummary.alerts
-      .map(
-        (alert) => `
-          <article class="dashboard-alert-item dashboard-alert-${escapeHtml(alert.tone || "neutral")}">
-            <strong>${escapeHtml(alert.title)}</strong>
-            <p>${escapeHtml(alert.detail)}</p>
-          </article>
-        `
-      )
-      .join("");
-  }
 }
 
 function populateStaffLinkedUsers() {
