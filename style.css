@@ -696,10 +696,93 @@ textarea {
   justify-items: stretch;
 }
 
+.attendance-session-meta {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+}
+
 .attendance-session-cell small {
   color: #7b7268;
   font-size: 0.68rem;
   text-align: center;
+}
+
+.attendance-session-date {
+  margin-top: 0;
+  text-align: center;
+}
+
+.attendance-payment-column,
+.attendance-payment-cell {
+  background:
+    linear-gradient(180deg, rgba(255, 251, 246, 0.72) 0%, rgba(244, 237, 228, 0.48) 100%);
+}
+
+.attendance-payment-column,
+.attendance-payment-cell,
+.attendance-session-cell-payment {
+  --payment-glass-tint: rgba(243, 221, 226, 0.9);
+}
+
+.attendance-payment-column-priority,
+.attendance-payment-cell-priority,
+.attendance-session-cell-payment-priority {
+  --payment-glass-tint: rgba(239, 228, 200, 0.94);
+}
+
+.attendance-payment-column-heading {
+  display: grid;
+  gap: 0.28rem;
+  justify-items: center;
+}
+
+.attendance-payment-column-heading span {
+  line-height: 1.05;
+}
+
+.attendance-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72) 0%, var(--payment-glass-tint) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 6px 14px rgba(131, 116, 103, 0.1);
+  color: #6f6258;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.attendance-payment-badge.is-priority {
+  color: #7b5d1b;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 7px 16px rgba(143, 122, 79, 0.14);
+}
+
+.attendance-session-cell-payment {
+  min-width: 88px;
+  padding: 0.42rem 0.38rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.56) 0%, var(--payment-glass-tint) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 8px 18px rgba(131, 116, 103, 0.1);
+}
+
+.attendance-session-cell-payment-priority {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 20px rgba(143, 122, 79, 0.14);
 }
 
 .attendance-session-empty {
