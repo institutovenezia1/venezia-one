@@ -360,6 +360,7 @@ const financeCategoria = document.getElementById("financeCategoria");
 const financeTipo = document.getElementById("financeTipo");
 const financeMonthFilter = document.getElementById("financeMonthFilter");
 const financeBranchFilter = document.getElementById("financeBranchFilter");
+const financeVisibleMonthFilter = document.getElementById("financeVisibleMonthFilter");
 const financeTableBody = document.getElementById("financeTableBody");
 const financeEmptyState = document.getElementById("financeEmptyState");
 const financeIncomeSummary = document.getElementById("financeIncomeSummary");
@@ -6706,11 +6707,22 @@ function renderBalanceExpensesTable() {
 }
 
 function updateBalanceSummary() {
-  const incomes = getBalanceIncomeRows();
-  const expenses = getFilteredBalanceExpenses();
-  const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
-  const cashTotal = incomeTotal - expenseTotal;
+  const activeDate = balanceDateFilter.value || formatDateForInput(new Date());
+  const hasSpecificDate = Boolean(balanceDateFilter.value);
+  const scopedFinanceRecords = getFinanceRecordsForScope({
+    scope: hasSpecificDate ? "day" : "accumulated",
+    date: activeDate,
+    branch: balanceBranchFilter.value,
+  });
+  const financeSummary = buildFinanceSummary(scopedFinanceRecords, {
+    allRecords: scopedFinanceRecords,
+    month: String(activeDate || selectedMonth).slice(0, 7) || selectedMonth,
+    date: activeDate,
+    branch: balanceBranchFilter.value,
+  });
+  const incomeTotal = financeSummary.totals.ingresos;
+  const expenseTotal = financeSummary.totals.egresos;
+  const cashTotal = financeSummary.totals.utilidad;
 
   [balanceIncomeTotal, balanceSummaryIncome].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(incomeTotal);
@@ -6795,6 +6807,38 @@ function populateFinanceBranchFilter() {
   populateSelectWithValues(financeBranchFilter, branchOptions, "Todas");
 }
 
+function populateFinanceVisibleMonthFilter() {
+  if (!financeVisibleMonthFilter || !financeMonthFilter) {
+    return;
+  }
+
+  const baseMonth = financeMonthFilter.value || selectedMonth || getCurrentMonthValue();
+  const baseYear = String(baseMonth || getCurrentMonthValue()).slice(0, 4) || String(new Date().getFullYear());
+  const monthLabels = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+  const currentValue = financeMonthFilter.value || `${baseYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
+  financeVisibleMonthFilter.innerHTML = monthLabels
+    .map(
+      (label, index) =>
+        `<option value="${baseYear}-${String(index + 1).padStart(2, "0")}">${label}</option>`
+    )
+    .join("");
+  financeVisibleMonthFilter.value = currentValue;
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -6805,6 +6849,7 @@ function formatCurrency(amount) {
 
 function renderFinanceTable() {
   populateFinanceBranchFilter();
+  populateFinanceVisibleMonthFilter();
   const records = getFilteredFinanceRecords().sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   financeTableBody.innerHTML = records
@@ -6836,6 +6881,7 @@ function renderFinanceTable() {
 
 function updateFinanceSummary() {
   populateFinanceBranchFilter();
+  populateFinanceVisibleMonthFilter();
   const records = getFilteredFinanceRecords();
   const allRelevantRecords = getFinanceRecordsForScope({
     scope: "accumulated",
@@ -8046,6 +8092,7 @@ function deleteFinanceRecord(id) {
     }
     renderFinanceTable();
     updateFinanceSummary();
+    renderBalanceModule();
     renderDashboard();
   });
   if (document.getElementById("financeId").value === id) {
@@ -8830,6 +8877,7 @@ financeForm.addEventListener("submit", async (event) => {
   if (!saveResult.synced) {
     renderFinanceTable();
     updateFinanceSummary();
+    renderBalanceModule();
     renderDashboard();
     alert("No se pudo guardar el movimiento en Supabase. Se conservó sólo en el respaldo local.");
     return;
@@ -8837,6 +8885,7 @@ financeForm.addEventListener("submit", async (event) => {
 
   renderFinanceTable();
   updateFinanceSummary();
+  renderBalanceModule();
   renderDashboard();
   resetFinanceForm();
 });
@@ -9069,6 +9118,7 @@ attendanceSearchInput.addEventListener("input", (event) => {
 
 financeTipo.addEventListener("change", updateFinanceCategories);
 financeMonthFilter.addEventListener("change", () => {
+  populateFinanceVisibleMonthFilter();
   renderFinanceTable();
   updateFinanceSummary();
 });
@@ -9094,6 +9144,18 @@ financeBranchFilter.addEventListener("change", () => {
   renderFinanceTable();
   updateFinanceSummary();
 });
+
+if (financeVisibleMonthFilter) {
+  financeVisibleMonthFilter.addEventListener("change", (event) => {
+    if (!financeMonthFilter) {
+      return;
+    }
+
+    financeMonthFilter.value = event.target.value || selectedMonth;
+    renderFinanceTable();
+    updateFinanceSummary();
+  });
+}
 
 if (dashboardOpenFinanceButton) {
   dashboardOpenFinanceButton.addEventListener("click", () => {

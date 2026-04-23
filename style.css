@@ -1846,7 +1846,7 @@ td select {
 
 .finance-filter-panel {
   margin-bottom: 1rem;
-  max-width: 420px;
+  max-width: 520px;
   background:
     radial-gradient(circle at top right, rgba(201, 161, 74, 0.08), transparent 24%),
     linear-gradient(180deg, #fcfaf7 0%, #f6f0e8 100%);
@@ -1858,6 +1858,8 @@ td select {
 
 .finance-filter-panel .attendance-filters {
   margin-top: 0;
+  max-width: 100%;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
 }
 
 .finance-summary-panel {
