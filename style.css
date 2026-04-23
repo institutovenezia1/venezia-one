@@ -715,20 +715,27 @@ textarea {
 
 .attendance-payment-column,
 .attendance-payment-cell {
+  --attendance-payment-surface-top: rgba(253, 249, 246, 0.84);
+  --attendance-payment-surface-bottom: rgba(245, 239, 232, 0.62);
+  --attendance-payment-tint: rgba(243, 221, 226, 0.9);
+  --attendance-payment-border: rgba(188, 160, 165, 0.22);
+  --attendance-payment-text: #6f6258;
+  --attendance-payment-date-text: #7a685f;
+  --attendance-payment-shadow: rgba(131, 116, 103, 0.1);
   background:
-    linear-gradient(180deg, rgba(255, 251, 246, 0.72) 0%, rgba(244, 237, 228, 0.48) 100%);
+    linear-gradient(180deg, var(--attendance-payment-surface-top) 0%, var(--attendance-payment-surface-bottom) 100%);
 }
 
 .attendance-payment-column,
 .attendance-payment-cell,
 .attendance-session-cell-payment {
-  --payment-glass-tint: rgba(243, 221, 226, 0.9);
+  --payment-glass-tint: var(--attendance-payment-tint);
 }
 
 .attendance-payment-column-priority,
 .attendance-payment-cell-priority,
 .attendance-session-cell-payment-priority {
-  --payment-glass-tint: rgba(239, 228, 200, 0.94);
+  border-color: rgba(255, 255, 255, 0.92);
 }
 
 .attendance-payment-column-heading {
@@ -752,8 +759,8 @@ textarea {
     linear-gradient(145deg, rgba(255, 255, 255, 0.72) 0%, var(--payment-glass-tint) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.68),
-    0 6px 14px rgba(131, 116, 103, 0.1);
-  color: #6f6258;
+    0 6px 14px var(--attendance-payment-shadow);
+  color: var(--attendance-payment-text);
   font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -761,28 +768,97 @@ textarea {
 }
 
 .attendance-payment-badge.is-priority {
-  color: #7b5d1b;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    0 7px 16px rgba(143, 122, 79, 0.14);
+    0 7px 16px var(--attendance-payment-shadow);
 }
 
 .attendance-session-cell-payment {
   min-width: 88px;
   padding: 0.42rem 0.38rem;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--attendance-payment-border);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.56) 0%, var(--payment-glass-tint) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.68),
-    0 8px 18px rgba(131, 116, 103, 0.1);
+    0 8px 18px var(--attendance-payment-shadow);
 }
 
 .attendance-session-cell-payment-priority {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 10px 20px rgba(143, 122, 79, 0.14);
+    0 10px 20px var(--attendance-payment-shadow);
+}
+
+.attendance-session-cell-payment .attendance-session-date,
+.attendance-payment-column .attendance-payment-badge,
+.attendance-session-cell-payment .attendance-payment-badge {
+  color: var(--attendance-payment-text);
+}
+
+.attendance-session-cell-payment .attendance-session-date {
+  color: var(--attendance-payment-date-text);
+}
+
+.attendance-payment-tone-men1 {
+  --attendance-payment-surface-top: rgba(247, 251, 247, 0.88);
+  --attendance-payment-surface-bottom: rgba(229, 238, 230, 0.68);
+  --attendance-payment-tint: rgba(190, 210, 194, 0.92);
+  --attendance-payment-border: rgba(137, 166, 144, 0.26);
+  --attendance-payment-text: #476451;
+  --attendance-payment-date-text: #5f7767;
+  --attendance-payment-shadow: rgba(104, 134, 111, 0.14);
+}
+
+.attendance-payment-tone-men2 {
+  --attendance-payment-surface-top: rgba(249, 246, 251, 0.88);
+  --attendance-payment-surface-bottom: rgba(233, 225, 238, 0.72);
+  --attendance-payment-tint: rgba(173, 155, 187, 0.9);
+  --attendance-payment-border: rgba(125, 104, 145, 0.26);
+  --attendance-payment-text: #5d496f;
+  --attendance-payment-date-text: #705b81;
+  --attendance-payment-shadow: rgba(99, 79, 119, 0.16);
+}
+
+.attendance-payment-tone-men3 {
+  --attendance-payment-surface-top: rgba(246, 249, 252, 0.9);
+  --attendance-payment-surface-bottom: rgba(223, 232, 241, 0.72);
+  --attendance-payment-tint: rgba(168, 191, 216, 0.92);
+  --attendance-payment-border: rgba(103, 135, 169, 0.24);
+  --attendance-payment-text: #42617f;
+  --attendance-payment-date-text: #597694;
+  --attendance-payment-shadow: rgba(80, 112, 145, 0.15);
+}
+
+.attendance-payment-tone-men4 {
+  --attendance-payment-surface-top: rgba(252, 248, 243, 0.9);
+  --attendance-payment-surface-bottom: rgba(242, 227, 208, 0.74);
+  --attendance-payment-tint: rgba(223, 183, 139, 0.9);
+  --attendance-payment-border: rgba(185, 132, 72, 0.24);
+  --attendance-payment-text: #8a5f33;
+  --attendance-payment-date-text: #a07040;
+  --attendance-payment-shadow: rgba(162, 117, 67, 0.16);
+}
+
+.attendance-payment-tone-men5 {
+  --attendance-payment-surface-top: rgba(252, 249, 241, 0.92);
+  --attendance-payment-surface-bottom: rgba(244, 234, 196, 0.72);
+  --attendance-payment-tint: rgba(228, 204, 125, 0.9);
+  --attendance-payment-border: rgba(185, 152, 64, 0.24);
+  --attendance-payment-text: #8a6d1f;
+  --attendance-payment-date-text: #9c7f2b;
+  --attendance-payment-shadow: rgba(156, 126, 47, 0.16);
+}
+
+.attendance-payment-tone-certificate {
+  --attendance-payment-surface-top: rgba(252, 245, 249, 0.9);
+  --attendance-payment-surface-bottom: rgba(242, 220, 232, 0.74);
+  --attendance-payment-tint: rgba(212, 130, 177, 0.9);
+  --attendance-payment-border: rgba(174, 86, 141, 0.26);
+  --attendance-payment-text: #96486f;
+  --attendance-payment-date-text: #aa5c82;
+  --attendance-payment-shadow: rgba(156, 77, 127, 0.18);
 }
 
 .attendance-session-empty {

@@ -5578,8 +5578,9 @@ function renderAttendanceTable() {
           }
 
           const isPriority = ATTENDANCE_PRIORITY_PAYMENT_REFERENCE_FIELDS.has(paymentReferenceRule.field);
+          const toneClass = getAttendancePaymentReferenceToneClass(paymentReferenceRule);
           return `
-            <th class="attendance-payment-column${isPriority ? " attendance-payment-column-priority" : ""}">
+            <th class="attendance-payment-column ${toneClass}${isPriority ? " attendance-payment-column-priority" : ""}">
               <div class="attendance-payment-column-heading">
                 <span>${escapeHtml(column.label)}</span>
                 <small class="attendance-payment-badge${isPriority ? " is-priority" : ""}">${escapeHtml(getPaymentReferenceShortLabel(paymentReferenceRule))}</small>
@@ -5630,10 +5631,10 @@ function renderAttendanceTable() {
               const record = getAttendanceRecord(student.id, session.date);
               const paymentReference = getAttendancePaymentReferenceBySessionIndex(column.index, student, studentSessions);
               const paymentCellClass = paymentReference
-                ? ` class="attendance-payment-cell${paymentReference.isPriority ? " attendance-payment-cell-priority" : ""}"`
+                ? ` class="attendance-payment-cell ${paymentReference.toneClass}${paymentReference.isPriority ? " attendance-payment-cell-priority" : ""}"`
                 : "";
               const dateClass = paymentReference ? ` class="payment-reference-date attendance-session-date"` : "";
-              const sessionCellClass = `attendance-session-cell${paymentReference ? " attendance-session-cell-payment" : ""}${paymentReference?.isPriority ? " attendance-session-cell-payment-priority" : ""}`;
+              const sessionCellClass = `attendance-session-cell${paymentReference ? ` attendance-session-cell-payment ${paymentReference.toneClass}` : ""}${paymentReference?.isPriority ? " attendance-session-cell-payment-priority" : ""}`;
               const title = [
                 `${session.classLabel} · ${formatDisplayDate(session.date) || session.date}`,
                 paymentReference ? `Referencia ${paymentReference.shortLabel}` : "",
@@ -5848,6 +5849,18 @@ function getPaymentReferenceShortLabel(reference) {
   return String(reference?.label || "").trim().toUpperCase();
 }
 
+function getAttendancePaymentReferenceToneClass(reference) {
+  const shortLabel = getPaymentReferenceShortLabel(reference);
+
+  if (shortLabel === "MEN1") return "attendance-payment-tone-men1";
+  if (shortLabel === "MEN2") return "attendance-payment-tone-men2";
+  if (shortLabel === "MEN3") return "attendance-payment-tone-men3";
+  if (shortLabel === "MEN4") return "attendance-payment-tone-men4";
+  if (shortLabel === "MEN5") return "attendance-payment-tone-men5";
+  if (shortLabel === "C1" || shortLabel === "C2") return "attendance-payment-tone-certificate";
+  return "";
+}
+
 function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStudentAttendanceSessionDates(student)) {
   if (!rule) {
     return null;
@@ -5865,6 +5878,7 @@ function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStude
   return {
     ...rule,
     shortLabel: getPaymentReferenceShortLabel(rule),
+    toneClass: getAttendancePaymentReferenceToneClass(rule),
     isPriority: ATTENDANCE_PRIORITY_PAYMENT_REFERENCE_FIELDS.has(rule.field),
     value: formatDisplayDate(session.date) || session.date || "-",
   };
