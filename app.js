@@ -356,6 +356,7 @@ const balanceExpenseBranchField = document.getElementById("balanceExpenseBranch"
 const balanceExpenseTotalField = document.getElementById("balanceExpenseTotalField");
 const balanceExpenseResponsibleField = document.getElementById("balanceExpenseResponsible");
 
+const financeBranchField = document.getElementById("financeSucursal");
 const financeCategoria = document.getElementById("financeCategoria");
 const financeTipo = document.getElementById("financeTipo");
 const financeMonthFilter = document.getElementById("financeMonthFilter");
@@ -4095,6 +4096,7 @@ function closePublicAccessPanel() {
 }
 
 function applyBranchRestrictionsToUI() {
+  populateFinancialEntryBranchFields();
   const allowedBranch = getAllowedBranch();
   const branchLocked = Boolean(allowedBranch);
 
@@ -4106,7 +4108,7 @@ function applyBranchRestrictionsToUI() {
       teacherPaymentBranch.value = allowedBranch;
     }
     teacherSummaryBranchFilter.value = allowedBranch;
-    document.getElementById("financeSucursal").value = allowedBranch;
+    financeBranchField.value = allowedBranch;
     balanceExpenseBranchField.value = allowedBranch;
     attendanceSucursalFilter.value = allowedBranch;
     balanceBranchFilter.value = allowedBranch;
@@ -4120,8 +4122,8 @@ function applyBranchRestrictionsToUI() {
   if (teacherPaymentBranch) {
     teacherPaymentBranch.disabled = branchLocked;
   }
-  document.getElementById("financeSucursal").value = branchLocked ? allowedBranch : document.getElementById("financeSucursal").value;
-  document.getElementById("financeSucursal").disabled = branchLocked;
+  financeBranchField.value = branchLocked ? allowedBranch : financeBranchField.value;
+  financeBranchField.disabled = branchLocked;
   balanceExpenseBranchField.value = branchLocked ? allowedBranch : balanceExpenseBranchField.value;
   balanceExpenseBranchField.disabled = branchLocked;
   document.getElementById("staffSucursal").value = branchLocked ? allowedBranch : document.getElementById("staffSucursal").value;
@@ -4202,11 +4204,17 @@ function getFinanceFormData() {
   const existingId = document.getElementById("financeId").value;
   const existingRecord = financeRecords.find((record) => record.id === existingId);
   const allowedBranch = getAllowedBranch();
+  const sucursal = String(allowedBranch || formData.get("sucursal") || "").trim();
+
+  if (!isValidSystemBranch(sucursal)) {
+    alert("Selecciona una sucursal valida del sistema para registrar el movimiento financiero.");
+    return null;
+  }
 
   return {
     id: existingId || crypto.randomUUID(),
     fecha: formData.get("fecha"),
-    sucursal: allowedBranch || formData.get("sucursal"),
+    sucursal,
     tipo: formData.get("tipo"),
     categoria: formData.get("categoria"),
     concepto: formData.get("concepto").trim(),
@@ -5086,6 +5094,38 @@ function buildFinanceSummary(
 
 function matchesDashboardBranch(branch) {
   return matchesCurrentBranch(branch) && (!dashboardBranchFilter.value || branch === dashboardBranchFilter.value);
+}
+
+function getValidSystemBranches() {
+  const allowedBranch = String(getAllowedBranch() || "").trim();
+  const branchOptions = [
+    ...new Set(
+      [
+        ...prospects.map((record) => record.sucursal),
+        ...students.map((record) => record.sucursal),
+        ...staffRecords.map((record) => record.sucursal),
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  if (allowedBranch && !branchOptions.includes(allowedBranch)) {
+    branchOptions.unshift(allowedBranch);
+  }
+
+  return branchOptions;
+}
+
+function isValidSystemBranch(branch) {
+  return getValidSystemBranches().includes(String(branch || "").trim());
+}
+
+function populateFinancialEntryBranchFields() {
+  const branchOptions = getValidSystemBranches();
+  [financeBranchField, balanceExpenseBranchField].filter(Boolean).forEach((field) => {
+    populateSelectWithValues(field, branchOptions, "Selecciona una opcion");
+  });
 }
 
 function getDashboardMonthProspects() {
@@ -6738,11 +6778,17 @@ function getBalanceExpenseFormData() {
   const costoUnitario = Number(formData.get("costoUnitario") || 0);
   const total = Number((cantidad * costoUnitario).toFixed(2));
   const allowedBranch = getAllowedBranch();
+  const sucursal = allowedBranch || String(formData.get("sucursal") || "").trim();
+
+  if (!isValidSystemBranch(sucursal)) {
+    alert("Selecciona una sucursal valida del sistema para registrar el egreso.");
+    return null;
+  }
 
   return {
     id: existingId || crypto.randomUUID(),
     fecha: String(formData.get("fecha") || "").trim(),
-    sucursal: allowedBranch || String(formData.get("sucursal") || "").trim(),
+    sucursal,
     nombreGasto: String(formData.get("nombreGasto") || "").trim(),
     cantidad,
     costoUnitario,
@@ -8986,6 +9032,9 @@ financeForm.addEventListener("submit", async (event) => {
   console.log("FINANZA GUARDAR CLICKED");
   event.preventDefault();
   const financeData = getFinanceFormData();
+  if (!financeData) {
+    return;
+  }
   const saveResult = await saveFinanceRecord(financeData);
   if (!saveResult.synced) {
     renderFinanceTable();
@@ -9006,6 +9055,9 @@ financeForm.addEventListener("submit", async (event) => {
 balanceExpenseForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const expenseData = getBalanceExpenseFormData();
+  if (!expenseData) {
+    return;
+  }
   const validationErrors = getBalanceExpenseValidationErrors(expenseData);
 
   if (validationErrors.length > 0) {
