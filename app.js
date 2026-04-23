@@ -4612,8 +4612,110 @@ function updateStats() {
   return;
 }
 
+function getPaymentFinanceCategory(record) {
+  if (record.certificadoP1 === "Pagado" || record.certificadoP1 === "Parcial") {
+    return "Certificado P1";
+  }
+
+  if (record.certificadoP2 === "Pagado" || record.certificadoP2 === "Parcial") {
+    return "Certificado P2";
+  }
+
+  if (
+    record.mensualidad1 === "Pagado" ||
+    record.mensualidad1 === "Parcial" ||
+    record.mensualidad2 === "Pagado" ||
+    record.mensualidad2 === "Parcial" ||
+    record.mensualidad3 === "Pagado" ||
+    record.mensualidad3 === "Parcial" ||
+    record.mensualidad4 === "Pagado" ||
+    record.mensualidad4 === "Parcial" ||
+    record.mensualidad5 === "Pagado" ||
+    record.mensualidad5 === "Parcial"
+  ) {
+    return "Colegiatura";
+  }
+
+  return "Otro ingreso";
+}
+
+function getDerivedFinanceIncomeRecords() {
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  return paymentRecords
+    .map((record) => {
+      const student = studentsById.get(record.studentId);
+      const monto = parsePaymentAmount(record.cantidadPagada);
+      if (!student || !(monto > 0)) {
+        return null;
+      }
+
+      return {
+        id: `payment:${record.id}`,
+        sourceType: "payment",
+        sourceRecordId: record.id,
+        sourceStudentId: record.studentId,
+        fecha: getBalancePaymentDate(record),
+        sucursal: student.sucursal || "",
+        tipo: "Ingreso",
+        categoria: getPaymentFinanceCategory(record),
+        concepto: getBalanceIncomeConcept(record),
+        monto,
+        metodoPago: record.metodoPago || "-",
+        usuario: student.usuarioAlta || student.inscribio || "",
+        observaciones: record.observaciones || "",
+        createdAt: record.createdAt || record.updatedAt || "",
+        updatedAt: record.updatedAt || record.createdAt || "",
+      };
+    })
+    .filter(Boolean);
+}
+
+function getDerivedFinanceExpenseRecords() {
+  return balanceExpenses
+    .map((record) => {
+      const monto = Number(record.total || 0);
+      if (!record.fecha || !(monto > 0)) {
+        return null;
+      }
+
+      return {
+        id: `balance-expense:${record.id}`,
+        sourceType: "balance-expense",
+        sourceRecordId: record.id,
+        fecha: record.fecha,
+        sucursal: record.sucursal || "",
+        tipo: "Egreso",
+        categoria: "Otro egreso",
+        concepto: record.nombreGasto || "Egreso manual",
+        monto,
+        metodoPago: "N/A",
+        usuario: record.responsableGasto || "",
+        observaciones: record.nota || "",
+        cantidad: Number(record.cantidad || 0),
+        costoUnitario: Number(record.costoUnitario || 0),
+        nombreGasto: record.nombreGasto || "",
+        responsableGasto: record.responsableGasto || "",
+        createdAt: record.createdAt || "",
+      };
+    })
+    .filter(Boolean);
+}
+
+function getCentralFinanceRecords() {
+  const nativeFinanceRecords = financeRecords.filter(
+    (record) =>
+      record.sourceType !== "payment" &&
+      record.sourceType !== "balance-expense" &&
+      !String(record.id || "").startsWith("payment:") &&
+      !String(record.id || "").startsWith("balance-expense:")
+  );
+
+  return nativeFinanceRecords.concat(getDerivedFinanceIncomeRecords(), getDerivedFinanceExpenseRecords());
+}
+
 function getFinanceRecordsForScope({
-  records = financeRecords,
+  records = getCentralFinanceRecords(),
   scope = "month",
   date = formatDateForInput(new Date()),
   month = selectedMonth,
@@ -4689,7 +4791,7 @@ function getFinanceRecordsForScope({
 function buildFinanceSummary(
   records,
   {
-    allRecords = financeRecords,
+    allRecords = getCentralFinanceRecords(),
     month = selectedMonth,
     date = formatDateForInput(new Date()),
     branch = "",
@@ -6389,6 +6491,9 @@ async function savePaymentForStudent(studentId) {
 
   const saveResult = await savePaymentRecord({ ...current, ...newRecord });
   if (!saveResult.synced) {
+    renderBalanceModule();
+    renderFinanceTable();
+    updateFinanceSummary();
     updatePaymentsSummary();
     renderDashboard();
     alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
@@ -6396,6 +6501,9 @@ async function savePaymentForStudent(studentId) {
   }
 
   renderPaymentsTable();
+  renderBalanceModule();
+  renderFinanceTable();
+  updateFinanceSummary();
   updatePaymentsSummary();
   renderDashboard();
 }
@@ -6550,34 +6658,22 @@ function syncBalanceExpenseResponsible({ force = false, selectedValue = "" } = {
 function getBalanceIncomeRows() {
   const studentsById = new Map(students.map((student) => [student.id, student]));
 
-  return paymentRecords
-    .map((record) => {
-      const student = studentsById.get(record.studentId);
-      if (!student) {
-        return null;
-      }
-
-      const fecha = getBalancePaymentDate(record);
-      const monto = parsePaymentAmount(record.cantidadPagada);
-      if (!monto) {
-        return null;
-      }
-
-      return {
-        id: record.id,
-        studentId: record.studentId,
-        fecha,
-        alumna: student.nombre || "-",
-        concepto: getBalanceIncomeConcept(record),
-        monto,
-        sucursal: student.sucursal || "",
-        metodoPago: record.metodoPago || "-",
-      };
-    })
+  return getCentralFinanceRecords()
+    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
     .filter(Boolean)
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
     .filter((record) => matchesBalanceDate(record.fecha))
+    .map((record) => ({
+      id: record.sourceRecordId || record.id,
+      studentId: record.sourceStudentId || "",
+      fecha: record.fecha,
+      alumna: studentsById.get(record.sourceStudentId)?.nombre || "-",
+      concepto: record.concepto || "Pago registrado",
+      monto: Number(record.monto || 0),
+      sucursal: record.sucursal || "",
+      metodoPago: record.metodoPago || "-",
+    }))
     .sort((a, b) => {
       const dateComparison = String(b.fecha || "").localeCompare(String(a.fecha || ""));
       if (dateComparison !== 0) {
@@ -6588,10 +6684,23 @@ function getBalanceIncomeRows() {
 }
 
 function getFilteredBalanceExpenses() {
-  return balanceExpenses
+  return getCentralFinanceRecords()
+    .filter((record) => record.sourceType === "balance-expense" && record.tipo === "Egreso")
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
     .filter((record) => matchesBalanceDate(record.fecha))
+    .map((record) => ({
+      id: record.sourceRecordId || record.id,
+      fecha: record.fecha,
+      nombreGasto: record.nombreGasto || record.concepto || "",
+      cantidad: Number(record.cantidad || 0),
+      costoUnitario: Number(record.costoUnitario || 0),
+      total: Number(record.monto || 0),
+      responsableGasto: record.responsableGasto || record.usuario || "",
+      nota: record.observaciones || "",
+      sucursal: record.sucursal || "",
+      createdAt: record.createdAt || "",
+    }))
     .sort((a, b) => {
       const dateComparison = String(b.fecha || "").localeCompare(String(a.fecha || ""));
       if (dateComparison !== 0) {
@@ -6707,22 +6816,11 @@ function renderBalanceExpensesTable() {
 }
 
 function updateBalanceSummary() {
-  const activeDate = balanceDateFilter.value || formatDateForInput(new Date());
-  const hasSpecificDate = Boolean(balanceDateFilter.value);
-  const scopedFinanceRecords = getFinanceRecordsForScope({
-    scope: hasSpecificDate ? "day" : "accumulated",
-    date: activeDate,
-    branch: balanceBranchFilter.value,
-  });
-  const financeSummary = buildFinanceSummary(scopedFinanceRecords, {
-    allRecords: scopedFinanceRecords,
-    month: String(activeDate || selectedMonth).slice(0, 7) || selectedMonth,
-    date: activeDate,
-    branch: balanceBranchFilter.value,
-  });
-  const incomeTotal = financeSummary.totals.ingresos;
-  const expenseTotal = financeSummary.totals.egresos;
-  const cashTotal = financeSummary.totals.utilidad;
+  const incomes = getBalanceIncomeRows();
+  const expenses = getFilteredBalanceExpenses();
+  const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
+  const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
+  const cashTotal = incomeTotal - expenseTotal;
 
   [balanceIncomeTotal, balanceSummaryIncome].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(incomeTotal);
@@ -6766,6 +6864,9 @@ function deleteBalanceExpense(id) {
   balanceExpenses = balanceExpenses.filter((record) => record.id !== id);
   saveBalanceExpensesCollection();
   renderBalanceModule();
+  renderFinanceTable();
+  updateFinanceSummary();
+  renderDashboard();
   if (document.getElementById("balanceExpenseId").value === id) {
     resetBalanceExpenseForm();
   }
@@ -6853,8 +6954,17 @@ function renderFinanceTable() {
   const records = getFilteredFinanceRecords().sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   financeTableBody.innerHTML = records
-    .map(
-      (record) => `
+    .map((record) => {
+      const isDerivedRecord = record.sourceType === "payment" || record.sourceType === "balance-expense";
+      const actionsMarkup = isDerivedRecord
+        ? `<span class="table-muted-note">${record.sourceType === "payment" ? "Gestiona en Pagos" : "Gestiona en Balance"}</span>`
+        : `
+            <div class="actions-cell">
+              <button class="table-action action-edit" type="button" data-action="edit-finance" data-id="${record.id}">Editar</button>
+              <button class="table-action action-delete" type="button" data-action="delete-finance" data-id="${record.id}">Eliminar</button>
+            </div>
+          `;
+      return `
         <tr>
           <td>${escapeHtml(record.fecha)}</td>
           <td>${escapeHtml(record.sucursal)}</td>
@@ -6865,15 +6975,10 @@ function renderFinanceTable() {
           <td>${escapeHtml(record.metodoPago)}</td>
           <td>${escapeHtml(record.usuario)}</td>
           <td>${escapeHtml(record.observaciones || "-")}</td>
-          <td>
-            <div class="actions-cell">
-              <button class="table-action action-edit" type="button" data-action="edit-finance" data-id="${record.id}">Editar</button>
-              <button class="table-action action-delete" type="button" data-action="delete-finance" data-id="${record.id}">Eliminar</button>
-            </div>
-          </td>
+          <td>${actionsMarkup}</td>
         </tr>
       `
-    )
+    })
     .join("");
 
   financeEmptyState.hidden = records.length > 0;
@@ -8085,6 +8190,11 @@ function editFinanceRecord(id) {
 }
 
 function deleteFinanceRecord(id) {
+  if (String(id || "").startsWith("payment:") || String(id || "").startsWith("balance-expense:")) {
+    alert("Este movimiento proviene de Pagos o Balance. Modíficalo desde su módulo de origen.");
+    return;
+  }
+
   dataService.entities.financialMovements.deleteOne(id, { alertOnFailure: false }).then((deleteResult) => {
     financeRecords = deleteResult.records;
     if (!deleteResult.synced) {
@@ -8269,6 +8379,9 @@ async function deletePaymentForStudent(studentId) {
     : deleteResult.records;
 
   renderPaymentsTable();
+  renderBalanceModule();
+  renderFinanceTable();
+  updateFinanceSummary();
   updatePaymentsSummary();
   renderDashboard();
   if (activeStudentFileId === studentId) {
@@ -8909,6 +9022,9 @@ balanceExpenseForm.addEventListener("submit", (event) => {
 
   saveBalanceExpensesCollection();
   renderBalanceModule();
+  renderFinanceTable();
+  updateFinanceSummary();
+  renderDashboard();
   resetBalanceExpenseForm();
 });
 

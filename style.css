@@ -980,6 +980,12 @@ td select {
   flex-wrap: wrap;
 }
 
+.table-muted-note {
+  color: #6f6358;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .actions-cell-prospect {
   min-width: 196px;
 }
