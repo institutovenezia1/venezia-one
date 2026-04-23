@@ -149,7 +149,7 @@
         </section>
 
         <section class="module-section" id="dashboardSection">
-          <section class="panel">
+          <section class="panel dashboard-filter-panel" hidden>
             <div class="section-heading">
               <p class="eyebrow">Dirección</p>
               <h3>Dashboard Ejecutivo</h3>
@@ -167,30 +167,33 @@
             </div>
           </section>
 
-          <section class="stats-grid" aria-label="Metricas principales">
-            <article class="stat-card">
-              <p>Ingresos del mes</p>
+          <section class="stats-grid executive-kpi-grid" aria-label="Metricas principales">
+            <article class="panel executive-kpi-card executive-kpi-income">
+              <p class="eyebrow">Dashboard</p>
+              <h3>Ingresos del mes</h3>
               <strong id="statIngresosDashboard">$0</strong>
             </article>
-            <article class="stat-card">
-              <p>Egresos del mes</p>
+            <article class="panel executive-kpi-card executive-kpi-expense">
+              <p class="eyebrow">Dashboard</p>
+              <h3>Egresos del mes</h3>
               <strong id="statEgresosDashboard">$0</strong>
             </article>
-            <article class="stat-card">
-              <p>Utilidad del mes</p>
+            <article class="panel executive-kpi-card executive-kpi-utility">
+              <p class="eyebrow">Dashboard</p>
+              <h3>Utilidad del mes</h3>
               <strong id="statBalanceDashboard">$0</strong>
             </article>
-            <article class="stat-card">
+            <article class="panel executive-kpi-card" hidden>
               <p>Ingresos Tlaxcala</p>
               <strong id="statTlaxcalaIncomeDashboard">$0</strong>
             </article>
-            <article class="stat-card">
+            <article class="panel executive-kpi-card" hidden>
               <p>Ingresos Puebla</p>
               <strong id="statPueblaIncomeDashboard">$0</strong>
             </article>
           </section>
 
-          <section class="content-grid">
+          <section class="content-grid" hidden>
             <section class="panel">
               <div class="section-heading">
                 <p class="eyebrow">Prioridades</p>
@@ -1575,32 +1578,32 @@
 
         <section class="module-section" id="finanzasSection">
           <section class="content-grid finance-overview-grid">
-            <section class="panel finance-summary-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Indicadores</p>
-                <h3>Ingresos</h3>
-              </div>
-              <div id="financeIncomeSummary" class="info-list finance-summary-list"></div>
+            <section class="panel executive-kpi-card executive-kpi-income finance-summary-panel">
+              <p class="eyebrow">Finanzas</p>
+              <h3>Ingresos del mes</h3>
+              <strong id="financeMonthIncomeValue">$0</strong>
+              <small id="financeMonthIncomeMeta">Mes actual</small>
+              <div id="financeIncomeSummary" class="info-list finance-summary-list" hidden></div>
             </section>
 
-            <section class="panel finance-summary-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Indicadores</p>
-                <h3>Egresos</h3>
-              </div>
-              <div id="financeExpenseSummary" class="info-list finance-summary-list"></div>
+            <section class="panel executive-kpi-card executive-kpi-expense finance-summary-panel">
+              <p class="eyebrow">Finanzas</p>
+              <h3>Egresos del mes</h3>
+              <strong id="financeMonthExpenseValue">$0</strong>
+              <small id="financeMonthExpenseMeta">Mes actual</small>
+              <div id="financeExpenseSummary" class="info-list finance-summary-list" hidden></div>
             </section>
 
-            <section class="panel finance-summary-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Indicadores</p>
-                <h3>Utilidad</h3>
-              </div>
-              <div id="financeUtilitySummary" class="info-list finance-summary-list"></div>
+            <section class="panel executive-kpi-card executive-kpi-utility finance-summary-panel">
+              <p class="eyebrow">Finanzas</p>
+              <h3>Utilidad del mes</h3>
+              <strong id="financeMonthUtilityValue">$0</strong>
+              <small id="financeMonthUtilityMeta">Ingresos - egresos</small>
+              <div id="financeUtilitySummary" class="info-list finance-summary-list" hidden></div>
             </section>
           </section>
 
-          <section class="panel finance-branch-panel">
+          <section class="panel finance-branch-panel" hidden>
             <div class="section-heading">
               <p class="eyebrow">Sucursales</p>
               <h3>Resumen por sucursal</h3>
@@ -1608,7 +1611,7 @@
             <div id="financeBranchSummary" class="finance-branch-grid"></div>
           </section>
 
-          <section class="panel finance-history-panel">
+          <section class="panel finance-history-panel" hidden>
             <div class="section-heading">
               <p class="eyebrow">Histórico</p>
               <h3>Histórico mensual</h3>
@@ -1635,7 +1638,7 @@
             </p>
           </section>
 
-          <section class="panel table-panel finance-movements-panel">
+          <section class="panel table-panel finance-movements-panel" hidden>
             <div class="section-heading">
               <p class="eyebrow">Detalle</p>
               <h3>Movimientos financieros</h3>
@@ -1682,7 +1685,7 @@
             </p>
           </section>
 
-          <section class="panel finance-form-panel">
+          <section class="panel finance-form-panel" hidden>
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
                 <h3>Finanzas por sucursal</h3>

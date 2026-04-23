@@ -365,6 +365,9 @@ const financeEmptyState = document.getElementById("financeEmptyState");
 const financeIncomeSummary = document.getElementById("financeIncomeSummary");
 const financeExpenseSummary = document.getElementById("financeExpenseSummary");
 const financeUtilitySummary = document.getElementById("financeUtilitySummary");
+const financeMonthIncomeValue = document.getElementById("financeMonthIncomeValue");
+const financeMonthExpenseValue = document.getElementById("financeMonthExpenseValue");
+const financeMonthUtilityValue = document.getElementById("financeMonthUtilityValue");
 const financeBranchSummary = document.getElementById("financeBranchSummary");
 const financeHistoricalMeta = document.getElementById("financeHistoricalMeta");
 const financeHistoricalTableBody = document.getElementById("financeHistoricalTableBody");
@@ -5038,19 +5041,25 @@ function renderDashboard() {
   statIngresosDashboard.textContent = formatCurrency(financeSummary.windows.month.ingresos);
   statEgresosDashboard.textContent = formatCurrency(financeSummary.windows.month.egresos);
   statBalanceDashboard.textContent = formatCurrency(financeSummary.windows.month.utilidad);
-  statTlaxcalaIncomeDashboard.textContent = formatCurrency(branchMap.get("Tlaxcala")?.month.ingresos || 0);
-  statPueblaIncomeDashboard.textContent = formatCurrency(branchMap.get("Puebla")?.month.ingresos || 0);
 
-  dashboardFinancialAlerts.innerHTML = financeSummary.alerts
-    .map(
-      (alert) => `
-        <article class="dashboard-alert-item dashboard-alert-${escapeHtml(alert.tone || "neutral")}">
-          <strong>${escapeHtml(alert.title)}</strong>
-          <p>${escapeHtml(alert.detail)}</p>
-        </article>
-      `
-    )
-    .join("");
+  if (statTlaxcalaIncomeDashboard) {
+    statTlaxcalaIncomeDashboard.textContent = formatCurrency(branchMap.get("Tlaxcala")?.month.ingresos || 0);
+  }
+  if (statPueblaIncomeDashboard) {
+    statPueblaIncomeDashboard.textContent = formatCurrency(branchMap.get("Puebla")?.month.ingresos || 0);
+  }
+  if (dashboardFinancialAlerts) {
+    dashboardFinancialAlerts.innerHTML = financeSummary.alerts
+      .map(
+        (alert) => `
+          <article class="dashboard-alert-item dashboard-alert-${escapeHtml(alert.tone || "neutral")}">
+            <strong>${escapeHtml(alert.title)}</strong>
+            <p>${escapeHtml(alert.detail)}</p>
+          </article>
+        `
+      )
+      .join("");
+  }
 }
 
 function populateStaffLinkedUsers() {
@@ -6826,6 +6835,16 @@ function updateFinanceSummary() {
     { label: "Mes", value: `${formatCurrency(windowSummary.month.ingresos)}` },
     { label: "Acumulado", value: `${formatCurrency(windowSummary.accumulated.ingresos)}` },
   ]);
+
+  if (financeMonthIncomeValue) {
+    financeMonthIncomeValue.textContent = formatCurrency(summary.windows.month.ingresos);
+  }
+  if (financeMonthExpenseValue) {
+    financeMonthExpenseValue.textContent = formatCurrency(summary.windows.month.egresos);
+  }
+  if (financeMonthUtilityValue) {
+    financeMonthUtilityValue.textContent = formatCurrency(summary.windows.month.utilidad);
+  }
 
   renderInfoList(financeIncomeSummary, summaryItems(summary.windows));
   renderInfoList(financeExpenseSummary, [
