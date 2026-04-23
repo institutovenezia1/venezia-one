@@ -151,8 +151,8 @@
         <section class="module-section" id="dashboardSection">
           <section class="panel">
             <div class="section-heading">
-              <p class="eyebrow">Control central</p>
-              <h3>Dashboard General</h3>
+              <p class="eyebrow">Dirección</p>
+              <h3>Dashboard Ejecutivo</h3>
             </div>
 
             <div class="prospect-form attendance-filters">
@@ -169,26 +169,6 @@
 
           <section class="stats-grid" aria-label="Metricas principales">
             <article class="stat-card">
-              <p>Prospectos del mes</p>
-              <strong id="statProspectos">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Informaciones del mes</p>
-              <strong id="statInformaciones">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Inscritas del mes</p>
-              <strong id="statInscritas">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Alumnas activas</p>
-              <strong id="statAlumnasActivas">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Pagos pendientes</p>
-              <strong id="statPagosPendientesDashboard">0</strong>
-            </article>
-            <article class="stat-card">
               <p>Ingresos del mes</p>
               <strong id="statIngresosDashboard">$0</strong>
             </article>
@@ -197,35 +177,40 @@
               <strong id="statEgresosDashboard">$0</strong>
             </article>
             <article class="stat-card">
-              <p>Balance del mes</p>
+              <p>Utilidad del mes</p>
               <strong id="statBalanceDashboard">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Ingresos Tlaxcala</p>
+              <strong id="statTlaxcalaIncomeDashboard">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Ingresos Puebla</p>
+              <strong id="statPueblaIncomeDashboard">$0</strong>
             </article>
           </section>
 
           <section class="content-grid">
             <section class="panel">
               <div class="section-heading">
-                <p class="eyebrow">Prospección</p>
-                <h3>Prospectos por origen</h3>
+                <p class="eyebrow">Prioridades</p>
+                <h3>Alertas financieras importantes</h3>
               </div>
-              <div id="dashboardOriginList" class="info-list"></div>
+              <div id="dashboardFinancialAlerts" class="dashboard-alerts-list"></div>
             </section>
 
-            <section class="panel">
+            <section class="panel dashboard-shortcut-panel">
               <div class="section-heading">
-                <p class="eyebrow">Inscripción</p>
-                <h3>Inscripciones por asesor</h3>
+                <p class="eyebrow">Profundizar</p>
+                <h3>Finanzas completas</h3>
               </div>
-              <div id="dashboardAdvisorList" class="info-list"></div>
+              <p class="dashboard-shortcut-copy">
+                Consulta el análisis completo por día, semana, mes, sucursal e histórico mensual en el módulo de Finanzas.
+              </p>
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="dashboardOpenFinanceButton">Ver Finanzas completas</button>
+              </div>
             </section>
-          </section>
-
-          <section class="panel">
-            <div class="section-heading">
-              <p class="eyebrow">Finanzas</p>
-              <h3>Ingresos por sucursal</h3>
-            </div>
-            <div id="dashboardIncomeBranchList" class="info-list"></div>
           </section>
         </section>
 
@@ -1589,27 +1574,115 @@
         </section>
 
         <section class="module-section" id="finanzasSection">
-          <section class="stats-grid" aria-label="Resumen de finanzas">
-            <article class="stat-card">
-              <p>Total ingresos del mes</p>
-              <strong id="financeIngresos">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total egresos del mes</p>
-              <strong id="financeEgresos">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Balance del mes</p>
-              <strong id="financeBalance">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Movimientos registrados</p>
-              <strong id="financeMovimientos">0</strong>
-            </article>
+          <section class="content-grid finance-overview-grid">
+            <section class="panel finance-summary-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Indicadores</p>
+                <h3>Ingresos</h3>
+              </div>
+              <div id="financeIncomeSummary" class="info-list finance-summary-list"></div>
+            </section>
+
+            <section class="panel finance-summary-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Indicadores</p>
+                <h3>Egresos</h3>
+              </div>
+              <div id="financeExpenseSummary" class="info-list finance-summary-list"></div>
+            </section>
+
+            <section class="panel finance-summary-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Indicadores</p>
+                <h3>Utilidad</h3>
+              </div>
+              <div id="financeUtilitySummary" class="info-list finance-summary-list"></div>
+            </section>
           </section>
 
-          <section class="content-grid">
-            <section class="panel">
+          <section class="panel finance-branch-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Sucursales</p>
+              <h3>Resumen por sucursal</h3>
+            </div>
+            <div id="financeBranchSummary" class="finance-branch-grid"></div>
+          </section>
+
+          <section class="panel finance-history-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Histórico</p>
+              <h3>Histórico mensual</h3>
+            </div>
+
+            <div id="financeHistoricalMeta" class="info-list finance-history-meta"></div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Ingresos</th>
+                    <th>Egresos</th>
+                    <th>Utilidad</th>
+                  </tr>
+                </thead>
+                <tbody id="financeHistoricalTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="financeHistoricalEmptyState" class="empty-state">
+              No hay suficiente histórico financiero para mostrar el resumen mensual.
+            </p>
+          </section>
+
+          <section class="panel table-panel finance-movements-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Detalle</p>
+              <h3>Movimientos financieros</h3>
+            </div>
+
+            <div class="prospect-form attendance-filters">
+              <label>
+                <span>Mes</span>
+                <input id="financeMonthFilter" type="month" />
+              </label>
+
+              <label>
+                <span>Sucursal</span>
+                <select id="financeBranchFilter">
+                  <option value="">Todas</option>
+                  <option>Tlaxcala</option>
+                  <option>Puebla</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Sucursal</th>
+                    <th>Tipo</th>
+                    <th>Categoría</th>
+                    <th>Concepto</th>
+                    <th>Monto</th>
+                    <th>Método de pago</th>
+                    <th>Usuario</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="financeTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="financeEmptyState" class="empty-state">
+              No hay movimientos registrados para los filtros seleccionados.
+            </p>
+          </section>
+
+          <section class="panel finance-form-panel">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
                 <h3>Finanzas por sucursal</h3>
@@ -1684,54 +1757,6 @@
                   <button class="secondary-btn" type="button" id="financeClearButton">Limpiar</button>
                 </div>
               </form>
-            </section>
-
-            <section class="panel table-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Consulta</p>
-                <h3>Movimientos financieros</h3>
-              </div>
-
-              <div class="prospect-form attendance-filters">
-                <label>
-                  <span>Mes</span>
-                  <input id="financeMonthFilter" type="month" />
-                </label>
-
-                <label>
-                  <span>Sucursal</span>
-                  <select id="financeBranchFilter">
-                    <option value="">Todas</option>
-                    <option>Tlaxcala</option>
-                    <option>Puebla</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Sucursal</th>
-                      <th>Tipo</th>
-                      <th>Categoría</th>
-                      <th>Concepto</th>
-                      <th>Monto</th>
-                      <th>Método de pago</th>
-                      <th>Usuario</th>
-                      <th>Observaciones</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody id="financeTableBody"></tbody>
-                </table>
-              </div>
-
-              <p id="financeEmptyState" class="empty-state">
-                No hay movimientos registrados para los filtros seleccionados.
-              </p>
-            </section>
           </section>
         </section>
 

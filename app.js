@@ -362,10 +362,13 @@ const financeMonthFilter = document.getElementById("financeMonthFilter");
 const financeBranchFilter = document.getElementById("financeBranchFilter");
 const financeTableBody = document.getElementById("financeTableBody");
 const financeEmptyState = document.getElementById("financeEmptyState");
-const financeIngresos = document.getElementById("financeIngresos");
-const financeEgresos = document.getElementById("financeEgresos");
-const financeBalance = document.getElementById("financeBalance");
-const financeMovimientos = document.getElementById("financeMovimientos");
+const financeIncomeSummary = document.getElementById("financeIncomeSummary");
+const financeExpenseSummary = document.getElementById("financeExpenseSummary");
+const financeUtilitySummary = document.getElementById("financeUtilitySummary");
+const financeBranchSummary = document.getElementById("financeBranchSummary");
+const financeHistoricalMeta = document.getElementById("financeHistoricalMeta");
+const financeHistoricalTableBody = document.getElementById("financeHistoricalTableBody");
+const financeHistoricalEmptyState = document.getElementById("financeHistoricalEmptyState");
 const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
@@ -471,17 +474,13 @@ function mountTeacherPortalShell() {
   }
 }
 
-const statProspectos = document.getElementById("statProspectos");
-const statInformaciones = document.getElementById("statInformaciones");
-const statInscritas = document.getElementById("statInscritas");
-const statAlumnasActivas = document.getElementById("statAlumnasActivas");
-const statPagosPendientesDashboard = document.getElementById("statPagosPendientesDashboard");
 const statIngresosDashboard = document.getElementById("statIngresosDashboard");
 const statEgresosDashboard = document.getElementById("statEgresosDashboard");
 const statBalanceDashboard = document.getElementById("statBalanceDashboard");
-const dashboardOriginList = document.getElementById("dashboardOriginList");
-const dashboardAdvisorList = document.getElementById("dashboardAdvisorList");
-const dashboardIncomeBranchList = document.getElementById("dashboardIncomeBranchList");
+const statTlaxcalaIncomeDashboard = document.getElementById("statTlaxcalaIncomeDashboard");
+const statPueblaIncomeDashboard = document.getElementById("statPueblaIncomeDashboard");
+const dashboardFinancialAlerts = document.getElementById("dashboardFinancialAlerts");
+const dashboardOpenFinanceButton = document.getElementById("dashboardOpenFinanceButton");
 
 const attendanceAsistencias = document.getElementById("attendanceAsistencias");
 const attendanceFaltas = document.getElementById("attendanceFaltas");
@@ -4606,15 +4605,377 @@ function resetStaffForm() {
 }
 
 function updateStats() {
-  const sameMonthProspects = getDashboardMonthProspects();
+  return;
+}
 
-  statProspectos.textContent = sameMonthProspects.length;
-  statInformaciones.textContent = sameMonthProspects.filter(
-    (prospect) => prospect.informacion === "Información enviada"
-  ).length;
-  statInscritas.textContent = sameMonthProspects.filter(
-    (prospect) => prospect.estado === "Inscrita" || prospect.estado === "Alta completada"
-  ).length;
+function getFinanceRecordsForScope({
+  records = financeRecords,
+  scope = "month",
+  date = formatDateForInput(new Date()),
+  month = selectedMonth,
+  from = "",
+  to = "",
+  branch = "",
+  respectCurrentBranch = true,
+} = {}) {
+  const anchorDate = date || formatDateForInput(new Date());
+  const getWeekRange = (dateValue) => {
+    const value = dateValue || formatDateForInput(new Date());
+    const baseDate = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(baseDate.getTime())) {
+      return {
+        from: value,
+        to: value,
+      };
+    }
+
+    const day = baseDate.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const start = new Date(baseDate);
+    start.setDate(baseDate.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return {
+      from: formatDateForInput(start),
+      to: formatDateForInput(end),
+    };
+  };
+  const weekRange = getWeekRange(anchorDate);
+
+  return records.filter((record) => {
+    const recordDate = String(record?.fecha || "").slice(0, 10);
+    if (!recordDate) {
+      return false;
+    }
+
+    if (respectCurrentBranch && !matchesCurrentBranch(record.sucursal)) {
+      return false;
+    }
+
+    if (branch && record.sucursal !== branch) {
+      return false;
+    }
+
+    if (scope === "day") {
+      return recordDate === anchorDate;
+    }
+
+    if (scope === "week") {
+      return recordDate >= weekRange.from && recordDate <= weekRange.to;
+    }
+
+    if (scope === "range") {
+      if (from && recordDate < from) {
+        return false;
+      }
+      if (to && recordDate > to) {
+        return false;
+      }
+      return true;
+    }
+
+    if (scope === "month") {
+      return month ? isDateInMonth(recordDate, month) : true;
+    }
+
+    return true;
+  });
+}
+
+function buildFinanceSummary(
+  records,
+  {
+    allRecords = financeRecords,
+    month = selectedMonth,
+    date = formatDateForInput(new Date()),
+    branch = "",
+    respectCurrentBranch = true,
+    branchOrder = DASHBOARD_BRANCHES,
+  } = {}
+) {
+  const anchorDate = date || formatDateForInput(new Date());
+  const sourceRecords = Array.isArray(allRecords) ? allRecords : [];
+  const monthRecords = Array.isArray(records)
+    ? records
+    : getFinanceRecordsForScope({ records: sourceRecords, scope: "month", month, branch, respectCurrentBranch });
+
+  const buildPeriodSummary = (periodRecords, metadata = {}) => {
+    const ingresos = periodRecords
+      .filter((record) => record.tipo === "Ingreso")
+      .reduce((sum, record) => sum + Number(record.monto || 0), 0);
+    const egresos = periodRecords
+      .filter((record) => record.tipo === "Egreso")
+      .reduce((sum, record) => sum + Number(record.monto || 0), 0);
+    const utilidad = ingresos - egresos;
+
+    return {
+      ...metadata,
+      ingresos,
+      egresos,
+      utilidad,
+      balance: utilidad,
+      movimientos: periodRecords.length,
+    };
+  };
+  const formatMonthLabel = (monthValue, short = false) => {
+    if (!monthValue) {
+      return "-";
+    }
+
+    const monthDate = new Date(`${monthValue}-01T12:00:00`);
+    if (Number.isNaN(monthDate.getTime())) {
+      return monthValue;
+    }
+
+    return monthDate.toLocaleDateString("es-MX", {
+      month: short ? "short" : "long",
+      year: "numeric",
+    });
+  };
+  const getWeekRange = (dateValue) => {
+    const baseDate = new Date(`${dateValue}T12:00:00`);
+    if (Number.isNaN(baseDate.getTime())) {
+      return {
+        key: dateValue,
+        from: dateValue,
+        to: dateValue,
+        label: dateValue,
+      };
+    }
+
+    const day = baseDate.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const start = new Date(baseDate);
+    start.setDate(baseDate.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const from = formatDateForInput(start);
+    const to = formatDateForInput(end);
+    return {
+      key: `${from}_${to}`,
+      from,
+      to,
+      label: `${formatDisplayDate(from)} - ${formatDisplayDate(to)}`,
+    };
+  };
+
+  const dayRecords = getFinanceRecordsForScope({
+    records: sourceRecords,
+    scope: "day",
+    date: anchorDate,
+    branch,
+    respectCurrentBranch,
+  });
+  const weekRange = getWeekRange(anchorDate);
+  const weekRecords = getFinanceRecordsForScope({
+    records: sourceRecords,
+    scope: "week",
+    date: anchorDate,
+    branch,
+    respectCurrentBranch,
+  });
+  const accumulatedRecords = getFinanceRecordsForScope({
+    records: sourceRecords,
+    scope: "accumulated",
+    branch,
+    respectCurrentBranch,
+  });
+
+  const daySummary = buildPeriodSummary(dayRecords, {
+    key: anchorDate,
+    label: formatDisplayDate(anchorDate),
+    from: anchorDate,
+    to: anchorDate,
+  });
+  const weekSummary = buildPeriodSummary(weekRecords, weekRange);
+  const monthSummary = buildPeriodSummary(monthRecords, {
+    key: month,
+    label: formatMonthLabel(month),
+  });
+  const accumulatedSummary = buildPeriodSummary(accumulatedRecords, {
+    key: "accumulated",
+    label: "Acumulado",
+  });
+
+  const branchNames = (branch ? [branch] : branchOrder.concat(accumulatedRecords.map((record) => record.sucursal)))
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index);
+
+  const byBranch = branchNames.map((branchName) => ({
+    branch: branchName,
+    day: buildPeriodSummary(
+      getFinanceRecordsForScope({
+        records: sourceRecords,
+        scope: "day",
+        date: anchorDate,
+        branch: branchName,
+        respectCurrentBranch,
+      }),
+      {
+        key: anchorDate,
+        label: formatDisplayDate(anchorDate),
+        from: anchorDate,
+        to: anchorDate,
+      }
+    ),
+    week: buildPeriodSummary(
+      getFinanceRecordsForScope({
+        records: sourceRecords,
+        scope: "week",
+        date: anchorDate,
+        branch: branchName,
+        respectCurrentBranch,
+      }),
+      weekRange
+    ),
+    month: buildPeriodSummary(
+      getFinanceRecordsForScope({
+        records: sourceRecords,
+        scope: "month",
+        month,
+        branch: branchName,
+        respectCurrentBranch,
+      }),
+      {
+        key: month,
+        label: formatMonthLabel(month),
+      }
+    ),
+    accumulated: buildPeriodSummary(
+      getFinanceRecordsForScope({
+        records: sourceRecords,
+        scope: "accumulated",
+        branch: branchName,
+        respectCurrentBranch,
+      }),
+      {
+        key: "accumulated",
+        label: "Acumulado",
+      }
+    ),
+  }));
+
+  const monthlyHistoryMap = accumulatedRecords.reduce((map, record) => {
+    const recordMonth = String(record.fecha || "").slice(0, 7);
+    if (!recordMonth) {
+      return map;
+    }
+
+    const bucket = map.get(recordMonth) || [];
+    bucket.push(record);
+    map.set(recordMonth, bucket);
+    return map;
+  }, new Map());
+  const monthlyHistoryRows = [...monthlyHistoryMap.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([recordMonth, monthBucket]) =>
+      buildPeriodSummary(monthBucket, {
+        month: recordMonth,
+        key: recordMonth,
+        label: formatMonthLabel(recordMonth, true),
+      })
+    );
+  const anchorYear = String(month || anchorDate).slice(0, 4);
+  const currentYearRows = monthlyHistoryRows.filter((row) => row.month?.startsWith(`${anchorYear}-`));
+  const yearTotals = currentYearRows.reduce(
+    (totals, row) => ({
+      ingresos: totals.ingresos + row.ingresos,
+      egresos: totals.egresos + row.egresos,
+      utilidad: totals.utilidad + row.utilidad,
+      balance: totals.balance + row.balance,
+      movimientos: totals.movimientos + row.movimientos,
+    }),
+    {
+      year: anchorYear,
+      ingresos: 0,
+      egresos: 0,
+      utilidad: 0,
+      balance: 0,
+      movimientos: 0,
+    }
+  );
+  const averagesDivisor = currentYearRows.length || 1;
+  const averages = {
+    ingresos: yearTotals.ingresos / averagesDivisor,
+    egresos: yearTotals.egresos / averagesDivisor,
+    utilidad: yearTotals.utilidad / averagesDivisor,
+    balance: yearTotals.balance / averagesDivisor,
+    movimientos: yearTotals.movimientos / averagesDivisor,
+  };
+
+  const alerts = [];
+  if (monthSummary.movimientos === 0) {
+    alerts.push({
+      tone: "neutral",
+      title: "Sin movimientos del mes",
+      detail: "No hay registros financieros en el mes seleccionado.",
+    });
+  } else {
+    if (monthSummary.utilidad < 0) {
+      alerts.push({
+        tone: "danger",
+        title: "Utilidad mensual negativa",
+        detail: `El mes actual lleva ${formatCurrency(monthSummary.utilidad)} de utilidad.`,
+      });
+    }
+
+    if (monthSummary.ingresos > 0 && monthSummary.egresos >= monthSummary.ingresos * 0.8) {
+      alerts.push({
+        tone: "warning",
+        title: "Egresos altos frente a ingresos",
+        detail: "Los egresos ya consumen 80% o más de los ingresos del mes.",
+      });
+    }
+
+    const branchesWithNegativeUtility = byBranch.filter((item) => item.month.utilidad < 0);
+    branchesWithNegativeUtility.forEach((item) => {
+      alerts.push({
+        tone: "warning",
+        title: `${item.branch} con presión financiera`,
+        detail: `La utilidad mensual de ${item.branch} va en ${formatCurrency(item.month.utilidad)}.`,
+      });
+    });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      tone: "positive",
+      title: "Sin alertas críticas",
+      detail: "La operación financiera del mes se mantiene estable con los registros actuales.",
+    });
+  }
+
+  return {
+    meta: {
+      generatedAt: new Date().toISOString(),
+      currency: "MXN",
+      anchorDate,
+      anchorMonth: month,
+      branchFilter: branch,
+      totalRecords: monthRecords.length,
+      accumulatedRecords: accumulatedRecords.length,
+    },
+    totals: {
+      ingresos: monthSummary.ingresos,
+      egresos: monthSummary.egresos,
+      utilidad: monthSummary.utilidad,
+      balance: monthSummary.balance,
+      movimientos: monthSummary.movimientos,
+    },
+    windows: {
+      day: daySummary,
+      week: weekSummary,
+      month: monthSummary,
+      accumulated: accumulatedSummary,
+    },
+    byBranch,
+    monthlyHistory: {
+      rows: monthlyHistoryRows,
+      yearTotals,
+      averages,
+    },
+    alerts,
+  };
 }
 
 function matchesDashboardBranch(branch) {
@@ -4639,9 +5000,10 @@ function getDashboardPaymentRecords() {
 }
 
 function getDashboardFinanceRecords() {
-  return financeRecords.filter(
-    (record) => isDateInSelectedMonth(record.fecha) && matchesDashboardBranch(record.sucursal)
-  );
+  return getFinanceRecordsForScope({
+    month: selectedMonth,
+    branch: dashboardBranchFilter.value,
+  });
 }
 
 function normalizeDashboardOrigin(prospect) {
@@ -4661,76 +5023,34 @@ function getAdvisorNameForProspect(prospect) {
 }
 
 function renderDashboard() {
-  const monthProspects = getDashboardMonthProspects();
-  const activeStudents = getDashboardActiveStudents();
-  const relevantPayments = getDashboardPaymentRecords();
   const relevantFinanceRecords = getDashboardFinanceRecords();
-  const ingresos = relevantFinanceRecords
-    .filter((record) => record.tipo === "Ingreso")
-    .reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const egresos = relevantFinanceRecords
-    .filter((record) => record.tipo === "Egreso")
-    .reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const pendingPayments = relevantPayments.filter((record) => {
-    const statusFields = [
-      record.certificadoP1,
-      record.certificadoP2,
-      record.mensualidad1,
-      record.mensualidad2,
-      record.mensualidad3,
-      record.mensualidad4,
-      record.mensualidad5,
-    ];
-    return statusFields.includes("Pendiente") || Boolean(String(record.pagosPendientes || "").trim());
-  }).length;
+  const allRelevantFinanceRecords = getFinanceRecordsForScope({
+    scope: "accumulated",
+    branch: dashboardBranchFilter.value,
+  });
+  const financeSummary = buildFinanceSummary(relevantFinanceRecords, {
+    allRecords: allRelevantFinanceRecords,
+    month: selectedMonth,
+    branch: dashboardBranchFilter.value,
+  });
+  const branchMap = new Map(financeSummary.byBranch.map((item) => [item.branch, item]));
 
-  updateStats();
-  statAlumnasActivas.textContent = activeStudents.length;
-  statPagosPendientesDashboard.textContent = pendingPayments;
-  statIngresosDashboard.textContent = formatCurrency(ingresos);
-  statEgresosDashboard.textContent = formatCurrency(egresos);
-  statBalanceDashboard.textContent = formatCurrency(ingresos - egresos);
+  statIngresosDashboard.textContent = formatCurrency(financeSummary.windows.month.ingresos);
+  statEgresosDashboard.textContent = formatCurrency(financeSummary.windows.month.egresos);
+  statBalanceDashboard.textContent = formatCurrency(financeSummary.windows.month.utilidad);
+  statTlaxcalaIncomeDashboard.textContent = formatCurrency(branchMap.get("Tlaxcala")?.month.ingresos || 0);
+  statPueblaIncomeDashboard.textContent = formatCurrency(branchMap.get("Puebla")?.month.ingresos || 0);
 
-  renderInfoList(
-    dashboardOriginList,
-    DASHBOARD_ORIGIN_BUCKETS.map((origin) => ({
-      label: origin,
-      value: String(monthProspects.filter((prospect) => normalizeDashboardOrigin(prospect) === origin).length),
-    }))
-  );
-
-  renderInfoList(
-    dashboardAdvisorList,
-    DASHBOARD_ADVISORS.map((advisor) => ({
-      label: advisor,
-      value: String(
-        monthProspects.filter((prospect) => {
-          if (!(prospect.estado === "Inscrita" || prospect.estado === "Alta completada")) {
-            return false;
-          }
-          return getAdvisorNameForProspect(prospect) === advisor;
-        }).length
-      ),
-    }))
-  );
-
-  renderInfoList(
-    dashboardIncomeBranchList,
-    DASHBOARD_BRANCHES.map((branch) => ({
-      label: branch,
-      value: formatCurrency(
-        financeRecords
-          .filter(
-            (record) =>
-              record.tipo === "Ingreso" &&
-              record.sucursal === branch &&
-              isDateInSelectedMonth(record.fecha) &&
-              matchesDashboardBranch(record.sucursal)
-          )
-          .reduce((sum, record) => sum + Number(record.monto || 0), 0)
-      ),
-    }))
-  );
+  dashboardFinancialAlerts.innerHTML = financeSummary.alerts
+    .map(
+      (alert) => `
+        <article class="dashboard-alert-item dashboard-alert-${escapeHtml(alert.tone || "neutral")}">
+          <strong>${escapeHtml(alert.title)}</strong>
+          <p>${escapeHtml(alert.detail)}</p>
+        </article>
+      `
+    )
+    .join("");
 }
 
 function populateStaffLinkedUsers() {
@@ -6445,17 +6765,9 @@ function updateFinanceCategories() {
 }
 
 function getFilteredFinanceRecords() {
-  return financeRecords.filter((record) => {
-    if (!isDateInMonth(record.fecha, financeMonthFilter.value || selectedMonth)) {
-      return false;
-    }
-    if (!matchesCurrentBranch(record.sucursal)) {
-      return false;
-    }
-    if (financeBranchFilter.value && record.sucursal !== financeBranchFilter.value) {
-      return false;
-    }
-    return true;
+  return getFinanceRecordsForScope({
+    month: financeMonthFilter.value || selectedMonth,
+    branch: financeBranchFilter.value,
   });
 }
 
@@ -6499,14 +6811,81 @@ function renderFinanceTable() {
 
 function updateFinanceSummary() {
   const records = getFilteredFinanceRecords();
-  const ingresos = records.filter((record) => record.tipo === "Ingreso").reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const egresos = records.filter((record) => record.tipo === "Egreso").reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const balance = ingresos - egresos;
+  const allRelevantRecords = getFinanceRecordsForScope({
+    scope: "accumulated",
+    branch: financeBranchFilter.value,
+  });
+  const summary = buildFinanceSummary(records, {
+    allRecords: allRelevantRecords,
+    month: financeMonthFilter.value || selectedMonth,
+    branch: financeBranchFilter.value,
+  });
+  const summaryItems = (windowSummary) => ([
+    { label: "Día", value: `${formatCurrency(windowSummary.day.ingresos)}` },
+    { label: "Semana", value: `${formatCurrency(windowSummary.week.ingresos)}` },
+    { label: "Mes", value: `${formatCurrency(windowSummary.month.ingresos)}` },
+    { label: "Acumulado", value: `${formatCurrency(windowSummary.accumulated.ingresos)}` },
+  ]);
 
-  financeIngresos.textContent = formatCurrency(ingresos);
-  financeEgresos.textContent = formatCurrency(egresos);
-  financeBalance.textContent = formatCurrency(balance);
-  financeMovimientos.textContent = records.length;
+  renderInfoList(financeIncomeSummary, summaryItems(summary.windows));
+  renderInfoList(financeExpenseSummary, [
+    { label: "Día", value: formatCurrency(summary.windows.day.egresos) },
+    { label: "Semana", value: formatCurrency(summary.windows.week.egresos) },
+    { label: "Mes", value: formatCurrency(summary.windows.month.egresos) },
+    { label: "Acumulado", value: formatCurrency(summary.windows.accumulated.egresos) },
+  ]);
+  renderInfoList(financeUtilitySummary, [
+    { label: "Día", value: formatCurrency(summary.windows.day.utilidad) },
+    { label: "Semana", value: formatCurrency(summary.windows.week.utilidad) },
+    { label: "Mes", value: formatCurrency(summary.windows.month.utilidad) },
+    { label: "Acumulado", value: formatCurrency(summary.windows.accumulated.utilidad) },
+  ]);
+
+  financeBranchSummary.innerHTML = summary.byBranch.length
+    ? summary.byBranch
+        .map(
+          (item) => `
+            <article class="finance-branch-card">
+              <header>
+                <p class="eyebrow">Sucursal</p>
+                <h4>${escapeHtml(item.branch)}</h4>
+              </header>
+              <div class="finance-branch-metrics">
+                <div><strong>Ing. día</strong><span>${formatCurrency(item.day.ingresos)}</span></div>
+                <div><strong>Ing. semana</strong><span>${formatCurrency(item.week.ingresos)}</span></div>
+                <div><strong>Ing. mes</strong><span>${formatCurrency(item.month.ingresos)}</span></div>
+                <div><strong>Egr. día</strong><span>${formatCurrency(item.day.egresos)}</span></div>
+                <div><strong>Egr. semana</strong><span>${formatCurrency(item.week.egresos)}</span></div>
+                <div><strong>Egr. mes</strong><span>${formatCurrency(item.month.egresos)}</span></div>
+                <div><strong>Utilidad mes</strong><span>${formatCurrency(item.month.utilidad)}</span></div>
+                <div><strong>Utilidad acum.</strong><span>${formatCurrency(item.accumulated.utilidad)}</span></div>
+              </div>
+            </article>
+          `
+        )
+        .join("")
+    : `<p class="empty-state">No hay datos suficientes para construir el resumen por sucursal.</p>`;
+
+  renderInfoList(financeHistoricalMeta, [
+    { label: `Total acumulado ${summary.monthlyHistory.yearTotals.year}`, value: formatCurrency(summary.monthlyHistory.yearTotals.utilidad) },
+    { label: "Prom. ingresos", value: formatCurrency(summary.monthlyHistory.averages.ingresos) },
+    { label: "Prom. egresos", value: formatCurrency(summary.monthlyHistory.averages.egresos) },
+    { label: "Prom. utilidad", value: formatCurrency(summary.monthlyHistory.averages.utilidad) },
+  ]);
+
+  financeHistoricalTableBody.innerHTML = summary.monthlyHistory.rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.label)}</td>
+          <td>${formatCurrency(row.ingresos)}</td>
+          <td>${formatCurrency(row.egresos)}</td>
+          <td>${formatCurrency(row.utilidad)}</td>
+        </tr>
+      `
+    )
+    .join("");
+  financeHistoricalEmptyState.hidden = summary.monthlyHistory.rows.length > 0;
 }
 
 function renderInfoList(container, items) {
@@ -8679,6 +9058,12 @@ financeBranchFilter.addEventListener("change", () => {
   renderFinanceTable();
   updateFinanceSummary();
 });
+
+if (dashboardOpenFinanceButton) {
+  dashboardOpenFinanceButton.addEventListener("click", () => {
+    setActiveModule("finanzas");
+  });
+}
 
 [attendanceSucursalFilter, attendanceCursoFilter, attendanceHorarioFilter, attendanceDayFilter].forEach((filter) => {
   filter.addEventListener("change", renderAttendanceTable);
