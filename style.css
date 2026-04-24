@@ -3027,6 +3027,15 @@ td select {
   margin-bottom: 1rem;
 }
 
+.mi-venezia-schedule-panel {
+  gap: 0.72rem;
+  margin-bottom: 1rem;
+}
+
+.mi-venezia-schedule-panel .mi-venezia-subsection-heading {
+  margin-top: 0;
+}
+
 .mi-venezia-priority-grid .mi-venezia-payments-panel {
   gap: 0.68rem;
   margin-bottom: 0;
@@ -3043,6 +3052,15 @@ td select {
 
 .mi-venezia-priority-grid .mi-venezia-payment-schedule .info-item {
   padding: 0.68rem 0.76rem;
+}
+
+.mi-venezia-schedule-panel .mi-venezia-payment-schedule {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 1rem;
+}
+
+.mi-venezia-schedule-panel .mi-venezia-payment-schedule .info-item {
+  min-height: 100%;
 }
 
 .mi-venezia-priority-grid .mi-venezia-simple-table th,
