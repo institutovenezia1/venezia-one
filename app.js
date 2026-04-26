@@ -260,8 +260,9 @@ const attendanceHistoryPanel = document.getElementById("attendanceHistoryPanel")
 const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle");
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
 const attendanceHistoryEmptyState = document.getElementById("attendanceHistoryEmptyState");
+const attendanceSummaryGrid = document.getElementById("attendanceSummaryGrid");
 const attendanceGroupCount = document.getElementById("attendanceGroupCount");
-const attendanceCourseSummary = document.getElementById("attendanceCourseSummary");
+const attendanceToggleButton = document.getElementById("attendanceToggleButton");
 const teacherForm = document.getElementById("teacherForm");
 const teacherClearButton = document.getElementById("teacherClearButton");
 const teacherSubmitButton = document.getElementById("teacherSubmitButton");
@@ -609,6 +610,7 @@ let selectedAltasMonth = selectedMonth;
 let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
+let attendanceTableExpanded = false;
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
 let activeStudentFileId = "";
@@ -6326,6 +6328,28 @@ function getAttendanceScopedStudents() {
   });
 }
 
+function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
+  const preferredOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
+  const countsByCourse = studentsList.reduce((accumulator, student) => {
+    const course = String(student.curso || "").trim();
+    if (!course) {
+      return accumulator;
+    }
+    accumulator.set(course, (accumulator.get(course) || 0) + 1);
+    return accumulator;
+  }, new Map());
+
+  const dynamicCourses = Array.from(countsByCourse.keys()).filter((course) => !preferredOrder.includes(course));
+  return preferredOrder
+    .concat(dynamicCourses.sort((left, right) => left.localeCompare(right)))
+    .filter((course, index, collection) => collection.indexOf(course) === index)
+    .filter((course) => (countsByCourse.get(course) || 0) > 0)
+    .map((course) => ({
+      course,
+      count: countsByCourse.get(course) || 0,
+    }));
+}
+
 function getFilteredStudentsForAttendance() {
   return getAttendanceScopedStudents().filter((student) => {
     const normalizedSearch = activeAttendanceSearch.trim().toLowerCase();
@@ -6493,9 +6517,10 @@ function getAttendanceSummaryFromSelection(studentsList) {
 
 function renderAttendanceTable() {
   const studentsList = getFilteredStudentsForAttendance();
+  const visibleStudents = attendanceTableExpanded ? studentsList : studentsList.slice(0, 3);
   const selectedDate = getAttendanceBaseDate(studentsList);
   attendanceDate.value = selectedDate;
-  const sessionColumns = getAttendanceColumnDefinitions(studentsList);
+  const sessionColumns = getAttendanceColumnDefinitions(visibleStudents);
 
   attendanceTableHead.innerHTML = `
     <tr>
@@ -6536,7 +6561,7 @@ function renderAttendanceTable() {
     </tr>
   `;
 
-  attendanceTableBody.innerHTML = studentsList
+  attendanceTableBody.innerHTML = visibleStudents
     .map((student, index) => {
       const studentSessions = getStudentAttendanceSessionDates(student);
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
@@ -6619,7 +6644,11 @@ function renderAttendanceTable() {
     })
     .join("");
 
-  attendanceEmptyState.hidden = studentsList.length > 0;
+  attendanceEmptyState.hidden = visibleStudents.length > 0;
+  if (attendanceToggleButton) {
+    attendanceToggleButton.hidden = studentsList.length <= 3;
+    attendanceToggleButton.textContent = attendanceTableExpanded ? "Ver menos" : "Ver mas";
+  }
   updateAttendanceSummary(studentsList);
 }
 
@@ -6693,43 +6722,27 @@ async function saveAttendanceForStudent(studentId) {
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
   const scopedStudents = getAttendanceScopedStudents();
-  const courseOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
-  const courseCounts = courseOrder
-    .map((course) => ({
-      course,
-      count: scopedStudents.filter((student) => student.curso === course).length,
-    }))
-    .filter((entry) => entry.count > 0);
+  const courseCounts = getAttendanceCourseSummaryItems(scopedStudents);
 
-  attendanceGroupCount.textContent = scopedStudents.length;
-  if (attendanceCourseSummary) {
-    attendanceCourseSummary.innerHTML = courseCounts
-      .map(
+  if (attendanceSummaryGrid) {
+    attendanceSummaryGrid.innerHTML = [
+      `
+        <article class="stat-card">
+          <p>Total de alumnas</p>
+          <strong id="attendanceGroupCount">${scopedStudents.length}</strong>
+        </article>
+      `,
+      ...courseCounts.map(
         (entry) => `
           <article class="stat-card">
             <p>${escapeHtml(entry.course)}</p>
-            <strong>${entry.count} alumnas</strong>
+            <strong>${entry.count}</strong>
           </article>
         `
-      )
-      .join("");
-  }
-
-  if (attendanceAsistencias) {
-    const summary = getAttendanceSummaryFromSelection(studentsList);
-    attendanceAsistencias.textContent = summary.asistencias;
-  }
-  if (attendanceRetardos) {
-    const summary = getAttendanceSummaryFromSelection(studentsList);
-    attendanceRetardos.textContent = summary.permisos;
-  }
-  if (attendanceFaltas) {
-    const summary = getAttendanceSummaryFromSelection(studentsList);
-    attendanceFaltas.textContent = summary.faltas;
-  }
-  if (attendanceRecuperaciones) {
-    const summary = getAttendanceSummaryFromSelection(studentsList);
-    attendanceRecuperaciones.textContent = summary.recuperaciones;
+      ),
+    ].join("");
+  } else if (attendanceGroupCount) {
+    attendanceGroupCount.textContent = scopedStudents.length;
   }
 }
 
@@ -9424,6 +9437,10 @@ function setActiveModule(module) {
         : "web-venezia";
 
   activeModule = allowedModule;
+  if (allowedModule === "asistencias" && previousModule !== "asistencias") {
+    attendanceTableExpanded = false;
+    renderAttendanceTable();
+  }
   if (allowedModule === "pagos" && previousModule !== "pagos") {
     paymentsTableExpanded = false;
     renderPaymentsTable();
@@ -10173,6 +10190,13 @@ attendanceSearchInput.addEventListener("input", (event) => {
   activeAttendanceSearch = event.target.value;
   renderAttendanceTable();
 });
+
+if (attendanceToggleButton) {
+  attendanceToggleButton.addEventListener("click", () => {
+    attendanceTableExpanded = !attendanceTableExpanded;
+    renderAttendanceTable();
+  });
+}
 
 financeTipo.addEventListener("change", updateFinanceCategories);
 financeMonthFilter.addEventListener("change", () => {

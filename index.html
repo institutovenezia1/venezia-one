@@ -826,17 +826,18 @@
         </section>
 
         <section class="module-section" id="asistenciasSection">
-          <section class="stats-grid" aria-label="Resumen de asistencias">
+          <section class="stats-grid" id="attendanceSummaryGrid" aria-label="Resumen de asistencias">
             <article class="stat-card">
               <p>Total de alumnas</p>
               <strong id="attendanceGroupCount">0</strong>
             </article>
           </section>
+          <input id="attendanceDate" type="hidden" />
 
-          <section class="panel">
+          <section class="panel table-panel">
             <div class="section-heading">
-              <p class="eyebrow">Control</p>
-              <h3>Asistencias</h3>
+              <p class="eyebrow">Listado</p>
+              <h3>Alumnas activas</h3>
             </div>
 
             <div class="prospect-form attendance-filters">
@@ -874,15 +875,6 @@
                 </select>
               </label>
             </div>
-            <div id="attendanceCourseSummary" class="stats-grid" aria-label="Totales por curso activo"></div>
-            <input id="attendanceDate" type="hidden" />
-          </section>
-
-          <section class="panel table-panel">
-            <div class="section-heading">
-              <p class="eyebrow">Listado</p>
-              <h3>Alumnas activas</h3>
-            </div>
 
             <div class="attendance-search-row">
               <input
@@ -903,6 +895,10 @@
             <p id="attendanceEmptyState" class="empty-state">
               No hay alumnas activas para los filtros seleccionados.
             </p>
+
+            <div class="form-actions">
+              <button class="secondary-btn" type="button" id="attendanceToggleButton" hidden>Ver mas</button>
+            </div>
           </section>
 
           <section class="panel" id="attendanceHistoryPanel" hidden>
