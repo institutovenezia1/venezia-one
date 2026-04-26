@@ -2966,6 +2966,25 @@ function formatDateForInput(date) {
   return `${year}-${month}-${day}`;
 }
 
+function getCurrentMexicoDateValue(date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    if (byType.year && byType.month && byType.day) {
+      return `${byType.year}-${byType.month}-${byType.day}`;
+    }
+  } catch (error) {
+    console.warn("No se pudo calcular la fecha local de Mexico para Balance.", error);
+  }
+
+  return formatDateForInput(date);
+}
+
 function getProspectDate(prospect) {
   return prospect.fechaContacto || (prospect.createdAt ? prospect.createdAt.slice(0, 10) : "");
 }
@@ -7100,10 +7119,22 @@ function syncBalanceExpenseTotal() {
   balanceExpenseTotalField.value = total ? String(total.toFixed(2)) : "";
 }
 
+function syncBalanceDailyView() {
+  if (!balanceDateFilter) {
+    return "";
+  }
+
+  const todayInMexico = getCurrentMexicoDateValue();
+  balanceDateFilter.value = todayInMexico;
+  balanceDateFilter.disabled = true;
+  balanceDateFilter.title = "Balance muestra automaticamente la fecha actual de Mexico.";
+  return todayInMexico;
+}
+
 function resetBalanceExpenseForm() {
   balanceExpenseForm.reset();
   document.getElementById("balanceExpenseId").value = "";
-  balanceExpenseDateField.value = formatDateForInput(new Date());
+  balanceExpenseDateField.value = getCurrentMexicoDateValue();
   balanceExpenseTotalField.value = "";
   if (getAllowedBranch()) {
     balanceExpenseBranchField.value = getAllowedBranch();
@@ -7223,6 +7254,7 @@ function updateBalanceSummary() {
 }
 
 function renderBalanceModule() {
+  syncBalanceDailyView();
   syncBalanceExpenseResponsible();
   renderBalanceIncomeTable();
   renderBalanceExpensesTable();
