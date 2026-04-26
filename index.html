@@ -756,46 +756,18 @@
             <div class="altas-history-header">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
-                <h3>Historial mensual de altas</h3>
+                <h3>Ultimas altas registradas</h3>
               </div>
-
-              <label class="altas-history-filter">
-                <span>Mes de inscripción</span>
-                <input id="altasMonthFilter" type="month" />
-              </label>
             </div>
 
-            <div class="altas-history-stats altas-history-stats-compact" aria-label="Resumen general de alumnas activas">
+            <div class="altas-history-stats altas-history-stats-compact" aria-label="Resumen de altas semanales y mensuales">
               <article class="altas-history-stat">
-                <span>Tlaxcala</span>
-                <strong id="altaActiveTlaxcala">0</strong>
+                <span>Altas de la semana</span>
+                <strong id="altaWeekCount">0</strong>
               </article>
-              <article class="altas-history-stat">
-                <span>Puebla</span>
-                <strong id="altaActivePuebla">0</strong>
-              </article>
-              <article class="altas-history-stat">
-                <span>Total general</span>
-                <strong id="altaActiveTotal">0</strong>
-              </article>
-            </div>
-
-            <div class="altas-history-stats" aria-label="Resumen mensual de altas">
               <article class="altas-history-stat">
                 <span>Altas del mes</span>
-                <strong id="altaHistoryTotal">0</strong>
-              </article>
-              <article class="altas-history-stat">
-                <span>Beca Venezia</span>
-                <strong id="altaHistoryBeca">0</strong>
-              </article>
-              <article class="altas-history-stat">
-                <span>Tlaxcala</span>
-                <strong id="altaHistoryTlaxcala">0</strong>
-              </article>
-              <article class="altas-history-stat">
-                <span>Puebla</span>
-                <strong id="altaHistoryPuebla">0</strong>
+                <strong id="altaMonthCount">0</strong>
               </article>
             </div>
 
@@ -821,7 +793,7 @@
             </div>
 
             <p id="altaHistoryEmptyState" class="empty-state">
-              No hay altas registradas en el mes seleccionado.
+              No hay altas registradas para la sucursal visible.
             </p>
           </section>
 
@@ -856,24 +828,8 @@
         <section class="module-section" id="asistenciasSection">
           <section class="stats-grid" aria-label="Resumen de asistencias">
             <article class="stat-card">
-              <p>Alumnas del grupo</p>
+              <p>Total de alumnas</p>
               <strong id="attendanceGroupCount">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Asistencias</p>
-              <strong id="attendanceAsistencias">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Permisos</p>
-              <strong id="attendanceRetardos">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Faltas</p>
-              <strong id="attendanceFaltas">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Recuperaciones</p>
-              <strong id="attendanceRecuperaciones">0</strong>
             </article>
           </section>
 
@@ -918,6 +874,7 @@
                 </select>
               </label>
             </div>
+            <div id="attendanceCourseSummary" class="stats-grid" aria-label="Totales por curso activo"></div>
             <input id="attendanceDate" type="hidden" />
           </section>
 
@@ -1266,30 +1223,10 @@
         </section>
 
         <section class="module-section" id="pagosSection">
-          <section class="stats-grid payments-stats-grid" aria-label="Resumen de pagos">
+          <section class="stats-grid payments-stats-grid" aria-label="Resumen de pagos del dia">
             <article class="stat-card">
-              <p>Total alumnas con pagos registrados</p>
-              <strong id="paymentsRegisteredCount">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total pagos pendientes</p>
-              <strong id="paymentsPendingCount">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Total mensualidades pagadas</p>
-              <strong id="paymentsMensualidadesPaid">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Ingresos del mes</p>
-              <strong id="paymentsMonthlyIncome">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Tlaxcala</p>
-              <strong id="paymentsTlaxcalaCount">0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Puebla</p>
-              <strong id="paymentsPueblaCount">0</strong>
+              <p>Total de pagos del dia</p>
+              <strong id="paymentsTodayTotal">$0</strong>
             </article>
           </section>
 
@@ -1383,6 +1320,10 @@
             <p id="paymentsEmptyState" class="empty-state">
               No hay alumnas activas con alta completada para registrar pagos.
             </p>
+
+            <div class="form-actions">
+              <button class="secondary-btn" type="button" id="paymentsToggleButton" hidden>Ver mas</button>
+            </div>
           </section>
         </section>
 

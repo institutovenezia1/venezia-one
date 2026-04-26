@@ -207,6 +207,8 @@ const altaConfirmPortalPassword = document.getElementById("altaConfirmPortalPass
 const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
 const altasMonthFilter = document.getElementById("altasMonthFilter");
+const altaWeekCount = document.getElementById("altaWeekCount");
+const altaMonthCount = document.getElementById("altaMonthCount");
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
 const altaActiveTotal = document.getElementById("altaActiveTotal");
@@ -259,6 +261,7 @@ const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle")
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
 const attendanceHistoryEmptyState = document.getElementById("attendanceHistoryEmptyState");
 const attendanceGroupCount = document.getElementById("attendanceGroupCount");
+const attendanceCourseSummary = document.getElementById("attendanceCourseSummary");
 const teacherForm = document.getElementById("teacherForm");
 const teacherClearButton = document.getElementById("teacherClearButton");
 const teacherSubmitButton = document.getElementById("teacherSubmitButton");
@@ -330,6 +333,8 @@ const studentFileNotes = document.getElementById("studentFileNotes");
 
 const paymentsTableBody = document.getElementById("paymentsTableBody");
 const paymentsEmptyState = document.getElementById("paymentsEmptyState");
+const paymentsTodayTotal = document.getElementById("paymentsTodayTotal");
+const paymentsToggleButton = document.getElementById("paymentsToggleButton");
 const paymentsRegisteredCount = document.getElementById("paymentsRegisteredCount");
 const paymentsPendingCount = document.getElementById("paymentsPendingCount");
 const paymentsMensualidadesPaid = document.getElementById("paymentsMensualidadesPaid");
@@ -605,6 +610,7 @@ let selectedPaymentsMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let activePaymentsSearch = "";
+let paymentsTableExpanded = false;
 let activeStudentFileId = "";
 let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
@@ -619,7 +625,9 @@ let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
 
 monthFilter.value = selectedMonth;
-altasMonthFilter.value = selectedAltasMonth;
+if (altasMonthFilter) {
+  altasMonthFilter.value = selectedAltasMonth;
+}
 paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
@@ -5992,10 +6000,31 @@ function getStudentInscriptionDate(student) {
   return getStudentStartDateValue(student);
 }
 
+function getCurrentWeekRange(dateValue = getCurrentMexicoDateValue()) {
+  const baseDate = new Date(`${dateValue}T12:00:00`);
+  if (Number.isNaN(baseDate.getTime())) {
+    return {
+      from: dateValue,
+      to: dateValue,
+    };
+  }
+
+  const day = baseDate.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(baseDate);
+  start.setDate(baseDate.getDate() + diffToMonday);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return {
+    from: formatDateForInput(start),
+    to: formatDateForInput(end),
+  };
+}
+
 function getFilteredAltaHistory() {
   return students
     .filter((student) => matchesCurrentBranch(student.sucursal) && !isStudentDeleted(student))
-    .filter((student) => isDateInMonth(getStudentInscriptionDate(student), selectedAltasMonth))
     .sort((a, b) => {
       const dateA = getStudentInscriptionDate(a) || "0000-00-00";
       const dateB = getStudentInscriptionDate(b) || "0000-00-00";
@@ -6024,20 +6053,23 @@ function getActiveStudentBranchSummary() {
 
 function renderAltaHistory() {
   const altaHistory = getFilteredAltaHistory();
-  const activeSummary = getActiveStudentBranchSummary();
-  const becaCount = altaHistory.filter((student) => student.accesoElegido === "Beca Venezia").length;
-  const tlaxcalaCount = altaHistory.filter((student) => student.sucursal === "Tlaxcala").length;
-  const pueblaCount = altaHistory.filter((student) => student.sucursal === "Puebla").length;
+  const today = getCurrentMexicoDateValue();
+  const currentWeek = getCurrentWeekRange(today);
+  const weekCount = altaHistory.filter((student) => {
+    const inscriptionDate = getStudentInscriptionDate(student);
+    return inscriptionDate && inscriptionDate >= currentWeek.from && inscriptionDate <= currentWeek.to;
+  }).length;
+  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentInscriptionDate(student), today.slice(0, 7))).length;
+  const latestAltas = altaHistory.slice(0, 3);
 
-  altaActiveTlaxcala.textContent = activeSummary.tlaxcalaCount;
-  altaActivePuebla.textContent = activeSummary.pueblaCount;
-  altaActiveTotal.textContent = activeSummary.totalCount;
-  altaHistoryTotal.textContent = altaHistory.length;
-  altaHistoryBeca.textContent = becaCount;
-  altaHistoryTlaxcala.textContent = tlaxcalaCount;
-  altaHistoryPuebla.textContent = pueblaCount;
+  if (altaWeekCount) {
+    altaWeekCount.textContent = weekCount;
+  }
+  if (altaMonthCount) {
+    altaMonthCount.textContent = monthCount;
+  }
 
-  altaHistoryTableBody.innerHTML = altaHistory
+  altaHistoryTableBody.innerHTML = latestAltas
     .map((student) => {
       const inscriptionDate = getStudentInscriptionDate(student);
       return `
@@ -6069,7 +6101,7 @@ function renderAltaHistory() {
     })
     .join("");
 
-  altaHistoryEmptyState.hidden = altaHistory.length > 0;
+  altaHistoryEmptyState.hidden = latestAltas.length > 0;
 }
 
 function getActiveStudents() {
@@ -6285,8 +6317,17 @@ function getAttendanceRecord(studentId, date) {
   return attendanceRecords.find((record) => record.studentId === studentId && record.fecha === date);
 }
 
-function getFilteredStudentsForAttendance() {
+function getAttendanceScopedStudents() {
   return getActiveStudents().filter((student) => {
+    if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function getFilteredStudentsForAttendance() {
+  return getAttendanceScopedStudents().filter((student) => {
     const normalizedSearch = activeAttendanceSearch.trim().toLowerCase();
     const searchableText = [
       student.nombre,
@@ -6651,12 +6692,45 @@ async function saveAttendanceForStudent(studentId) {
 }
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
-  const summary = getAttendanceSummaryFromSelection(studentsList);
-  attendanceGroupCount.textContent = summary.groupCount;
-  attendanceAsistencias.textContent = summary.asistencias;
-  attendanceRetardos.textContent = summary.permisos;
-  attendanceFaltas.textContent = summary.faltas;
-  attendanceRecuperaciones.textContent = summary.recuperaciones;
+  const scopedStudents = getAttendanceScopedStudents();
+  const courseOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
+  const courseCounts = courseOrder
+    .map((course) => ({
+      course,
+      count: scopedStudents.filter((student) => student.curso === course).length,
+    }))
+    .filter((entry) => entry.count > 0);
+
+  attendanceGroupCount.textContent = scopedStudents.length;
+  if (attendanceCourseSummary) {
+    attendanceCourseSummary.innerHTML = courseCounts
+      .map(
+        (entry) => `
+          <article class="stat-card">
+            <p>${escapeHtml(entry.course)}</p>
+            <strong>${entry.count} alumnas</strong>
+          </article>
+        `
+      )
+      .join("");
+  }
+
+  if (attendanceAsistencias) {
+    const summary = getAttendanceSummaryFromSelection(studentsList);
+    attendanceAsistencias.textContent = summary.asistencias;
+  }
+  if (attendanceRetardos) {
+    const summary = getAttendanceSummaryFromSelection(studentsList);
+    attendanceRetardos.textContent = summary.permisos;
+  }
+  if (attendanceFaltas) {
+    const summary = getAttendanceSummaryFromSelection(studentsList);
+    attendanceFaltas.textContent = summary.faltas;
+  }
+  if (attendanceRecuperaciones) {
+    const summary = getAttendanceSummaryFromSelection(studentsList);
+    attendanceRecuperaciones.textContent = summary.recuperaciones;
+  }
 }
 
 function renderAttendanceHistory(studentId) {
@@ -6861,29 +6935,54 @@ function getStudentPortalSessionDates(student) {
   return getStudentAttendanceSessionDates(student);
 }
 
+function getLatestPaymentSortKey(student) {
+  const latestPayment = getLatestPaymentRecordForStudent(student.id);
+  const effectiveDate = getPaymentEffectiveDate(latestPayment);
+  const updatedAt = String(latestPayment.updatedAt || latestPayment.createdAt || "");
+  const fallbackDate = getStudentInscriptionDate(student) || "";
+  return {
+    date: effectiveDate || updatedAt.slice(0, 10) || fallbackDate || "0000-00-00",
+    updatedAt: updatedAt || String(student.createdAt || ""),
+  };
+}
+
 function getFilteredStudentsForPayments() {
   const normalizedSearch = activePaymentsSearch.trim().toLowerCase();
 
-  return getActiveStudents().filter((student) => {
-    if (!normalizedSearch) {
-      return true;
-    }
+  return getActiveStudents()
+    .filter((student) => {
+      if (!normalizedSearch) {
+        return true;
+      }
 
-    const searchableText = [
-      student.nombre,
-      student.portalUser,
-      student.telefono,
-      student.studentCode,
-    ].join(" ").toLowerCase();
+      const searchableText = [
+        student.nombre,
+        student.portalUser,
+        student.telefono,
+        student.studentCode,
+      ].join(" ").toLowerCase();
 
-    return searchableText.includes(normalizedSearch);
-  });
+      return searchableText.includes(normalizedSearch);
+    })
+    .sort((left, right) => {
+      const leftSortKey = getLatestPaymentSortKey(left);
+      const rightSortKey = getLatestPaymentSortKey(right);
+
+      if (leftSortKey.date !== rightSortKey.date) {
+        return rightSortKey.date.localeCompare(leftSortKey.date);
+      }
+
+      return String(rightSortKey.updatedAt || "").localeCompare(String(leftSortKey.updatedAt || ""));
+    });
 }
 
 function renderPaymentsTable() {
   const studentsList = getFilteredStudentsForPayments();
+  const visibleStudents = activePaymentsSearch.trim() || paymentsTableExpanded
+    ? studentsList
+    : studentsList.slice(0, 3);
 
-  paymentsTableBody.innerHTML = studentsList
+  paymentsTableBody.innerHTML = visibleStudents
     .map((student) => {
       const payment = getPaymentRecord(student.id);
       const studentSessions = getStudentAttendanceSessionDates(student);
@@ -6924,7 +7023,12 @@ function renderPaymentsTable() {
     })
     .join("");
 
-  paymentsEmptyState.hidden = studentsList.length > 0;
+  paymentsEmptyState.hidden = visibleStudents.length > 0;
+  if (paymentsToggleButton) {
+    const shouldShowToggle = !activePaymentsSearch.trim() && studentsList.length > 3;
+    paymentsToggleButton.hidden = !shouldShowToggle;
+    paymentsToggleButton.textContent = paymentsTableExpanded ? "Ver menos" : "Ver mas";
+  }
 }
 
 async function savePaymentForStudent(studentId) {
@@ -7000,28 +7104,34 @@ async function savePaymentForStudent(studentId) {
 
 function updatePaymentsSummary() {
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
-  const studentsById = new Map(getActiveStudents().map((student) => [student.id, student]));
-  const validRecords = paymentRecords.filter(
-    (record) => activeStudentIds.has(record.studentId) && isPaymentRecordInSelectedMonth(record)
-  );
-  const mensualidadFields = ["mensualidad1", "mensualidad2", "mensualidad3", "mensualidad4", "mensualidad5"];
-  const certificadoFields = ["certificadoP1", "certificadoP2"];
-  const paymentFields = certificadoFields.concat(mensualidadFields);
+  const today = getCurrentMexicoDateValue();
+  const todayTotal = paymentRecords
+    .filter((record) => activeStudentIds.has(record.studentId))
+    .filter((record) => isRealPaidPaymentRecord(record))
+    .filter((record) => getPaymentEffectiveDate(record) === today)
+    .reduce((total, record) => total + parsePaymentAmount(record.cantidadPagada), 0);
 
-  paymentsRegisteredCount.textContent = validRecords.length;
-  paymentsPendingCount.textContent = validRecords.reduce(
-    (total, record) => total + paymentFields.filter((field) => record[field] === "Pendiente" || record[field] === "Parcial").length,
-    0
-  );
-  paymentsMensualidadesPaid.textContent = validRecords.reduce(
-    (total, record) => total + mensualidadFields.filter((field) => record[field] === "Pagado").length,
-    0
-  );
-  paymentsMonthlyIncome.textContent = formatCurrency(
-    validRecords.reduce((total, record) => total + parsePaymentAmount(record.cantidadPagada), 0)
-  );
-  paymentsTlaxcalaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Tlaxcala").length;
-  paymentsPueblaCount.textContent = validRecords.filter((record) => studentsById.get(record.studentId)?.sucursal === "Puebla").length;
+  if (paymentsTodayTotal) {
+    paymentsTodayTotal.textContent = formatCurrency(todayTotal);
+  }
+  if (paymentsRegisteredCount) {
+    paymentsRegisteredCount.textContent = "0";
+  }
+  if (paymentsPendingCount) {
+    paymentsPendingCount.textContent = "0";
+  }
+  if (paymentsMensualidadesPaid) {
+    paymentsMensualidadesPaid.textContent = "0";
+  }
+  if (paymentsMonthlyIncome) {
+    paymentsMonthlyIncome.textContent = formatCurrency(0);
+  }
+  if (paymentsTlaxcalaCount) {
+    paymentsTlaxcalaCount.textContent = "0";
+  }
+  if (paymentsPueblaCount) {
+    paymentsPueblaCount.textContent = "0";
+  }
 }
 
 function getBalancePaymentDate(record) {
@@ -9288,6 +9398,7 @@ function loadProspectIntoAlta(id) {
 }
 
 function setActiveModule(module) {
+  const previousModule = activeModule;
   const currentUser = getCurrentInternalUser();
   if (currentAccessMode !== "student" && shouldForceTeacherPortalAccess(currentUser) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Forzando modo teacher al activar módulo", {
@@ -9313,6 +9424,10 @@ function setActiveModule(module) {
         : "web-venezia";
 
   activeModule = allowedModule;
+  if (allowedModule === "pagos" && previousModule !== "pagos") {
+    paymentsTableExpanded = false;
+    renderPaymentsTable();
+  }
 
   Object.entries(moduleSections).forEach(([key, section]) => {
     section.classList.toggle("active", key === allowedModule);
@@ -10044,10 +10159,12 @@ monthFilter.addEventListener("change", (event) => {
   updateAttendanceSummary();
 });
 
-altasMonthFilter.addEventListener("change", (event) => {
-  selectedAltasMonth = event.target.value || getCurrentMonthValue();
-  renderAltaHistory();
-});
+if (altasMonthFilter) {
+  altasMonthFilter.addEventListener("change", (event) => {
+    selectedAltasMonth = event.target.value || getCurrentMonthValue();
+    renderAltaHistory();
+  });
+}
 
 dashboardBranchFilter.addEventListener("change", renderDashboard);
 
@@ -10074,6 +10191,13 @@ paymentsSearchInput.addEventListener("input", (event) => {
   activePaymentsSearch = event.target.value;
   renderPaymentsTable();
 });
+
+if (paymentsToggleButton) {
+  paymentsToggleButton.addEventListener("click", () => {
+    paymentsTableExpanded = !paymentsTableExpanded;
+    renderPaymentsTable();
+  });
+}
 
 balanceBranchFilter.addEventListener("change", renderBalanceModule);
 balanceDateFilter.addEventListener("change", renderBalanceModule);
