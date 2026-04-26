@@ -460,6 +460,7 @@
   function buildPaymentNotes(record) {
     return [
       `Mes pago: ${record.mesPago || ""}`,
+      `Fecha real pago: ${record.paymentRealDate || ""}`,
       `Certificado P1: ${record.certificadoP1 || ""}`,
       `Certificado P2: ${record.certificadoP2 || ""}`,
       `1ra mensualidad: ${record.mensualidad1 || ""}`,
@@ -664,6 +665,7 @@
       studentId: record.student_id || "",
       mensualidadPactada: record.tuition_amount || "",
       mesPago: extractAltaMetadata(record.notes, "Mes pago"),
+      paymentRealDate: extractAltaMetadata(record.notes, "Fecha real pago"),
       certificadoP1: extractAltaMetadata(record.notes, "Certificado P1") || record.certificate_p1_amount || "",
       certificadoP2: extractAltaMetadata(record.notes, "Certificado P2") || record.certificate_p2_amount || "",
       mensualidad1: extractAltaMetadata(record.notes, "1ra mensualidad") || record.first_month_amount || "",
@@ -695,6 +697,9 @@
       category: record.categoria || "",
       amount: toNullableNumberValue(record.monto),
       payment_method: record.metodoPago || "",
+      reference: record.reference || "",
+      related_student_id: record.relatedStudentId || null,
+      related_payment_id: record.relatedPaymentId || null,
       notes: [
         `Concepto: ${record.concepto || ""}`,
         `Observaciones: ${record.observaciones || ""}`,
@@ -711,6 +716,9 @@
       concepto: extractAltaMetadata(record.notes, "Concepto"),
       monto: Number(record.amount || 0),
       metodoPago: record.payment_method || "",
+      reference: record.reference || "",
+      relatedStudentId: record.related_student_id || "",
+      relatedPaymentId: record.related_payment_id || "",
       observaciones: extractAltaMetadata(record.notes, "Observaciones"),
       usuario: record.recorded_by || "",
       createdAt: record.created_at || "",

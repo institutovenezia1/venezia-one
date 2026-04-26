@@ -74,6 +74,8 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "mensualidad4", label: "Mensualidad 4" },
   { key: "mensualidad5", label: "Mensualidad 5" },
 ];
+const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
+const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
 const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
   { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
@@ -767,6 +769,7 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
     prospects = nextProspects;
 
     await normalizeInternalUsers();
+    await reconcilePaymentFinanceRecords();
     lastSharedDataRefreshAt = Date.now();
 
     if (render) {
@@ -4626,41 +4629,223 @@ function updateStats() {
   return;
 }
 
+function isEligiblePaymentStatus(value) {
+  return PAYMENT_FINANCE_ELIGIBLE_STATUSES.has(String(value || "").trim());
+}
+
+function getPaidPaymentConcepts(record) {
+  return BALANCE_PAYMENT_CONCEPT_FIELDS.filter(({ key }) => isEligiblePaymentStatus(record[key]));
+}
+
+function isRealPaidPaymentRecord(record) {
+  return Boolean(record?.id) && parsePaymentAmount(record?.cantidadPagada) > 0 && getPaidPaymentConcepts(record).length > 0;
+}
+
+function getStoredPaymentRealDate(record) {
+  const value = String(record?.paymentRealDate || "").slice(0, 10);
+  return value || "";
+}
+
+function getLegacyPaymentRealDateFallback(record) {
+  const createdDate = String(record?.createdAt || "").slice(0, 10);
+  if (createdDate) {
+    return createdDate;
+  }
+  return record?.mesPago ? `${record.mesPago}-01` : "";
+}
+
+function resolvePaymentRealDate(currentRecord, nextRecord) {
+  const currentRealDate = getStoredPaymentRealDate(currentRecord);
+  if (!isRealPaidPaymentRecord(nextRecord)) {
+    return currentRealDate;
+  }
+
+  if (currentRealDate) {
+    return currentRealDate;
+  }
+
+  if (!isRealPaidPaymentRecord(currentRecord)) {
+    return formatDateForInput(new Date());
+  }
+
+  return getLegacyPaymentRealDateFallback(currentRecord || nextRecord);
+}
+
+function buildPaymentFinanceReference(paymentId) {
+  return paymentId ? `${PAYMENT_FINANCE_REFERENCE_PREFIX}${paymentId}` : "";
+}
+
+function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
+  if (!paymentId) {
+    return [];
+  }
+
+  return records
+    .filter((record) => record.relatedPaymentId === paymentId)
+    .sort((left, right) => {
+      const dateComparison = String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      return String(left.id || "").localeCompare(String(right.id || ""));
+    });
+}
+
+function getPaymentEffectiveDate(record) {
+  const storedRealDate = getStoredPaymentRealDate(record);
+  if (storedRealDate) {
+    return storedRealDate;
+  }
+
+  return getLegacyPaymentRealDateFallback(record);
+}
+
 function getPaymentFinanceCategory(record) {
-  if (record.certificadoP1 === "Pagado" || record.certificadoP1 === "Parcial") {
+  if (isEligiblePaymentStatus(record.certificadoP1)) {
     return "Certificado P1";
   }
 
-  if (record.certificadoP2 === "Pagado" || record.certificadoP2 === "Parcial") {
+  if (isEligiblePaymentStatus(record.certificadoP2)) {
     return "Certificado P2";
   }
 
-  if (
-    record.mensualidad1 === "Pagado" ||
-    record.mensualidad1 === "Parcial" ||
-    record.mensualidad2 === "Pagado" ||
-    record.mensualidad2 === "Parcial" ||
-    record.mensualidad3 === "Pagado" ||
-    record.mensualidad3 === "Parcial" ||
-    record.mensualidad4 === "Pagado" ||
-    record.mensualidad4 === "Parcial" ||
-    record.mensualidad5 === "Pagado" ||
-    record.mensualidad5 === "Parcial"
-  ) {
+  if ([
+    record.mensualidad1,
+    record.mensualidad2,
+    record.mensualidad3,
+    record.mensualidad4,
+    record.mensualidad5,
+  ].some(isEligiblePaymentStatus)) {
     return "Colegiatura";
   }
 
   return "Otro ingreso";
 }
 
-function getDerivedFinanceIncomeRecords() {
+function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord = null) {
+  return {
+    id: existingFinanceRecord?.id || crypto.randomUUID(),
+    fecha: existingFinanceRecord?.fecha || getPaymentEffectiveDate(paymentRecord),
+    sucursal: student.sucursal || "",
+    tipo: "Ingreso",
+    categoria: getPaymentFinanceCategory(paymentRecord),
+    concepto: getBalanceIncomeConcept(paymentRecord),
+    monto: parsePaymentAmount(paymentRecord.cantidadPagada),
+    metodoPago: paymentRecord.metodoPago || "-",
+    usuario: student.usuarioAlta || student.inscribio || "",
+    observaciones: paymentRecord.observaciones || "",
+    createdAt:
+      existingFinanceRecord?.createdAt ||
+      paymentRecord.updatedAt ||
+      paymentRecord.createdAt ||
+      new Date().toISOString(),
+    reference: buildPaymentFinanceReference(paymentRecord.id),
+    relatedStudentId: paymentRecord.studentId || "",
+    relatedPaymentId: paymentRecord.id,
+  };
+}
+
+function isSamePaymentFinanceRecord(currentRecord, nextRecord) {
+  return (
+    String(currentRecord?.fecha || "") === String(nextRecord?.fecha || "") &&
+    String(currentRecord?.sucursal || "") === String(nextRecord?.sucursal || "") &&
+    String(currentRecord?.tipo || "") === String(nextRecord?.tipo || "") &&
+    String(currentRecord?.categoria || "") === String(nextRecord?.categoria || "") &&
+    String(currentRecord?.concepto || "") === String(nextRecord?.concepto || "") &&
+    Number(currentRecord?.monto || 0) === Number(nextRecord?.monto || 0) &&
+    String(currentRecord?.metodoPago || "") === String(nextRecord?.metodoPago || "") &&
+    String(currentRecord?.usuario || "") === String(nextRecord?.usuario || "") &&
+    String(currentRecord?.observaciones || "") === String(nextRecord?.observaciones || "") &&
+    String(currentRecord?.reference || "") === String(nextRecord?.reference || "") &&
+    String(currentRecord?.relatedStudentId || "") === String(nextRecord?.relatedStudentId || "") &&
+    String(currentRecord?.relatedPaymentId || "") === String(nextRecord?.relatedPaymentId || "")
+  );
+}
+
+async function deleteLinkedPaymentFinanceRecords(paymentId) {
+  const linkedRecords = getLinkedPaymentFinanceRecords(paymentId);
+  let synced = true;
+
+  for (const record of linkedRecords) {
+    const deleteResult = await dataService.entities.financialMovements.deleteOne(record.id, { alertOnFailure: false });
+    financeRecords = deleteResult.records;
+    if (!deleteResult.synced) {
+      synced = false;
+      break;
+    }
+  }
+
+  return {
+    synced,
+    deletedCount: linkedRecords.length,
+  };
+}
+
+async function syncPaymentFinanceRecord(paymentRecord, { student: providedStudent = null } = {}) {
+  const linkedRecords = getLinkedPaymentFinanceRecords(paymentRecord?.id);
+  const canonicalRecord = linkedRecords[0] || null;
+  const student = providedStudent || getStudentById(paymentRecord?.studentId);
+  const isEligible = isRealPaidPaymentRecord(paymentRecord) && Boolean(student);
+
+  if (!isEligible) {
+    if (linkedRecords.length === 0) {
+      return {
+        synced: true,
+        deleted: false,
+      };
+    }
+
+    const deleteResult = await deleteLinkedPaymentFinanceRecords(paymentRecord.id);
+    return {
+      synced: deleteResult.synced,
+      deleted: deleteResult.deletedCount > 0,
+    };
+  }
+
+  const nextRecord = buildPaymentFinanceRecord(paymentRecord, student, canonicalRecord);
+  if (!canonicalRecord || !isSamePaymentFinanceRecord(canonicalRecord, nextRecord)) {
+    const saveResult = await saveFinanceRecord(nextRecord);
+    if (!saveResult.synced) {
+      return saveResult;
+    }
+  }
+
+  let duplicatesRemoved = 0;
+  for (const duplicateRecord of linkedRecords.slice(1)) {
+    const deleteResult = await dataService.entities.financialMovements.deleteOne(duplicateRecord.id, { alertOnFailure: false });
+    financeRecords = deleteResult.records;
+    if (!deleteResult.synced) {
+      return {
+        synced: false,
+        error: deleteResult.error,
+      };
+    }
+    duplicatesRemoved += 1;
+  }
+
+  return {
+    synced: true,
+    record: nextRecord,
+    duplicatesRemoved,
+  };
+}
+
+function mapLinkedPaymentFinanceRecord(record) {
+  return {
+    ...record,
+    sourceType: "payment",
+    sourceRecordId: record.relatedPaymentId || record.id,
+    sourceStudentId: record.relatedStudentId || "",
+  };
+}
+
+function getDerivedFinanceIncomeRecords(linkedPaymentIds = new Set()) {
   const studentsById = new Map(students.map((student) => [student.id, student]));
 
   return paymentRecords
     .map((record) => {
       const student = studentsById.get(record.studentId);
-      const monto = parsePaymentAmount(record.cantidadPagada);
-      if (!student || !(monto > 0)) {
+      if (!student || linkedPaymentIds.has(record.id) || !isRealPaidPaymentRecord(record)) {
         return null;
       }
 
@@ -4669,12 +4854,12 @@ function getDerivedFinanceIncomeRecords() {
         sourceType: "payment",
         sourceRecordId: record.id,
         sourceStudentId: record.studentId,
-        fecha: getBalancePaymentDate(record),
+        fecha: getPaymentEffectiveDate(record),
         sucursal: student.sucursal || "",
         tipo: "Ingreso",
         categoria: getPaymentFinanceCategory(record),
         concepto: getBalanceIncomeConcept(record),
-        monto,
+        monto: parsePaymentAmount(record.cantidadPagada),
         metodoPago: record.metodoPago || "-",
         usuario: student.usuarioAlta || student.inscribio || "",
         observaciones: record.observaciones || "",
@@ -4717,15 +4902,158 @@ function getDerivedFinanceExpenseRecords() {
 }
 
 function getCentralFinanceRecords() {
+  const linkedPaymentFinanceRecords = financeRecords
+    .filter((record) => record.relatedPaymentId)
+    .map(mapLinkedPaymentFinanceRecord);
+  const linkedPaymentIds = new Set(
+    linkedPaymentFinanceRecords
+      .map((record) => record.sourceRecordId)
+      .filter(Boolean)
+  );
   const nativeFinanceRecords = financeRecords.filter(
     (record) =>
+      !record.relatedPaymentId &&
       record.sourceType !== "payment" &&
       record.sourceType !== "balance-expense" &&
       !String(record.id || "").startsWith("payment:") &&
       !String(record.id || "").startsWith("balance-expense:")
   );
 
-  return nativeFinanceRecords.concat(getDerivedFinanceIncomeRecords(), getDerivedFinanceExpenseRecords());
+  return nativeFinanceRecords.concat(
+    linkedPaymentFinanceRecords,
+    getDerivedFinanceIncomeRecords(linkedPaymentIds),
+    getDerivedFinanceExpenseRecords()
+  );
+}
+
+function auditPaymentFinanceLinks({
+  payments = paymentRecords,
+  finance = financeRecords,
+} = {}) {
+  const paymentsById = new Map(payments.map((record) => [record.id, record]));
+  const linkedFinanceByPaymentId = new Map();
+
+  finance
+    .filter((record) => record.relatedPaymentId)
+    .forEach((record) => {
+      const bucket = linkedFinanceByPaymentId.get(record.relatedPaymentId) || [];
+      bucket.push(record);
+      linkedFinanceByPaymentId.set(record.relatedPaymentId, bucket);
+    });
+
+  const missingLinkedFinance = payments.filter(
+    (record) => isRealPaidPaymentRecord(record) && (linkedFinanceByPaymentId.get(record.id) || []).length === 0
+  );
+  const duplicateLinkedFinance = Array.from(linkedFinanceByPaymentId.entries())
+    .filter(([, records]) => records.length > 1)
+    .map(([paymentId, records]) => ({
+      paymentId,
+      records,
+    }));
+  const orphanLinkedFinance = finance.filter(
+    (record) => record.relatedPaymentId && !paymentsById.has(record.relatedPaymentId)
+  );
+  const missingStoredPaymentDate = payments.filter(
+    (record) => isRealPaidPaymentRecord(record) && !getStoredPaymentRealDate(record)
+  );
+  const ineligibleLinkedFinance = finance
+    .filter((record) => {
+      if (!record.relatedPaymentId) {
+        return false;
+      }
+      const paymentRecord = paymentsById.get(record.relatedPaymentId);
+      return paymentRecord && !isRealPaidPaymentRecord(paymentRecord);
+    })
+    .map((record) => ({
+      financeRecord: record,
+      paymentRecord: paymentsById.get(record.relatedPaymentId),
+    }));
+
+  return {
+    missingLinkedFinance,
+    duplicateLinkedFinance,
+    orphanLinkedFinance,
+    missingStoredPaymentDate,
+    ineligibleLinkedFinance,
+  };
+}
+
+function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
+  if (
+    findings.missingLinkedFinance.length === 0 &&
+    findings.duplicateLinkedFinance.length === 0 &&
+    findings.orphanLinkedFinance.length === 0 &&
+    findings.missingStoredPaymentDate.length === 0 &&
+    findings.ineligibleLinkedFinance.length === 0
+  ) {
+    return findings;
+  }
+
+  console.warn("Payment/finance audit findings", {
+    missingLinkedFinance: findings.missingLinkedFinance.map((record) => ({
+      paymentId: record.id,
+      studentId: record.studentId,
+      amount: parsePaymentAmount(record.cantidadPagada),
+      paymentDate: getPaymentEffectiveDate(record),
+    })),
+    duplicateLinkedFinance: findings.duplicateLinkedFinance.map(({ paymentId, records }) => ({
+      paymentId,
+      financeRecordIds: records.map((record) => record.id),
+    })),
+    orphanLinkedFinance: findings.orphanLinkedFinance.map((record) => ({
+      financeRecordId: record.id,
+      paymentId: record.relatedPaymentId,
+    })),
+    missingStoredPaymentDate: findings.missingStoredPaymentDate.map((record) => ({
+      paymentId: record.id,
+      studentId: record.studentId,
+      fallbackDate: getLegacyPaymentRealDateFallback(record),
+    })),
+    ineligibleLinkedFinance: findings.ineligibleLinkedFinance.map(({ financeRecord, paymentRecord }) => ({
+      financeRecordId: financeRecord.id,
+      paymentId: financeRecord.relatedPaymentId,
+      studentId: paymentRecord?.studentId || "",
+    })),
+  });
+
+  return findings;
+}
+
+async function reconcilePaymentFinanceRecords() {
+  const findings = auditPaymentFinanceLinks();
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  for (const record of findings.missingLinkedFinance) {
+    const syncResult = await syncPaymentFinanceRecord(record, {
+      student: studentsById.get(record.studentId) || null,
+    });
+    if (!syncResult.synced) {
+      console.error("No se pudo reconciliar el pago con finanzas.", {
+        paymentId: record.id,
+        error: syncResult.error,
+      });
+      break;
+    }
+  }
+
+  for (const finding of findings.ineligibleLinkedFinance) {
+    const paymentRecord = finding.paymentRecord;
+    if (!paymentRecord) {
+      continue;
+    }
+    const syncResult = await syncPaymentFinanceRecord(paymentRecord, {
+      student: studentsById.get(paymentRecord.studentId) || null,
+    });
+    if (!syncResult.synced) {
+      console.error("No se pudo limpiar el ingreso financiero inconsistente.", {
+        paymentId: paymentRecord.id,
+        error: syncResult.error,
+      });
+      break;
+    }
+  }
+
+  return logPaymentFinanceAudit();
 }
 
 function getFinanceRecordsForScope({
@@ -6282,6 +6610,7 @@ function getPaymentRecord(studentId) {
       cantidadPagada: "",
       reportes: "",
       observaciones: "",
+      paymentRealDate: "",
       mesPago: selectedPaymentsMonth,
     }
   );
@@ -6535,6 +6864,8 @@ async function savePaymentForStudent(studentId) {
     newRecord[field] = input ? input.value.trim() : "";
   });
 
+  newRecord.paymentRealDate = resolvePaymentRealDate(current, { ...current, ...newRecord });
+
   const saveResult = await savePaymentRecord({ ...current, ...newRecord });
   if (!saveResult.synced) {
     renderBalanceModule();
@@ -6543,6 +6874,18 @@ async function savePaymentForStudent(studentId) {
     updatePaymentsSummary();
     renderDashboard();
     alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
+    return;
+  }
+
+  const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
+  if (!financeSyncResult.synced) {
+    renderPaymentsTable();
+    renderBalanceModule();
+    renderFinanceTable();
+    updateFinanceSummary();
+    updatePaymentsSummary();
+    renderDashboard();
+    alert("El pago se guardó, pero no se pudo sincronizar su ingreso financiero en Supabase.");
     return;
   }
 
@@ -6581,11 +6924,7 @@ function updatePaymentsSummary() {
 }
 
 function getBalancePaymentDate(record) {
-  const baseDate = String(record.createdAt || record.updatedAt || "").slice(0, 10);
-  if (baseDate) {
-    return baseDate;
-  }
-  return record.mesPago ? `${record.mesPago}-01` : "";
+  return getPaymentEffectiveDate(record);
 }
 
 function matchesBalanceDate(value) {
@@ -6593,9 +6932,7 @@ function matchesBalanceDate(value) {
 }
 
 function getBalanceIncomeConcept(record) {
-  const paidConcepts = BALANCE_PAYMENT_CONCEPT_FIELDS
-    .filter(({ key }) => record[key] === "Pagado" || record[key] === "Parcial")
-    .map(({ label }) => label);
+  const paidConcepts = getPaidPaymentConcepts(record).map(({ label }) => label);
 
   if (paidConcepts.length > 0) {
     return paidConcepts.join(", ");
@@ -8729,6 +9066,12 @@ async function deletePaymentForStudent(studentId) {
     ? await dataService.entities.payments.getAllPrimary(() => [])
     : deleteResult.records;
 
+  let financeDeleteSynced = true;
+  if (deleteResult.synced) {
+    const financeDeleteResult = await deleteLinkedPaymentFinanceRecords(payment.id);
+    financeDeleteSynced = financeDeleteResult.synced;
+  }
+
   renderPaymentsTable();
   renderBalanceModule();
   renderFinanceTable();
@@ -8741,6 +9084,8 @@ async function deletePaymentForStudent(studentId) {
 
   if (!deleteResult.synced) {
     alert("No se pudo eliminar el pago en Supabase.");
+  } else if (!financeDeleteSynced) {
+    alert("El pago se eliminó, pero no se pudo limpiar su ingreso financiero relacionado.");
   }
 }
 
