@@ -461,6 +461,7 @@
     return [
       `Mes pago: ${record.mesPago || ""}`,
       `Fecha real pago: ${record.paymentRealDate || ""}`,
+      `Concepto real pago: ${record.paymentMovementConcept || ""}`,
       `Certificado P1: ${record.certificadoP1 || ""}`,
       `Certificado P2: ${record.certificadoP2 || ""}`,
       `1ra mensualidad: ${record.mensualidad1 || ""}`,
@@ -666,6 +667,7 @@
       mensualidadPactada: record.tuition_amount || "",
       mesPago: extractAltaMetadata(record.notes, "Mes pago"),
       paymentRealDate: extractAltaMetadata(record.notes, "Fecha real pago"),
+      paymentMovementConcept: extractAltaMetadata(record.notes, "Concepto real pago"),
       certificadoP1: extractAltaMetadata(record.notes, "Certificado P1") || record.certificate_p1_amount || "",
       certificadoP2: extractAltaMetadata(record.notes, "Certificado P2") || record.certificate_p2_amount || "",
       mensualidad1: extractAltaMetadata(record.notes, "1ra mensualidad") || record.first_month_amount || "",
@@ -702,6 +704,8 @@
       related_payment_id: record.relatedPaymentId || null,
       notes: [
         `Concepto: ${record.concepto || ""}`,
+        `Concepto real pago: ${record.paymentConcept || record.concepto || ""}`,
+        `Alumna: ${record.alumna || ""}`,
         `Observaciones: ${record.observaciones || ""}`,
       ].join(" | "),
       recorded_by: record.usuario || "",
@@ -719,6 +723,8 @@
       reference: record.reference || "",
       relatedStudentId: record.related_student_id || "",
       relatedPaymentId: record.related_payment_id || "",
+      paymentConcept: extractAltaMetadata(record.notes, "Concepto real pago"),
+      alumna: extractAltaMetadata(record.notes, "Alumna"),
       observaciones: extractAltaMetadata(record.notes, "Observaciones"),
       usuario: record.recorded_by || "",
       createdAt: record.created_at || "",

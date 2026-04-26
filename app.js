@@ -66,13 +66,13 @@ const TEACHER_ELIGIBLE_POSITION_FRAGMENTS = [
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
-  { key: "certificadoP1", label: "Pago C1" },
-  { key: "certificadoP2", label: "Pago C2" },
-  { key: "mensualidad1", label: "Mensualidad 1" },
-  { key: "mensualidad2", label: "Mensualidad 2" },
-  { key: "mensualidad3", label: "Mensualidad 3" },
-  { key: "mensualidad4", label: "Mensualidad 4" },
-  { key: "mensualidad5", label: "Mensualidad 5" },
+  { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
+  { key: "certificadoP2", label: "Pago C2", movementLabel: "C2" },
+  { key: "mensualidad1", label: "Mensualidad 1", movementLabel: "Mensualidad 1" },
+  { key: "mensualidad2", label: "Mensualidad 2", movementLabel: "Mensualidad 2" },
+  { key: "mensualidad3", label: "Mensualidad 3", movementLabel: "Mensualidad 3" },
+  { key: "mensualidad4", label: "Mensualidad 4", movementLabel: "Mensualidad 4" },
+  { key: "mensualidad5", label: "Mensualidad 5", movementLabel: "Mensualidad 5" },
 ];
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
@@ -4660,6 +4660,10 @@ function isRealPaidPaymentRecord(record) {
   return Boolean(record?.id) && parsePaymentAmount(record?.cantidadPagada) > 0 && getPaidPaymentConcepts(record).length > 0;
 }
 
+function getPaymentMovementConceptLabels(record) {
+  return getPaidPaymentConcepts(record).map(({ movementLabel, label }) => movementLabel || label);
+}
+
 function getStoredPaymentRealDate(record) {
   const value = String(record?.paymentRealDate || "").slice(0, 10);
   return value || "";
@@ -4688,6 +4692,73 @@ function resolvePaymentRealDate(currentRecord, nextRecord) {
   }
 
   return getLegacyPaymentRealDateFallback(currentRecord || nextRecord);
+}
+
+function normalizePaymentMovementConcept(value) {
+  return String(value || "").trim();
+}
+
+function isAccumulatedPaymentConcept(value) {
+  return normalizePaymentMovementConcept(value).includes(",");
+}
+
+function getSafeStoredPaymentConcept(record) {
+  const directValue = normalizePaymentMovementConcept(record?.paymentMovementConcept || record?.paymentConcept);
+  if (directValue) {
+    return directValue;
+  }
+
+  const conceptValue = normalizePaymentMovementConcept(record?.concepto);
+  if (conceptValue && !isAccumulatedPaymentConcept(conceptValue)) {
+    return conceptValue;
+  }
+
+  return "";
+}
+
+function getChangedPaymentMovementConcepts(currentRecord, nextRecord) {
+  return BALANCE_PAYMENT_CONCEPT_FIELDS
+    .filter(({ key }) => {
+      const previousStatus = String(currentRecord?.[key] || "").trim();
+      const nextStatus = String(nextRecord?.[key] || "").trim();
+      return isEligiblePaymentStatus(nextStatus) && previousStatus !== nextStatus;
+    })
+    .map(({ movementLabel, label }) => movementLabel || label);
+}
+
+function resolvePaymentMovementConcept(currentRecord, nextRecord, existingFinanceRecord = null) {
+  const changedConcepts = getChangedPaymentMovementConcepts(currentRecord, nextRecord);
+  if (changedConcepts.length > 0) {
+    return changedConcepts.join(" + ");
+  }
+
+  const storedConcept =
+    getSafeStoredPaymentConcept(existingFinanceRecord) ||
+    normalizePaymentMovementConcept(currentRecord?.paymentMovementConcept);
+  if (storedConcept) {
+    return storedConcept;
+  }
+
+  const nextConcepts = getPaymentMovementConceptLabels(nextRecord);
+  if (nextConcepts.length === 1) {
+    return nextConcepts[0];
+  }
+
+  return "Pago registrado";
+}
+
+function getBalancePaymentConceptDisplay(record) {
+  const storedConcept = getSafeStoredPaymentConcept(record);
+  if (storedConcept) {
+    return storedConcept;
+  }
+
+  const category = normalizePaymentMovementConcept(record?.categoria);
+  if (category === "Colegiatura" || category === "Certificado P1" || category === "Certificado P2") {
+    return "Pago registrado";
+  }
+
+  return category || "Pago registrado";
 }
 
 function buildPaymentFinanceReference(paymentId) {
@@ -4742,13 +4813,17 @@ function getPaymentFinanceCategory(record) {
 }
 
 function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord = null) {
+  const paymentConcept = resolvePaymentMovementConcept(paymentRecord, paymentRecord, existingFinanceRecord);
+
   return {
     id: existingFinanceRecord?.id || crypto.randomUUID(),
     fecha: existingFinanceRecord?.fecha || getPaymentEffectiveDate(paymentRecord),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
     categoria: getPaymentFinanceCategory(paymentRecord),
-    concepto: getBalanceIncomeConcept(paymentRecord),
+    concepto: paymentConcept,
+    paymentConcept,
+    alumna: student.nombre || "",
     monto: parsePaymentAmount(paymentRecord.cantidadPagada),
     metodoPago: paymentRecord.metodoPago || "-",
     usuario: student.usuarioAlta || student.inscribio || "",
@@ -4775,6 +4850,8 @@ function isSamePaymentFinanceRecord(currentRecord, nextRecord) {
     String(currentRecord?.metodoPago || "") === String(nextRecord?.metodoPago || "") &&
     String(currentRecord?.usuario || "") === String(nextRecord?.usuario || "") &&
     String(currentRecord?.observaciones || "") === String(nextRecord?.observaciones || "") &&
+    String(currentRecord?.paymentConcept || "") === String(nextRecord?.paymentConcept || "") &&
+    String(currentRecord?.alumna || "") === String(nextRecord?.alumna || "") &&
     String(currentRecord?.reference || "") === String(nextRecord?.reference || "") &&
     String(currentRecord?.relatedStudentId || "") === String(nextRecord?.relatedStudentId || "") &&
     String(currentRecord?.relatedPaymentId || "") === String(nextRecord?.relatedPaymentId || "")
@@ -4877,7 +4954,9 @@ function getDerivedFinanceIncomeRecords(linkedPaymentIds = new Set()) {
         sucursal: student.sucursal || "",
         tipo: "Ingreso",
         categoria: getPaymentFinanceCategory(record),
-        concepto: getBalanceIncomeConcept(record),
+        concepto: resolvePaymentMovementConcept(record, record, null),
+        paymentConcept: normalizePaymentMovementConcept(record.paymentMovementConcept),
+        alumna: student.nombre || "",
         monto: parsePaymentAmount(record.cantidadPagada),
         metodoPago: record.metodoPago || "-",
         usuario: student.usuarioAlta || student.inscribio || "",
@@ -6629,6 +6708,7 @@ function getPaymentRecord(studentId) {
       cantidadPagada: "",
       reportes: "",
       observaciones: "",
+      paymentMovementConcept: "",
       paymentRealDate: "",
       mesPago: selectedPaymentsMonth,
     }
@@ -6883,6 +6963,8 @@ async function savePaymentForStudent(studentId) {
     newRecord[field] = input ? input.value.trim() : "";
   });
 
+  const existingFinanceRecord = getLinkedPaymentFinanceRecords(current.id || newRecord.id)[0] || null;
+  newRecord.paymentMovementConcept = resolvePaymentMovementConcept(current, { ...current, ...newRecord }, existingFinanceRecord);
   newRecord.paymentRealDate = resolvePaymentRealDate(current, { ...current, ...newRecord });
 
   const saveResult = await savePaymentRecord({ ...current, ...newRecord });
@@ -7070,8 +7152,8 @@ function getBalanceIncomeRows() {
       id: record.sourceRecordId || record.id,
       studentId: record.sourceStudentId || "",
       fecha: record.fecha,
-      alumna: studentsById.get(record.sourceStudentId)?.nombre || "-",
-      concepto: record.concepto || "Pago registrado",
+      alumna: studentsById.get(record.sourceStudentId)?.nombre || record.alumna || "-",
+      concepto: getBalancePaymentConceptDisplay(record),
       monto: Number(record.monto || 0),
       sucursal: record.sucursal || "",
       metodoPago: record.metodoPago || "-",
@@ -7196,6 +7278,7 @@ function renderBalanceIncomeTable() {
       (record) => `
         <tr>
           <td>${escapeHtml(record.fecha || "-")}</td>
+          <td>${escapeHtml(record.alumna || "-")}</td>
           <td>${escapeHtml(record.concepto)}</td>
           <td>${formatCurrency(record.monto)}</td>
           <td>${escapeHtml(record.metodoPago || "-")}</td>
