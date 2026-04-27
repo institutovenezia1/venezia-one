@@ -1976,7 +1976,12 @@
               <aside class="student-sidebar student-liquid">
                 <div class="student-sidebar-brand">
                   <div class="student-sidebar-logo" aria-hidden="true">
-                    <img src="/images/logo-venezia.png" alt="" />
+                    <img
+                      src="images/logo-principal-sinfondo.png"
+                      alt="Logo Instituto Venezia"
+                      onerror="this.closest('.student-sidebar-logo').classList.add('is-fallback'); this.remove();"
+                    />
+                    <span class="student-sidebar-logo-fallback">V</span>
                   </div>
                   <p class="student-sidebar-label">VENEZIA</p>
                   <h3>Instituto de Belleza</h3>

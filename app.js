@@ -8783,6 +8783,20 @@ function setMiVeneziaView(view) {
   currentMiVeneziaView = allowedViews.has(view) ? view : "dashboard";
 }
 
+function resetMiVeneziaScrollPosition() {
+  requestAnimationFrame(() => {
+    if (mainContentShell && typeof mainContentShell.scrollTo === "function") {
+      mainContentShell.scrollTo(0, 0);
+    }
+    if (miVeneziaDashboard) {
+      miVeneziaDashboard.scrollTop = 0;
+    }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
+  });
+}
+
 function renderMiVeneziaViewState() {
   miVeneziaViewButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.studentView === currentMiVeneziaView);
@@ -8797,6 +8811,8 @@ function renderMiVeneziaViewState() {
   if (miVeneziaViewLabel) {
     miVeneziaViewLabel.textContent = getMiVeneziaViewLabel(currentMiVeneziaView);
   }
+
+  resetMiVeneziaScrollPosition();
 }
 
 function renderMiVeneziaReglamento(student) {
@@ -9226,6 +9242,7 @@ function renderMiVeneziaDashboard() {
   miVeneziaLoginPanel.hidden = true;
   miVeneziaDashboard.hidden = false;
   renderMiVeneziaViewState();
+  resetMiVeneziaScrollPosition();
   dataService.sessions.setStudent(student.id);
 }
 
