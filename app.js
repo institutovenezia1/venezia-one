@@ -6726,12 +6726,6 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
 
   if (attendanceSummaryGrid) {
     attendanceSummaryGrid.innerHTML = [
-      `
-        <article class="stat-card">
-          <p>Total de alumnas</p>
-          <strong id="attendanceGroupCount">${scopedStudents.length}</strong>
-        </article>
-      `,
       ...courseCounts.map(
         (entry) => `
           <article class="stat-card">
@@ -6740,6 +6734,12 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
           </article>
         `
       ),
+      `
+        <article class="stat-card">
+          <p>Total de alumnas</p>
+          <strong id="attendanceGroupCount">${scopedStudents.length}</strong>
+        </article>
+      `,
     ].join("");
   } else if (attendanceGroupCount) {
     attendanceGroupCount.textContent = scopedStudents.length;
