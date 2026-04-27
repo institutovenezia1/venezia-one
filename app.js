@@ -390,6 +390,7 @@ const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
 const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
+const miVeneziaRoot = document.getElementById("miVeneziaPortal") || miVeneziaShell || miVeneziaDashboard;
 const miVeneziaStudentMain = miVeneziaDashboard?.querySelector(".student-main") || null;
 const miVeneziaLogoutButton = document.getElementById("miVeneziaLogoutButton");
 const miVeneziaSidebarName = document.getElementById("miVeneziaSidebarName");
@@ -10896,19 +10897,22 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   miVeneziaLoginForm.reset();
 });
 
-miVeneziaViewButtons.forEach((button) => {
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    openMiVeneziaView(button.dataset.studentView || "dashboard");
-  });
-});
+if (miVeneziaRoot) {
+  miVeneziaRoot.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-student-view], [data-student-view-jump]");
+    if (!trigger || !miVeneziaRoot.contains(trigger)) {
+      return;
+    }
 
-miVeneziaViewJumpButtons.forEach((button) => {
-  button.addEventListener("click", (event) => {
+    const view = trigger.dataset.studentView || trigger.dataset.studentViewJump || "";
+    if (!view) {
+      return;
+    }
+
     event.preventDefault();
-    openMiVeneziaView(button.dataset.studentViewJump || "dashboard");
+    openMiVeneziaView(view);
   });
-});
+}
 
 miVeneziaConfirmReadButton.addEventListener("click", () => {
   handleMiVeneziaReglamentoConfirmation();
