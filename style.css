@@ -1675,7 +1675,7 @@ td select {
 }
 
 .executive-kpi-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
 }
 
@@ -1855,6 +1855,120 @@ td select {
   line-height: 1.6;
 }
 
+.dashboard-comparison-panel {
+  margin-bottom: 1rem;
+}
+
+.dashboard-comparison-meta {
+  margin: 0 0 1rem;
+  color: #615648;
+  line-height: 1.6;
+}
+
+.dashboard-comparison-chart {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-comparison-group {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  border-radius: 24px;
+  border: 1px solid rgba(214, 204, 189, 0.72);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.92), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 241, 232, 0.84) 100%);
+}
+
+.dashboard-comparison-group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dashboard-comparison-group-header h4 {
+  margin: 0.1rem 0 0;
+  font-size: 1.15rem;
+  color: #241d18;
+}
+
+.dashboard-comparison-group-header small {
+  color: #74685a;
+  text-align: right;
+  line-height: 1.4;
+}
+
+.dashboard-comparison-bars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.dashboard-comparison-bar {
+  display: grid;
+  gap: 0.55rem;
+  align-content: end;
+  text-align: center;
+}
+
+.dashboard-comparison-bar strong {
+  font-size: 0.86rem;
+  color: #3e3429;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.dashboard-comparison-amount {
+  min-height: 2.8em;
+  color: #5d5347;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.dashboard-comparison-bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 170px;
+  padding: 0.55rem 0.35rem;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(248, 243, 236, 0.9) 0%, rgba(241, 233, 219, 0.72) 100%);
+  border: 1px solid rgba(214, 204, 189, 0.65);
+}
+
+.dashboard-comparison-bar-fill {
+  width: 100%;
+  max-width: 54px;
+  min-height: 10px;
+  border-radius: 18px 18px 8px 8px;
+  box-shadow: 0 10px 18px rgba(111, 91, 58, 0.12);
+}
+
+.dashboard-comparison-bar-income {
+  background: linear-gradient(180deg, rgba(111, 152, 103, 0.92) 0%, rgba(75, 111, 66, 0.96) 100%);
+}
+
+.dashboard-comparison-bar-expense {
+  background: linear-gradient(180deg, rgba(196, 132, 91, 0.92) 0%, rgba(153, 92, 57, 0.96) 100%);
+}
+
+.dashboard-comparison-bar-utility {
+  background: linear-gradient(180deg, rgba(201, 161, 74, 0.92) 0%, rgba(146, 110, 36, 0.96) 100%);
+}
+
+.dashboard-comparison-bar-track.is-negative {
+  align-items: flex-start;
+}
+
+.dashboard-comparison-bar-fill.is-negative {
+  border-radius: 8px 8px 18px 18px;
+  background: linear-gradient(180deg, rgba(179, 95, 95, 0.92) 0%, rgba(129, 56, 56, 0.96) 100%);
+}
+
 .finance-overview-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
@@ -1884,7 +1998,7 @@ td select {
 }
 
 .finance-summary-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.55rem;
   margin-top: 0.5rem;
 }
@@ -4988,6 +5102,7 @@ body.access-selector-mode .module-section.active {
   .finance-branch-metrics,
   .finance-history-meta,
   .finance-overview-grid,
+  .dashboard-comparison-chart,
   .executive-kpi-grid {
     grid-template-columns: 1fr;
   }
