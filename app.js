@@ -390,6 +390,7 @@ const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
 const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
+const miVeneziaStudentMain = miVeneziaDashboard?.querySelector(".student-main") || null;
 const miVeneziaLogoutButton = document.getElementById("miVeneziaLogoutButton");
 const miVeneziaSidebarName = document.getElementById("miVeneziaSidebarName");
 const miVeneziaSidebarMeta = document.getElementById("miVeneziaSidebarMeta");
@@ -414,6 +415,8 @@ const miVeneziaContactButton = document.getElementById("miVeneziaContactButton")
 const miVeneziaWhatsappSupportButton = document.getElementById("miVeneziaWhatsappSupportButton");
 const miVeneziaAvatarImage = document.getElementById("miVeneziaAvatarImage");
 const miVeneziaAvatarFallback = document.getElementById("miVeneziaAvatarFallback");
+const miVeneziaSidebarAvatarImage = document.getElementById("miVeneziaSidebarAvatarImage");
+const miVeneziaSidebarAvatarFallback = document.getElementById("miVeneziaSidebarAvatarFallback");
 const miVeneziaStatCourse = document.getElementById("miVeneziaStatCourse");
 const miVeneziaStatAttendance = document.getElementById("miVeneziaStatAttendance");
 const miVeneziaStatPayments = document.getElementById("miVeneziaStatPayments");
@@ -488,19 +491,38 @@ const heroSliderDots = heroSlider ? Array.from(heroSlider.querySelectorAll("[dat
 const heroSliderPrevButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-prev]") : null;
 const heroSliderNextButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-next]") : null;
 
-if (miVeneziaAvatarImage) {
-  miVeneziaAvatarImage.addEventListener("load", () => {
-    miVeneziaAvatarImage.hidden = false;
-    miVeneziaAvatarImage.classList.add("is-ready");
+function bindStudentAvatarImage(imageElement) {
+  if (!imageElement || imageElement.dataset.avatarBound === "true") {
+    return;
+  }
+
+  imageElement.addEventListener("load", () => {
+    imageElement.hidden = false;
+    imageElement.classList.add("is-ready");
   });
 
-  miVeneziaAvatarImage.addEventListener("error", () => {
-    miVeneziaAvatarImage.hidden = true;
-    miVeneziaAvatarImage.classList.remove("is-ready");
-    miVeneziaAvatarImage.removeAttribute("src");
-    miVeneziaAvatarImage.dataset.currentSrc = "";
+  imageElement.addEventListener("error", () => {
+    const fallbackSrc = imageElement.dataset.fallbackSrc || "";
+    if (fallbackSrc && imageElement.src !== new URL(fallbackSrc, window.location.href).href) {
+      imageElement.hidden = true;
+      imageElement.classList.remove("is-ready");
+      imageElement.src = fallbackSrc;
+      imageElement.dataset.currentSrc = fallbackSrc;
+      imageElement.dataset.fallbackSrc = "";
+      return;
+    }
+
+    imageElement.hidden = true;
+    imageElement.classList.remove("is-ready");
+    imageElement.removeAttribute("src");
+    imageElement.dataset.currentSrc = "";
+    imageElement.dataset.fallbackSrc = "";
   });
+
+  imageElement.dataset.avatarBound = "true";
 }
+
+[miVeneziaAvatarImage, miVeneziaSidebarAvatarImage].forEach(bindStudentAvatarImage);
 
 const moduleSections = {
   "access-selector": document.getElementById("accessSelectorSection"),
@@ -8717,9 +8739,18 @@ const PORTAL_THEME_CLASSNAMES = {
 };
 
 const PORTAL_THEME_AVATAR_SOURCES = {
-  purple: "images/images:avatar-student-female.png",
-  gold: "images/images:avatar-student-male.png",
-  neutral: "images/images:avatar-student-male.png",
+  purple: {
+    primary: "images/avatar-student-female.png",
+    fallback: "images/images:avatar-student-female.png",
+  },
+  gold: {
+    primary: "images/avatar-student-male.png",
+    fallback: "images/images:avatar-student-male.png",
+  },
+  neutral: {
+    primary: "",
+    fallback: "",
+  },
 };
 
 function normalizePortalThemeName(value) {
@@ -8785,6 +8816,52 @@ function getStudentPortalAvatarFallback(fullName) {
   return initials || "V";
 }
 
+function getStudentAvatarDisplay(student) {
+  const fullName = typeof student === "string" ? student : student?.nombre || "";
+  const themeKey = getSuggestedPortalThemeFromName(fullName);
+  const source = PORTAL_THEME_AVATAR_SOURCES[themeKey] || PORTAL_THEME_AVATAR_SOURCES.neutral;
+
+  return {
+    themeKey,
+    src: source.primary || "",
+    fallbackSrc: source.fallback || "",
+    fallbackText: getStudentPortalAvatarFallback(fullName),
+  };
+}
+
+function applyStudentAvatarDisplay(imageElement, fallbackElement, display) {
+  if (fallbackElement) {
+    fallbackElement.textContent = display?.fallbackText || "V";
+  }
+
+  if (!imageElement) {
+    return;
+  }
+
+  const nextSrc = display?.src || "";
+  const nextFallbackSrc = display?.fallbackSrc || "";
+
+  if (!nextSrc) {
+    imageElement.hidden = true;
+    imageElement.classList.remove("is-ready");
+    imageElement.removeAttribute("src");
+    imageElement.dataset.currentSrc = "";
+    imageElement.dataset.fallbackSrc = "";
+    return;
+  }
+
+  if (imageElement.dataset.currentSrc === nextSrc) {
+    imageElement.dataset.fallbackSrc = nextFallbackSrc;
+    return;
+  }
+
+  imageElement.hidden = true;
+  imageElement.classList.remove("is-ready");
+  imageElement.dataset.currentSrc = nextSrc;
+  imageElement.dataset.fallbackSrc = nextFallbackSrc;
+  imageElement.src = nextSrc;
+}
+
 function getPortalThemeBadgeTone(themeKey) {
   return themeKey === "purple" ? "is-purple" : "is-gold";
 }
@@ -8792,8 +8869,6 @@ function getPortalThemeBadgeTone(themeKey) {
 function applyMiVeneziaPortalTheme(fullName) {
   const themeKey = getSuggestedPortalThemeFromName(fullName);
   const themeClassName = PORTAL_THEME_CLASSNAMES[themeKey] || PORTAL_THEME_CLASSNAMES.neutral;
-  const avatarSrc = PORTAL_THEME_AVATAR_SOURCES[themeKey] || "";
-  const avatarFallback = getStudentPortalAvatarFallback(fullName);
 
   if (miVeneziaShell) {
     miVeneziaShell.classList.remove("theme-purple", "theme-gold", "theme-neutral");
@@ -8813,24 +8888,6 @@ function applyMiVeneziaPortalTheme(fullName) {
 
   if (miVeneziaPortalBadge) {
     miVeneziaPortalBadge.className = `student-badge ${getPortalThemeBadgeTone(themeKey)}`.trim();
-  }
-
-  if (miVeneziaAvatarFallback) {
-    miVeneziaAvatarFallback.textContent = avatarFallback;
-  }
-
-  if (miVeneziaAvatarImage) {
-    if (!avatarSrc) {
-      miVeneziaAvatarImage.hidden = true;
-      miVeneziaAvatarImage.classList.remove("is-ready");
-      miVeneziaAvatarImage.removeAttribute("src");
-      miVeneziaAvatarImage.dataset.currentSrc = "";
-    } else if (miVeneziaAvatarImage.dataset.currentSrc !== avatarSrc) {
-      miVeneziaAvatarImage.hidden = true;
-      miVeneziaAvatarImage.classList.remove("is-ready");
-      miVeneziaAvatarImage.dataset.currentSrc = avatarSrc;
-      miVeneziaAvatarImage.src = avatarSrc;
-    }
   }
 
   return {
@@ -9182,12 +9239,15 @@ function resetMiVeneziaScrollPosition() {
     if (mainContentShell && typeof mainContentShell.scrollTo === "function") {
       mainContentShell.scrollTo(0, 0);
     }
+    if (miVeneziaStudentMain && typeof miVeneziaStudentMain.scrollTo === "function") {
+      miVeneziaStudentMain.scrollTo(0, 0);
+    }
     if (miVeneziaDashboard) {
       miVeneziaDashboard.scrollTop = 0;
     }
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
 
@@ -9421,6 +9481,9 @@ function renderMiVeneziaDashboard() {
   const student = getStudentById(currentPortalStudentId);
   if (!student || isStudentDeleted(student)) {
     applyMiVeneziaPortalTheme("");
+    const emptyAvatarDisplay = getStudentAvatarDisplay("");
+    applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, emptyAvatarDisplay);
+    applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, emptyAvatarDisplay);
     dataService.sessions.clearStudent();
     currentPortalStudentId = "";
     miVeneziaAttendanceExpanded = false;
@@ -9476,6 +9539,9 @@ function renderMiVeneziaDashboard() {
     : "Sin información disponible por ahora.";
   const studentDisplayName = toStudentPortalNameCase(student.nombre);
   applyMiVeneziaPortalTheme(student.nombre);
+  const avatarDisplay = getStudentAvatarDisplay(student);
+  applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, avatarDisplay);
+  applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, avatarDisplay);
   const nextClassMetaParts = [
     attendanceOverview.nextClass?.classLabel || "",
     student.curso || "",

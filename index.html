@@ -1993,9 +1993,15 @@
                 </div>
 
                 <div class="student-sidebar-profile">
-                  <strong id="miVeneziaSidebarName">Estudiante</strong>
-                  <span id="miVeneziaSidebarMeta">Estamos preparando tu información.</span>
-                  <span class="student-badge is-neutral" id="miVeneziaSidebarStatus">Portal activo</span>
+                  <div class="student-avatar student-avatar-sidebar" aria-hidden="true">
+                    <img id="miVeneziaSidebarAvatarImage" class="student-avatar-image" alt="" hidden />
+                    <span id="miVeneziaSidebarAvatarFallback" class="student-avatar-fallback">V</span>
+                  </div>
+                  <div class="student-sidebar-profile-copy">
+                    <strong id="miVeneziaSidebarName">Estudiante</strong>
+                    <span id="miVeneziaSidebarMeta">Estamos preparando tu información.</span>
+                    <span class="student-badge is-neutral" id="miVeneziaSidebarStatus">Portal activo</span>
+                  </div>
                 </div>
 
                 <nav class="student-sidebar-nav" aria-label="Navegación de Mi Venezia">
@@ -2057,9 +2063,9 @@
                             <span class="student-dashboard-visual-kicker">Venezia</span>
                             <p class="student-dashboard-visual-copy">Tu progreso y tus próximos pasos en una sola vista.</p>
                           </div>
-                          <div class="student-dashboard-monogram" aria-hidden="true">
-                            <img id="miVeneziaAvatarImage" class="student-dashboard-avatar" alt="" hidden />
-                            <span id="miVeneziaAvatarFallback" class="student-dashboard-avatar-fallback">V</span>
+                          <div class="student-dashboard-monogram student-avatar student-avatar-hero" aria-hidden="true">
+                            <img id="miVeneziaAvatarImage" class="student-avatar-image student-dashboard-avatar" alt="" hidden />
+                            <span id="miVeneziaAvatarFallback" class="student-avatar-fallback student-dashboard-avatar-fallback">V</span>
                           </div>
                         </div>
 
