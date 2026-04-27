@@ -8740,12 +8740,12 @@ const PORTAL_THEME_CLASSNAMES = {
 
 const PORTAL_THEME_AVATAR_SOURCES = {
   purple: {
-    primary: "images/images:avatar-student-female.png",
-    fallback: "images/avatar-student-female.png",
+    primary: "images/avatar-student-female.png",
+    fallback: "",
   },
   gold: {
-    primary: "images/images:avatar-student-male.png",
-    fallback: "images/avatar-student-male.png",
+    primary: "images/avatar-student-male.png",
+    fallback: "",
   },
   neutral: {
     primary: "",
