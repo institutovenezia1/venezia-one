@@ -8740,12 +8740,12 @@ const PORTAL_THEME_CLASSNAMES = {
 
 const PORTAL_THEME_AVATAR_SOURCES = {
   purple: {
-    primary: "images/avatar-student-female.png",
-    fallback: "images/images:avatar-student-female.png",
+    primary: "images/images:avatar-student-female.png",
+    fallback: "images/avatar-student-female.png",
   },
   gold: {
-    primary: "images/avatar-student-male.png",
-    fallback: "images/images:avatar-student-male.png",
+    primary: "images/images:avatar-student-male.png",
+    fallback: "images/avatar-student-male.png",
   },
   neutral: {
     primary: "",
@@ -9267,6 +9267,15 @@ function renderMiVeneziaViewState() {
   }
 
   resetMiVeneziaScrollPosition();
+}
+
+function openMiVeneziaView(view) {
+  setMiVeneziaView(view);
+  if (currentPortalStudentId) {
+    renderMiVeneziaDashboard();
+    return;
+  }
+  renderMiVeneziaViewState();
 }
 
 function renderMiVeneziaReglamento(student) {
@@ -10888,16 +10897,16 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
 });
 
 miVeneziaViewButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setMiVeneziaView(button.dataset.studentView || "dashboard");
-    renderMiVeneziaViewState();
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    openMiVeneziaView(button.dataset.studentView || "dashboard");
   });
 });
 
 miVeneziaViewJumpButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setMiVeneziaView(button.dataset.studentViewJump || "dashboard");
-    renderMiVeneziaViewState();
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    openMiVeneziaView(button.dataset.studentViewJump || "dashboard");
   });
 });
 
