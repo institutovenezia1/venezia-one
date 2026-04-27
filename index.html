@@ -1975,10 +1975,12 @@
             <div class="student-shell">
               <aside class="student-sidebar student-liquid">
                 <div class="student-sidebar-brand">
-                  <div class="student-sidebar-logo" aria-hidden="true">V</div>
-                  <p class="student-sidebar-label">Mi Venezia</p>
-                  <h3>Instituto Venezia</h3>
-                  <p class="student-sidebar-copy">Tu portal académico con una vista clara de tu formación y tu avance.</p>
+                  <div class="student-sidebar-logo" aria-hidden="true">
+                    <img src="/images/logo-venezia.png" alt="" />
+                  </div>
+                  <p class="student-sidebar-label">VENEZIA</p>
+                  <h3>Instituto de Belleza</h3>
+                  <p class="student-sidebar-copy">Tu portal académico premium para revisar clases, pagos y avances sin perder claridad.</p>
                 </div>
 
                 <div class="student-sidebar-profile">
@@ -2011,98 +2013,82 @@
 
               <div class="student-main">
                 <header class="student-topbar student-liquid">
-                  <div class="student-topbar-copy-block">
-                    <p class="student-topbar-label">Portal estudiantil</p>
-                    <h2>Mi Venezia</h2>
-                    <p class="student-topbar-copy">Consulta tu avance, resuelve pendientes y mantén tu formación al día.</p>
+                  <div class="student-topbar-brandline">
+                    <div class="student-topbar-mark" aria-hidden="true">V</div>
+                    <div class="student-topbar-copy-block">
+                      <p class="student-topbar-label">Instituto Venezia</p>
+                      <h2>Mi Venezia</h2>
+                    </div>
                   </div>
                   <div class="student-topbar-meta">
                     <span class="student-badge is-gold" id="miVeneziaViewLabel">Inicio</span>
-                    <span class="student-badge is-neutral">App académica</span>
-                  </div>
-                  <div class="student-topbar-visual" aria-hidden="true">
-                    <div class="student-topbar-monogram">V</div>
+                    <span class="student-badge is-purple">Portal estudiantil</span>
                   </div>
                 </header>
 
                 <div class="student-content">
                   <section class="student-page is-active" data-student-page="dashboard">
-                    <section class="student-card student-liquid student-hero-card">
-                      <div class="student-hero-copy">
+                    <section class="student-dashboard-header student-liquid">
+                      <div class="student-dashboard-copy">
                         <p class="student-card-subtitle">Panel principal</p>
                         <h3 id="miVeneziaHeroName">Hola</h3>
-                        <p class="student-hero-message">Cada clase te acerca a tu crecimiento.</p>
-                        <p id="miVeneziaHeroMeta" class="student-card-meta">Consulta tu información académica y administrativa en un solo lugar.</p>
+                        <p id="miVeneziaHeroMeta" class="student-hero-message">Bienvenida/o a Mi Venezia</p>
                       </div>
 
-                      <div class="info-list student-hero-summary" id="miVeneziaHeroSummary"></div>
+                      <div class="info-list student-dashboard-chips" id="miVeneziaHeroSummary"></div>
 
-                      <div class="student-hero-actions">
-                        <a class="primary-btn student-whatsapp-button" id="miVeneziaContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Necesito ayuda por WhatsApp</a>
-                        <button class="secondary-btn" type="button" data-student-view-jump="support">Ver soporte</button>
-                      </div>
-                    </section>
-
-                    <section class="student-grid student-grid-kpis" aria-label="Indicadores principales">
-                      <article class="student-card student-liquid">
-                        <span class="student-card-subtitle">Curso</span>
-                        <strong class="student-card-value" id="miVeneziaStatCourse">-</strong>
-                        <p class="student-card-meta">Tu formación actual.</p>
-                      </article>
-                      <article class="student-card student-liquid">
-                        <span class="student-card-subtitle">Avance</span>
-                        <strong class="student-card-value" id="miVeneziaStatAttendance">0%</strong>
-                        <p class="student-card-meta">Cada clase suma a tu progreso.</p>
-                      </article>
-                      <article class="student-card student-liquid">
-                        <span class="student-card-subtitle">Próximo pago</span>
-                        <strong class="student-card-value" id="miVeneziaStatPayments">Por confirmar</strong>
-                        <p class="student-card-meta">Consulta tu siguiente referencia.</p>
-                      </article>
-                      <article class="student-card student-liquid">
-                        <span class="student-card-subtitle">Estado</span>
-                        <strong class="student-card-value" id="miVeneziaStatStatus">-</strong>
-                        <p class="student-card-meta">Resumen de tu portal.</p>
-                      </article>
-                    </section>
-
-                    <section class="student-grid student-grid-main">
-                      <article class="student-card student-liquid">
-                        <div class="student-card-header">
-                          <div>
-                            <p class="student-card-subtitle">Estado del portal</p>
-                            <h4 class="student-card-title">Tu estado actual</h4>
-                          </div>
-                        </div>
+                      <div class="student-dashboard-status-area">
                         <div id="miVeneziaStudentStatus"></div>
-                      </article>
+                        <div id="miVeneziaAchievements" class="student-achievements-grid student-achievements-inline"></div>
+                      </div>
 
-                      <article class="student-card student-liquid">
+                      <div class="student-dashboard-visual">
+                        <div class="student-dashboard-visual-header">
+                          <div>
+                            <span class="student-dashboard-visual-kicker">Venezia</span>
+                            <p class="student-dashboard-visual-copy">Tu progreso y tus próximos pasos en una sola vista.</p>
+                          </div>
+                          <div class="student-dashboard-monogram" aria-hidden="true">V</div>
+                        </div>
+
+                        <div class="student-dashboard-quickstats">
+                          <article class="student-dashboard-stat">
+                            <span>Curso</span>
+                            <strong id="miVeneziaStatCourse">-</strong>
+                          </article>
+                          <article class="student-dashboard-stat">
+                            <span>Avance</span>
+                            <strong id="miVeneziaStatAttendance">0%</strong>
+                          </article>
+                          <article class="student-dashboard-stat">
+                            <span>Próximo pago</span>
+                            <strong id="miVeneziaStatPayments">Por confirmar</strong>
+                          </article>
+                          <article class="student-dashboard-stat">
+                            <span>Estado</span>
+                            <strong id="miVeneziaStatStatus">-</strong>
+                          </article>
+                        </div>
+
+                        <div id="miVeneziaNextAction"></div>
+                      </div>
+                    </section>
+
+                    <section class="student-dashboard-grid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-upcoming">
                         <div class="student-card-header">
                           <div>
-                            <p class="student-card-subtitle">Próxima clase</p>
-                            <h4 class="student-card-title">Tu agenda inmediata</h4>
+                            <p class="student-card-subtitle">Clases</p>
+                            <h4 class="student-card-title">Próxima clase</h4>
                           </div>
                         </div>
                         <div id="miVeneziaUpcoming" class="mi-venezia-upcoming-list"></div>
                         <div class="form-actions">
-                          <button class="secondary-btn" type="button" data-student-view-jump="classes">Ver calendario completo</button>
+                          <button class="primary-btn" type="button" data-student-view-jump="classes">Ver calendario completo</button>
                         </div>
                       </article>
 
-                      <article class="student-card student-liquid">
-                        <div class="student-card-header">
-                          <div>
-                            <p class="student-card-subtitle">Próxima acción</p>
-                            <h4 class="student-card-title">Siguiente paso</h4>
-                          </div>
-                        </div>
-                        <div id="miVeneziaNextAction"></div>
-                      </article>
-                    </section>
-
-                    <section class="student-grid student-grid-secondary">
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-payments">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Pagos</p>
@@ -2110,9 +2096,12 @@
                           </div>
                         </div>
                         <div id="miVeneziaDashboardPaymentSummary" class="info-list student-grid-list"></div>
+                        <div class="form-actions">
+                          <button class="primary-btn" type="button" data-student-view-jump="payments">Ver mis pagos</button>
+                        </div>
                       </article>
 
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-progress">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Avance</p>
@@ -2123,7 +2112,7 @@
                         <div id="miVeneziaProgressStatus" class="mi-venezia-progress-status student-progress"></div>
                       </article>
 
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-attendance">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Asistencias</p>
@@ -2133,20 +2122,8 @@
                         <div id="miVeneziaDashboardAttendanceSummary" class="info-list student-grid-list"></div>
                         <p class="student-card-meta">Tu constancia también habla de tu compromiso.</p>
                       </article>
-                    </section>
 
-                    <section class="student-grid student-grid-tertiary">
-                      <article class="student-card student-liquid">
-                        <div class="student-card-header">
-                          <div>
-                            <p class="student-card-subtitle">Mini logros</p>
-                            <h4 class="student-card-title">Hitos de tu formación</h4>
-                          </div>
-                        </div>
-                        <div id="miVeneziaAchievements" class="student-achievements-grid"></div>
-                      </article>
-
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-documents">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Documentos</p>
@@ -2154,21 +2131,25 @@
                           </div>
                         </div>
                         <div id="miVeneziaDocumentsSummary" class="mi-venezia-documents-summary"></div>
+                        <div class="form-actions">
+                          <button class="primary-btn" type="button" data-student-view-jump="documents">Ver documentos</button>
+                        </div>
                       </article>
 
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-notices">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Avisos</p>
-                            <h4 class="student-card-title">Importante para ti</h4>
+                            <h4 class="student-card-title">Avisos importantes</h4>
                           </div>
                         </div>
                         <div id="miVeneziaNoticesPreview" class="student-notices-list"></div>
+                        <div class="form-actions">
+                          <button class="primary-btn" type="button" data-student-view-jump="notices">Ver avisos</button>
+                        </div>
                       </article>
-                    </section>
 
-                    <section class="student-grid student-grid-support">
-                      <article class="student-card student-liquid student-gold-accent">
+                      <article class="student-card student-liquid student-gold-accent student-dashboard-card student-dashboard-card-certification">
                         <div class="student-card-header">
                           <div>
                             <p class="student-card-subtitle">Certificación SEP</p>
@@ -2177,19 +2158,20 @@
                         </div>
                         <p class="student-card-meta">Disponible con inversión adicional. Respalda tu preparación y puede aportar mayor solidez a tu perfil profesional.</p>
                         <div class="form-actions">
-                          <button class="secondary-btn" type="button" data-student-view-jump="certification">Ver detalle</button>
+                          <button class="primary-btn" type="button" data-student-view-jump="certification">Ver detalle</button>
                         </div>
                       </article>
 
-                      <article class="student-card student-liquid">
+                      <article class="student-card student-liquid student-dashboard-card student-dashboard-card-support">
                         <div class="student-card-header">
                           <div>
-                            <p class="student-card-subtitle">Soporte</p>
+                            <p class="student-card-subtitle">Soporte WhatsApp</p>
                             <h4 class="student-card-title">Acompañamiento directo</h4>
                           </div>
                         </div>
                         <p class="student-card-meta">Si necesitas ayuda con tus datos, documentos o pagos, puedes escribirnos desde aquí.</p>
-                        <div class="form-actions">
+                        <div class="student-support-bar">
+                          <a class="primary-btn student-whatsapp-button" id="miVeneziaContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Necesito ayuda por WhatsApp</a>
                           <button class="secondary-btn" type="button" data-student-view-jump="support">Abrir soporte</button>
                         </div>
                       </article>

@@ -6687,3 +6687,825 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
     padding: 0.6rem;
   }
 }
+
+/* Mi Venezia redesign */
+body.student-portal-mode.student-portal-active .main-content {
+  padding: 1rem;
+  background:
+    radial-gradient(circle at top left, rgba(131, 92, 228, 0.14), transparent 22%),
+    radial-gradient(circle at top right, rgba(252, 206, 230, 0.24), transparent 24%),
+    linear-gradient(180deg, #fffefe 0%, #fcf8ff 48%, #f7f1fb 100%);
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaSection {
+  max-width: 1420px;
+}
+
+.student-shell {
+  --student-purple: #7b52e4;
+  --student-purple-deep: #5f31c8;
+  --student-purple-soft: #f4efff;
+  --student-purple-border: rgba(123, 82, 228, 0.16);
+  --student-gold: #d8b16a;
+  --student-gold-soft: rgba(216, 177, 106, 0.16);
+  --student-text: #261b39;
+  --student-muted: #73668b;
+  --student-border: rgba(123, 82, 228, 0.12);
+  --student-shadow: 0 26px 60px rgba(91, 63, 152, 0.1);
+  gap: 1rem;
+}
+
+.student-shell::before {
+  top: -120px;
+  left: -40px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(123, 82, 228, 0.12) 0%, rgba(123, 82, 228, 0.04) 36%, rgba(123, 82, 228, 0) 72%);
+  filter: blur(12px);
+}
+
+.student-shell::after {
+  top: 100px;
+  right: -20px;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(250, 212, 229, 0.28) 0%, rgba(250, 212, 229, 0.12) 36%, rgba(250, 212, 229, 0) 74%);
+  filter: blur(16px);
+}
+
+.student-liquid {
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
+  box-shadow: var(--student-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.student-liquid::before,
+.student-liquid::after {
+  opacity: 0;
+}
+
+.student-sidebar,
+.student-topbar,
+.student-card,
+.student-dashboard-header,
+.student-documents-grid .mi-venezia-document-card {
+  border-radius: 28px;
+}
+
+.student-sidebar {
+  gap: 1rem;
+  padding: 1.3rem 1.05rem 1.05rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.96) 100%);
+  box-shadow: 0 26px 60px rgba(68, 47, 117, 0.09);
+}
+
+.student-sidebar-brand {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.student-sidebar-logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.55rem;
+  padding: 0.55rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f0ff 100%);
+  border: 1px solid rgba(123, 82, 228, 0.12);
+  box-shadow: 0 14px 30px rgba(91, 63, 152, 0.09);
+}
+
+.student-sidebar-logo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.student-sidebar-label,
+.student-topbar-label,
+.student-card-subtitle,
+.student-class-label {
+  color: #8c78ba;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.student-sidebar-brand h3 {
+  font-size: 1.18rem;
+  line-height: 1.05;
+  color: #2c1d43;
+}
+
+.student-sidebar-copy {
+  max-width: none;
+  font-size: 0.9rem;
+  color: #796c91;
+}
+
+.student-sidebar-profile {
+  gap: 0.4rem;
+  padding: 1rem;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fbf9ff 0%, #f6f0ff 100%);
+  border: 1px solid rgba(123, 82, 228, 0.1);
+  box-shadow: none;
+}
+
+.student-sidebar-profile strong {
+  font-size: 1rem;
+  color: #2b1d42;
+}
+
+.student-sidebar-nav {
+  gap: 0.45rem;
+}
+
+.student-sidebar-link {
+  padding: 0.88rem 0.95rem 0.88rem 2.95rem;
+  border-radius: 18px;
+  border-color: transparent;
+  background: #fbf8ff;
+  color: #5b4b74;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.student-sidebar-link::before {
+  left: 0.85rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: rgba(123, 82, 228, 0.1);
+  color: var(--student-purple);
+  font-size: 0.84rem;
+}
+
+.student-sidebar-link:hover,
+.student-sidebar-link.is-active {
+  transform: none;
+  border-color: rgba(123, 82, 228, 0.1);
+  background: linear-gradient(135deg, #8f6cff 0%, #7848e2 58%, #6733cf 100%);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(113, 72, 219, 0.24);
+}
+
+.student-sidebar-link:hover::before,
+.student-sidebar-link.is-active::before {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.student-sidebar-promo {
+  border-radius: 24px;
+  border: 1px solid rgba(123, 82, 228, 0.1);
+  background:
+    radial-gradient(circle at top right, rgba(216, 177, 106, 0.2), transparent 28%),
+    linear-gradient(150deg, #faf6ff 0%, #fffefe 62%, #fff8f0 100%);
+}
+
+.student-sidebar-promo-label {
+  color: var(--student-purple);
+}
+
+.student-sidebar-promo strong {
+  color: #321f4b;
+}
+
+.student-sidebar-logout {
+  border-radius: 18px;
+  border: 1px solid rgba(123, 82, 228, 0.12);
+  background: #f7f2ff;
+  color: var(--student-purple-deep);
+}
+
+.student-main {
+  gap: 1rem;
+}
+
+.student-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.88rem 1.1rem;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 40px rgba(84, 58, 139, 0.07);
+}
+
+.student-topbar-brandline {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.student-topbar-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8f6cff 0%, #7848e2 100%);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 14px 26px rgba(111, 72, 220, 0.2);
+}
+
+.student-topbar-copy-block {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.student-topbar h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 1.14rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #2a1d3f;
+}
+
+.student-topbar-meta {
+  gap: 0.45rem;
+}
+
+.student-content,
+.student-page {
+  gap: 1rem;
+}
+
+.student-dashboard-header {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+  background:
+    radial-gradient(circle at top right, rgba(216, 177, 106, 0.12), transparent 18%),
+    linear-gradient(135deg, #ffffff 0%, #fdfbff 48%, #f5edff 100%);
+}
+
+.student-dashboard-copy {
+  grid-area: copy;
+  display: grid;
+  gap: 0.38rem;
+}
+
+#miVeneziaHeroName {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(2rem, 4vw, 2.65rem);
+  line-height: 0.98;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: #241735;
+}
+
+#miVeneziaHeroMeta {
+  margin: 0;
+  color: #5d4c7d;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.student-dashboard-chips {
+  grid-area: chips;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.student-dashboard-chips .info-item {
+  gap: 0.2rem;
+  padding: 0.78rem 0.92rem;
+  border-radius: 18px;
+  background: #fcfbff;
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  box-shadow: 0 10px 20px rgba(98, 72, 158, 0.05);
+}
+
+.student-dashboard-chips .info-item strong {
+  color: #8c78ba;
+  font-size: 0.64rem;
+}
+
+.student-dashboard-chips .info-item span {
+  color: #2d2141;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.student-dashboard-status-area {
+  grid-area: status;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.student-status-card {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #faf7ff 0%, #ffffff 100%);
+  border: 1px solid rgba(123, 82, 228, 0.08);
+}
+
+.student-status-card .student-card-meta {
+  font-size: 0.9rem;
+}
+
+.student-achievements-inline {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-achievements-inline .student-achievement {
+  padding: 0.9rem 0.95rem;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.student-dashboard-visual {
+  grid-area: visual;
+  display: grid;
+  gap: 1rem;
+  padding: 1.18rem;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 26%),
+    linear-gradient(135deg, #906ef2 0%, #7446de 56%, #5f2fc7 100%);
+  box-shadow: 0 30px 60px rgba(98, 58, 189, 0.28);
+}
+
+.student-dashboard-visual-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-dashboard-visual-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.74rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.student-dashboard-visual-copy {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.5;
+}
+
+.student-dashboard-monogram {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.1) 100%);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.student-dashboard-monogram::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f3d79a;
+  box-shadow: 0 0 0 4px rgba(243, 215, 154, 0.14);
+}
+
+.student-dashboard-quickstats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.student-dashboard-stat {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.82rem 0.86rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.student-dashboard-stat span {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.student-dashboard-stat strong {
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+#miVeneziaNextAction .mi-venezia-action-card {
+  min-height: 0;
+  padding: 0.96rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+#miVeneziaNextAction .mi-venezia-action-card::after {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+#miVeneziaNextAction .mi-venezia-action-eyebrow,
+#miVeneziaNextAction .mi-venezia-action-badge,
+#miVeneziaNextAction .mi-venezia-action-title,
+#miVeneziaNextAction .mi-venezia-action-copy,
+#miVeneziaNextAction .mi-venezia-action-meta {
+  color: #fff;
+}
+
+#miVeneziaNextAction .mi-venezia-action-badge {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.student-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.student-dashboard-card {
+  gap: 0.95rem;
+  padding: 1.28rem;
+  border-radius: 26px;
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #fffdff 100%);
+  box-shadow: 0 22px 48px rgba(91, 63, 152, 0.08);
+}
+
+.student-card-title {
+  font-size: 1.08rem;
+  color: #2c1f43;
+}
+
+.student-card-meta,
+.student-notice p,
+.student-achievement p,
+.student-class-item p,
+.student-empty-copy,
+.mi-venezia-upcoming-meta {
+  color: #72678a;
+}
+
+.student-grid-list,
+.student-profile-grid,
+.student-payments-grid,
+.student-attendance-grid,
+.student-certification-grid,
+.mi-venezia-payment-schedule,
+.mi-venezia-reglamento-meta {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-grid-list .info-item,
+.student-profile-grid .info-item,
+.student-payments-grid .info-item,
+.student-attendance-grid .info-item,
+.student-certification-grid .info-item,
+.mi-venezia-payment-schedule .info-item,
+.mi-venezia-reglamento-meta .info-item {
+  padding: 0.86rem 0.94rem;
+  border-radius: 18px;
+  background: #fcfbff;
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  box-shadow: none;
+}
+
+.student-grid-list .info-item strong,
+.student-profile-grid .info-item strong,
+.student-payments-grid .info-item strong,
+.student-attendance-grid .info-item strong,
+.student-certification-grid .info-item strong,
+.mi-venezia-payment-schedule .info-item strong,
+.mi-venezia-reglamento-meta .info-item strong,
+.mi-venezia-upcoming-label,
+.mi-venezia-document-mini-code {
+  color: #8c78ba;
+}
+
+.student-grid-list .info-item span,
+.student-profile-grid .info-item span,
+.student-payments-grid .info-item span,
+.student-attendance-grid .info-item span,
+.student-certification-grid .info-item span,
+.mi-venezia-payment-schedule .info-item span,
+.mi-venezia-reglamento-meta .info-item span,
+.mi-venezia-upcoming-value,
+.mi-venezia-document-mini-card strong {
+  color: #2a1f40;
+}
+
+.mi-venezia-upcoming-item,
+.mi-venezia-progress-status,
+.mi-venezia-document-mini-card,
+.student-achievement,
+.student-notice,
+.student-class-item {
+  border-radius: 20px;
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  background: #fcfbff;
+  box-shadow: none;
+}
+
+.mi-venezia-upcoming-item {
+  padding: 0.92rem 0.96rem;
+}
+
+.mi-venezia-progress-status {
+  padding: 0.9rem 0.96rem;
+}
+
+.mi-venezia-progress-status strong {
+  color: #2b1f40;
+}
+
+.mi-venezia-progress-status p {
+  color: #72678a;
+}
+
+.mi-venezia-progress-meter {
+  background: rgba(123, 82, 228, 0.14);
+}
+
+.mi-venezia-progress-meter-fill {
+  background: linear-gradient(90deg, #8f6cff 0%, #d8b16a 100%);
+}
+
+.mi-venezia-documents-summary {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.mi-venezia-document-mini-card.is-confirmed {
+  background: linear-gradient(180deg, #f8fff9 0%, #ffffff 100%);
+}
+
+.mi-venezia-document-mini-card.is-pending {
+  background: linear-gradient(180deg, #fffaf2 0%, #ffffff 100%);
+}
+
+.student-dashboard-card-certification,
+.student-dashboard-card-support {
+  grid-column: 1 / -1;
+}
+
+.student-dashboard-card-certification {
+  background:
+    radial-gradient(circle at top right, rgba(216, 177, 106, 0.14), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+  border-color: rgba(216, 177, 106, 0.22);
+}
+
+.student-dashboard-card-support {
+  background:
+    radial-gradient(circle at top right, rgba(91, 204, 136, 0.12), transparent 24%),
+    linear-gradient(135deg, #ffffff 0%, #fbfffd 58%, #f0fbf4 100%);
+}
+
+.student-support-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.student-documents-grid .mi-venezia-document-card {
+  padding: 1.12rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fefcff 100%);
+}
+
+.student-table {
+  border-radius: 22px;
+  border: 1px solid rgba(123, 82, 228, 0.08);
+  background: #fcfbff;
+  box-shadow: none;
+}
+
+.student-table th {
+  color: #8975b5;
+}
+
+.student-table td {
+  color: #2b2141;
+}
+
+.student-badge {
+  border-color: rgba(216, 177, 106, 0.2);
+  background: #fff7eb;
+  color: #8e6829;
+  box-shadow: none;
+}
+
+.student-badge.is-green {
+  background: #eef9f1;
+  color: #2f6d4d;
+}
+
+.student-badge.is-red {
+  background: #fff0f0;
+  color: #944343;
+}
+
+.student-badge.is-blue {
+  background: #eef4ff;
+  color: #395f92;
+}
+
+.student-badge.is-purple {
+  background: #f1ebff;
+  color: #6a4ed0;
+}
+
+.student-badge.is-neutral {
+  background: #f4f1f8;
+  color: #66597c;
+}
+
+.student-main .primary-btn {
+  border-radius: 16px;
+  padding: 0.86rem 1.08rem;
+  background: linear-gradient(135deg, #8f6cff 0%, #7848e2 56%, #6632cf 100%);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(112, 71, 220, 0.22);
+}
+
+.student-main .secondary-btn {
+  border-radius: 16px;
+  border: 1px solid rgba(123, 82, 228, 0.14);
+  background: #fff;
+  color: var(--student-purple-deep);
+}
+
+.student-whatsapp-button {
+  background: linear-gradient(135deg, #4ecf83 0%, #30b36a 100%) !important;
+  box-shadow: 0 14px 26px rgba(52, 176, 106, 0.2) !important;
+}
+
+.student-grid-page {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 960px) {
+  .student-shell {
+    grid-template-columns: 320px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .student-sidebar {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .student-dashboard-header {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    grid-template-areas:
+      "copy visual"
+      "chips visual"
+      "status visual";
+    align-items: stretch;
+  }
+
+  .student-dashboard-chips,
+  .student-profile-grid,
+  .student-payments-grid,
+  .student-attendance-grid,
+  .student-certification-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-dashboard-chips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .student-grid-list,
+  .mi-venezia-payment-schedule,
+  .mi-venezia-reglamento-meta,
+  .mi-venezia-documents-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-achievements-inline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 959px) {
+  .student-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .student-sidebar {
+    position: static;
+  }
+
+  .student-sidebar-nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .student-sidebar-link {
+    min-width: max-content;
+  }
+
+  .student-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-dashboard-header {
+    grid-template-areas:
+      "copy"
+      "chips"
+      "status"
+      "visual";
+  }
+
+  .student-dashboard-grid,
+  .student-grid-page,
+  .student-dashboard-quickstats,
+  .student-dashboard-chips,
+  .student-grid-list,
+  .student-profile-grid,
+  .student-payments-grid,
+  .student-attendance-grid,
+  .student-certification-grid,
+  .mi-venezia-documents-summary,
+  .mi-venezia-payment-schedule,
+  .mi-venezia-reglamento-meta,
+  .student-achievements-inline {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  body.student-portal-mode.student-portal-active .main-content {
+    padding: 0.65rem;
+  }
+
+  .student-sidebar,
+  .student-topbar,
+  .student-card,
+  .student-dashboard-header,
+  .student-documents-grid .mi-venezia-document-card {
+    border-radius: 24px;
+  }
+
+  .student-sidebar,
+  .student-topbar,
+  .student-card,
+  .student-dashboard-header,
+  .student-documents-grid .mi-venezia-document-card {
+    padding: 1rem;
+  }
+
+  #miVeneziaHeroName {
+    font-size: 1.85rem;
+  }
+
+  .student-support-bar,
+  .student-notice,
+  .student-class-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-dashboard-monogram {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    font-size: 1.65rem;
+  }
+}

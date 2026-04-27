@@ -8519,6 +8519,34 @@ function getMiVeneziaSafeText(value, fallback = "Sin información disponible por
   return normalized || fallback;
 }
 
+function toStudentPortalNameCase(value) {
+  const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized
+    .split(" ")
+    .map((part) => {
+      const token = String(part || "").trim();
+      if (!token) {
+        return "";
+      }
+      return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+    })
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getStudentPortalGreetingName(fullName) {
+  const formattedName = toStudentPortalNameCase(fullName);
+  if (!formattedName) {
+    return "estudiante";
+  }
+
+  return formattedName.split(" ")[0] || formattedName;
+}
+
 function getMiVeneziaViewLabel(view) {
   return {
     dashboard: "Inicio",
@@ -9035,6 +9063,8 @@ function renderMiVeneziaDashboard() {
   const attendancePercent = attendanceOverview.totalClases > 0
     ? `${attendanceOverview.completionRate}%`
     : "Sin información disponible por ahora.";
+  const studentDisplayName = toStudentPortalNameCase(student.nombre);
+  const studentGreetingName = getStudentPortalGreetingName(student.nombre);
   const nextClassMetaParts = [
     attendanceOverview.nextClass?.classLabel || "",
     student.curso || "",
@@ -9042,8 +9072,8 @@ function renderMiVeneziaDashboard() {
     student.maestra || student.maestro || student.docente || "",
   ].filter(Boolean);
 
-  miVeneziaHeroName.textContent = `Hola, ${student.nombre || "estudiante"}`;
-  miVeneziaHeroMeta.textContent = `${getMiVeneziaSafeText(student.curso)} · ${getMiVeneziaSafeText(student.sucursal)} · ${getMiVeneziaSafeText(student.horario)}${student.accesoElegido ? ` · ${student.accesoElegido}` : ""}`;
+  miVeneziaHeroName.textContent = `Hola, ${studentGreetingName} 💜`;
+  miVeneziaHeroMeta.textContent = "Bienvenida/o a Mi Venezia";
   renderInfoList(miVeneziaHeroSummary, [
     { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
     { label: "Plantel", value: getMiVeneziaSafeText(student.sucursal) },
@@ -9052,7 +9082,7 @@ function renderMiVeneziaDashboard() {
   ]);
 
   if (miVeneziaSidebarName) {
-    miVeneziaSidebarName.textContent = getMiVeneziaSafeText(student.nombre, "Estudiante");
+    miVeneziaSidebarName.textContent = studentDisplayName || "Estudiante";
   }
   if (miVeneziaSidebarMeta) {
     miVeneziaSidebarMeta.textContent = `${getMiVeneziaSafeText(student.curso)} · ${getMiVeneziaSafeText(student.sucursal)} · ${getMiVeneziaSafeText(student.horario)}`;
