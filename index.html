@@ -1976,7 +1976,7 @@
           </section>
 
           <section class="module-section-inner student-dashboard" id="miVeneziaDashboard" hidden>
-            <div class="student-shell">
+            <div class="student-shell" id="miVeneziaPortal" data-student-portal="true">
               <aside class="student-sidebar student-liquid">
                 <div class="student-sidebar-brand">
                   <div class="student-sidebar-logo" aria-hidden="true">
@@ -2040,6 +2040,18 @@
                     <span class="student-badge is-gold" id="miVeneziaPortalBadge">Portal estudiantil</span>
                   </div>
                 </header>
+
+                <nav class="student-mobile-nav student-liquid" aria-label="Navegación móvil de Mi Venezia">
+                  <button class="student-sidebar-link student-mobile-nav-link is-active" type="button" data-student-view="dashboard">Inicio</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="profile">Perfil</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="payments">Pagos</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="classes">Clases</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="attendance">Asistencias</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="documents">Documentos</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="notices">Avisos</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="certification">Certificación</button>
+                  <button class="student-sidebar-link student-mobile-nav-link" type="button" data-student-view="support">Soporte</button>
+                </nav>
 
                 <div class="student-content">
                   <section class="student-page is-active" data-student-page="dashboard">
@@ -2407,10 +2419,10 @@
                           <h3 class="student-card-title">Certificación SEP</h3>
                         </div>
                       </div>
-                      <div class="info-list student-certification-grid">
+                        <div class="info-list student-certification-grid">
                         <div class="info-item info-item-highlight">
-                          <strong>Qué es</strong>
-                          <span>Una opción adicional para respaldar formalmente tu preparación.</span>
+                          <strong>QUÉ ES</strong>
+                          <span>La SEP Avala tu Experiencia Profesional</span>
                         </div>
                         <div class="info-item info-item-highlight">
                           <strong>Beneficio general</strong>

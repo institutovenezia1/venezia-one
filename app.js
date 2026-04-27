@@ -10897,8 +10897,6 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   miVeneziaLoginForm.reset();
 });
 
-let lastMiVeneziaTouchNavigationAt = 0;
-
 function handleMiVeneziaViewNavigation(event) {
   if (!miVeneziaRoot) {
     return;
@@ -10914,15 +10912,6 @@ function handleMiVeneziaViewNavigation(event) {
     return;
   }
 
-  if (event.type === "pointerup") {
-    if (!event.isPrimary || (event.pointerType !== "touch" && event.pointerType !== "pen")) {
-      return;
-    }
-    lastMiVeneziaTouchNavigationAt = Date.now();
-  } else if (Date.now() - lastMiVeneziaTouchNavigationAt < 450) {
-    return;
-  }
-
   event.preventDefault();
   event.stopPropagation();
   openMiVeneziaView(view);
@@ -10932,7 +10921,6 @@ function handleMiVeneziaViewNavigation(event) {
 }
 
 if (miVeneziaRoot && !miVeneziaRoot.dataset.viewDelegationBound) {
-  miVeneziaRoot.addEventListener("pointerup", handleMiVeneziaViewNavigation, { passive: false });
   miVeneziaRoot.addEventListener("click", handleMiVeneziaViewNavigation);
   miVeneziaRoot.dataset.viewDelegationBound = "true";
 }
