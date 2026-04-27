@@ -7872,3 +7872,321 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
     font-size: 0.9rem;
   }
 }
+
+/* Mi Venezia gold / mobile corrections */
+body.student-portal-mode.student-portal-active .student-shell {
+  --student-purple: #c49a4a;
+  --student-purple-deep: #9d7330;
+  --student-purple-soft: #fbf6eb;
+  --student-purple-border: rgba(196, 154, 74, 0.18);
+  --student-text: #241d18;
+  --student-muted: #6f6458;
+  --student-border: rgba(196, 154, 74, 0.14);
+  --student-shadow: 0 24px 56px rgba(113, 88, 43, 0.09);
+}
+
+body.student-portal-mode.student-portal-active .student-shell::before {
+  background: radial-gradient(circle, rgba(216, 177, 106, 0.16) 0%, rgba(216, 177, 106, 0.05) 34%, rgba(216, 177, 106, 0) 74%);
+}
+
+body.student-portal-mode.student-portal-active .student-shell::after {
+  background: radial-gradient(circle, rgba(246, 233, 204, 0.42) 0%, rgba(246, 233, 204, 0.16) 34%, rgba(246, 233, 204, 0) 74%);
+}
+
+body.student-portal-mode.student-portal-active .student-liquid,
+body.student-portal-mode.student-portal-active .student-card,
+body.student-portal-mode.student-portal-active .student-dashboard-card,
+body.student-portal-mode.student-portal-active .student-dashboard-header,
+body.student-portal-mode.student-portal-active .student-documents-grid .mi-venezia-document-card,
+body.student-portal-mode.student-portal-active .student-table,
+body.student-portal-mode.student-portal-active .mi-venezia-upcoming-item,
+body.student-portal-mode.student-portal-active .mi-venezia-progress-status,
+body.student-portal-mode.student-portal-active .mi-venezia-document-mini-card,
+body.student-portal-mode.student-portal-active .student-achievement,
+body.student-portal-mode.student-portal-active .student-notice,
+body.student-portal-mode.student-portal-active .student-class-item {
+  border-color: rgba(196, 154, 74, 0.12);
+  box-shadow: 0 18px 40px rgba(113, 88, 43, 0.06);
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-logo,
+body.student-portal-mode.student-portal-active .student-sidebar-profile,
+body.student-portal-mode.student-portal-active .student-sidebar-promo,
+body.student-portal-mode.student-portal-active .student-dashboard-chips .info-item,
+body.student-portal-mode.student-portal-active .student-grid-list .info-item,
+body.student-portal-mode.student-portal-active .student-profile-grid .info-item,
+body.student-portal-mode.student-portal-active .student-payments-grid .info-item,
+body.student-portal-mode.student-portal-active .student-attendance-grid .info-item,
+body.student-portal-mode.student-portal-active .student-certification-grid .info-item,
+body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item,
+body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item,
+body.student-portal-mode.student-portal-active .student-dashboard-stat,
+body.student-portal-mode.student-portal-active #miVeneziaNextAction .mi-venezia-action-card {
+  border-color: rgba(196, 154, 74, 0.14);
+  background: linear-gradient(180deg, #fffefb 0%, #fcf8f0 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-label,
+body.student-portal-mode.student-portal-active .student-topbar-label,
+body.student-portal-mode.student-portal-active .student-card-subtitle,
+body.student-portal-mode.student-portal-active .student-class-label,
+body.student-portal-mode.student-portal-active .student-grid-list .info-item strong,
+body.student-portal-mode.student-portal-active .student-profile-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-payments-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-attendance-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-certification-grid .info-item strong,
+body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item strong,
+body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item strong,
+body.student-portal-mode.student-portal-active .mi-venezia-upcoming-label,
+body.student-portal-mode.student-portal-active .mi-venezia-document-mini-code,
+body.student-portal-mode.student-portal-active .student-dashboard-stat span {
+  color: #9b7334;
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-logo-fallback,
+body.student-portal-mode.student-portal-active .student-sidebar-promo-label,
+body.student-portal-mode.student-portal-active .student-topbar-mark,
+body.student-portal-mode.student-portal-active .student-topbar h2,
+body.student-portal-mode.student-portal-active .student-card-title,
+body.student-portal-mode.student-portal-active .student-grid-list .info-item span,
+body.student-portal-mode.student-portal-active .student-profile-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-payments-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-attendance-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-certification-grid .info-item span,
+body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule .info-item span,
+body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta .info-item span,
+body.student-portal-mode.student-portal-active .mi-venezia-upcoming-value,
+body.student-portal-mode.student-portal-active .mi-venezia-document-mini-card strong,
+body.student-portal-mode.student-portal-active .mi-venezia-progress-status strong,
+body.student-portal-mode.student-portal-active #miVeneziaHeroName,
+body.student-portal-mode.student-portal-active #miVeneziaNextAction .mi-venezia-action-title {
+  color: #241d18;
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaHeroMeta,
+body.student-portal-mode.student-portal-active .student-card-meta,
+body.student-portal-mode.student-portal-active .student-notice p,
+body.student-portal-mode.student-portal-active .student-achievement p,
+body.student-portal-mode.student-portal-active .student-class-item p,
+body.student-portal-mode.student-portal-active .student-empty-copy,
+body.student-portal-mode.student-portal-active .mi-venezia-upcoming-meta,
+body.student-portal-mode.student-portal-active .mi-venezia-progress-status p,
+body.student-portal-mode.student-portal-active #miVeneziaNextAction .mi-venezia-action-copy,
+body.student-portal-mode.student-portal-active #miVeneziaNextAction .mi-venezia-action-meta,
+body.student-portal-mode.student-portal-active .student-dashboard-visual-copy {
+  color: #6f6458;
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-link {
+  background: #fcf8f0;
+  color: #5a4d3d;
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-link::before {
+  background: rgba(216, 177, 106, 0.16);
+  color: #9d7330;
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-link:hover,
+body.student-portal-mode.student-portal-active .student-sidebar-link.is-active {
+  border-color: rgba(196, 154, 74, 0.18);
+  background: linear-gradient(135deg, #e2c37e 0%, #cfa55f 58%, #b9893f 100%);
+  color: #241d18;
+  box-shadow: 0 16px 28px rgba(171, 126, 47, 0.2);
+}
+
+body.student-portal-mode.student-portal-active .student-sidebar-link:hover::before,
+body.student-portal-mode.student-portal-active .student-sidebar-link.is-active::before {
+  background: rgba(255, 255, 255, 0.34);
+  color: #241d18;
+}
+
+body.student-portal-mode.student-portal-active .student-topbar-mark {
+  background: linear-gradient(135deg, #ead299 0%, #c89b4c 100%);
+  box-shadow: 0 12px 24px rgba(176, 131, 49, 0.2);
+}
+
+body.student-portal-mode.student-portal-active .student-dashboard-visual {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 24%),
+    linear-gradient(135deg, #f1deb2 0%, #dbba79 56%, #c99b51 100%);
+  box-shadow: 0 28px 56px rgba(171, 126, 47, 0.22);
+}
+
+body.student-portal-mode.student-portal-active .student-dashboard-visual-kicker,
+body.student-portal-mode.student-portal-active #miVeneziaNextAction .mi-venezia-action-badge {
+  color: #241d18;
+  background: rgba(255, 255, 255, 0.36);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+body.student-portal-mode.student-portal-active .student-dashboard-monogram {
+  color: #241d18;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.16) 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-main .primary-btn {
+  background: linear-gradient(135deg, #e4c987 0%, #cda25b 56%, #b7863f 100%);
+  color: #241d18;
+  box-shadow: 0 14px 28px rgba(171, 126, 47, 0.2);
+}
+
+body.student-portal-mode.student-portal-active .student-main .secondary-btn {
+  border-color: rgba(196, 154, 74, 0.18);
+  color: #8c682c;
+  background: #fffdf8;
+}
+
+body.student-portal-mode.student-portal-active .student-whatsapp-button {
+  background: linear-gradient(180deg, #fffefb 0%, #f8fcf8 100%) !important;
+  border-color: rgba(86, 162, 104, 0.22) !important;
+  color: #387e4d !important;
+}
+
+body.student-portal-mode.student-portal-active .student-badge,
+body.student-portal-mode.student-portal-active .student-badge.is-purple,
+body.student-portal-mode.student-portal-active .student-badge.is-neutral,
+body.student-portal-mode.student-portal-active .student-badge.is-gold {
+  background: #fdf7ea;
+  border-color: rgba(216, 177, 106, 0.24);
+  color: #8d672a;
+}
+
+body.student-portal-mode.student-portal-active .mi-venezia-progress-meter {
+  background: rgba(216, 177, 106, 0.18);
+}
+
+body.student-portal-mode.student-portal-active .mi-venezia-progress-meter-fill {
+  background: linear-gradient(90deg, #edd79d 0%, #c99b51 100%);
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-shell,
+  body.student-portal-mode.student-portal-active .student-main,
+  body.student-portal-mode.student-portal-active .student-content,
+  body.student-portal-mode.student-portal-active .student-page,
+  body.student-portal-mode.student-portal-active .student-dashboard-grid,
+  body.student-portal-mode.student-portal-active .student-grid-page,
+  body.student-portal-mode.student-portal-active .student-dashboard-chips,
+  body.student-portal-mode.student-portal-active .student-grid-list,
+  body.student-portal-mode.student-portal-active .student-profile-grid,
+  body.student-portal-mode.student-portal-active .student-payments-grid,
+  body.student-portal-mode.student-portal-active .student-attendance-grid,
+  body.student-portal-mode.student-portal-active .student-certification-grid,
+  body.student-portal-mode.student-portal-active .mi-venezia-documents-summary,
+  body.student-portal-mode.student-portal-active .mi-venezia-payment-schedule,
+  body.student-portal-mode.student-portal-active .mi-venezia-reglamento-meta,
+  body.student-portal-mode.student-portal-active .student-achievements-inline,
+  body.student-portal-mode.student-portal-active .student-dashboard-quickstats {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-shell {
+    gap: 0.7rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar-nav {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 0.45rem !important;
+    padding: 0.1rem 0 0.3rem !important;
+    margin: 0 !important;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar-link {
+    display: inline-flex !important;
+    align-items: center;
+    width: auto !important;
+    min-width: fit-content !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    font-size: 0.8rem !important;
+    padding: 0.72rem 0.82rem 0.72rem 2.35rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar-link[data-student-view="attendance"] {
+    min-width: max-content !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-topbar {
+    display: none !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-dashboard-header {
+    padding: 0.95rem !important;
+    border-radius: 20px !important;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaHeroName {
+    font-size: clamp(1.18rem, 5vw, 1.48rem) !important;
+    line-height: 1.16 !important;
+    letter-spacing: -0.02em !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaHeroMeta {
+    font-size: 0.9rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-dashboard-visual {
+    padding: 0.9rem !important;
+    border-radius: 20px !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-dashboard-monogram {
+    display: none !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-card,
+  body.student-portal-mode.student-portal-active .student-dashboard-card,
+  body.student-portal-mode.student-portal-active .student-documents-grid .mi-venezia-document-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0.95rem !important;
+    border-radius: 20px !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-card .primary-btn,
+  body.student-portal-mode.student-portal-active .student-card .secondary-btn,
+  body.student-portal-mode.student-portal-active .student-support-bar .primary-btn,
+  body.student-portal-mode.student-portal-active .student-support-bar .secondary-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body.student-portal-mode.student-portal-active .main-content {
+    padding: 0.5rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar-link {
+    font-size: 0.76rem !important;
+    padding: 0.68rem 0.78rem 0.68rem 2.2rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaHeroName {
+    font-size: clamp(1.08rem, 5.2vw, 1.32rem) !important;
+  }
+}

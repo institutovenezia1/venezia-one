@@ -9088,7 +9088,7 @@ function renderMiVeneziaDashboard() {
     student.maestra || student.maestro || student.docente || "",
   ].filter(Boolean);
 
-  miVeneziaHeroName.textContent = `Hola, ${studentGreetingName} 💜`;
+  miVeneziaHeroName.textContent = `Hola, ${studentDisplayName || getMiVeneziaSafeText(student.nombre, "Estudiante")}`;
   miVeneziaHeroMeta.textContent = "Bienvenida/o a Mi Venezia";
   renderInfoList(miVeneziaHeroSummary, [
     { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
