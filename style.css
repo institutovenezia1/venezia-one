@@ -5704,3 +5704,628 @@ body.access-selector-mode .module-section.active {
     min-width: 100%;
   }
 }
+
+.student-login-panel {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.student-dashboard {
+  display: block;
+}
+
+.student-shell {
+  --student-cream: #fbf7f0;
+  --student-cream-strong: rgba(255, 251, 244, 0.82);
+  --student-white: rgba(255, 255, 255, 0.66);
+  --student-gold: #c39a32;
+  --student-gold-soft: rgba(195, 154, 50, 0.16);
+  --student-gold-border: rgba(195, 154, 50, 0.28);
+  --student-purple: #6742a8;
+  --student-purple-soft: rgba(103, 66, 168, 0.12);
+  --student-text: #181310;
+  --student-muted: #675c52;
+  --student-border: rgba(104, 84, 54, 0.12);
+  --student-shadow: 0 22px 52px rgba(42, 32, 21, 0.08);
+  display: grid;
+  gap: 1rem;
+  color: var(--student-text);
+}
+
+.student-liquid {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64) 0%, rgba(255, 249, 240, 0.54) 100%),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.62), transparent 40%),
+    linear-gradient(135deg, rgba(255, 250, 243, 0.9) 0%, rgba(244, 236, 226, 0.84) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 18px 44px rgba(42, 32, 21, 0.08);
+  backdrop-filter: blur(18px) saturate(118%);
+  -webkit-backdrop-filter: blur(18px) saturate(118%);
+}
+
+.student-liquid::after {
+  content: "";
+  position: absolute;
+  inset: auto -48px -64px auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(195, 154, 50, 0.12) 0%, rgba(195, 154, 50, 0) 72%);
+  pointer-events: none;
+}
+
+.student-gold-accent {
+  border-color: rgba(195, 154, 50, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(250, 244, 231, 0.62) 100%),
+    radial-gradient(circle at top right, rgba(195, 154, 50, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(255, 249, 242, 0.94) 0%, rgba(245, 236, 216, 0.9) 100%);
+}
+
+.student-sidebar,
+.student-topbar,
+.student-card {
+  border-radius: 28px;
+}
+
+.student-sidebar {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.student-sidebar-brand h3,
+.student-topbar h2,
+.student-card-title,
+.student-hero-copy h3 {
+  margin: 0;
+}
+
+.student-sidebar-label,
+.student-topbar-label,
+.student-card-subtitle,
+.student-class-label {
+  margin: 0 0 0.35rem;
+  color: #88735b;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.student-sidebar-copy,
+.student-sidebar-profile span,
+.student-topbar-copy,
+.student-card-meta,
+.student-achievement p,
+.student-notice p,
+.student-class-item p,
+.student-empty-copy {
+  margin: 0;
+  color: var(--student-muted);
+  line-height: 1.55;
+}
+
+.student-sidebar-profile {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(195, 154, 50, 0.16);
+}
+
+.student-sidebar-profile strong {
+  font-size: 1.08rem;
+}
+
+.student-sidebar-nav {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.student-sidebar-link {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  padding: 0.82rem 0.95rem;
+  background: rgba(255, 255, 255, 0.38);
+  color: var(--student-text);
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.student-sidebar-link:hover,
+.student-sidebar-link.is-active {
+  transform: translateY(-1px);
+  border-color: var(--student-gold-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76) 0%, rgba(250, 244, 233, 0.82) 100%);
+  box-shadow: 0 14px 28px rgba(59, 42, 19, 0.08);
+}
+
+.student-sidebar-logout {
+  width: 100%;
+}
+
+.student-main {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.student-topbar-copy {
+  max-width: 48rem;
+}
+
+.student-topbar h2 {
+  font-size: clamp(1.9rem, 4vw, 2.5rem);
+  line-height: 1;
+}
+
+.student-topbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.student-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-page {
+  display: none;
+  gap: 1rem;
+}
+
+.student-page.is-active {
+  display: grid;
+}
+
+.student-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.student-grid-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.student-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.student-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.student-card-title {
+  font-size: 1.12rem;
+  line-height: 1.1;
+}
+
+.student-card-value {
+  font-size: clamp(1.15rem, 4vw, 1.5rem);
+  line-height: 1.05;
+}
+
+.student-hero-card {
+  gap: 1rem;
+}
+
+.student-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.student-hero-copy h3 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 0.95;
+}
+
+.student-hero-message {
+  margin: 0.45rem 0 0;
+  color: #2f241b;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.student-hero-summary,
+.student-grid-list,
+.student-profile-grid,
+.student-payments-grid,
+.student-attendance-grid,
+.student-certification-grid {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.student-hero-summary .info-item,
+.student-grid-list .info-item,
+.student-profile-grid .info-item,
+.student-payments-grid .info-item,
+.student-attendance-grid .info-item,
+.student-certification-grid .info-item,
+.mi-venezia-payment-schedule .info-item,
+.mi-venezia-reglamento-meta .info-item {
+  padding: 0.78rem 0.86rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74) 0%, rgba(249, 244, 237, 0.86) 100%);
+  border: 1px solid rgba(195, 154, 50, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.student-hero-summary .info-item strong,
+.student-grid-list .info-item strong,
+.student-profile-grid .info-item strong,
+.student-payments-grid .info-item strong,
+.student-attendance-grid .info-item strong,
+.student-certification-grid .info-item strong,
+.mi-venezia-payment-schedule .info-item strong,
+.mi-venezia-reglamento-meta .info-item strong {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6550;
+}
+
+.student-hero-summary .info-item span,
+.student-grid-list .info-item span,
+.student-profile-grid .info-item span,
+.student-payments-grid .info-item span,
+.student-attendance-grid .info-item span,
+.student-certification-grid .info-item span,
+.mi-venezia-payment-schedule .info-item span,
+.mi-venezia-reglamento-meta .info-item span {
+  color: var(--student-text);
+  font-weight: 700;
+}
+
+.student-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  position: relative;
+  z-index: 1;
+}
+
+.student-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.42rem 0.82rem;
+  border-radius: 999px;
+  border: 1px solid rgba(104, 84, 54, 0.12);
+  background: rgba(255, 255, 255, 0.74);
+  color: #594b3c;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.student-badge.is-green {
+  color: #2f6a4e;
+  background: rgba(236, 248, 240, 0.92);
+}
+
+.student-badge.is-red {
+  color: #8b3b3b;
+  background: rgba(255, 238, 238, 0.92);
+}
+
+.student-badge.is-gold {
+  color: #8b6523;
+  background: rgba(255, 246, 225, 0.96);
+}
+
+.student-badge.is-blue {
+  color: #355c8f;
+  background: rgba(236, 244, 255, 0.94);
+}
+
+.student-badge.is-purple {
+  color: #5f468c;
+  background: rgba(244, 238, 255, 0.94);
+}
+
+.student-badge.is-neutral {
+  color: #605347;
+  background: rgba(247, 243, 238, 0.94);
+}
+
+.student-status-card {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-progress {
+  gap: 0.55rem;
+}
+
+.student-achievements-grid,
+.student-notices-list,
+.student-classes-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.student-achievement,
+.student-notice,
+.student-class-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(195, 154, 50, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(250, 245, 238, 0.86) 100%);
+}
+
+.student-achievement {
+  display: grid;
+}
+
+.student-achievement strong,
+.student-notice strong,
+.student-class-item strong {
+  color: var(--student-text);
+}
+
+.student-achievement.is-blue,
+.student-notice.is-blue,
+.student-class-item.is-next {
+  border-color: rgba(74, 118, 184, 0.18);
+  background: linear-gradient(180deg, rgba(247, 251, 255, 0.8) 0%, rgba(236, 244, 255, 0.9) 100%);
+}
+
+.student-achievement.is-gold,
+.student-notice.is-gold {
+  border-color: rgba(195, 154, 50, 0.18);
+  background: linear-gradient(180deg, rgba(255, 251, 241, 0.82) 0%, rgba(255, 245, 223, 0.92) 100%);
+}
+
+.student-achievement.is-green {
+  border-color: rgba(70, 139, 104, 0.18);
+  background: linear-gradient(180deg, rgba(243, 251, 246, 0.82) 0%, rgba(232, 247, 238, 0.92) 100%);
+}
+
+.student-achievement.is-purple {
+  border-color: rgba(103, 66, 168, 0.14);
+  background: linear-gradient(180deg, rgba(249, 245, 255, 0.84) 0%, rgba(241, 234, 255, 0.92) 100%);
+}
+
+.student-notice.is-red {
+  border-color: rgba(180, 77, 77, 0.16);
+  background: linear-gradient(180deg, rgba(255, 246, 246, 0.84) 0%, rgba(255, 236, 236, 0.92) 100%);
+}
+
+.student-class-item {
+  align-items: center;
+}
+
+.student-class-item > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.student-table {
+  padding: 0.25rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.student-table table {
+  min-width: 100%;
+}
+
+.student-table th {
+  color: #7a6550;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.student-table td {
+  color: #2b2118;
+}
+
+.student-whatsapp-button {
+  background: linear-gradient(180deg, #2ec162 0%, #1ea34b 100%);
+  border-color: #1d8d42;
+  color: #fff;
+  box-shadow: none;
+}
+
+.student-whatsapp-button:hover {
+  background: linear-gradient(180deg, #29b35a 0%, #1d9645 100%);
+}
+
+.student-documents-grid {
+  gap: 1rem;
+}
+
+.student-documents-grid .mi-venezia-document-card {
+  padding: 1rem;
+  border-radius: 24px;
+  border: 1px solid rgba(195, 154, 50, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(249, 244, 237, 0.88) 100%);
+}
+
+.student-documents-grid .mi-venezia-document-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.student-documents-grid .mi-venezia-document-note {
+  margin: 0;
+  color: var(--student-muted);
+}
+
+body.student-portal-mode.student-portal-active .sidebar,
+body.student-portal-mode.student-portal-active .topbar {
+  display: none !important;
+}
+
+body.student-portal-mode.student-portal-active .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body.student-portal-mode.student-portal-active .main-content {
+  padding: 0.85rem;
+  background:
+    radial-gradient(circle at top left, rgba(195, 154, 50, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(103, 66, 168, 0.08), transparent 22%),
+    linear-gradient(180deg, #fbf7f0 0%, #f7f0e6 100%);
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaSection {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+@media (min-width: 960px) {
+  .student-shell {
+    grid-template-columns: 290px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .student-sidebar {
+    position: sticky;
+    top: 0.85rem;
+  }
+
+  .student-grid-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .student-grid-main,
+  .student-grid-secondary,
+  .student-grid-tertiary,
+  .student-grid-support,
+  .student-grid-page {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .student-grid-page {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+
+  .student-hero-summary,
+  .student-profile-grid,
+  .student-payments-grid,
+  .student-attendance-grid,
+  .student-certification-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .student-grid-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 959px) {
+  .student-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  .student-sidebar-nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .student-sidebar-link {
+    min-width: max-content;
+  }
+
+  .student-topbar {
+    flex-direction: column;
+  }
+
+  .student-topbar-meta {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-shell,
+  .student-content,
+  .student-page,
+  .student-grid,
+  .student-grid-kpis,
+  .student-grid-main,
+  .student-grid-secondary,
+  .student-grid-tertiary,
+  .student-grid-support,
+  .student-grid-page,
+  .student-hero-summary,
+  .student-grid-list,
+  .student-profile-grid,
+  .student-payments-grid,
+  .student-attendance-grid,
+  .student-certification-grid,
+  .mi-venezia-documents-summary,
+  .mi-venezia-payment-schedule,
+  .mi-venezia-reglamento-meta,
+  .student-documents-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-sidebar,
+  .student-topbar,
+  .student-card {
+    border-radius: 22px;
+  }
+
+  .student-sidebar,
+  .student-topbar,
+  .student-card,
+  .student-documents-grid .mi-venezia-document-card {
+    padding: 0.9rem;
+  }
+
+  .student-achievement,
+  .student-notice,
+  .student-class-item,
+  .student-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-topbar h2 {
+    font-size: 1.85rem;
+  }
+
+  body.student-portal-mode.student-portal-active .main-content {
+    padding: 0.6rem;
+  }
+}

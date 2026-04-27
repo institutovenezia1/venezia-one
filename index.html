@@ -48,8 +48,8 @@
 
         <div class="info-list">
           <div class="info-item">
-            <strong>Acceso separado para alumnas</strong>
-            <span>Mi Venezia se mantiene independiente del login interno y sólo permite acceso a información personal de la alumna.</span>
+            <strong>Acceso separado para estudiantes</strong>
+            <span>Mi Venezia se mantiene independiente del login interno y sólo permite acceso a información personal del estudiante.</span>
           </div>
         </div>
       </div>
@@ -1944,10 +1944,10 @@
         </section>
 
         <section class="module-section" id="miVeneziaSection">
-          <section class="panel" id="miVeneziaLoginPanel">
+          <section class="panel student-login-panel" id="miVeneziaLoginPanel">
             <div class="section-heading">
               <p class="eyebrow">Portal</p>
-              <h3>Mi Venezia - Portal de Alumnas</h3>
+              <h3>Mi Venezia - Portal de Estudiantes</h3>
             </div>
 
             <form id="miVeneziaLoginForm" class="prospect-form">
@@ -1967,306 +1967,531 @@
             </form>
 
             <p class="empty-state">
-              Ingresa con el usuario y la contraseña generados en Altas para tu acceso de alumna.
+              Ingresa con el usuario y la contraseña generados en Altas para acceder a tu portal.
             </p>
           </section>
 
-          <section class="module-section-inner" id="miVeneziaDashboard" hidden>
-            <section class="panel">
-              <div class="section-heading">
-                <p class="eyebrow">Cuenta</p>
-                <h3>Mi Venezia - Portal de Alumnas</h3>
-              </div>
-
-              <div class="form-actions">
-                <button class="secondary-btn" type="button" id="miVeneziaLogoutButton">Cerrar sesión</button>
-              </div>
-            </section>
-
-            <section class="panel mi-venezia-hero-panel">
-              <div class="mi-venezia-hero-copy">
-                <p class="eyebrow">Panel principal</p>
-                <h3 id="miVeneziaHeroName">Mi Venezia</h3>
-                <p id="miVeneziaHeroMeta" class="subtitle">Consulta tu información académica y administrativa en un solo lugar.</p>
-              </div>
-
-              <div class="info-list mi-venezia-hero-summary" id="miVeneziaHeroSummary"></div>
-
-              <div class="form-actions">
-                <a class="primary-btn whatsapp-director-btn" id="miVeneziaContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">WhatsApp Directora</a>
-              </div>
-            </section>
-
-            <section class="stats-grid mi-venezia-stats-grid" aria-label="Resumen de alumna">
-              <article class="stat-card mi-venezia-mini-stat">
-                <p>Curso</p>
-                <strong id="miVeneziaStatCourse">-</strong>
-              </article>
-              <article class="stat-card mi-venezia-mini-stat">
-                <p>Avance</p>
-                <strong id="miVeneziaStatAttendance">0%</strong>
-              </article>
-              <article class="stat-card mi-venezia-mini-stat">
-                <p>Próximo pago</p>
-                <strong id="miVeneziaStatPayments">Por confirmar</strong>
-              </article>
-              <article class="stat-card mi-venezia-mini-stat">
-                <p>Estado</p>
-                <strong id="miVeneziaStatStatus">-</strong>
-              </article>
-            </section>
-
-            <section class="content-grid mi-venezia-priority-grid">
-              <section class="panel mi-venezia-compact-panel mi-venezia-profile-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Perfil</p>
-                  <h3>Mi perfil</h3>
-                </div>
-                <div id="miVeneziaPerfil" class="info-list mi-venezia-profile-list"></div>
-              </section>
-
-              <section class="panel mi-venezia-compact-panel mi-venezia-upcoming-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Agenda</p>
-                  <h3>Próxima clase y pago</h3>
-                </div>
-                <div id="miVeneziaUpcoming" class="mi-venezia-upcoming-list"></div>
-              </section>
-
-              <section class="panel mi-venezia-compact-panel mi-venezia-payments-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Pagos</p>
-                  <h3>Mis pagos</h3>
-                </div>
-                <div id="miVeneziaPagos" class="info-list mi-venezia-payments-summary"></div>
-                <div class="table-wrapper mi-venezia-simple-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Concepto</th>
-                        <th>Monto</th>
-                        <th>Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody id="miVeneziaPagosBody"></tbody>
-                  </table>
-                </div>
-                <p id="miVeneziaPagosEmptyState" class="empty-state">
-                  Aún no hay pagos registrados para tu perfil.
-                </p>
-              </section>
-            </section>
-
-            <section class="panel mi-venezia-compact-panel mi-venezia-schedule-panel">
-              <div class="section-heading mi-venezia-subsection-heading">
-                <p class="eyebrow">Calendario</p>
-                <h3>Fechas de pago</h3>
-              </div>
-              <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
-            </section>
-
-            <section class="content-grid mi-venezia-content-grid">
-              <section class="panel mi-venezia-compact-panel mi-venezia-attendance-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Asistencia</p>
-                  <h3>Mis asistencias</h3>
-                </div>
-                <div id="miVeneziaResumenAsistencias" class="info-list mi-venezia-attendance-summary"></div>
-                <div class="table-wrapper mi-venezia-simple-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Clase</th>
-                        <th>Resultado</th>
-                        <th>Fecha</th>
-                      </tr>
-                    </thead>
-                    <tbody id="miVeneziaAsistenciasBody"></tbody>
-                  </table>
-                </div>
-                <div class="form-actions mi-venezia-attendance-actions">
-                  <button class="secondary-btn mi-venezia-attendance-toggle" type="button" id="miVeneziaAttendanceToggle" hidden>
-                    Ver más
-                  </button>
-                </div>
-                <p id="miVeneziaAsistenciasEmptyState" class="empty-state">
-                  Aún no hay asistencias registradas para tu perfil.
-                </p>
-              </section>
-
-              <section class="panel mi-venezia-compact-panel mi-venezia-progress-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Avance</p>
-                  <h3>Mi avance</h3>
-                </div>
-                <div id="miVeneziaAvance" class="info-list mi-venezia-progress-grid"></div>
-                <div id="miVeneziaProgressStatus" class="mi-venezia-progress-status"></div>
-              </section>
-            </section>
-
-            <section class="panel mi-venezia-compact-panel mi-venezia-sep-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Certificación</p>
-                <h3>Valor de tu certificado SEP</h3>
-              </div>
-              <div class="info-list mi-venezia-sep-list">
-                <div class="info-item info-item-highlight">
-                  <strong>Aval profesional</strong>
-                  <span>Es un certificado que respalda tu preparación para trabajar de forma profesional.</span>
-                </div>
-                <div class="info-item info-item-highlight">
-                  <strong>Validez nacional</strong>
-                  <span>Te respalda para trabajar en cualquier estado del país con una base formal de capacitación.</span>
-                </div>
-                <div class="info-item info-item-highlight">
-                  <strong>Proyección internacional</strong>
-                  <span>También puede fortalecer tu perfil para oportunidades laborales en Estados Unidos y Canadá.</span>
-                </div>
-              </div>
-            </section>
-
-            <section class="panel mi-venezia-compact-panel portal-security-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Seguridad</p>
-                <h3>Cambiar contraseña</h3>
-              </div>
-
-              <p class="portal-security-copy">
-                Actualiza tu contraseña de Mi Venezia desde aquí. El cambio se guarda directamente en tu registro principal.
-              </p>
-
-              <form id="miVeneziaPasswordForm" class="portal-security-form">
-                <div class="portal-password-fields">
-                  <label>
-                    <span>Contraseña actual</span>
-                    <input
-                      id="miVeneziaCurrentPassword"
-                      name="currentPassword"
-                      type="password"
-                      autocomplete="current-password"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <span>Nueva contraseña</span>
-                    <input
-                      id="miVeneziaNewPassword"
-                      name="newPassword"
-                      type="password"
-                      autocomplete="new-password"
-                      minlength="6"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <span>Confirmar nueva contraseña</span>
-                    <input
-                      id="miVeneziaConfirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      autocomplete="new-password"
-                      minlength="6"
-                      required
-                    />
-                  </label>
+          <section class="module-section-inner student-dashboard" id="miVeneziaDashboard" hidden>
+            <div class="student-shell">
+              <aside class="student-sidebar student-liquid">
+                <div class="student-sidebar-brand">
+                  <p class="student-sidebar-label">Mi Venezia</p>
+                  <h3>Tu portal académico</h3>
+                  <p class="student-sidebar-copy">Una vista clara de tu formación, tus clases y tu avance.</p>
                 </div>
 
-                <div class="portal-security-actions">
-                  <button class="primary-btn" type="submit" id="miVeneziaPasswordSubmitButton">Guardar nueva contraseña</button>
-                  <p class="portal-password-hint">Mínimo 6 caracteres.</p>
+                <div class="student-sidebar-profile">
+                  <strong id="miVeneziaSidebarName">Estudiante</strong>
+                  <span id="miVeneziaSidebarMeta">Estamos preparando tu información.</span>
+                  <span class="student-badge is-neutral" id="miVeneziaSidebarStatus">Portal activo</span>
                 </div>
 
-                <p class="portal-password-feedback" id="miVeneziaPasswordFeedback" hidden aria-live="polite"></p>
-              </form>
-            </section>
+                <nav class="student-sidebar-nav" aria-label="Navegación de Mi Venezia">
+                  <button class="student-sidebar-link is-active" type="button" data-student-view="dashboard">Inicio</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="profile">Perfil</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="payments">Pagos</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="classes">Clases</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="attendance">Asistencias</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="documents">Documentos</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="notices">Avisos</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="certification">Certificación</button>
+                  <button class="student-sidebar-link" type="button" data-student-view="support">Soporte</button>
+                </nav>
 
-            <section class="panel mi-venezia-reglamento-panel">
-              <div class="mi-venezia-reglamento-header">
-                <div class="section-heading">
-                  <p class="eyebrow">Documentación</p>
-                  <h3>Documentos oficiales</h3>
-                </div>
-              </div>
+                <button class="secondary-btn student-sidebar-logout" type="button" id="miVeneziaLogoutButton">Cerrar sesión</button>
+              </aside>
 
-              <div class="mi-venezia-documents-grid">
-                <article class="mi-venezia-document-card">
-                  <div class="mi-venezia-document-card-header">
-                    <div>
-                      <p class="eyebrow">REG</p>
-                      <h4>Reglamento interno</h4>
+              <div class="student-main">
+                <header class="student-topbar student-liquid">
+                  <div>
+                    <p class="student-topbar-label">Portal estudiantil</p>
+                    <h2>Mi Venezia</h2>
+                    <p class="student-topbar-copy">Consulta tu avance, resuelve pendientes y mantén tu formación al día.</p>
+                  </div>
+                  <div class="student-topbar-meta">
+                    <span class="student-badge is-gold" id="miVeneziaViewLabel">Inicio</span>
+                    <span class="student-badge is-neutral">App académica</span>
+                  </div>
+                </header>
+
+                <div class="student-content">
+                  <section class="student-page is-active" data-student-page="dashboard">
+                    <section class="student-card student-liquid student-hero-card">
+                      <div class="student-hero-copy">
+                        <p class="student-card-subtitle">Panel principal</p>
+                        <h3 id="miVeneziaHeroName">Hola</h3>
+                        <p class="student-hero-message">Cada clase te acerca a tu crecimiento.</p>
+                        <p id="miVeneziaHeroMeta" class="student-card-meta">Consulta tu información académica y administrativa en un solo lugar.</p>
+                      </div>
+
+                      <div class="info-list student-hero-summary" id="miVeneziaHeroSummary"></div>
+
+                      <div class="student-hero-actions">
+                        <a class="primary-btn student-whatsapp-button" id="miVeneziaContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Necesito ayuda por WhatsApp</a>
+                        <button class="secondary-btn" type="button" data-student-view-jump="support">Ver soporte</button>
+                      </div>
+                    </section>
+
+                    <section class="student-grid student-grid-kpis" aria-label="Indicadores principales">
+                      <article class="student-card student-liquid">
+                        <span class="student-card-subtitle">Curso</span>
+                        <strong class="student-card-value" id="miVeneziaStatCourse">-</strong>
+                        <p class="student-card-meta">Tu formación actual.</p>
+                      </article>
+                      <article class="student-card student-liquid">
+                        <span class="student-card-subtitle">Avance</span>
+                        <strong class="student-card-value" id="miVeneziaStatAttendance">0%</strong>
+                        <p class="student-card-meta">Cada clase suma a tu progreso.</p>
+                      </article>
+                      <article class="student-card student-liquid">
+                        <span class="student-card-subtitle">Próximo pago</span>
+                        <strong class="student-card-value" id="miVeneziaStatPayments">Por confirmar</strong>
+                        <p class="student-card-meta">Consulta tu siguiente referencia.</p>
+                      </article>
+                      <article class="student-card student-liquid">
+                        <span class="student-card-subtitle">Estado</span>
+                        <strong class="student-card-value" id="miVeneziaStatStatus">-</strong>
+                        <p class="student-card-meta">Resumen de tu portal.</p>
+                      </article>
+                    </section>
+
+                    <section class="student-grid student-grid-main">
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Estado del portal</p>
+                            <h4 class="student-card-title">Tu estado actual</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaStudentStatus"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Próxima clase</p>
+                            <h4 class="student-card-title">Tu agenda inmediata</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaUpcoming" class="mi-venezia-upcoming-list"></div>
+                        <div class="form-actions">
+                          <button class="secondary-btn" type="button" data-student-view-jump="classes">Ver calendario completo</button>
+                        </div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Próxima acción</p>
+                            <h4 class="student-card-title">Siguiente paso</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaNextAction"></div>
+                      </article>
+                    </section>
+
+                    <section class="student-grid student-grid-secondary">
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Pagos</p>
+                            <h4 class="student-card-title">Estado de pagos</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaDashboardPaymentSummary" class="info-list student-grid-list"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Avance</p>
+                            <h4 class="student-card-title">Progreso del curso</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaDashboardProgressSummary" class="info-list student-grid-list"></div>
+                        <div id="miVeneziaProgressStatus" class="mi-venezia-progress-status student-progress"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Asistencias</p>
+                            <h4 class="student-card-title">Tu constancia</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaDashboardAttendanceSummary" class="info-list student-grid-list"></div>
+                        <p class="student-card-meta">Tu constancia también habla de tu compromiso.</p>
+                      </article>
+                    </section>
+
+                    <section class="student-grid student-grid-tertiary">
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Mini logros</p>
+                            <h4 class="student-card-title">Hitos de tu formación</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaAchievements" class="student-achievements-grid"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Documentos</p>
+                            <h4 class="student-card-title">Estado documental</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaDocumentsSummary" class="mi-venezia-documents-summary"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Avisos</p>
+                            <h4 class="student-card-title">Importante para ti</h4>
+                          </div>
+                        </div>
+                        <div id="miVeneziaNoticesPreview" class="student-notices-list"></div>
+                      </article>
+                    </section>
+
+                    <section class="student-grid student-grid-support">
+                      <article class="student-card student-liquid student-gold-accent">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Certificación SEP</p>
+                            <h4 class="student-card-title">Fortalece tu perfil profesional</h4>
+                          </div>
+                        </div>
+                        <p class="student-card-meta">Disponible con inversión adicional. Respalda tu preparación y puede aportar mayor solidez a tu perfil profesional.</p>
+                        <div class="form-actions">
+                          <button class="secondary-btn" type="button" data-student-view-jump="certification">Ver detalle</button>
+                        </div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Soporte</p>
+                            <h4 class="student-card-title">Acompañamiento directo</h4>
+                          </div>
+                        </div>
+                        <p class="student-card-meta">Si necesitas ayuda con tus datos, documentos o pagos, puedes escribirnos desde aquí.</p>
+                        <div class="form-actions">
+                          <button class="secondary-btn" type="button" data-student-view-jump="support">Abrir soporte</button>
+                        </div>
+                      </article>
+                    </section>
+                  </section>
+
+                  <section class="student-page" data-student-page="profile">
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Perfil</p>
+                          <h3 class="student-card-title">Tu información</h3>
+                        </div>
+                      </div>
+                      <div id="miVeneziaPerfil" class="info-list student-profile-grid"></div>
+                    </article>
+                  </section>
+
+                  <section class="student-page" data-student-page="payments">
+                    <div class="student-grid student-grid-page">
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Pagos</p>
+                            <h3 class="student-card-title">Resumen actual</h3>
+                          </div>
+                        </div>
+                        <div id="miVeneziaPagos" class="info-list student-payments-grid"></div>
+                      </article>
+
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Calendario</p>
+                            <h3 class="student-card-title">Fechas de referencia</h3>
+                          </div>
+                        </div>
+                        <div id="miVeneziaPaymentSchedule" class="info-list mi-venezia-payment-schedule"></div>
+                      </article>
                     </div>
-                    <span class="status-pill status-pill-default mi-venezia-reglamento-status" id="miVeneziaReglamentoStatus">
-                      Pendiente
-                    </span>
-                  </div>
 
-                  <div id="miVeneziaReglamentoMeta" class="info-list mi-venezia-reglamento-meta"></div>
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Historial</p>
+                          <h3 class="student-card-title">Movimientos registrados</h3>
+                        </div>
+                      </div>
+                      <div class="table-wrapper mi-venezia-simple-table student-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Fecha</th>
+                              <th>Concepto</th>
+                              <th>Monto</th>
+                              <th>Estatus</th>
+                            </tr>
+                          </thead>
+                          <tbody id="miVeneziaPagosBody"></tbody>
+                        </table>
+                      </div>
+                      <p id="miVeneziaPagosEmptyState" class="empty-state">
+                        Sin información disponible por ahora.
+                      </p>
+                    </article>
+                  </section>
 
-                  <div class="form-actions mi-venezia-reglamento-actions">
-                    <a
-                      class="secondary-btn"
-                      id="miVeneziaViewReglamentoButton"
-                      href="/images/reglamentooficial-venezia.pdf"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Ver
-                    </a>
-                    <a
-                      class="secondary-btn"
-                      id="miVeneziaDownloadReglamentoButton"
-                      href="/images/reglamentooficial-venezia.pdf"
-                      download="reglamentooficial-venezia.pdf"
-                    >
-                      Descargar
-                    </a>
-                    <button class="primary-btn" type="button" id="miVeneziaConfirmReadButton">Confirmo lectura</button>
-                  </div>
-                </article>
+                  <section class="student-page" data-student-page="classes">
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Clases</p>
+                          <h3 class="student-card-title">Tu calendario</h3>
+                        </div>
+                      </div>
+                      <div id="miVeneziaClassesList" class="student-classes-list"></div>
+                    </article>
+                  </section>
 
-                <article class="mi-venezia-document-card">
-                  <div class="mi-venezia-document-card-header">
-                    <div>
-                      <p class="eyebrow">CONT</p>
-                      <h4>Contrato de inscripción</h4>
+                  <section class="student-page" data-student-page="attendance">
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Asistencias</p>
+                          <h3 class="student-card-title">Registro de clases</h3>
+                        </div>
+                      </div>
+                      <div id="miVeneziaResumenAsistencias" class="info-list student-attendance-grid"></div>
+                      <div class="table-wrapper mi-venezia-simple-table student-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Clase</th>
+                              <th>Resultado</th>
+                              <th>Fecha</th>
+                            </tr>
+                          </thead>
+                          <tbody id="miVeneziaAsistenciasBody"></tbody>
+                        </table>
+                      </div>
+                      <div class="form-actions mi-venezia-attendance-actions">
+                        <button class="secondary-btn mi-venezia-attendance-toggle" type="button" id="miVeneziaAttendanceToggle" hidden>
+                          Ver más
+                        </button>
+                      </div>
+                      <p id="miVeneziaAsistenciasEmptyState" class="empty-state">
+                        Sin información disponible por ahora.
+                      </p>
+                    </article>
+                  </section>
+
+                  <section class="student-page" data-student-page="documents">
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Documentos</p>
+                          <h3 class="student-card-title">Tu expediente digital</h3>
+                        </div>
+                      </div>
+                      <div class="mi-venezia-documents-grid student-documents-grid">
+                        <article class="mi-venezia-document-card student-liquid">
+                          <div class="mi-venezia-document-card-header">
+                            <div>
+                              <p class="eyebrow">REG</p>
+                              <h4>Reglamento interno</h4>
+                            </div>
+                            <span class="status-pill status-pill-default mi-venezia-reglamento-status" id="miVeneziaReglamentoStatus">
+                              Pendiente
+                            </span>
+                          </div>
+
+                          <div id="miVeneziaReglamentoMeta" class="info-list mi-venezia-reglamento-meta"></div>
+
+                          <div class="form-actions mi-venezia-reglamento-actions">
+                            <a
+                              class="secondary-btn"
+                              id="miVeneziaViewReglamentoButton"
+                              href="/images/reglamentooficial-venezia.pdf"
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              Ver
+                            </a>
+                            <a
+                              class="secondary-btn"
+                              id="miVeneziaDownloadReglamentoButton"
+                              href="/images/reglamentooficial-venezia.pdf"
+                              download="reglamentooficial-venezia.pdf"
+                            >
+                              Descargar
+                            </a>
+                            <button class="primary-btn" type="button" id="miVeneziaConfirmReadButton">Confirmo lectura</button>
+                          </div>
+                        </article>
+
+                        <article class="mi-venezia-document-card student-liquid">
+                          <div class="mi-venezia-document-card-header">
+                            <div>
+                              <p class="eyebrow">CONT</p>
+                              <h4>Contrato de inscripción</h4>
+                            </div>
+                            <span class="status-pill status-pill-default mi-venezia-reglamento-status" id="miVeneziaContratoStatus">
+                              Pendiente
+                            </span>
+                          </div>
+
+                          <div id="miVeneziaContratoMeta" class="info-list mi-venezia-reglamento-meta"></div>
+
+                          <div class="form-actions mi-venezia-reglamento-actions">
+                            <a
+                              class="secondary-btn"
+                              id="miVeneziaViewContratoButton"
+                              href="/images/CONTRATO-ALUMNO.pdf"
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              Ver
+                            </a>
+                            <a
+                              class="secondary-btn"
+                              id="miVeneziaDownloadContratoButton"
+                              href="/images/CONTRATO-ALUMNO.pdf"
+                              download="CONTRATO-ALUMNO.pdf"
+                            >
+                              Descargar
+                            </a>
+                            <button class="primary-btn" type="button" id="miVeneziaConfirmContratoButton">Confirmo lectura</button>
+                          </div>
+
+                          <p class="mi-venezia-document-note">
+                            Importante: descárgalo, imprímelo y entrégalo firmado en dirección.
+                          </p>
+                        </article>
+                      </div>
+                    </article>
+                  </section>
+
+                  <section class="student-page" data-student-page="notices">
+                    <article class="student-card student-liquid">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Avisos</p>
+                          <h3 class="student-card-title">Pendientes y recordatorios</h3>
+                        </div>
+                      </div>
+                      <div id="miVeneziaNoticesList" class="student-notices-list"></div>
+                    </article>
+                  </section>
+
+                  <section class="student-page" data-student-page="certification">
+                    <article class="student-card student-liquid student-gold-accent">
+                      <div class="student-card-header">
+                        <div>
+                          <p class="student-card-subtitle">Certificación</p>
+                          <h3 class="student-card-title">Certificación SEP</h3>
+                        </div>
+                      </div>
+                      <div class="info-list student-certification-grid">
+                        <div class="info-item info-item-highlight">
+                          <strong>Qué es</strong>
+                          <span>Una opción adicional para respaldar formalmente tu preparación.</span>
+                        </div>
+                        <div class="info-item info-item-highlight">
+                          <strong>Beneficio general</strong>
+                          <span>Puede fortalecer tu perfil profesional y dar mayor soporte a tu formación.</span>
+                        </div>
+                        <div class="info-item info-item-highlight">
+                          <strong>Inversión adicional</strong>
+                          <span>Se gestiona por separado y puede requerir un proceso complementario.</span>
+                        </div>
+                      </div>
+                      <p class="student-card-meta">La disponibilidad y el alcance final dependen del proceso vigente del sistema. Si deseas conocer opciones, escríbenos por soporte.</p>
+                    </article>
+                  </section>
+
+                  <section class="student-page" data-student-page="support">
+                    <div class="student-grid student-grid-page">
+                      <article class="student-card student-liquid">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Soporte</p>
+                            <h3 class="student-card-title">Estamos para ayudarte</h3>
+                          </div>
+                        </div>
+                        <p class="student-card-meta">Si necesitas apoyo con clases, documentos, pagos o acceso, contáctanos por WhatsApp.</p>
+                        <div class="form-actions">
+                          <a class="primary-btn student-whatsapp-button" id="miVeneziaWhatsappSupportButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Necesito ayuda por WhatsApp</a>
+                        </div>
+                      </article>
+
+                      <article class="student-card student-liquid portal-security-panel">
+                        <div class="student-card-header">
+                          <div>
+                            <p class="student-card-subtitle">Seguridad</p>
+                            <h3 class="student-card-title">Actualizar contraseña</h3>
+                          </div>
+                        </div>
+
+                        <p class="portal-security-copy">
+                          Actualiza tu contraseña de Mi Venezia desde aquí. El cambio se guarda directamente en tu registro principal.
+                        </p>
+
+                        <form id="miVeneziaPasswordForm" class="portal-security-form">
+                          <div class="portal-password-fields">
+                            <label>
+                              <span>Contraseña actual</span>
+                              <input
+                                id="miVeneziaCurrentPassword"
+                                name="currentPassword"
+                                type="password"
+                                autocomplete="current-password"
+                                required
+                              />
+                            </label>
+
+                            <label>
+                              <span>Nueva contraseña</span>
+                              <input
+                                id="miVeneziaNewPassword"
+                                name="newPassword"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                              />
+                            </label>
+
+                            <label>
+                              <span>Confirmar nueva contraseña</span>
+                              <input
+                                id="miVeneziaConfirmPassword"
+                                name="confirmPassword"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                              />
+                            </label>
+                          </div>
+
+                          <div class="portal-security-actions">
+                            <button class="primary-btn" type="submit" id="miVeneziaPasswordSubmitButton">Guardar nueva contraseña</button>
+                            <p class="portal-password-hint">Mínimo 6 caracteres.</p>
+                          </div>
+
+                          <p class="portal-password-feedback" id="miVeneziaPasswordFeedback" hidden aria-live="polite"></p>
+                        </form>
+                      </article>
                     </div>
-                    <span class="status-pill status-pill-default mi-venezia-reglamento-status" id="miVeneziaContratoStatus">
-                      Pendiente
-                    </span>
-                  </div>
-
-                  <div id="miVeneziaContratoMeta" class="info-list mi-venezia-reglamento-meta"></div>
-
-                  <div class="form-actions mi-venezia-reglamento-actions">
-                    <a
-                      class="secondary-btn"
-                      id="miVeneziaViewContratoButton"
-                      href="/images/CONTRATO-ALUMNO.pdf"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Ver
-                    </a>
-                    <a
-                      class="secondary-btn"
-                      id="miVeneziaDownloadContratoButton"
-                      href="/images/CONTRATO-ALUMNO.pdf"
-                      download="CONTRATO-ALUMNO.pdf"
-                    >
-                      Descargar
-                    </a>
-                    <button class="primary-btn" type="button" id="miVeneziaConfirmContratoButton">Confirmo lectura</button>
-                  </div>
-
-                  <p class="mi-venezia-document-note">
-                    Importante: descárgalo, imprímelo y entrégalo firmado en dirección.
-                  </p>
-                </article>
+                  </section>
+                </div>
               </div>
-            </section>
+            </div>
           </section>
         </section>
 
