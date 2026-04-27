@@ -10897,21 +10897,44 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
   miVeneziaLoginForm.reset();
 });
 
-if (miVeneziaRoot) {
-  miVeneziaRoot.addEventListener("click", (event) => {
-    const trigger = event.target.closest("[data-student-view], [data-student-view-jump]");
-    if (!trigger || !miVeneziaRoot.contains(trigger)) {
+let lastMiVeneziaTouchNavigationAt = 0;
+
+function handleMiVeneziaViewNavigation(event) {
+  if (!miVeneziaRoot) {
+    return;
+  }
+
+  const trigger = event.target.closest("[data-student-view], [data-student-view-jump]");
+  if (!trigger || !miVeneziaRoot.contains(trigger)) {
+    return;
+  }
+
+  const view = trigger.dataset.studentView || trigger.dataset.studentViewJump || "";
+  if (!view) {
+    return;
+  }
+
+  if (event.type === "pointerup") {
+    if (!event.isPrimary || (event.pointerType !== "touch" && event.pointerType !== "pen")) {
       return;
     }
+    lastMiVeneziaTouchNavigationAt = Date.now();
+  } else if (Date.now() - lastMiVeneziaTouchNavigationAt < 450) {
+    return;
+  }
 
-    const view = trigger.dataset.studentView || trigger.dataset.studentViewJump || "";
-    if (!view) {
-      return;
-    }
+  event.preventDefault();
+  event.stopPropagation();
+  openMiVeneziaView(view);
+  if (typeof trigger.blur === "function") {
+    trigger.blur();
+  }
+}
 
-    event.preventDefault();
-    openMiVeneziaView(view);
-  });
+if (miVeneziaRoot && !miVeneziaRoot.dataset.viewDelegationBound) {
+  miVeneziaRoot.addEventListener("pointerup", handleMiVeneziaViewNavigation, { passive: false });
+  miVeneziaRoot.addEventListener("click", handleMiVeneziaViewNavigation);
+  miVeneziaRoot.dataset.viewDelegationBound = "true";
 }
 
 miVeneziaConfirmReadButton.addEventListener("click", () => {

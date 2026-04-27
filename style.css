@@ -8412,6 +8412,10 @@ body.student-portal-mode.student-portal-active .student-shell.theme-neutral .stu
     margin: 0 !important;
     overflow-x: auto !important;
     overscroll-behavior-x: contain;
+    position: relative;
+    z-index: 2;
+    pointer-events: auto !important;
+    touch-action: pan-x;
   }
 
   body.student-portal-mode.student-portal-active .student-sidebar-link {
@@ -8425,6 +8429,11 @@ body.student-portal-mode.student-portal-active .student-shell.theme-neutral .stu
     white-space: nowrap !important;
     font-size: 0.8rem !important;
     padding: 0.72rem 0.82rem 0.72rem 2.28rem !important;
+    position: relative;
+    z-index: 3;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body.student-portal-mode.student-portal-active .student-sidebar-link[data-student-view="attendance"] {
