@@ -230,6 +230,7 @@ const crmAccessFilter = document.getElementById("crmAccessFilter");
 const crmAdvisorFilter = document.getElementById("crmAdvisorFilter");
 const monthFilter = document.getElementById("monthFilter");
 const dashboardBranchFilter = document.getElementById("dashboardBranchFilter");
+const dashboardMonthFilter = document.getElementById("dashboardMonthFilter");
 const tableBody = document.getElementById("prospectsTableBody");
 const emptyState = document.getElementById("emptyState");
 const crmCountNew = document.getElementById("crmCountNew");
@@ -614,6 +615,7 @@ let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
 let selectedAltasMonth = selectedMonth;
 let selectedPaymentsMonth = selectedMonth;
+let dashboardSelectedMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let attendanceTableExpanded = false;
@@ -5280,16 +5282,18 @@ function getExecutiveFinanceSnapshot({
   records = getCentralFinanceRecords(),
   date = getCurrentMexicoDateValue(),
   respectCurrentBranch = true,
+  displayMonth = "",
   historyMonth = "",
 } = {}) {
   const anchorDate = date || getCurrentMexicoDateValue();
   const anchorMonth = String(anchorDate || getCurrentMexicoDateValue()).slice(0, 7);
+  const windowMonth = displayMonth || anchorMonth;
   const selectedHistoryMonth = historyMonth || anchorMonth;
   const sourceRecords = Array.isArray(records) ? records : getCentralFinanceRecords();
   const currentMonthRecords = getFinanceRecordsForScope({
     records: sourceRecords,
     scope: "month",
-    month: anchorMonth,
+    month: windowMonth,
     branch,
     respectCurrentBranch,
   });
@@ -5302,7 +5306,7 @@ function getExecutiveFinanceSnapshot({
   });
   const currentSummary = buildFinanceSummary(currentMonthRecords, {
     allRecords: sourceRecords,
-    month: anchorMonth,
+    month: windowMonth,
     date: anchorDate,
     branch,
     respectCurrentBranch,
@@ -5327,6 +5331,7 @@ function getExecutiveFinanceSnapshot({
   return {
     anchorDate,
     anchorMonth,
+    windowMonth,
     historyMonth: selectedHistoryMonth,
     windows: currentSummary.windows,
     year: summarizeFinancialRecords(yearRecords, {
@@ -5714,6 +5719,37 @@ function populateDashboardBranchFilter() {
   populateSelectWithValues(dashboardBranchFilter, branchOptions, "Todas");
 }
 
+function populateDashboardMonthFilter() {
+  if (!dashboardMonthFilter) {
+    return;
+  }
+
+  const baseMonth = dashboardSelectedMonth || getCurrentMexicoDateValue().slice(0, 7);
+  const baseYear = String(baseMonth || getCurrentMexicoDateValue().slice(0, 7)).slice(0, 4) || String(new Date().getFullYear());
+  const monthLabels = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+
+  dashboardMonthFilter.innerHTML = monthLabels
+    .map(
+      (label, index) =>
+        `<option value="${baseYear}-${String(index + 1).padStart(2, "0")}">${label} ${baseYear}</option>`
+    )
+    .join("");
+  dashboardMonthFilter.value = baseMonth;
+}
+
 function normalizeDashboardOrigin(prospect) {
   const origen = normalizeLeadOrigin(prospect.origen);
 
@@ -5732,8 +5768,10 @@ function getAdvisorNameForProspect(prospect) {
 
 function renderDashboard() {
   populateDashboardBranchFilter();
+  populateDashboardMonthFilter();
   const financeSnapshot = getExecutiveFinanceSnapshot({
     branch: dashboardBranchFilter.value,
+    displayMonth: dashboardSelectedMonth,
   });
 
   statIngresosDashboard.textContent = formatCurrency(financeSnapshot.windows.month.ingresos);
@@ -5822,7 +5860,7 @@ function renderDashboardFinanceComparison(financeSnapshot) {
   if (dashboardFinanceComparisonMeta) {
     dashboardFinanceComparisonMeta.textContent = `Corte al ${formatDisplayDate(
       financeSnapshot.anchorDate
-    )} con datos de semana actual, mes actual y acumulado anual.`;
+    )} con semana actual, mes ${financeSnapshot.windows.month.label} y acumulado anual.`;
   }
 }
 
@@ -10358,6 +10396,13 @@ if (altasMonthFilter) {
 }
 
 dashboardBranchFilter.addEventListener("change", renderDashboard);
+
+if (dashboardMonthFilter) {
+  dashboardMonthFilter.addEventListener("change", (event) => {
+    dashboardSelectedMonth = event.target.value || getCurrentMonthValue();
+    renderDashboard();
+  });
+}
 
 attendanceDate.addEventListener("change", renderAttendanceTable);
 attendanceSearchInput.addEventListener("input", (event) => {

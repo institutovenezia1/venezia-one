@@ -1779,6 +1779,35 @@ td select {
 
 .dashboard-filter-panel {
   margin-bottom: 1rem;
+  max-width: 360px;
+}
+
+.dashboard-month-filter-row {
+  margin-top: 0;
+  max-width: 100%;
+  grid-template-columns: 1fr;
+}
+
+.dashboard-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.dashboard-kpi-card {
+  min-height: 150px;
+  padding: 1rem 1.1rem;
+  gap: 0.35rem;
+}
+
+.dashboard-kpi-card h3 {
+  font-size: 1rem;
+}
+
+.dashboard-kpi-card strong {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.dashboard-kpi-card .eyebrow {
+  font-size: 0.72rem;
 }
 
 .dashboard-alerts-list {

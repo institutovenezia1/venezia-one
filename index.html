@@ -163,25 +163,34 @@
                 </select>
               </label>
             </div>
+
+            <div class="prospect-form attendance-filters dashboard-month-filter-row">
+              <label>
+                <span>Mes</span>
+                <select id="dashboardMonthFilter">
+                  <option value="">Selecciona un mes</option>
+                </select>
+              </label>
+            </div>
           </section>
 
-          <section class="stats-grid executive-kpi-grid" aria-label="Metricas principales">
-            <article class="panel executive-kpi-card executive-kpi-income">
+          <section class="stats-grid executive-kpi-grid dashboard-kpi-grid" aria-label="Metricas principales">
+            <article class="panel executive-kpi-card executive-kpi-income dashboard-kpi-card">
               <p class="eyebrow">Dashboard</p>
               <h3>Ingresos del mes</h3>
               <strong id="statIngresosDashboard">$0</strong>
             </article>
-            <article class="panel executive-kpi-card executive-kpi-expense">
+            <article class="panel executive-kpi-card executive-kpi-expense dashboard-kpi-card">
               <p class="eyebrow">Dashboard</p>
               <h3>Egresos del mes</h3>
               <strong id="statEgresosDashboard">$0</strong>
             </article>
-            <article class="panel executive-kpi-card executive-kpi-utility">
+            <article class="panel executive-kpi-card executive-kpi-utility dashboard-kpi-card">
               <p class="eyebrow">Dashboard</p>
               <h3>Utilidad del mes</h3>
               <strong id="statBalanceDashboard">$0</strong>
             </article>
-            <article class="panel executive-kpi-card executive-kpi-utility">
+            <article class="panel executive-kpi-card executive-kpi-utility dashboard-kpi-card">
               <p class="eyebrow">Dashboard</p>
               <h3>Utilidad anual</h3>
               <strong id="statAnnualUtilityDashboard">$0</strong>
@@ -1509,13 +1518,6 @@
                 <span>Sucursal</span>
                 <select id="financeBranchFilter">
                   <option value="">Todas</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Mes</span>
-                <select id="financeVisibleMonthFilter">
-                  <option value="">Selecciona un mes</option>
                 </select>
               </label>
             </div>
