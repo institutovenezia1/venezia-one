@@ -5715,22 +5715,23 @@ body.access-selector-mode .module-section.active {
 }
 
 .student-shell {
-  --student-cream: #f9f3e8;
-  --student-cream-strong: rgba(255, 251, 244, 0.88);
-  --student-white: rgba(255, 255, 255, 0.76);
-  --student-gold: #cb9f37;
-  --student-gold-soft: rgba(203, 159, 55, 0.18);
-  --student-gold-glow: rgba(203, 159, 55, 0.22);
-  --student-gold-border: rgba(203, 159, 55, 0.34);
-  --student-purple: #6344a4;
-  --student-purple-soft: rgba(99, 68, 164, 0.14);
-  --student-text: #17110c;
-  --student-muted: #64584b;
-  --student-border: rgba(106, 82, 46, 0.14);
-  --student-shadow: 0 28px 72px rgba(46, 33, 18, 0.12);
+  --student-cream: #fffaf8;
+  --student-white: rgba(255, 255, 255, 0.96);
+  --student-purple: #7954d6;
+  --student-purple-deep: #5e38c3;
+  --student-purple-soft: rgba(121, 84, 214, 0.12);
+  --student-purple-border: rgba(121, 84, 214, 0.2);
+  --student-pink-soft: rgba(244, 214, 236, 0.22);
+  --student-gold: #d0a65a;
+  --student-gold-soft: rgba(208, 166, 90, 0.16);
+  --student-gold-border: rgba(208, 166, 90, 0.26);
+  --student-text: #251c2b;
+  --student-muted: #7f7188;
+  --student-border: rgba(119, 102, 148, 0.12);
+  --student-shadow: 0 24px 60px rgba(86, 63, 124, 0.1);
   position: relative;
   display: grid;
-  gap: 1.1rem;
+  gap: 1.2rem;
   color: var(--student-text);
 }
 
@@ -5744,42 +5745,41 @@ body.access-selector-mode .module-section.active {
 }
 
 .student-shell::before {
-  top: -80px;
-  left: -30px;
+  top: -120px;
+  left: -20px;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(121, 84, 214, 0.16) 0%, rgba(121, 84, 214, 0.08) 30%, rgba(121, 84, 214, 0) 72%);
+  filter: blur(18px);
+}
+
+.student-shell::after {
+  top: 100px;
+  right: -40px;
   width: 420px;
   height: 420px;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(205, 169, 79, 0.22) 0%, rgba(205, 169, 79, 0.08) 32%, rgba(205, 169, 79, 0) 72%);
-  filter: blur(16px);
-}
-
-.student-shell::after {
-  top: 140px;
-  right: -70px;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, rgba(103, 66, 168, 0.12) 0%, rgba(103, 66, 168, 0.04) 34%, rgba(103, 66, 168, 0) 72%);
-  filter: blur(18px);
+    radial-gradient(circle, rgba(244, 214, 236, 0.28) 0%, rgba(244, 214, 236, 0.12) 34%, rgba(244, 214, 236, 0) 72%);
+  filter: blur(20px);
 }
 
 .student-liquid {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 250, 244, 0.38) 100%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(249, 240, 228, 0.68) 52%, rgba(242, 231, 219, 0.74) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 251, 252, 0.82) 100%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(253, 248, 251, 0.9) 56%, rgba(249, 243, 252, 0.9) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
-    0 24px 60px rgba(47, 35, 20, 0.1),
-    0 0 0 1px rgba(214, 183, 118, 0.05);
-  backdrop-filter: blur(26px) saturate(135%);
-  -webkit-backdrop-filter: blur(26px) saturate(135%);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 18px 42px rgba(108, 84, 145, 0.09),
+    0 0 0 1px rgba(121, 84, 214, 0.04);
+  backdrop-filter: blur(18px) saturate(115%);
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
 }
 
 .student-liquid::before,
@@ -5793,8 +5793,8 @@ body.access-selector-mode .module-section.active {
   inset: 0;
   border-radius: inherit;
   background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 22%, rgba(255, 255, 255, 0) 48%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0) 44%);
+    linear-gradient(120deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.08) 24%, rgba(255, 255, 255, 0) 52%),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 40%);
   z-index: 0;
 }
 
@@ -5803,21 +5803,20 @@ body.access-selector-mode .module-section.active {
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(203, 159, 55, 0.16) 0%, rgba(203, 159, 55, 0.05) 34%, rgba(203, 159, 55, 0) 72%);
+  background: radial-gradient(circle, rgba(121, 84, 214, 0.08) 0%, rgba(121, 84, 214, 0.03) 32%, rgba(121, 84, 214, 0) 72%);
   filter: blur(2px);
   z-index: 0;
 }
 
 .student-gold-accent {
-  border-color: rgba(203, 159, 55, 0.3);
+  border-color: rgba(208, 166, 90, 0.28);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74) 0%, rgba(253, 247, 233, 0.72) 100%),
-    radial-gradient(circle at top right, rgba(203, 159, 55, 0.24), transparent 28%),
-    linear-gradient(135deg, rgba(255, 251, 244, 0.96) 0%, rgba(248, 239, 215, 0.92) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 250, 242, 0.9) 100%),
+    radial-gradient(circle at top right, rgba(208, 166, 90, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 247, 233, 0.94) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 26px 62px rgba(71, 51, 18, 0.12),
-    0 0 0 1px rgba(203, 159, 55, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 18px 40px rgba(127, 101, 48, 0.1);
 }
 
 .student-sidebar,
@@ -5830,14 +5829,28 @@ body.access-selector-mode .module-section.active {
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 1.05rem;
-  padding: 1.2rem 1rem 1rem;
+  gap: 1rem;
+  padding: 1.25rem 1rem 1rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(249, 241, 229, 0.72) 100%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.68), transparent 38%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 28px 72px rgba(43, 31, 18, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 22px 52px rgba(108, 84, 145, 0.08);
+}
+
+.student-sidebar-logo {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.9rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, #8f6cff 0%, #6a42d4 58%, #d0a65a 140%);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  box-shadow: 0 16px 28px rgba(106, 66, 212, 0.24);
 }
 
 .student-sidebar-brand h3,
@@ -5847,15 +5860,27 @@ body.access-selector-mode .module-section.active {
   margin: 0;
 }
 
+.student-sidebar-brand h3 {
+  color: #36284b;
+  font-size: 1.2rem;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.student-sidebar-copy {
+  max-width: 16rem;
+  font-size: 0.92rem;
+}
+
 .student-sidebar-label,
 .student-topbar-label,
 .student-card-subtitle,
 .student-class-label {
   margin: 0 0 0.35rem;
-  color: #8b6d41;
-  font-size: 0.71rem;
+  color: #8a7aa2;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -5878,15 +5903,15 @@ body.access-selector-mode .module-section.active {
   padding: 1rem;
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(250, 243, 230, 0.78) 100%);
-  border: 1px solid rgba(203, 159, 55, 0.22);
+    linear-gradient(180deg, rgba(248, 243, 255, 0.9) 0%, rgba(255, 250, 252, 0.96) 100%);
+  border: 1px solid rgba(121, 84, 214, 0.12);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 16px 34px rgba(61, 45, 25, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 32px rgba(113, 84, 160, 0.08);
 }
 
 .student-sidebar-profile strong {
-  font-size: 1.12rem;
+  font-size: 1.06rem;
   line-height: 1.1;
 }
 
@@ -5898,59 +5923,137 @@ body.access-selector-mode .module-section.active {
 .student-sidebar-link {
   position: relative;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid transparent;
   border-radius: 20px;
-  padding: 0.9rem 1rem 0.9rem 1.18rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(252, 247, 241, 0.28) 100%);
-  color: var(--student-text);
+  padding: 0.9rem 1rem 0.9rem 2.55rem;
+  background: transparent;
+  color: #5c4f70;
   text-align: left;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   cursor: pointer;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, opacity 180ms ease;
 }
 
 .student-sidebar-link::before {
-  content: "";
+  content: "•";
   position: absolute;
   top: 50%;
-  left: 0.72rem;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(166, 142, 108, 0.42);
+  left: 1rem;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(121, 84, 214, 0.08);
+  color: var(--student-purple);
+  font-size: 0.9rem;
+  font-weight: 800;
   transform: translateY(-50%);
-  box-shadow: 0 0 0 0 rgba(203, 159, 55, 0);
+  box-shadow: none;
+}
+
+.student-sidebar-link[data-student-view="dashboard"]::before {
+  content: "⌂";
+}
+
+.student-sidebar-link[data-student-view="profile"]::before {
+  content: "○";
+}
+
+.student-sidebar-link[data-student-view="payments"]::before {
+  content: "$";
+}
+
+.student-sidebar-link[data-student-view="classes"]::before {
+  content: "◫";
+}
+
+.student-sidebar-link[data-student-view="attendance"]::before {
+  content: "✓";
+}
+
+.student-sidebar-link[data-student-view="documents"]::before {
+  content: "≣";
+}
+
+.student-sidebar-link[data-student-view="notices"]::before {
+  content: "!";
+}
+
+.student-sidebar-link[data-student-view="certification"]::before {
+  content: "★";
+}
+
+.student-sidebar-link[data-student-view="support"]::before {
+  content: "?";
 }
 
 .student-sidebar-link:hover,
 .student-sidebar-link.is-active {
-  transform: translateY(-1px) translateX(2px);
-  border-color: rgba(203, 159, 55, 0.28);
+  transform: translateY(-1px);
+  border-color: rgba(121, 84, 214, 0.14);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(253, 247, 235, 0.92) 100%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(203, 159, 55, 0.08) 100%);
-  color: #24180f;
+    linear-gradient(135deg, #8f6cff 0%, #7448dc 60%, #6432c6 100%);
+  color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 18px 34px rgba(71, 50, 20, 0.12);
+    0 16px 28px rgba(116, 72, 220, 0.28);
 }
 
 .student-sidebar-link:hover::before,
 .student-sidebar-link.is-active::before {
-  background: linear-gradient(180deg, #e2bf63 0%, #c99522 100%);
-  box-shadow:
-    0 0 0 5px rgba(203, 159, 55, 0.14),
-    0 0 18px rgba(203, 159, 55, 0.32);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .student-sidebar-link.is-active {
   font-weight: 800;
 }
 
+.student-sidebar-promo {
+  margin-top: auto;
+  padding: 1rem;
+  border-radius: 22px;
+  background:
+    linear-gradient(155deg, rgba(121, 84, 214, 0.12) 0%, rgba(255, 247, 252, 0.94) 58%, rgba(255, 248, 236, 0.96) 100%);
+  border: 1px solid rgba(121, 84, 214, 0.12);
+}
+
+.student-sidebar-promo-label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  color: var(--student-purple);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.student-sidebar-promo strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #34234d;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.student-sidebar-promo p {
+  margin: 0;
+  color: var(--student-muted);
+  line-height: 1.5;
+}
+
 .student-sidebar-logout {
   width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(121, 84, 214, 0.14);
+  background: rgba(247, 242, 255, 0.92);
+  color: var(--student-purple-deep);
+}
+
+.student-sidebar-logout:hover {
+  border-color: rgba(121, 84, 214, 0.22);
+  background: rgba(241, 233, 255, 0.96);
 }
 
 .student-main {
@@ -5964,11 +6067,11 @@ body.access-selector-mode .module-section.active {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.15rem 1.2rem;
+  gap: 1.1rem;
+  padding: 1.35rem 1.4rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(249, 241, 229, 0.58) 100%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.72), transparent 34%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 250, 252, 0.9) 100%),
+    radial-gradient(circle at top left, rgba(245, 229, 243, 0.46), transparent 34%);
 }
 
 .student-topbar > *,
@@ -5977,25 +6080,50 @@ body.access-selector-mode .module-section.active {
   z-index: 1;
 }
 
+.student-topbar-copy-block {
+  min-width: 0;
+}
+
 .student-topbar-copy {
-  max-width: 52rem;
-  font-size: 0.97rem;
+  max-width: 39rem;
+  font-size: 0.96rem;
 }
 
 .student-topbar h2 {
-  font-family: "Cormorant Garamond", serif;
-  font-size: clamp(2.2rem, 4.8vw, 3.3rem);
-  line-height: 0.92;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #21160f;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #2b1f37;
 }
 
 .student-topbar-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.55rem;
+}
+
+.student-topbar-visual {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.student-topbar-monogram {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(140, 106, 232, 0.16) 0%, rgba(121, 84, 214, 0.9) 100%);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 20px 36px rgba(110, 80, 181, 0.22);
 }
 
 .student-content {
@@ -6023,14 +6151,13 @@ body.access-selector-mode .module-section.active {
 
 .student-card {
   display: grid;
-  gap: 1rem;
-  padding: 1.1rem;
+  gap: 0.92rem;
+  padding: 1.18rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.64) 0%, rgba(248, 240, 229, 0.56) 100%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.76), transparent 36%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 251, 253, 0.96) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 24px 54px rgba(42, 31, 17, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 18px 40px rgba(104, 80, 143, 0.08);
 }
 
 .student-card-header {
@@ -6041,30 +6168,29 @@ body.access-selector-mode .module-section.active {
 }
 
 .student-card-title {
-  font-size: 1.16rem;
+  font-size: 1.08rem;
   line-height: 1.12;
   letter-spacing: -0.02em;
+  color: #322442;
 }
 
 .student-card-value {
-  font-size: clamp(1.2rem, 4vw, 1.72rem);
+  font-size: clamp(1.16rem, 3.5vw, 1.48rem);
   line-height: 1;
   letter-spacing: -0.03em;
-  color: #1b120c;
+  color: #2b1e37;
 }
 
 .student-hero-card {
-  gap: 1.15rem;
-  padding: 1.4rem;
+  gap: 1rem;
+  padding: 1.28rem 1.32rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(250, 244, 235, 0.68) 100%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 32%),
-    radial-gradient(circle at 82% 18%, rgba(203, 159, 55, 0.18), transparent 18%),
-    linear-gradient(135deg, rgba(255, 250, 243, 0.96) 0%, rgba(245, 235, 222, 0.92) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 251, 253, 0.96) 100%),
+    radial-gradient(circle at top left, rgba(244, 214, 236, 0.32), transparent 24%),
+    radial-gradient(circle at 82% 22%, rgba(121, 84, 214, 0.12), transparent 16%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 32px 72px rgba(53, 37, 20, 0.12),
-    0 0 0 1px rgba(203, 159, 55, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 20px 44px rgba(105, 77, 150, 0.1);
 }
 
 .student-hero-copy {
@@ -6073,55 +6199,51 @@ body.access-selector-mode .module-section.active {
 }
 
 .student-hero-copy h3 {
-  font-family: "Cormorant Garamond", serif;
-  font-size: clamp(2.55rem, 7vw, 4.45rem);
-  line-height: 0.88;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.82rem, 4vw, 2.4rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .student-hero-message {
-  margin: 0.55rem 0 0;
-  color: #2a1d14;
-  font-size: 1.05rem;
+  margin: 0.45rem 0 0;
+  color: #5a4685;
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
 }
 
 .student-hero-card #miVeneziaHeroMeta {
-  max-width: 44rem;
-  font-size: 0.98rem;
+  max-width: 42rem;
+  font-size: 0.94rem;
 }
 
 .student-grid-kpis .student-card {
-  gap: 0.52rem;
-  min-height: 164px;
-  padding: 1.05rem 1.05rem 1rem;
-  border: 1px solid rgba(203, 159, 55, 0.18);
+  gap: 0.48rem;
+  min-height: 148px;
+  padding: 1rem;
+  border: 1px solid rgba(121, 84, 214, 0.1);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(249, 243, 234, 0.84) 100%),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 44%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 249, 252, 0.96) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 24px 48px rgba(47, 35, 19, 0.1),
-    0 0 30px rgba(203, 159, 55, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 16px 34px rgba(104, 80, 143, 0.08);
 }
 
 .student-grid-kpis .student-card::after {
-  width: 140px;
-  height: 140px;
-  inset: auto -24px -34px auto;
-  background: radial-gradient(circle, rgba(203, 159, 55, 0.18) 0%, rgba(203, 159, 55, 0.04) 30%, rgba(203, 159, 55, 0) 70%);
+  width: 130px;
+  height: 130px;
+  inset: auto -12px -18px auto;
+  background: radial-gradient(circle, rgba(121, 84, 214, 0.08) 0%, rgba(121, 84, 214, 0.03) 32%, rgba(121, 84, 214, 0) 72%);
 }
 
 .student-grid-kpis .student-card-value {
-  font-size: clamp(1.32rem, 4vw, 1.8rem);
+  font-size: clamp(1.2rem, 3.6vw, 1.55rem);
 }
 
 .student-grid-kpis .student-card-meta {
   margin-top: auto;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
 }
 
 .student-hero-summary,
@@ -6145,13 +6267,13 @@ body.access-selector-mode .module-section.active {
   padding: 0.78rem 0.86rem;
   border-radius: 19px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(249, 243, 236, 0.88) 100%);
-  border: 1px solid rgba(203, 159, 55, 0.14);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 248, 251, 0.96) 100%);
+  border: 1px solid rgba(121, 84, 214, 0.08);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 12px 28px rgba(54, 39, 20, 0.06);
-  backdrop-filter: blur(16px) saturate(122%);
-  -webkit-backdrop-filter: blur(16px) saturate(122%);
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 10px 22px rgba(106, 84, 143, 0.05);
+  backdrop-filter: blur(10px) saturate(108%);
+  -webkit-backdrop-filter: blur(10px) saturate(108%);
 }
 
 .student-hero-summary .info-item strong,
@@ -6165,7 +6287,7 @@ body.access-selector-mode .module-section.active {
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #806649;
+  color: #8d7ea3;
 }
 
 .student-hero-summary .info-item span,
@@ -6195,16 +6317,16 @@ body.access-selector-mode .module-section.active {
   justify-content: center;
   padding: 0.42rem 0.82rem;
   border-radius: 999px;
-  border: 1px solid rgba(203, 159, 55, 0.18);
+  border: 1px solid rgba(208, 166, 90, 0.18);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(248, 241, 233, 0.9) 100%);
-  color: #594633;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 248, 239, 0.96) 100%);
+  color: #7b5d2a;
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 8px 18px rgba(61, 44, 20, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 8px 18px rgba(112, 84, 40, 0.05);
 }
 
 .student-badge.is-green {
@@ -6263,12 +6385,12 @@ body.access-selector-mode .module-section.active {
   gap: 0.8rem;
   padding: 0.98rem;
   border-radius: 22px;
-  border: 1px solid rgba(203, 159, 55, 0.18);
+  border: 1px solid rgba(121, 84, 214, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76) 0%, rgba(250, 245, 238, 0.92) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 248, 251, 0.96) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 16px 30px rgba(54, 39, 20, 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 14px 26px rgba(106, 84, 143, 0.05);
 }
 
 .student-achievement {
@@ -6322,11 +6444,11 @@ body.access-selector-mode .module-section.active {
   padding: 0.35rem;
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.48) 0%, rgba(251, 246, 240, 0.62) 100%);
-  border: 1px solid rgba(203, 159, 55, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(252, 249, 252, 0.92) 100%);
+  border: 1px solid rgba(121, 84, 214, 0.08);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 18px 36px rgba(55, 39, 20, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 14px 28px rgba(106, 84, 143, 0.05);
 }
 
 .student-table table {
@@ -6345,23 +6467,41 @@ body.access-selector-mode .module-section.active {
   font-weight: 600;
 }
 
-.student-whatsapp-button {
-  background:
-    linear-gradient(180deg, rgba(33, 38, 34, 0.96) 0%, rgba(17, 21, 19, 0.98) 100%),
-    linear-gradient(135deg, rgba(203, 159, 55, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
-  border-color: rgba(203, 159, 55, 0.32);
+.student-main .primary-btn {
+  border: 0;
+  border-radius: 18px;
+  padding: 0.88rem 1.12rem;
+  background: linear-gradient(135deg, #8f6cff 0%, #7347dc 56%, #6432c6 100%);
   color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 18px 34px rgba(22, 24, 22, 0.24),
-    0 0 0 1px rgba(203, 159, 55, 0.06);
+  box-shadow: 0 16px 28px rgba(114, 71, 220, 0.26);
+}
+
+.student-main .primary-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #8665f3 0%, #6f42d6 56%, #5d2ebe 100%);
+}
+
+.student-main .secondary-btn {
+  border-radius: 18px;
+  border: 1px solid rgba(121, 84, 214, 0.16);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--student-purple-deep);
+  box-shadow: none;
+}
+
+.student-main .secondary-btn:hover {
+  border-color: rgba(121, 84, 214, 0.28);
+  background: rgba(247, 241, 255, 0.96);
+}
+
+.student-whatsapp-button {
+  background: linear-gradient(135deg, #36c56f 0%, #24ae59 100%) !important;
+  border: 0 !important;
+  box-shadow: 0 14px 28px rgba(36, 174, 89, 0.22) !important;
 }
 
 .student-whatsapp-button:hover {
-  background:
-    linear-gradient(180deg, rgba(40, 46, 41, 0.98) 0%, rgba(20, 24, 22, 0.98) 100%),
-    linear-gradient(135deg, rgba(203, 159, 55, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #31bc68 0%, #1fa451 100%) !important;
 }
 
 .student-documents-grid {
@@ -6371,12 +6511,12 @@ body.access-selector-mode .module-section.active {
 .student-documents-grid .mi-venezia-document-card {
   padding: 1rem;
   border-radius: 24px;
-  border: 1px solid rgba(203, 159, 55, 0.18);
+  border: 1px solid rgba(121, 84, 214, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(249, 244, 237, 0.9) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 248, 251, 0.96) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 18px 40px rgba(55, 39, 20, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 14px 28px rgba(106, 84, 143, 0.06);
 }
 
 .student-documents-grid .mi-venezia-document-card-header {
@@ -6403,10 +6543,10 @@ body.student-portal-mode.student-portal-active .app-shell {
 body.student-portal-mode.student-portal-active .main-content {
   padding: 0.85rem;
   background:
-    radial-gradient(circle at 8% 0%, rgba(203, 159, 55, 0.18), transparent 22%),
-    radial-gradient(circle at 92% 12%, rgba(103, 66, 168, 0.1), transparent 16%),
-    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.5), transparent 26%),
-    linear-gradient(180deg, #fdf9f2 0%, #f6eee3 54%, #f3eadc 100%);
+    radial-gradient(circle at 8% 0%, rgba(121, 84, 214, 0.12), transparent 18%),
+    radial-gradient(circle at 92% 10%, rgba(244, 214, 236, 0.26), transparent 18%),
+    radial-gradient(circle at 60% 100%, rgba(208, 166, 90, 0.08), transparent 22%),
+    linear-gradient(180deg, #fffdfd 0%, #fcf7fb 52%, #f8f2f8 100%);
 }
 
 body.student-portal-mode.student-portal-active #miVeneziaSection {
@@ -6416,13 +6556,13 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
 
 @media (min-width: 960px) {
   .student-shell {
-    grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-columns: 304px minmax(0, 1fr);
     align-items: start;
   }
 
   .student-sidebar {
     position: sticky;
-    top: 0.85rem;
+    top: 0.75rem;
   }
 
   .student-grid-kpis {
@@ -6459,6 +6599,7 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
     position: sticky;
     top: 0;
     z-index: 4;
+    padding: 1rem 0.9rem 0.9rem;
   }
 
   .student-sidebar-nav {
@@ -6470,6 +6611,7 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
 
   .student-sidebar-link {
     min-width: max-content;
+    padding-right: 1rem;
   }
 
   .student-topbar {
@@ -6478,6 +6620,10 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
 
   .student-topbar-meta {
     justify-content: flex-start;
+  }
+
+  .student-topbar-visual {
+    margin-left: 0;
   }
 }
 
@@ -6527,7 +6673,14 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
   }
 
   .student-topbar h2 {
-    font-size: 1.85rem;
+    font-size: 1.72rem;
+  }
+
+  .student-topbar-monogram {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    font-size: 1.55rem;
   }
 
   body.student-portal-mode.student-portal-active .main-content {
