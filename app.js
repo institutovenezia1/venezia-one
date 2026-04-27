@@ -6413,20 +6413,18 @@ function getStudentAttendanceSessionDates(student) {
     return [];
   }
 
-  const history = attendanceRecords
-    .filter((record) => record.studentId === student.id)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  const baseDate = getStudentAttendanceBaseDate(student, history);
-
-  if (!baseDate) {
-    return [];
-  }
-
-  return getAttendanceSessionDates(baseDate, getAttendanceSessionCountForCourse(student.curso)).map((session, index) => ({
-    ...session,
-    index,
-    classLabel: `Clase ${index + 1}`,
-  }));
+  return getStudentAttendanceSessionGroups(student).flatMap((group) =>
+    group.slots.map((slot, slotIndex) => ({
+      key: slot.key,
+      index: group.index,
+      date: slot.date,
+      classLabel: slot.classLabel,
+      weekNumber: group.index + 1,
+      weekdayLabel: slot.fullLabel,
+      shortLabel: slot.shortLabel,
+      slotIndex,
+    }))
+  );
 }
 
 function getStudentAttendanceCalendar(student) {
@@ -6448,7 +6446,7 @@ function getStudentAttendanceCalendar(student) {
     const record = recordsByDate.get(session.date) || null;
 
     return {
-      classLabel: `S${index + 1}`,
+      classLabel: session.classLabel || `S${index + 1}`,
       date: session.date,
       resultLabel: record ? ATTENDANCE_STATUS_LABELS[record.estado] || record.estado || "-" : "Pendiente",
       record,
@@ -6531,12 +6529,12 @@ function populateAttendanceFilters() {
     {
       element: attendanceHorarioFilter,
       defaultLabel: "Todos",
-      options: ["9am a 1pm", "2pm a 6pm", "1pm a 5pm"],
+      options: ["9am a 1pm", "9am a 11am", "12pm a 2pm", "2pm a 6pm", "3pm a 5pm", "1pm a 5pm"],
     },
     {
       element: attendanceDayFilter,
       defaultLabel: "Todos",
-      options: ["Viernes", "Sábado", "Domingo"],
+      options: ["Entre semana", "Viernes", "Sábado", "Domingo"],
     },
   ];
 
@@ -6600,7 +6598,12 @@ function getFilteredStudentsForAttendance() {
     if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
     if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
     if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
-    if (attendanceDayFilter.value && student.diaClases !== attendanceDayFilter.value) return false;
+    if (
+      attendanceDayFilter.value &&
+      normalizeAttendanceDayLabel(student.diaClases) !== normalizeAttendanceDayLabel(attendanceDayFilter.value)
+    ) {
+      return false;
+    }
     return true;
   });
 }
@@ -6645,6 +6648,42 @@ function getAttendanceSessionCount(studentsList = []) {
   );
 }
 
+const WEEKDAY_ATTENDANCE_DAYS = [
+  { key: "tue", shortLabel: "Mar", fullLabel: "Martes", weekdayIndex: 2, dayOffset: 0 },
+  { key: "wed", shortLabel: "Mie", fullLabel: "Miércoles", weekdayIndex: 3, dayOffset: 1 },
+  { key: "thu", shortLabel: "Jue", fullLabel: "Jueves", weekdayIndex: 4, dayOffset: 2 },
+];
+
+function normalizeAttendanceDayLabel(dayLabel) {
+  const normalized = String(dayLabel || "").trim().toLowerCase();
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized === "viernes") return "Viernes";
+  if (normalized === "sábado" || normalized === "sabado") return "Sábado";
+  if (normalized === "domingo") return "Domingo";
+  if (
+    normalized === "entre semana" ||
+    normalized === "entresemana" ||
+    normalized === "martes a jueves" ||
+    normalized === "martes-jueves" ||
+    normalized === "martes a jueves (3 dias)"
+  ) {
+    return "Entre semana";
+  }
+
+  return String(dayLabel || "").trim();
+}
+
+function isWeekdayAttendanceDay(dayLabel) {
+  return normalizeAttendanceDayLabel(dayLabel) === "Entre semana";
+}
+
+function isWeekdayStudent(student) {
+  return isWeekdayAttendanceDay(student?.diaClases);
+}
+
 function addDaysToDateValue(dateValue, days) {
   const date = new Date(`${dateValue}T12:00:00`);
   date.setDate(date.getDate() + days);
@@ -6663,16 +6702,25 @@ function getAttendanceWeekdayIndex(dayLabel) {
     Viernes: 5,
     Sábado: 6,
     Domingo: 0,
-  }[dayLabel] ?? null;
+    "Entre semana": 2,
+  }[normalizeAttendanceDayLabel(dayLabel)] ?? null;
 }
 
 function alignDateToSelectedClassDay(dateValue, dayLabel) {
-  const weekday = getAttendanceWeekdayIndex(dayLabel);
+  const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  const weekday = getAttendanceWeekdayIndex(normalizedDay);
   if (weekday === null) {
     return dateValue;
   }
 
   const date = new Date(`${dateValue}T12:00:00`);
+  if (normalizedDay === "Entre semana") {
+    const currentDay = date.getDay();
+    if (currentDay >= 2 && currentDay <= 4) {
+      date.setDate(date.getDate() - (currentDay - 2));
+      return formatDateForInput(date);
+    }
+  }
   const diff = (weekday - date.getDay() + 7) % 7;
   date.setDate(date.getDate() + diff);
   return formatDateForInput(date);
@@ -6694,12 +6742,80 @@ function getAttendanceSessionLabel(session) {
   return `${dateLabel} / ${session.key}`;
 }
 
+function getAttendanceColumnLabel(columnIndex, studentsList = []) {
+  const hasWeekdayStudents = studentsList.some((student) => isWeekdayStudent(student));
+  return hasWeekdayStudents ? `Semana ${columnIndex + 1}` : `Clase ${columnIndex + 1}`;
+}
+
 function getAttendanceColumnDefinitions(studentsList = []) {
   const sessionCount = getAttendanceSessionCount(studentsList);
   return Array.from({ length: sessionCount }, (_, index) => ({
     key: `s${index + 1}`,
     index,
+    label: getAttendanceColumnLabel(index, studentsList),
+  }));
+}
+
+function getAttendanceSessionGroups(baseDate, sessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT, dayLabel = "") {
+  const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+
+  if (isWeekdayAttendanceDay(normalizedDay)) {
+    return Array.from({ length: sessionCount }, (_, index) => ({
+      key: `w${index + 1}`,
+      index,
+      label: `Semana ${index + 1}`,
+      classLabel: `Semana ${index + 1}`,
+      slots: WEEKDAY_ATTENDANCE_DAYS.map((weekday) => ({
+        key: `w${index + 1}-${weekday.key}`,
+        date: addDaysToDateValue(baseDate, index * 7 + weekday.dayOffset),
+        shortLabel: weekday.shortLabel,
+        fullLabel: weekday.fullLabel,
+        classLabel: `Semana ${index + 1} · ${weekday.fullLabel}`,
+        weekNumber: index + 1,
+      })),
+    }));
+  }
+
+  return getAttendanceSessionDates(baseDate, sessionCount).map((session, index) => ({
+    key: session.key,
+    index,
     label: `Clase ${index + 1}`,
+    classLabel: `Clase ${index + 1}`,
+    slots: [
+      {
+        key: session.key,
+        date: session.date,
+        shortLabel: `C${index + 1}`,
+        fullLabel: normalizedDay || `Clase ${index + 1}`,
+        classLabel: `Clase ${index + 1}`,
+        weekNumber: index + 1,
+      },
+    ],
+  }));
+}
+
+function getStudentAttendanceSessionGroups(student) {
+  if (!student) {
+    return [];
+  }
+
+  const history = attendanceRecords
+    .filter((record) => record.studentId === student.id)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const baseDate = getStudentAttendanceBaseDate(student, history);
+
+  if (!baseDate) {
+    return [];
+  }
+
+  return getAttendanceSessionGroups(baseDate, getAttendanceSessionCountForCourse(student.curso), student?.diaClases || "");
+}
+
+function getStudentAttendanceReferenceSessions(student) {
+  return getStudentAttendanceSessionGroups(student).map((group) => ({
+    key: group.key,
+    date: group.slots[0]?.date || "",
+    classLabel: group.label,
   }));
 }
 
@@ -6799,7 +6915,8 @@ function renderAttendanceTable() {
 
   attendanceTableBody.innerHTML = visibleStudents
     .map((student, index) => {
-      const studentSessions = getStudentAttendanceSessionDates(student);
+      const studentSessionGroups = getStudentAttendanceSessionGroups(student);
+      const studentReferenceSessions = getStudentAttendanceReferenceSessions(student);
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
@@ -6827,40 +6944,51 @@ function renderAttendanceTable() {
           <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Observaciones") || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
           ${sessionColumns
             .map((column) => {
-              const session = studentSessions[column.index];
-              if (!session) {
+              const sessionGroup = studentSessionGroups[column.index];
+              if (!sessionGroup) {
                 return `<td class="attendance-session-empty">-</td>`;
               }
 
-              const record = getAttendanceRecord(student.id, session.date);
-              const paymentReference = getAttendancePaymentReferenceBySessionIndex(column.index, student, studentSessions);
+              const paymentReference = getAttendancePaymentReferenceBySessionIndex(column.index, student, studentReferenceSessions);
               const paymentCellClass = paymentReference
                 ? ` class="attendance-payment-cell ${paymentReference.toneClass}${paymentReference.isPriority ? " attendance-payment-cell-priority" : ""}"`
                 : "";
-              const dateClass = paymentReference ? ` class="payment-reference-date attendance-session-date"` : "";
               const sessionCellClass = `attendance-session-cell${paymentReference ? ` attendance-session-cell-payment ${paymentReference.toneClass}` : ""}${paymentReference?.isPriority ? " attendance-session-cell-payment-priority" : ""}`;
-              const title = [
-                `${session.classLabel} · ${formatDisplayDate(session.date) || session.date}`,
-                paymentReference ? `Referencia ${paymentReference.shortLabel}` : "",
-              ]
-                .filter(Boolean)
-                .join(" · ");
               return `
                 <td${paymentCellClass}>
                   <div class="${sessionCellClass}">
                     <div class="attendance-session-meta">
-                      <small${dateClass}>${escapeHtml(formatDisplayDate(session.date) || "-")}</small>
+                      <small class="attendance-session-date">${escapeHtml(sessionGroup.label)}</small>
                       ${paymentReference
                         ? `<span class="attendance-payment-badge${paymentReference.isPriority ? " is-priority" : ""}">${escapeHtml(paymentReference.shortLabel)}</span>`
                         : ""}
                     </div>
-                    <select
-                      class="attendance-session-select"
-                      data-attendance-field="session"
-                      data-session-date="${session.date}"
-                      data-student-id="${student.id}"
-                      title="${escapeHtml(title)}"
-                    >${renderAttendanceOptions(record?.estado || "")}</select>
+                    <div class="attendance-session-slot-list">
+                      ${sessionGroup.slots
+                        .map((slot) => {
+                          const record = getAttendanceRecord(student.id, slot.date);
+                          const title = [
+                            `${slot.classLabel} · ${formatDisplayDate(slot.date) || slot.date}`,
+                            paymentReference ? `Referencia ${paymentReference.shortLabel}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return `
+                            <div class="attendance-session-slot-item">
+                              <small class="attendance-session-slot-label">${escapeHtml(slot.fullLabel)}</small>
+                              <small class="attendance-session-date">${escapeHtml(formatDisplayDate(slot.date) || "-")}</small>
+                              <select
+                                class="attendance-session-select"
+                                data-attendance-field="session"
+                                data-session-date="${slot.date}"
+                                data-student-id="${student.id}"
+                                title="${escapeHtml(title)}"
+                              >${renderAttendanceOptions(record?.estado || "")}</select>
+                            </div>
+                          `;
+                        })
+                        .join("")}
+                    </div>
                   </div>
                 </td>
               `;
@@ -7088,7 +7216,7 @@ function getAttendancePaymentReferenceToneClass(reference) {
   return "";
 }
 
-function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStudentAttendanceSessionDates(student)) {
+function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStudentAttendanceReferenceSessions(student)) {
   if (!rule) {
     return null;
   }
@@ -7111,11 +7239,11 @@ function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStude
   };
 }
 
-function getAttendancePaymentReferenceBySessionIndex(sessionIndex, student, sessions = getStudentAttendanceSessionDates(student)) {
+function getAttendancePaymentReferenceBySessionIndex(sessionIndex, student, sessions = getStudentAttendanceReferenceSessions(student)) {
   return buildAttendancePaymentReferenceEntry(getPaymentReferenceRuleBySessionIndex(sessionIndex), student, sessions);
 }
 
-function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentAttendanceSessionDates(student)) {
+function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentAttendanceReferenceSessions(student)) {
   if (!rule) {
     return null;
   }
@@ -7134,7 +7262,7 @@ function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentA
   };
 }
 
-function getStudentPaymentReferenceByField(field, student, sessions = getStudentAttendanceSessionDates(student)) {
+function getStudentPaymentReferenceByField(field, student, sessions = getStudentAttendanceReferenceSessions(student)) {
   return buildStudentPaymentReferenceEntry(getStudentPaymentReferenceRule(field), student, sessions);
 }
 
@@ -7151,7 +7279,7 @@ function getStudentPaymentScheduleEntries(student) {
     }));
 }
 
-function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceSessionDates(student)) {
+function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student)) {
   const selectedValue = field === "mensualidad5" && !courseUsesFifthMonth(student.curso)
     ? "No aplica"
     : payment[field] || "";
@@ -7181,7 +7309,7 @@ function getShortBranchLabel(branch) {
 }
 
 function getStudentPortalSessionDates(student) {
-  return getStudentAttendanceSessionDates(student);
+  return getStudentAttendanceReferenceSessions(student);
 }
 
 function getLatestPaymentSortKey(student) {
@@ -7234,7 +7362,7 @@ function renderPaymentsTable() {
   paymentsTableBody.innerHTML = visibleStudents
     .map((student) => {
       const payment = getPaymentRecord(student.id);
-      const studentSessions = getStudentAttendanceSessionDates(student);
+      const studentSessions = getStudentAttendanceReferenceSessions(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
       return `
         <tr>

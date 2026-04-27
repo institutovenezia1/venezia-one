@@ -713,6 +713,29 @@ textarea {
   justify-items: center;
 }
 
+.attendance-session-slot-list {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.attendance-session-slot-item {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.34rem 0.3rem;
+  border: 1px solid rgba(216, 208, 197, 0.72);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.attendance-session-slot-label {
+  color: #6f6258;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .attendance-session-cell small {
   color: #7b7268;
   font-size: 0.68rem;
