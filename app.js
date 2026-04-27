@@ -389,11 +389,13 @@ const financeHistoricalEmptyState = document.getElementById("financeHistoricalEm
 const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
+const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
 const miVeneziaLogoutButton = document.getElementById("miVeneziaLogoutButton");
 const miVeneziaSidebarName = document.getElementById("miVeneziaSidebarName");
 const miVeneziaSidebarMeta = document.getElementById("miVeneziaSidebarMeta");
 const miVeneziaSidebarStatus = document.getElementById("miVeneziaSidebarStatus");
 const miVeneziaViewLabel = document.getElementById("miVeneziaViewLabel");
+const miVeneziaPortalBadge = document.getElementById("miVeneziaPortalBadge");
 const miVeneziaStudentStatus = document.getElementById("miVeneziaStudentStatus");
 const miVeneziaPerfil = document.getElementById("miVeneziaPerfil");
 const miVeneziaPagos = document.getElementById("miVeneziaPagos");
@@ -410,6 +412,8 @@ const miVeneziaHeroMeta = document.getElementById("miVeneziaHeroMeta");
 const miVeneziaHeroSummary = document.getElementById("miVeneziaHeroSummary");
 const miVeneziaContactButton = document.getElementById("miVeneziaContactButton");
 const miVeneziaWhatsappSupportButton = document.getElementById("miVeneziaWhatsappSupportButton");
+const miVeneziaAvatarImage = document.getElementById("miVeneziaAvatarImage");
+const miVeneziaAvatarFallback = document.getElementById("miVeneziaAvatarFallback");
 const miVeneziaStatCourse = document.getElementById("miVeneziaStatCourse");
 const miVeneziaStatAttendance = document.getElementById("miVeneziaStatAttendance");
 const miVeneziaStatPayments = document.getElementById("miVeneziaStatPayments");
@@ -483,6 +487,20 @@ const heroSlides = heroSlider ? Array.from(heroSlider.querySelectorAll(".hero-sl
 const heroSliderDots = heroSlider ? Array.from(heroSlider.querySelectorAll("[data-hero-slider-dot]")) : [];
 const heroSliderPrevButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-prev]") : null;
 const heroSliderNextButton = heroSlider ? heroSlider.querySelector("[data-hero-slider-next]") : null;
+
+if (miVeneziaAvatarImage) {
+  miVeneziaAvatarImage.addEventListener("load", () => {
+    miVeneziaAvatarImage.hidden = false;
+    miVeneziaAvatarImage.classList.add("is-ready");
+  });
+
+  miVeneziaAvatarImage.addEventListener("error", () => {
+    miVeneziaAvatarImage.hidden = true;
+    miVeneziaAvatarImage.classList.remove("is-ready");
+    miVeneziaAvatarImage.removeAttribute("src");
+    miVeneziaAvatarImage.dataset.currentSrc = "";
+  });
+}
 
 const moduleSections = {
   "access-selector": document.getElementById("accessSelectorSection"),
@@ -6432,6 +6450,7 @@ function getStudentAttendanceCalendar(student) {
     return [];
   }
 
+  const weekdayStudent = isWeekdayStudent(student);
   const history = attendanceRecords
     .filter((record) => record.studentId === student.id)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -6448,6 +6467,10 @@ function getStudentAttendanceCalendar(student) {
     return {
       classLabel: session.classLabel || `S${index + 1}`,
       date: session.date,
+      weekNumber: session.weekNumber || index + 1,
+      weekdayLabel: session.weekdayLabel || "",
+      shortLabel: session.shortLabel || "",
+      isWeekdayStudent: weekdayStudent,
       resultLabel: record ? ATTENDANCE_STATUS_LABELS[record.estado] || record.estado || "-" : "Pendiente",
       record,
     };
@@ -8647,6 +8670,86 @@ function getMiVeneziaSafeText(value, fallback = "Sin información disponible por
   return normalized || fallback;
 }
 
+const COMMON_FEMALE_PORTAL_THEME_NAMES = [
+  "maria",
+  "guadalupe",
+  "laura",
+  "ana",
+  "sofia",
+  "fernanda",
+  "karla",
+  "diana",
+  "paola",
+  "alejandra",
+  "valeria",
+  "ximena",
+  "isabel",
+  "jessica",
+  "monica",
+  "adriana",
+  "yuritsi",
+  "ysela",
+  "isela",
+];
+
+const COMMON_MALE_PORTAL_THEME_NAMES = [
+  "jose",
+  "juan",
+  "carlos",
+  "luis",
+  "miguel",
+  "ismael",
+  "moises",
+  "diego",
+  "alejandro",
+  "fernando",
+  "eduardo",
+  "daniel",
+  "antonio",
+  "manuel",
+  "javier",
+];
+
+const PORTAL_THEME_CLASSNAMES = {
+  purple: "theme-purple",
+  gold: "theme-gold",
+  neutral: "theme-neutral",
+};
+
+const PORTAL_THEME_AVATAR_SOURCES = {
+  purple: "images/images:avatar-student-female.png",
+  gold: "images/images:avatar-student-male.png",
+  neutral: "images/images:avatar-student-male.png",
+};
+
+function normalizePortalThemeName(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getFirstNormalizedNameToken(fullName) {
+  return normalizePortalThemeName(fullName).split(" ").find(Boolean) || "";
+}
+
+function getSuggestedPortalThemeFromName(fullName) {
+  const firstName = getFirstNormalizedNameToken(fullName);
+
+  if (COMMON_FEMALE_PORTAL_THEME_NAMES.includes(firstName)) {
+    return "purple";
+  }
+
+  if (COMMON_MALE_PORTAL_THEME_NAMES.includes(firstName)) {
+    return "gold";
+  }
+
+  return "neutral";
+}
+
 function toStudentPortalNameCase(value) {
   const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!normalized) {
@@ -8666,13 +8769,74 @@ function toStudentPortalNameCase(value) {
     .join(" ");
 }
 
-function getStudentPortalGreetingName(fullName) {
+function getStudentPortalAvatarFallback(fullName) {
   const formattedName = toStudentPortalNameCase(fullName);
   if (!formattedName) {
-    return "estudiante";
+    return "V";
   }
 
-  return formattedName.split(" ")[0] || formattedName;
+  const initials = formattedName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || "V";
+}
+
+function getPortalThemeBadgeTone(themeKey) {
+  return themeKey === "purple" ? "is-purple" : "is-gold";
+}
+
+function applyMiVeneziaPortalTheme(fullName) {
+  const themeKey = getSuggestedPortalThemeFromName(fullName);
+  const themeClassName = PORTAL_THEME_CLASSNAMES[themeKey] || PORTAL_THEME_CLASSNAMES.neutral;
+  const avatarSrc = PORTAL_THEME_AVATAR_SOURCES[themeKey] || "";
+  const avatarFallback = getStudentPortalAvatarFallback(fullName);
+
+  if (miVeneziaShell) {
+    miVeneziaShell.classList.remove("theme-purple", "theme-gold", "theme-neutral");
+    miVeneziaShell.classList.add(themeClassName);
+    miVeneziaShell.dataset.portalTheme = themeKey;
+  }
+
+  if (themeKey) {
+    document.body.dataset.studentPortalTheme = themeKey;
+  } else {
+    delete document.body.dataset.studentPortalTheme;
+  }
+
+  if (miVeneziaViewLabel) {
+    miVeneziaViewLabel.className = `student-badge ${getPortalThemeBadgeTone(themeKey)}`.trim();
+  }
+
+  if (miVeneziaPortalBadge) {
+    miVeneziaPortalBadge.className = `student-badge ${getPortalThemeBadgeTone(themeKey)}`.trim();
+  }
+
+  if (miVeneziaAvatarFallback) {
+    miVeneziaAvatarFallback.textContent = avatarFallback;
+  }
+
+  if (miVeneziaAvatarImage) {
+    if (!avatarSrc) {
+      miVeneziaAvatarImage.hidden = true;
+      miVeneziaAvatarImage.classList.remove("is-ready");
+      miVeneziaAvatarImage.removeAttribute("src");
+      miVeneziaAvatarImage.dataset.currentSrc = "";
+    } else if (miVeneziaAvatarImage.dataset.currentSrc !== avatarSrc) {
+      miVeneziaAvatarImage.hidden = true;
+      miVeneziaAvatarImage.classList.remove("is-ready");
+      miVeneziaAvatarImage.dataset.currentSrc = avatarSrc;
+      miVeneziaAvatarImage.src = avatarSrc;
+    }
+  }
+
+  return {
+    key: themeKey,
+    className: themeClassName,
+  };
 }
 
 function getMiVeneziaViewLabel(view) {
@@ -8867,6 +9031,27 @@ function renderMiVeneziaNotices(container, notices = [], emptyMessage = "No tien
     .join("");
 }
 
+function getMiVeneziaAttendanceWeekGroups(attendanceCalendar = []) {
+  const groups = [];
+  const groupsByWeek = new Map();
+
+  attendanceCalendar.forEach((entry, index) => {
+    const weekNumber = entry.weekNumber || index + 1;
+    if (!groupsByWeek.has(weekNumber)) {
+      const group = {
+        weekNumber,
+        label: `Semana ${weekNumber}`,
+        entries: [],
+      };
+      groupsByWeek.set(weekNumber, group);
+      groups.push(group);
+    }
+    groupsByWeek.get(weekNumber).entries.push(entry);
+  });
+
+  return groups;
+}
+
 function renderMiVeneziaClasses(container, student, attendanceCalendar = [], attendanceOverview = {}) {
   if (!container) {
     return;
@@ -8878,6 +9063,40 @@ function renderMiVeneziaClasses(container, student, attendanceCalendar = [], att
   }
 
   const nextClassId = attendanceOverview.nextClass?.date || "";
+
+  if (isWeekdayStudent(student)) {
+    container.innerHTML = getMiVeneziaAttendanceWeekGroups(attendanceCalendar)
+      .map(
+        (group) => `
+          <section class="student-week-group">
+            <header class="student-week-group-header">
+              <span class="student-class-label">${escapeHtml(group.label)}</span>
+              <strong>${escapeHtml(`${group.entries.length} clase${group.entries.length === 1 ? "" : "s"}`)}</strong>
+            </header>
+            <div class="student-week-group-list">
+              ${group.entries
+                .map((entry) => {
+                  const isNext = entry.date === nextClassId && entry.resultLabel === "Pendiente";
+                  return `
+                    <article class="student-class-item ${isNext ? "is-next" : ""}">
+                      <div>
+                        <span class="student-class-label">${escapeHtml(group.label)}</span>
+                        <strong>${escapeHtml(entry.weekdayLabel || entry.classLabel || "Clase")}</strong>
+                        <p>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "Por confirmar")} · ${escapeHtml(getMiVeneziaSafeText(student?.horario, "Horario por confirmar"))}</p>
+                      </div>
+                      <span class="student-badge ${entry.resultLabel === "Pendiente" ? "is-neutral" : "is-blue"}">${escapeHtml(entry.resultLabel || "Pendiente")}</span>
+                    </article>
+                  `;
+                })
+                .join("")}
+            </div>
+          </section>
+        `
+      )
+      .join("");
+    return;
+  }
+
   container.innerHTML = attendanceCalendar
     .map((entry) => {
       const isNext = entry.date === nextClassId && entry.resultLabel === "Pendiente";
@@ -8893,6 +9112,53 @@ function renderMiVeneziaClasses(container, student, attendanceCalendar = [], att
       `;
     })
     .join("");
+}
+
+function buildMiVeneziaAttendanceTableRows(student, attendanceCalendar = [], expanded = false) {
+  if (isWeekdayStudent(student)) {
+    const weekGroups = getMiVeneziaAttendanceWeekGroups(attendanceCalendar);
+    const visibleWeekGroups = expanded ? weekGroups : weekGroups.slice(0, 2);
+
+    return {
+      rows: visibleWeekGroups
+        .map(
+          (group) => `
+            <tr class="mi-venezia-week-row">
+              <td colspan="3">${escapeHtml(group.label)}</td>
+            </tr>
+            ${group.entries
+              .map(
+                (entry) => `
+                  <tr>
+                    <td>${escapeHtml(entry.weekdayLabel || entry.classLabel || "Clase")}</td>
+                    <td>${escapeHtml(entry.resultLabel || "Pendiente")}</td>
+                    <td>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
+                  </tr>
+                `
+              )
+              .join("")}
+          `
+        )
+        .join(""),
+      shouldShowToggle: weekGroups.length > 2,
+    };
+  }
+
+  const visibleAttendanceEntries = expanded ? attendanceCalendar : attendanceCalendar.slice(0, 4);
+  return {
+    rows: visibleAttendanceEntries
+      .map(
+        (entry) => `
+          <tr>
+            <td>${escapeHtml(entry.classLabel)}</td>
+            <td>${escapeHtml(entry.resultLabel)}</td>
+            <td>${escapeHtml(entry.date || "-")}</td>
+          </tr>
+        `
+      )
+      .join(""),
+    shouldShowToggle: attendanceCalendar.length > 4,
+  };
 }
 
 function setMiVeneziaView(view) {
@@ -9154,6 +9420,7 @@ function renderWebScholarshipSection() {
 function renderMiVeneziaDashboard() {
   const student = getStudentById(currentPortalStudentId);
   if (!student || isStudentDeleted(student)) {
+    applyMiVeneziaPortalTheme("");
     dataService.sessions.clearStudent();
     currentPortalStudentId = "";
     miVeneziaAttendanceExpanded = false;
@@ -9208,7 +9475,7 @@ function renderMiVeneziaDashboard() {
     ? `${attendanceOverview.completionRate}%`
     : "Sin información disponible por ahora.";
   const studentDisplayName = toStudentPortalNameCase(student.nombre);
-  const studentGreetingName = getStudentPortalGreetingName(student.nombre);
+  applyMiVeneziaPortalTheme(student.nombre);
   const nextClassMetaParts = [
     attendanceOverview.nextClass?.classLabel || "",
     student.curso || "",
@@ -9217,7 +9484,7 @@ function renderMiVeneziaDashboard() {
   ].filter(Boolean);
 
   miVeneziaHeroName.textContent = `Hola, ${studentDisplayName || getMiVeneziaSafeText(student.nombre, "Estudiante")}`;
-  miVeneziaHeroMeta.textContent = "Bienvenida/o a Mi Venezia";
+  miVeneziaHeroMeta.textContent = "Tu portal académico personalizado";
   renderInfoList(miVeneziaHeroSummary, [
     { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
     { label: "Plantel", value: getMiVeneziaSafeText(student.sucursal) },
@@ -9327,21 +9594,15 @@ function renderMiVeneziaDashboard() {
     },
   ]);
 
-  const visibleAttendanceEntries = miVeneziaAttendanceExpanded ? attendanceCalendar : attendanceCalendar.slice(0, 4);
-  miVeneziaAsistenciasBody.innerHTML = visibleAttendanceEntries
-    .map(
-      (entry) => `
-        <tr>
-          <td>${escapeHtml(entry.classLabel)}</td>
-          <td>${escapeHtml(entry.resultLabel)}</td>
-          <td>${escapeHtml(entry.date || "-")}</td>
-        </tr>
-      `
-    )
-    .join("");
+  const attendanceTableState = buildMiVeneziaAttendanceTableRows(
+    student,
+    attendanceCalendar,
+    miVeneziaAttendanceExpanded
+  );
+  miVeneziaAsistenciasBody.innerHTML = attendanceTableState.rows;
   miVeneziaAsistenciasEmptyState.hidden = attendanceCalendar.length > 0;
   if (miVeneziaAttendanceToggle) {
-    miVeneziaAttendanceToggle.hidden = attendanceCalendar.length <= 4;
+    miVeneziaAttendanceToggle.hidden = !attendanceTableState.shouldShowToggle;
     miVeneziaAttendanceToggle.textContent = miVeneziaAttendanceExpanded ? "Ver menos" : "Ver más";
   }
 

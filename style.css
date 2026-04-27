@@ -8213,3 +8213,286 @@ body.student-portal-mode.student-portal-active .mi-venezia-progress-meter-fill {
     font-size: clamp(1.08rem, 5.2vw, 1.32rem) !important;
   }
 }
+
+.student-shell.theme-purple {
+  --student-accent: #7b52e4;
+  --student-accent-soft: #f4efff;
+  --student-accent-gradient: linear-gradient(135deg, #8f6cff 0%, #7848e2 58%, #6733cf 100%);
+  --student-accent-contrast: #ffffff;
+  --student-accent-border: rgba(123, 82, 228, 0.14);
+}
+
+.student-shell.theme-gold,
+.student-shell.theme-neutral {
+  --student-accent: #c99b51;
+  --student-accent-soft: #fcf5e8;
+  --student-accent-gradient: linear-gradient(135deg, #ead299 0%, #cfa55f 58%, #b9893f 100%);
+  --student-accent-contrast: #241d18;
+  --student-accent-border: rgba(196, 154, 74, 0.16);
+}
+
+body.student-portal-mode.student-portal-active[data-student-portal-theme="purple"] .main-content {
+  background:
+    radial-gradient(circle at top left, rgba(131, 92, 228, 0.14), transparent 22%),
+    radial-gradient(circle at top right, rgba(252, 206, 230, 0.24), transparent 24%),
+    linear-gradient(180deg, #fffefe 0%, #fcf8ff 48%, #f7f1fb 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-liquid,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-card,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-card,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-header,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-documents-grid .mi-venezia-document-card,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-table,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-upcoming-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-progress-status,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-document-mini-card,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-achievement,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-notice,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-class-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-week-group {
+  border-color: var(--student-accent-border);
+  box-shadow: 0 18px 40px rgba(91, 63, 152, 0.08);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-logo,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-profile,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-promo,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-chips .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-grid-list .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-profile-grid .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-payments-grid .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-attendance-grid .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-certification-grid .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-payment-schedule .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-reglamento-meta .info-item,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-stat,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaNextAction .mi-venezia-action-card,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-week-group {
+  border-color: var(--student-accent-border);
+  background: linear-gradient(180deg, #ffffff 0%, var(--student-accent-soft) 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-topbar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-card-subtitle,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-class-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-grid-list .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-profile-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-payments-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-attendance-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-certification-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-payment-schedule .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-reglamento-meta .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-upcoming-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-document-mini-code,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-stat span {
+  color: #8c78ba;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-logo-fallback,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-promo-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-topbar-mark,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-topbar h2,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-card-title,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-grid-list .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-profile-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-payments-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-attendance-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-certification-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-payment-schedule .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-reglamento-meta .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-upcoming-value,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-document-mini-card strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-progress-status strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaHeroName,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaNextAction .mi-venezia-action-title {
+  color: #241d35;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaHeroMeta,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-card-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-notice p,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-achievement p,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-class-item p,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-empty-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-upcoming-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-progress-status p,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaNextAction .mi-venezia-action-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaNextAction .mi-venezia-action-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-visual-copy {
+  color: #5d4c7d;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link {
+  background: #fbf8ff;
+  color: #5b4b74;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link::before {
+  background: rgba(123, 82, 228, 0.1);
+  color: var(--student-accent);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link:hover,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link.is-active {
+  border-color: var(--student-accent-border);
+  background: var(--student-accent-gradient);
+  color: var(--student-accent-contrast);
+  box-shadow: 0 16px 28px rgba(113, 72, 219, 0.24);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link:hover::before,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-sidebar-link.is-active::before {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-topbar-mark {
+  background: var(--student-accent-gradient);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(111, 72, 220, 0.2);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-visual {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 24%),
+    var(--student-accent-gradient);
+  box-shadow: 0 28px 56px rgba(98, 58, 189, 0.22);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-visual-kicker,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple #miVeneziaNextAction .mi-venezia-action-badge {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-dashboard-monogram {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.12) 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-main .primary-btn {
+  background: var(--student-accent-gradient);
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(112, 71, 220, 0.2);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-main .secondary-btn {
+  border-color: var(--student-accent-border);
+  color: #6a4ed0;
+  background: #fffefe;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-badge,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-badge.is-purple,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-badge.is-neutral,
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .student-badge.is-gold {
+  background: #f1ebff;
+  border-color: var(--student-accent-border);
+  color: #6a4ed0;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-progress-meter {
+  background: rgba(123, 82, 228, 0.14);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-purple .mi-venezia-progress-meter-fill {
+  background: linear-gradient(90deg, #a689ff 0%, #7b52e4 100%);
+}
+
+.student-dashboard-monogram {
+  overflow: hidden;
+}
+
+.student-dashboard-avatar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 24px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.student-dashboard-avatar.is-ready {
+  opacity: 1;
+}
+
+.student-dashboard-avatar-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.student-dashboard-avatar.is-ready + .student-dashboard-avatar-fallback {
+  opacity: 0;
+}
+
+#miVeneziaHeroName {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.student-week-group {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.95rem;
+  border-radius: 22px;
+  background: #fcfbff;
+}
+
+.student-week-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.student-week-group-header strong {
+  color: #2b2141;
+  font-size: 0.95rem;
+}
+
+.student-week-group-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.mi-venezia-week-row td {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6a4ed0;
+  background: #f4efff;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-week-row td,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-week-row td {
+  color: #8d672a;
+  background: #fdf7ea;
+}
+
+@media (max-width: 768px) {
+  body.student-portal-mode.student-portal-active .student-dashboard-monogram {
+    display: grid !important;
+    width: 72px !important;
+    height: 72px !important;
+    border-radius: 22px !important;
+  }
+
+  .student-dashboard-avatar {
+    border-radius: 20px;
+  }
+
+  .student-week-group {
+    padding: 0.85rem;
+    border-radius: 18px;
+  }
+}
