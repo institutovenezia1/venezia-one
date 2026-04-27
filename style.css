@@ -8084,6 +8084,137 @@ body.student-portal-mode.student-portal-active .mi-venezia-progress-meter-fill {
   background: linear-gradient(90deg, #edd79d 0%, #c99b51 100%);
 }
 
+body.student-portal-mode.student-portal-active .student-shell.theme-gold,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral {
+  --student-gold-title: #151515;
+  --student-gold-text: #1f1f1f;
+  --student-gold-muted: #4a4a4a;
+  --student-gold-label: #4a4a4a;
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-sidebar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-topbar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-card-subtitle,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-class-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-grid-list .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-profile-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-payments-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-attendance-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-certification-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-payment-schedule .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-reglamento-meta .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-upcoming-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-document-mini-code,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-dashboard-stat span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaNextAction .mi-venezia-action-eyebrow,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-sidebar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-topbar-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-card-subtitle,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-class-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-grid-list .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-profile-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-payments-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-attendance-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-certification-grid .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-payment-schedule .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-reglamento-meta .info-item strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-upcoming-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-document-mini-code,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-dashboard-stat span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaNextAction .mi-venezia-action-eyebrow {
+  color: var(--student-gold-label);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-sidebar-logo-fallback,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-sidebar-promo-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-topbar h2,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-card-title,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-grid-list .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-profile-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-payments-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-attendance-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-certification-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-payment-schedule .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-reglamento-meta .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-upcoming-value,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-document-mini-card strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-progress-status strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaHeroName,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaNextAction .mi-venezia-action-title,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-dashboard-stat strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-sidebar-logo-fallback,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-sidebar-promo-label,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-topbar h2,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-card-title,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-grid-list .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-profile-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-payments-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-attendance-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-certification-grid .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-payment-schedule .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-reglamento-meta .info-item span,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-upcoming-value,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-document-mini-card strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-progress-status strong,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaHeroName,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaNextAction .mi-venezia-action-title,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-dashboard-stat strong {
+  color: var(--student-gold-title);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaHeroMeta,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-card-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-notice p,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-achievement p,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-class-item p,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-empty-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-upcoming-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .mi-venezia-progress-status p,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaNextAction .mi-venezia-action-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaNextAction .mi-venezia-action-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-dashboard-visual-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-sidebar-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaHeroMeta,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-card-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-notice p,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-achievement p,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-class-item p,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-empty-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-upcoming-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-venezia-progress-status p,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaNextAction .mi-venezia-action-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaNextAction .mi-venezia-action-meta,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-dashboard-visual-copy,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-sidebar-copy {
+  color: var(--student-gold-muted);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-dashboard-visual-kicker,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold #miVeneziaNextAction .mi-venezia-action-badge,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-dashboard-visual-kicker,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral #miVeneziaNextAction .mi-venezia-action-badge {
+  color: var(--student-gold-text);
+  background: rgba(255, 255, 255, 0.52);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-dashboard-monogram,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-dashboard-monogram {
+  color: var(--student-gold-text);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.24) 100%);
+}
+
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-badge,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-badge.is-purple,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-badge.is-neutral,
+body.student-portal-mode.student-portal-active .student-shell.theme-gold .student-badge.is-gold,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-badge,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-badge.is-purple,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-badge.is-neutral,
+body.student-portal-mode.student-portal-active .student-shell.theme-neutral .student-badge.is-gold {
+  color: var(--student-gold-text);
+}
+
 @media (max-width: 768px) {
   html,
   body {
