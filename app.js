@@ -9254,13 +9254,17 @@ function resetMiVeneziaScrollPosition() {
 
 function renderMiVeneziaViewState() {
   miVeneziaViewButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.studentView === currentMiVeneziaView);
+    const isActive = button.dataset.studentView === currentMiVeneziaView;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
   });
 
   miVeneziaViewPages.forEach((page) => {
     const isActive = page.dataset.studentPage === currentMiVeneziaView;
     page.classList.toggle("is-active", isActive);
     page.hidden = !isActive;
+    page.setAttribute("aria-hidden", isActive ? "false" : "true");
+    page.style.display = isActive ? "grid" : "none";
   });
 
   if (miVeneziaViewLabel) {
@@ -9272,10 +9276,6 @@ function renderMiVeneziaViewState() {
 
 function openMiVeneziaView(view) {
   setMiVeneziaView(view);
-  if (currentPortalStudentId) {
-    renderMiVeneziaDashboard();
-    return;
-  }
   renderMiVeneziaViewState();
 }
 
