@@ -3782,6 +3782,29 @@ function getStudentStartDateValue(student) {
   return String(student?.fechaInicio || student?.fechaInscripcion || (createdAt ? createdAt.slice(0, 10) : "")).trim();
 }
 
+function getLocalDateValueFromTimestamp(value) {
+  const normalizedValue = String(value || "").trim();
+  if (!normalizedValue) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  const parsedDate = new Date(normalizedValue);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return getCurrentMexicoDateValue(parsedDate);
+  }
+
+  const fallbackDate = normalizedValue.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(fallbackDate) ? fallbackDate : "";
+}
+
+function getStudentAltaCreatedDate(student) {
+  return getLocalDateValueFromTimestamp(student?.createdAt);
+}
+
 function isAllBranchesScope(branch) {
   return String(branch || "").trim().toLowerCase() === "todas";
 }
@@ -6335,10 +6358,10 @@ function renderAltaHistory() {
   const today = getCurrentMexicoDateValue();
   const currentWeek = getCurrentWeekRange(today);
   const weekCount = altaHistory.filter((student) => {
-    const inscriptionDate = getStudentInscriptionDate(student);
-    return inscriptionDate && inscriptionDate >= currentWeek.from && inscriptionDate <= currentWeek.to;
+    const altaCreatedDate = getStudentAltaCreatedDate(student);
+    return altaCreatedDate && altaCreatedDate >= currentWeek.from && altaCreatedDate <= currentWeek.to;
   }).length;
-  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentInscriptionDate(student), today.slice(0, 7))).length;
+  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
   const latestAltas = altaHistory.slice(0, 3);
 
   if (altaWeekCount) {
