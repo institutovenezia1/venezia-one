@@ -798,15 +798,23 @@
               </div>
             </div>
 
-            <div class="altas-history-stats altas-history-stats-compact" aria-label="Resumen de altas semanales y mensuales">
+            <div class="altas-history-stats altas-history-stats-compact" aria-label="Resumen de altas semanales y diarias">
               <article class="altas-history-stat">
                 <span>Altas de la semana</span>
                 <strong id="altaWeekCount">0</strong>
               </article>
               <article class="altas-history-stat">
-                <span>Altas del mes</span>
-                <strong id="altaMonthCount">0</strong>
+                <span>Altas del día</span>
+                <strong id="altaDayCount">0</strong>
               </article>
+            </div>
+
+            <div class="altas-history-filter-row">
+              <label class="altas-history-date-filter">
+                <span>Consultar día</span>
+                <input id="altaDateFilter" type="date" />
+              </label>
+              <button class="secondary-btn" type="button" id="altaDateFilterClearButton">Quitar filtro</button>
             </div>
 
             <div class="table-wrapper altas-history-table-wrapper">

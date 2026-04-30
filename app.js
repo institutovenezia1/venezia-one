@@ -208,9 +208,10 @@ const altaConfirmPortalUser = document.getElementById("altaConfirmPortalUser");
 const altaConfirmPortalPassword = document.getElementById("altaConfirmPortalPassword");
 const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButton");
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
-const altasMonthFilter = document.getElementById("altasMonthFilter");
+const altaDateFilter = document.getElementById("altaDateFilter");
+const altaDateFilterClearButton = document.getElementById("altaDateFilterClearButton");
 const altaWeekCount = document.getElementById("altaWeekCount");
-const altaMonthCount = document.getElementById("altaMonthCount");
+const altaDayCount = document.getElementById("altaDayCount");
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
 const altaActiveTotal = document.getElementById("altaActiveTotal");
@@ -672,12 +673,12 @@ let activeFollowupFilter = "";
 let activeAccessFilter = "";
 let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
-let selectedAltasMonth = selectedMonth;
 let selectedPaymentsMonth = selectedMonth;
 let dashboardSelectedMonth = selectedMonth;
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let attendanceTableExpanded = false;
+let selectedAltaDateFilter = "";
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
 let activeStudentFileId = "";
@@ -695,9 +696,6 @@ let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
 
 monthFilter.value = selectedMonth;
-if (altasMonthFilter) {
-  altasMonthFilter.value = selectedAltasMonth;
-}
 paymentsMonthFilter.value = selectedPaymentsMonth;
 attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
@@ -6375,6 +6373,15 @@ function getCurrentWeekAltaHistory(dateValue = getCurrentMexicoDateValue()) {
   });
 }
 
+function getAltaHistoryForDate(dateValue) {
+  const normalizedDate = String(dateValue || "").trim();
+  if (!normalizedDate) {
+    return [];
+  }
+
+  return getFilteredAltaHistory().filter((student) => getStudentAltaCreatedDate(student) === normalizedDate);
+}
+
 function getActiveStudentBranchSummary() {
   const activeStudents = students.filter((student) => !isStudentDeleted(student));
   const tlaxcalaCount = activeStudents.filter(
@@ -6392,20 +6399,28 @@ function getActiveStudentBranchSummary() {
 }
 
 function renderAltaHistory() {
-  const altaHistory = getFilteredAltaHistory();
   const today = getCurrentMexicoDateValue();
   const currentWeekAltas = getCurrentWeekAltaHistory(today);
+  const selectedDate = selectedAltaDateFilter || "";
+  const currentDayAltas = getAltaHistoryForDate(selectedDate || today);
+  const visibleAltas = selectedDate ? getAltaHistoryForDate(selectedDate) : currentWeekAltas;
   const weekCount = currentWeekAltas.length;
-  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
+  const dayCount = currentDayAltas.length;
 
   if (altaWeekCount) {
     altaWeekCount.textContent = weekCount;
   }
-  if (altaMonthCount) {
-    altaMonthCount.textContent = monthCount;
+  if (altaDayCount) {
+    altaDayCount.textContent = dayCount;
+  }
+  if (altaDateFilter && altaDateFilter.value !== selectedDate) {
+    altaDateFilter.value = selectedDate;
+  }
+  if (altaDateFilterClearButton) {
+    altaDateFilterClearButton.disabled = !selectedDate;
   }
 
-  altaHistoryTableBody.innerHTML = currentWeekAltas
+  altaHistoryTableBody.innerHTML = visibleAltas
     .map((student) => {
       const altaCreatedDate = getStudentAltaCreatedDate(student);
       const courseStartDate = getStudentCourseStartDateValue(student);
@@ -6439,7 +6454,10 @@ function renderAltaHistory() {
     })
     .join("");
 
-  altaHistoryEmptyState.hidden = currentWeekAltas.length > 0;
+  altaHistoryEmptyState.hidden = visibleAltas.length > 0;
+  altaHistoryEmptyState.textContent = selectedDate
+    ? "No hay altas registradas para la fecha seleccionada en la sucursal visible."
+    : "No hay altas registradas en la semana actual para la sucursal visible.";
 }
 
 function getActiveStudents() {
@@ -11337,9 +11355,16 @@ monthFilter.addEventListener("change", (event) => {
   updateAttendanceSummary();
 });
 
-if (altasMonthFilter) {
-  altasMonthFilter.addEventListener("change", (event) => {
-    selectedAltasMonth = event.target.value || getCurrentMonthValue();
+if (altaDateFilter) {
+  altaDateFilter.addEventListener("change", (event) => {
+    selectedAltaDateFilter = String(event.target.value || "").trim();
+    renderAltaHistory();
+  });
+}
+
+if (altaDateFilterClearButton) {
+  altaDateFilterClearButton.addEventListener("click", () => {
+    selectedAltaDateFilter = "";
     renderAltaHistory();
   });
 }
