@@ -189,6 +189,7 @@ const altaSummaryMetodoPago = document.getElementById("altaSummaryMetodoPago");
 const altaSummaryCantidadPago = document.getElementById("altaSummaryCantidadPago");
 const altaSummaryPortalUser = document.getElementById("altaSummaryPortalUser");
 const altaSummaryPortalPassword = document.getElementById("altaSummaryPortalPassword");
+const altaFechaAltaDisplay = document.getElementById("altaFechaAltaDisplay");
 const altaClaveElector = document.getElementById("altaClaveElector");
 const altaClaveElectorLabel = document.getElementById("altaClaveElectorLabel");
 const altaConfirmCard = document.getElementById("altaConfirmCard");
@@ -199,6 +200,7 @@ const altaConfirmCurso = document.getElementById("altaConfirmCurso");
 const altaConfirmSucursal = document.getElementById("altaConfirmSucursal");
 const altaConfirmAcceso = document.getElementById("altaConfirmAcceso");
 const altaConfirmHorario = document.getElementById("altaConfirmHorario");
+const altaConfirmFechaAlta = document.getElementById("altaConfirmFechaAlta");
 const altaConfirmFechaInicio = document.getElementById("altaConfirmFechaInicio");
 const altaConfirmMetodoPago = document.getElementById("altaConfirmMetodoPago");
 const altaConfirmCantidadPago = document.getElementById("altaConfirmCantidadPago");
@@ -3520,6 +3522,7 @@ function getAltaFormData() {
   ).trim();
   const existingStudentId = String(formData.get("studentId") || "").trim();
   const existingStudent = students.find((student) => student.id === existingStudentId);
+  const createdAt = existingStudent?.createdAt || new Date().toISOString();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
   const portalPassword = buildStudentPortalPassword(fechaNacimiento);
@@ -3590,7 +3593,7 @@ function getAltaFormData() {
     lecturaContrato: existingStudent?.lecturaContrato || false,
     fechaLecturaContrato: existingStudent?.fechaLecturaContrato || "",
     estado: "Activa",
-    createdAt: existingStudent?.createdAt || new Date().toISOString(),
+    createdAt,
   };
 }
 
@@ -3602,7 +3605,8 @@ function getAltaSummaryData(altaData) {
     sucursal: altaData.sucursal || "-",
     acceso: altaData.accesoElegido || "-",
     horario: altaData.horario || "-",
-    fechaInicio: altaData.fechaInicio || "-",
+    fechaAlta: getStudentAltaCreatedDate(altaData) || getCurrentMexicoDateValue(),
+    fechaInicio: getStudentCourseStartDateValue(altaData) || "-",
     metodoPago: altaData.metodoPago || "-",
     cantidadPago: altaData.cantidadPago || "-",
     portalUser: altaData.portalUser || "-",
@@ -3635,6 +3639,7 @@ function renderAltaConfirmation(summary) {
   altaConfirmSucursal.textContent = summary.sucursal;
   altaConfirmAcceso.textContent = summary.acceso;
   altaConfirmHorario.textContent = summary.horario;
+  if (altaConfirmFechaAlta) altaConfirmFechaAlta.textContent = summary.fechaAlta;
   altaConfirmFechaInicio.textContent = summary.fechaInicio;
   altaConfirmMetodoPago.textContent = summary.metodoPago;
   altaConfirmCantidadPago.textContent = summary.cantidadPago;
@@ -3692,21 +3697,27 @@ function syncAltaAutoFields() {
   const telefono = normalizePhone(document.getElementById("altaTelefono").value);
   const fechaNacimiento = document.getElementById("altaFechaNacimiento").value;
   const sucursal = document.getElementById("altaSucursal").value;
+  const existingStudentId = document.getElementById("altaStudentId").value;
   const studentCodeField = document.getElementById("altaStudentCode");
   const fechaInicioField = document.getElementById("altaFechaInscripcion");
   const hiddenFechaInicioField = document.getElementById("altaFechaInicio");
   const portalUserField = document.getElementById("altaPortalUser");
   const portalPasswordField = document.getElementById("altaPassword");
 
-  if (!fechaInicioField.value) {
+  if (!fechaInicioField.value && !existingStudentId) {
     fechaInicioField.value = formatDateForInput(new Date());
   }
   hiddenFechaInicioField.value = fechaInicioField.value;
-  if (sucursal) {
+  if (!existingStudentId) {
+    syncAltaDateDisplay(getCurrentMexicoDateValue());
+  }
+  if (sucursal && fechaInicioField.value) {
     const expectedPrefix = sucursal === "Tlaxcala" ? "TLX" : sucursal === "Puebla" ? "PUE" : "ALT";
     if (!studentCodeField.value || !studentCodeField.value.startsWith(`${expectedPrefix}-${fechaInicioField.value.slice(2, 4)}-`)) {
       studentCodeField.value = generateStudentCode(sucursal, fechaInicioField.value);
     }
+  } else if (sucursal && !studentCodeField.value) {
+    studentCodeField.value = generateStudentCode(sucursal);
   }
 
   portalUserField.value = telefono;
@@ -3788,6 +3799,10 @@ function getStudentStartDateValue(student) {
   return String(student?.fechaInicio || student?.fechaInscripcion || (createdAt ? createdAt.slice(0, 10) : "")).trim();
 }
 
+function getStudentCourseStartDateValue(student) {
+  return String(student?.fechaInicio || student?.fechaInscripcion || "").trim();
+}
+
 function getLocalDateValueFromTimestamp(value) {
   const normalizedValue = String(value || "").trim();
   if (!normalizedValue) {
@@ -3809,6 +3824,14 @@ function getLocalDateValueFromTimestamp(value) {
 
 function getStudentAltaCreatedDate(student) {
   return getLocalDateValueFromTimestamp(student?.createdAt);
+}
+
+function syncAltaDateDisplay(value = "") {
+  if (!altaFechaAltaDisplay) {
+    return;
+  }
+
+  altaFechaAltaDisplay.value = String(value || "").trim();
 }
 
 function isAllBranchesScope(branch) {
@@ -4719,6 +4742,7 @@ function resetAltaForm() {
   document.getElementById("altaProspectId").value = "";
   document.getElementById("altaStudentCode").value = generateStudentCode();
   document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
+  syncAltaDateDisplay(getCurrentMexicoDateValue());
   altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
   syncAltaAutoFields();
   clearAltaValidation();
@@ -6384,10 +6408,12 @@ function renderAltaHistory() {
   altaHistoryTableBody.innerHTML = currentWeekAltas
     .map((student) => {
       const altaCreatedDate = getStudentAltaCreatedDate(student);
+      const courseStartDate = getStudentCourseStartDateValue(student);
       return `
         <tr>
           <td><span class="alta-history-code">${escapeHtml(student.studentCode || student.id || "-")}</span></td>
           <td>${escapeHtml(altaCreatedDate || "-")}</td>
+          <td>${escapeHtml(courseStartDate || "-")}</td>
           <td>
             <div class="alta-history-primary">
               <strong>${escapeHtml(student.nombre || "-")}</strong>
@@ -6539,7 +6565,8 @@ function loadStudentIntoAlta(studentId) {
     return;
   }
 
-  const startDate = getStudentStartDateValue(student) || formatDateForInput(new Date());
+  const startDate = getStudentCourseStartDateValue(student);
+  const altaDate = getStudentAltaCreatedDate(student) || getCurrentMexicoDateValue();
 
   document.getElementById("altaStudentId").value = student.id;
   document.getElementById("altaProspectId").value = student.prospectId || "";
@@ -6571,6 +6598,7 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaTrabajaActualmente").value = student.trabajaActualmente || "";
   document.getElementById("altaNotasMedicas").value = student.notasMedicas || "";
   document.getElementById("altaObservaciones").value = student.observaciones || "";
+  syncAltaDateDisplay(altaDate);
 
   syncAltaAutoFields();
   altaForm.querySelector('button[type="submit"]').textContent = "Actualizar alta";
@@ -8292,7 +8320,8 @@ function renderStudentFile(studentId) {
   `;
 
   renderStudentFileInfoList(studentFileGeneral, [
-    { label: "Fecha de inicio", value: getStudentStartDateValue(student) || "-" },
+    { label: "Fecha de alta", value: getStudentAltaCreatedDate(student) || "-" },
+    { label: "Fecha de inicio", value: getStudentCourseStartDateValue(student) || "-" },
     { label: "Nombre completo", value: student.nombre || "-", highlight: true },
     { label: "Teléfono/Whatsapp", value: student.telefono || "-" },
     { label: "Correo electrónico", value: student.correo || "-" },
@@ -10286,7 +10315,7 @@ async function deleteStudentRecord(id) {
     return;
   }
 
-  const startDate = getStudentStartDateValue(student);
+  const startDate = getStudentCourseStartDateValue(student);
   const confirmed = window.confirm(
     `Vas a eliminar a ${student.nombre || "esta alumna"} del módulo Altas.\n\n` +
       "Esta acción puede afectar expediente, pagos, asistencias, acceso Mi Venezia y datos relacionados.\n" +

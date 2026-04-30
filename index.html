@@ -551,7 +551,12 @@
                   </div>
                   <div class="alta-form-block-grid">
                     <label>
-                      <span>Fecha de inicio</span>
+                      <span>Fecha de alta</span>
+                      <input id="altaFechaAltaDisplay" type="date" readonly />
+                    </label>
+
+                    <label>
+                      <span>Fecha de inicio de clases</span>
                       <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" />
                     </label>
 
@@ -753,6 +758,10 @@
                     <strong id="altaConfirmHorario">-</strong>
                   </div>
                   <div class="alta-summary-item">
+                    <span>Fecha de alta</span>
+                    <strong id="altaConfirmFechaAlta">-</strong>
+                  </div>
+                  <div class="alta-summary-item">
                     <span>Fecha de inicio</span>
                     <strong id="altaConfirmFechaInicio">-</strong>
                   </div>
@@ -785,7 +794,7 @@
             <div class="altas-history-header">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
-                <h3>Ultimas altas registradas</h3>
+                <h3>Altas de la semana en curso</h3>
               </div>
             </div>
 
@@ -805,6 +814,7 @@
                 <thead>
                   <tr>
                     <th>ID Alumna</th>
+                    <th>Fecha de alta</th>
                     <th>Fecha de inicio</th>
                     <th>Nombre completo</th>
                     <th>Sucursal</th>
@@ -822,7 +832,7 @@
             </div>
 
             <p id="altaHistoryEmptyState" class="empty-state">
-              No hay altas registradas para la sucursal visible.
+              No hay altas registradas en la semana actual para la sucursal visible.
             </p>
           </section>
 
