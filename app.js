@@ -210,8 +210,8 @@ const altaConfirmProceedButton = document.getElementById("altaConfirmProceedButt
 const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton");
 const altaDateFilter = document.getElementById("altaDateFilter");
 const altaDateFilterClearButton = document.getElementById("altaDateFilterClearButton");
-const altaWeekCount = document.getElementById("altaWeekCount");
 const altaDayCount = document.getElementById("altaDayCount");
+const altaMonthCount = document.getElementById("altaMonthCount");
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
 const altaActiveTotal = document.getElementById("altaActiveTotal");
@@ -6400,18 +6400,19 @@ function getActiveStudentBranchSummary() {
 
 function renderAltaHistory() {
   const today = getCurrentMexicoDateValue();
+  const altaHistory = getFilteredAltaHistory();
   const currentWeekAltas = getCurrentWeekAltaHistory(today);
   const selectedDate = selectedAltaDateFilter || "";
   const currentDayAltas = getAltaHistoryForDate(selectedDate || today);
   const visibleAltas = selectedDate ? getAltaHistoryForDate(selectedDate) : currentWeekAltas;
-  const weekCount = currentWeekAltas.length;
   const dayCount = currentDayAltas.length;
+  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
 
-  if (altaWeekCount) {
-    altaWeekCount.textContent = weekCount;
-  }
   if (altaDayCount) {
     altaDayCount.textContent = dayCount;
+  }
+  if (altaMonthCount) {
+    altaMonthCount.textContent = monthCount;
   }
   if (altaDateFilter && altaDateFilter.value !== selectedDate) {
     altaDateFilter.value = selectedDate;

@@ -1587,11 +1587,13 @@ td select {
 }
 
 .altas-history-stats-compact {
+  width: min(420px, 100%);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .altas-history-stat {
-  padding: 0.85rem 0.95rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
   border: 1px solid #d8d0c5;
   border-radius: 18px;
   background:
@@ -1612,7 +1614,7 @@ td select {
   display: block;
   margin-top: 0.25rem;
   color: #1a1a1a;
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
