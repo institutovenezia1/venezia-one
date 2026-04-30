@@ -1587,8 +1587,8 @@ td select {
 }
 
 .altas-history-stats-compact {
-  width: min(420px, 100%);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .altas-history-stat {

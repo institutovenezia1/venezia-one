@@ -211,6 +211,7 @@ const altaConfirmCancelButton = document.getElementById("altaConfirmCancelButton
 const altaDateFilter = document.getElementById("altaDateFilter");
 const altaDateFilterClearButton = document.getElementById("altaDateFilterClearButton");
 const altaDayCount = document.getElementById("altaDayCount");
+const altaWeekCount = document.getElementById("altaWeekCount");
 const altaMonthCount = document.getElementById("altaMonthCount");
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
@@ -6406,10 +6407,14 @@ function renderAltaHistory() {
   const currentDayAltas = getAltaHistoryForDate(selectedDate || today);
   const visibleAltas = selectedDate ? getAltaHistoryForDate(selectedDate) : currentWeekAltas;
   const dayCount = currentDayAltas.length;
+  const weekCount = currentWeekAltas.length;
   const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
 
   if (altaDayCount) {
     altaDayCount.textContent = dayCount;
+  }
+  if (altaWeekCount) {
+    altaWeekCount.textContent = weekCount;
   }
   if (altaMonthCount) {
     altaMonthCount.textContent = monthCount;
