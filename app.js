@@ -756,23 +756,29 @@ async function saveProspectRecord(record, options = {}) {
 }
 
 async function saveStudentRecord(record) {
+  const existingRecord = students.find((student) => student.id === record.id);
+  const normalizedRecord = {
+    ...record,
+    createdAt: existingRecord?.createdAt || record.createdAt || new Date().toISOString(),
+  };
+
   console.log('Altas module target table: "students"');
   console.log("ALTA -> students payload", {
-    id: record.id,
-    full_name: record.nombre || "",
-    phone: record.telefono || "",
-    branch: record.sucursal || "",
-    course: record.curso || "",
-    schedule: record.horario || "",
-    start_date: record.fechaInicio || null,
-    access_selected: record.accesoElegido || "",
-    password: record.portalPassword || "",
-    status: record.estado || "Activa",
-    source_prospect_id: record.prospectId || null,
-    notes: record.observaciones || "",
-    created_at: record.createdAt || null,
+    id: normalizedRecord.id,
+    full_name: normalizedRecord.nombre || "",
+    phone: normalizedRecord.telefono || "",
+    branch: normalizedRecord.sucursal || "",
+    course: normalizedRecord.curso || "",
+    schedule: normalizedRecord.horario || "",
+    start_date: normalizedRecord.fechaInicio || null,
+    access_selected: normalizedRecord.accesoElegido || "",
+    password: normalizedRecord.portalPassword || "",
+    status: normalizedRecord.estado || "Activa",
+    source_prospect_id: normalizedRecord.prospectId || null,
+    notes: normalizedRecord.observaciones || "",
+    created_at: normalizedRecord.createdAt || null,
   });
-  const result = await dataService.entities.students.upsertOne(record, { alertOnFailure: false });
+  const result = await dataService.entities.students.upsertOne(normalizedRecord, { alertOnFailure: false });
 
   if (!result.synced) {
     console.log('Supabase write to "students" failed.');
@@ -6328,13 +6334,21 @@ function getFilteredAltaHistory() {
   return students
     .filter((student) => matchesCurrentBranch(student.sucursal) && !isStudentDeleted(student))
     .sort((a, b) => {
-      const dateA = getStudentInscriptionDate(a) || "0000-00-00";
-      const dateB = getStudentInscriptionDate(b) || "0000-00-00";
+      const dateA = getStudentAltaCreatedDate(a) || "0000-00-00";
+      const dateB = getStudentAltaCreatedDate(b) || "0000-00-00";
       if (dateA !== dateB) {
         return dateB.localeCompare(dateA);
       }
       return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
+}
+
+function getCurrentWeekAltaHistory(dateValue = getCurrentMexicoDateValue()) {
+  const currentWeek = getCurrentWeekRange(dateValue);
+  return getFilteredAltaHistory().filter((student) => {
+    const altaCreatedDate = getStudentAltaCreatedDate(student);
+    return altaCreatedDate && altaCreatedDate >= currentWeek.from && altaCreatedDate <= currentWeek.to;
+  });
 }
 
 function getActiveStudentBranchSummary() {
@@ -6356,13 +6370,9 @@ function getActiveStudentBranchSummary() {
 function renderAltaHistory() {
   const altaHistory = getFilteredAltaHistory();
   const today = getCurrentMexicoDateValue();
-  const currentWeek = getCurrentWeekRange(today);
-  const weekCount = altaHistory.filter((student) => {
-    const altaCreatedDate = getStudentAltaCreatedDate(student);
-    return altaCreatedDate && altaCreatedDate >= currentWeek.from && altaCreatedDate <= currentWeek.to;
-  }).length;
+  const currentWeekAltas = getCurrentWeekAltaHistory(today);
+  const weekCount = currentWeekAltas.length;
   const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
-  const latestAltas = altaHistory.slice(0, 3);
 
   if (altaWeekCount) {
     altaWeekCount.textContent = weekCount;
@@ -6371,13 +6381,13 @@ function renderAltaHistory() {
     altaMonthCount.textContent = monthCount;
   }
 
-  altaHistoryTableBody.innerHTML = latestAltas
+  altaHistoryTableBody.innerHTML = currentWeekAltas
     .map((student) => {
-      const inscriptionDate = getStudentInscriptionDate(student);
+      const altaCreatedDate = getStudentAltaCreatedDate(student);
       return `
         <tr>
           <td><span class="alta-history-code">${escapeHtml(student.studentCode || student.id || "-")}</span></td>
-          <td>${escapeHtml(inscriptionDate || "-")}</td>
+          <td>${escapeHtml(altaCreatedDate || "-")}</td>
           <td>
             <div class="alta-history-primary">
               <strong>${escapeHtml(student.nombre || "-")}</strong>
@@ -6403,7 +6413,7 @@ function renderAltaHistory() {
     })
     .join("");
 
-  altaHistoryEmptyState.hidden = latestAltas.length > 0;
+  altaHistoryEmptyState.hidden = currentWeekAltas.length > 0;
 }
 
 function getActiveStudents() {
