@@ -857,6 +857,16 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
     await reconcilePaymentFinanceRecords();
     lastSharedDataRefreshAt = Date.now();
 
+    console.log("refreshSharedSupabaseState ejecutado", {
+      force,
+      render,
+      students: students.length,
+      paymentRecords: paymentRecords.length,
+      paidPaymentRecords: paymentRecords.filter((record) => isRealPaidPaymentRecord(record)).length,
+      financeRecords: financeRecords.length,
+      linkedPaymentFinanceRecords: financeRecords.filter((record) => record.relatedPaymentId).length,
+    });
+
     if (render) {
       renderAll();
     }
@@ -7861,6 +7871,31 @@ function renderPaymentsTable() {
     visibleStudents: visibleStudents.length,
     branch: getAllowedBranch() || "Todas",
   });
+
+  const trackedStudents = [
+    "SELENE ABREGON GUILLEN",
+    "ADRIANA PRIETO ZAMORANO",
+    "GERARDO ANTONIO JIMENEZ ELIZARRARAS",
+  ];
+  const trackedPaymentRecords = trackedStudents
+    .map((name) => {
+      const student = studentsList.find((item) => String(item.nombre || "").trim().toUpperCase() === name);
+      if (!student) {
+        return null;
+      }
+
+      const payment = getPersistentPaymentRecord(student.id);
+      return {
+        student: student.nombre,
+        studentId: student.id,
+        record: summarizePaymentRecordForTrace(payment),
+      };
+    })
+    .filter(Boolean);
+
+  if (trackedPaymentRecords.length > 0) {
+    console.log("PAGOS registros rastreados", trackedPaymentRecords);
+  }
 }
 
 async function savePaymentForStudent(studentId) {
