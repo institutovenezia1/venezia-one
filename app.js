@@ -7476,6 +7476,76 @@ function getPaymentRecord(studentId) {
   );
 }
 
+function getPersistentPaymentRecord(studentId) {
+  const latestRecord = getLatestPaymentRecordForStudent(studentId);
+  if (latestRecord?.id) {
+    return latestRecord;
+  }
+
+  return getPaymentRecord(studentId);
+}
+
+function getPaymentStudentIdentityKey(student) {
+  const phoneKey = String(student?.telefono || student?.portalUser || "").trim().toLowerCase();
+  if (phoneKey) {
+    return phoneKey;
+  }
+
+  return [
+    String(student?.nombre || "").trim().toLowerCase(),
+    String(student?.curso || "").trim().toLowerCase(),
+    String(student?.horario || "").trim().toLowerCase(),
+    String(student?.sucursal || "").trim().toLowerCase(),
+  ].join("|");
+}
+
+function getCanonicalStudentsForPayments(studentsList = getActiveStudents()) {
+  const groupedStudents = new Map();
+
+  studentsList.forEach((student) => {
+    const key = getPaymentStudentIdentityKey(student);
+    const bucket = groupedStudents.get(key) || [];
+    bucket.push(student);
+    groupedStudents.set(key, bucket);
+  });
+
+  const dedupedStudents = Array.from(groupedStudents.values()).map((entries) => {
+    if (entries.length === 1) {
+      return entries[0];
+    }
+
+    return [...entries].sort((left, right) => {
+      const leftPayment = getPersistentPaymentRecord(left.id);
+      const rightPayment = getPersistentPaymentRecord(right.id);
+      const leftHasPayment = Boolean(leftPayment?.id);
+      const rightHasPayment = Boolean(rightPayment?.id);
+
+      if (leftHasPayment !== rightHasPayment) {
+        return rightHasPayment ? 1 : -1;
+      }
+
+      const leftUpdated = String(leftPayment?.updatedAt || leftPayment?.createdAt || "");
+      const rightUpdated = String(rightPayment?.updatedAt || rightPayment?.createdAt || "");
+      if (leftUpdated !== rightUpdated) {
+        return rightUpdated.localeCompare(leftUpdated);
+      }
+
+      return String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
+    })[0];
+  });
+
+  const duplicateCount = studentsList.length - dedupedStudents.length;
+  if (duplicateCount > 0) {
+    console.log("PAGOS duplicados de alumnas colapsados para vista de historial", {
+      originalStudents: studentsList.length,
+      visibleStudents: dedupedStudents.length,
+      duplicateCount,
+    });
+  }
+
+  return dedupedStudents;
+}
+
 function getPaymentRecordMonth(record) {
   if (record.mesPago) {
     return record.mesPago;
@@ -7492,6 +7562,24 @@ function isPaymentRecordInSelectedMonth(record) {
 function getScopedPaymentRecords() {
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
   return paymentRecords.filter((record) => activeStudentIds.has(record.studentId));
+}
+
+function getCanonicalPaymentRecordForStudent(studentId) {
+  return (
+    paymentRecords
+      .filter((record) => record.studentId === studentId && isUuidValue(record.id))
+      .sort((left, right) =>
+        String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
+      )[0] || null
+  );
+}
+
+function resolvePaymentSaveMonth() {
+  if (paymentsMonthWasManuallySelected && selectedPaymentsMonth) {
+    return selectedPaymentsMonth;
+  }
+
+  return getCurrentMexicoDateValue().slice(0, 7);
 }
 
 function getPreferredPaymentsMonth() {
@@ -7678,7 +7766,7 @@ function getLatestPaymentSortKey(student) {
 function getFilteredStudentsForPayments() {
   const normalizedSearch = activePaymentsSearch.trim().toLowerCase();
 
-  return getActiveStudents()
+  return getCanonicalStudentsForPayments()
     .filter((student) => {
       if (!normalizedSearch) {
         return true;
@@ -7717,7 +7805,7 @@ function renderPaymentsTable() {
 
   paymentsTableBody.innerHTML = visibleStudents
     .map((student) => {
-      const payment = getPaymentRecord(student.id);
+      const payment = getPersistentPaymentRecord(student.id);
       const studentSessions = getStudentAttendanceReferenceSessions(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
       return `
@@ -7776,9 +7864,11 @@ function renderPaymentsTable() {
 }
 
 async function savePaymentForStudent(studentId) {
+  const targetPaymentMonth = resolvePaymentSaveMonth();
   console.log("PAGO savePaymentForStudent entrada", {
     studentId,
     selectedPaymentsMonth,
+    targetPaymentMonth,
     currentUser: {
       id: getCurrentInternalUser()?.id || "",
       username: getCurrentInternalUser()?.username || "",
@@ -7813,8 +7903,8 @@ async function savePaymentForStudent(studentId) {
     "observaciones",
   ];
 
-  const current = getPaymentRecord(studentId);
-  const canonicalCurrent = getCanonicalPaymentRecord(studentId, selectedPaymentsMonth);
+  const current = getPersistentPaymentRecord(studentId);
+  const canonicalCurrent = getCanonicalPaymentRecordForStudent(studentId);
   const resolvedPaymentId = isUuidValue(current.id)
     ? current.id
     : canonicalCurrent?.id || crypto.randomUUID();
@@ -7826,6 +7916,7 @@ async function savePaymentForStudent(studentId) {
       replacementId: resolvedPaymentId,
       studentId,
       selectedPaymentsMonth,
+      targetPaymentMonth,
       role: getCurrentInternalUser()?.role || "",
       branch: getCurrentInternalUser()?.branch || "",
     });
@@ -7834,7 +7925,7 @@ async function savePaymentForStudent(studentId) {
   const newRecord = {
     id: resolvedPaymentId,
     studentId,
-    mesPago: selectedPaymentsMonth,
+    mesPago: targetPaymentMonth,
     createdAt: baseRecord.createdAt || current.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -7854,6 +7945,7 @@ async function savePaymentForStudent(studentId) {
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
     paymentId: resolvedPaymentId,
+    targetPaymentMonth,
     student: {
       id: student.id || "",
       nombre: student.nombre || "",
@@ -11900,7 +11992,7 @@ paymentsTableBody.addEventListener("click", async (event) => {
 
   if (actionButton.dataset.action === "save-payment") {
     const studentId = actionButton.dataset.id;
-    const currentPaymentRecord = getPaymentRecord(studentId);
+    const currentPaymentRecord = getPersistentPaymentRecord(studentId);
     console.log("Guardar pago clic detectado", {
       paymentId: currentPaymentRecord?.id || "",
       studentId,
@@ -12091,6 +12183,10 @@ document.addEventListener("visibilitychange", () => {
     void refreshSharedSupabaseState();
   }
 });
+
+window.setInterval(() => {
+  void refreshSharedSupabaseState();
+}, SHARED_DATA_REFRESH_INTERVAL_MS);
 
 async function initApp() {
   await refreshSharedSupabaseState({ force: true, render: false });
