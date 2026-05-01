@@ -682,6 +682,7 @@ let attendanceTableExpanded = false;
 let selectedAltaDateFilter = "";
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
+let paymentsMonthWasManuallySelected = false;
 let activeStudentFileId = "";
 let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
@@ -695,6 +696,7 @@ let pendingAltaConfirmation = null;
 const SHARED_DATA_REFRESH_INTERVAL_MS = 15000;
 let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
+let balanceDateWasManuallySelected = false;
 
 monthFilter.value = selectedMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
@@ -1018,12 +1020,77 @@ function getCanonicalPaymentRecord(studentId, month = selectedPaymentsMonth) {
   );
 }
 
+function summarizePaymentRecordForTrace(record = {}) {
+  return {
+    id: record.id || "",
+    studentId: record.studentId || "",
+    mesPago: record.mesPago || "",
+    metodoPago: record.metodoPago || "",
+    cantidadPagada: record.cantidadPagada || "",
+    mensualidadPactada: record.mensualidadPactada || "",
+    certificadoP1: record.certificadoP1 || "",
+    certificadoP2: record.certificadoP2 || "",
+    mensualidad1: record.mensualidad1 || "",
+    mensualidad2: record.mensualidad2 || "",
+    mensualidad3: record.mensualidad3 || "",
+    mensualidad4: record.mensualidad4 || "",
+    mensualidad5: record.mensualidad5 || "",
+    reportes: record.reportes || "",
+    observaciones: record.observaciones || "",
+    paymentRealDate: record.paymentRealDate || "",
+    paymentMovementConcept: record.paymentMovementConcept || "",
+    updatedAt: record.updatedAt || "",
+    createdAt: record.createdAt || "",
+  };
+}
+
+function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
+  const fields = [
+    "mensualidadPactada",
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+    "metodoPago",
+    "cantidadPagada",
+    "reportes",
+    "observaciones",
+    "paymentRealDate",
+    "paymentMovementConcept",
+    "mesPago",
+  ];
+
+  return fields
+    .filter((field) => String(currentRecord?.[field] || "") !== String(nextRecord?.[field] || ""))
+    .map((field) => ({
+      field,
+      before: currentRecord?.[field] || "",
+      after: nextRecord?.[field] || "",
+    }));
+}
+
 async function savePaymentRecord(record) {
   const payload = buildPaymentSupabasePayload(record);
   console.log('Pagos module target table: "student_payments"');
   console.log("PAGO payload", payload);
+  console.log("PAGO savePaymentRecord entrada", summarizePaymentRecordForTrace(record));
 
   const result = await dataService.entities.payments.upsertOne(record, { alertOnFailure: false });
+  console.log("PAGO savePaymentRecord resultado", {
+    synced: result.synced,
+    record: summarizePaymentRecordForTrace(result.record),
+    error: result.error
+      ? {
+          code: result.error.code || "",
+          message: result.error.message || "",
+          details: result.error.details || "",
+          hint: result.error.hint || "",
+        }
+      : null,
+  });
 
   if (!result.synced) {
     console.error("PAGO error", result.error);
@@ -7422,6 +7489,48 @@ function isPaymentRecordInSelectedMonth(record) {
   return getPaymentRecordMonth(record) === selectedPaymentsMonth;
 }
 
+function getScopedPaymentRecords() {
+  const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
+  return paymentRecords.filter((record) => activeStudentIds.has(record.studentId));
+}
+
+function getPreferredPaymentsMonth() {
+  const currentMonth = getCurrentMonthValue();
+  const scopedMonths = Array.from(
+    new Set(getScopedPaymentRecords().map((record) => getPaymentRecordMonth(record)).filter(Boolean))
+  ).sort();
+
+  if (scopedMonths.includes(currentMonth)) {
+    return currentMonth;
+  }
+
+  return scopedMonths[scopedMonths.length - 1] || currentMonth;
+}
+
+function syncPreferredPaymentsMonth({ force = false } = {}) {
+  if (!paymentsMonthFilter) {
+    return selectedPaymentsMonth;
+  }
+
+  if (paymentsMonthWasManuallySelected && !force) {
+    paymentsMonthFilter.value = selectedPaymentsMonth;
+    return selectedPaymentsMonth;
+  }
+
+  const preferredMonth = getPreferredPaymentsMonth();
+  if (selectedPaymentsMonth !== preferredMonth) {
+    console.log("PAGOS mes visible autoajustado", {
+      previousMonth: selectedPaymentsMonth,
+      nextMonth: preferredMonth,
+      currentMonth: getCurrentMonthValue(),
+      scopedPaymentRecords: getScopedPaymentRecords().length,
+    });
+  }
+  selectedPaymentsMonth = preferredMonth;
+  paymentsMonthFilter.value = preferredMonth;
+  return preferredMonth;
+}
+
 function courseUsesFifthMonth(course) {
   return String(course || "").trim().toLowerCase() === "barbería" || String(course || "").trim().toLowerCase() === "barberia";
 }
@@ -7597,10 +7706,14 @@ function getFilteredStudentsForPayments() {
 }
 
 function renderPaymentsTable() {
+  syncPreferredPaymentsMonth();
   const studentsList = getFilteredStudentsForPayments();
   const visibleStudents = activePaymentsSearch.trim() || paymentsTableExpanded
     ? studentsList
     : studentsList.slice(0, 3);
+  const scopedPaymentRecords = getScopedPaymentRecords();
+  const paidScopedRecords = scopedPaymentRecords.filter((record) => isRealPaidPaymentRecord(record));
+  const visibleMonthRecords = scopedPaymentRecords.filter((record) => getPaymentRecordMonth(record) === selectedPaymentsMonth);
 
   paymentsTableBody.innerHTML = visibleStudents
     .map((student) => {
@@ -7649,12 +7762,38 @@ function renderPaymentsTable() {
     paymentsToggleButton.hidden = !shouldShowToggle;
     paymentsToggleButton.textContent = paymentsTableExpanded ? "Ver menos" : "Ver mas";
   }
+
+  console.log("PAGOS render", {
+    selectedPaymentsMonth,
+    currentMonth: getCurrentMonthValue(),
+    totalPaymentRecords: paymentRecords.length,
+    scopedPaymentRecords: scopedPaymentRecords.length,
+    paidScopedRecords: paidScopedRecords.length,
+    visibleMonthRecords: visibleMonthRecords.length,
+    visibleStudents: visibleStudents.length,
+    branch: getAllowedBranch() || "Todas",
+  });
 }
 
 async function savePaymentForStudent(studentId) {
+  console.log("PAGO savePaymentForStudent entrada", {
+    studentId,
+    selectedPaymentsMonth,
+    currentUser: {
+      id: getCurrentInternalUser()?.id || "",
+      username: getCurrentInternalUser()?.username || "",
+      role: getCurrentInternalUser()?.role || "",
+      branch: getCurrentInternalUser()?.branch || "",
+      allowedBranch: getAllowedBranch(),
+    },
+  });
   await refreshSharedSupabaseState({ force: true, render: false });
   const student = getStudentById(studentId);
   if (!student) {
+    console.warn("PAGO savePaymentForStudent abortado: student no encontrado", {
+      studentId,
+      selectedPaymentsMonth,
+    });
     alert("No se encontró la alumna vinculada para guardar el pago.");
     return;
   }
@@ -7709,19 +7848,77 @@ async function savePaymentForStudent(studentId) {
   const nextRecord = { ...baseRecord, ...newRecord };
   newRecord.paymentMovementConcept = resolvePaymentMovementConcept(baseRecord, nextRecord, existingFinanceRecord);
   newRecord.paymentRealDate = resolvePaymentRealDate(baseRecord, nextRecord);
+  const finalRecord = { ...baseRecord, ...newRecord };
+  const detectedChanges = getPaymentFieldChanges(baseRecord, finalRecord);
 
-  const saveResult = await savePaymentRecord({ ...baseRecord, ...newRecord });
+  console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
+    studentId,
+    paymentId: resolvedPaymentId,
+    student: {
+      id: student.id || "",
+      nombre: student.nombre || "",
+      sucursal: student.sucursal || "",
+    },
+    currentRecord: summarizePaymentRecordForTrace(baseRecord),
+    nextRecord: summarizePaymentRecordForTrace(finalRecord),
+    changesDetected: detectedChanges,
+    hasChanges: detectedChanges.length > 0,
+  });
+
+  const saveResult = await savePaymentRecord(finalRecord);
+  console.log("PAGO después de savePaymentRecord", {
+    studentId,
+    paymentId: resolvedPaymentId,
+    synced: saveResult.synced,
+    record: summarizePaymentRecordForTrace(saveResult.record),
+    error: saveResult.error
+      ? {
+          code: saveResult.error.code || "",
+          message: saveResult.error.message || "",
+          details: saveResult.error.details || "",
+          hint: saveResult.error.hint || "",
+        }
+      : null,
+  });
   if (!saveResult.synced) {
     renderBalanceModule();
     renderFinanceTable();
     updateFinanceSummary();
     updatePaymentsSummary();
     renderDashboard();
+    console.warn("PAGO flujo finalizó en fallback local tras fallo de Supabase.", {
+      studentId,
+      paymentId: resolvedPaymentId,
+    });
     alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
     return;
   }
 
   const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
+  console.log("PAGO después de syncPaymentFinanceRecord", {
+    studentId,
+    paymentId: resolvedPaymentId,
+    synced: financeSyncResult.synced,
+    deleted: financeSyncResult.deleted || false,
+    duplicatesRemoved: financeSyncResult.duplicatesRemoved || 0,
+    record: financeSyncResult.record
+      ? {
+          id: financeSyncResult.record.id || "",
+          relatedPaymentId: financeSyncResult.record.relatedPaymentId || "",
+          fecha: financeSyncResult.record.fecha || "",
+          monto: financeSyncResult.record.monto || "",
+          categoria: financeSyncResult.record.categoria || "",
+        }
+      : null,
+    error: financeSyncResult.error
+      ? {
+          code: financeSyncResult.error.code || "",
+          message: financeSyncResult.error.message || "",
+          details: financeSyncResult.error.details || "",
+          hint: financeSyncResult.error.hint || "",
+        }
+      : null,
+  });
   if (!financeSyncResult.synced) {
     await refreshSharedSupabaseState({ force: true, render: false });
     renderPaymentsTable();
@@ -7730,6 +7927,10 @@ async function savePaymentForStudent(studentId) {
     updateFinanceSummary();
     updatePaymentsSummary();
     renderDashboard();
+    console.warn("PAGO guardado, pero finanzas no sincronizó.", {
+      studentId,
+      paymentId: resolvedPaymentId,
+    });
     alert("El pago se guardó, pero no se pudo sincronizar su ingreso financiero en Supabase.");
     return;
   }
@@ -7741,6 +7942,11 @@ async function savePaymentForStudent(studentId) {
   updateFinanceSummary();
   updatePaymentsSummary();
   renderDashboard();
+  console.log("PAGO flujo completado y UI refrescada", {
+    studentId,
+    paymentId: resolvedPaymentId,
+    refreshedModules: ["paymentsTable", "balanceModule", "financeTable", "financeSummary", "paymentsSummary", "dashboard"],
+  });
 }
 
 function updatePaymentsSummary() {
@@ -7958,10 +8164,27 @@ function syncBalanceDailyView() {
   }
 
   const todayInMexico = getCurrentMexicoDateValue();
-  balanceDateFilter.value = todayInMexico;
-  balanceDateFilter.disabled = true;
-  balanceDateFilter.title = "Balance muestra automaticamente la fecha actual de Mexico.";
-  return todayInMexico;
+  const selectedBranch = balanceBranchFilter?.value || "";
+  const availableIncomeDates = getCentralFinanceRecords()
+    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
+    .filter((record) => matchesCurrentBranch(record.sucursal))
+    .filter((record) => !selectedBranch || record.sucursal === selectedBranch)
+    .map((record) => String(record.fecha || "").slice(0, 10))
+    .filter(Boolean)
+    .sort();
+
+  const preferredDate = availableIncomeDates.includes(todayInMexico)
+    ? todayInMexico
+    : availableIncomeDates[availableIncomeDates.length - 1] || todayInMexico;
+  const nextDate =
+    balanceDateWasManuallySelected && balanceDateFilter.value
+      ? balanceDateFilter.value
+      : preferredDate;
+
+  balanceDateFilter.value = nextDate;
+  balanceDateFilter.disabled = false;
+  balanceDateFilter.title = "Balance usa la fecha visible del filtro para mostrar ingresos y egresos.";
+  return nextDate;
 }
 
 function resetBalanceExpenseForm() {
@@ -8088,11 +8311,19 @@ function updateBalanceSummary() {
 }
 
 function renderBalanceModule() {
-  syncBalanceDailyView();
+  const activeDate = syncBalanceDailyView();
   syncBalanceExpenseResponsible();
-  renderBalanceIncomeTable();
-  renderBalanceExpensesTable();
+  const incomeRows = renderBalanceIncomeTable();
+  const expenseRows = renderBalanceExpensesTable();
   updateBalanceSummary();
+  console.log("BALANCE render", {
+    activeDate,
+    branchFilter: balanceBranchFilter?.value || "",
+    totalFinanceRecords: financeRecords.length,
+    linkedPaymentFinanceRecords: financeRecords.filter((record) => record.relatedPaymentId).length,
+    incomeRowsShown: incomeRows.length,
+    expenseRowsShown: expenseRows.length,
+  });
 }
 
 function editBalanceExpense(id) {
@@ -11538,6 +11769,7 @@ financeMonthFilter.addEventListener("change", () => {
 });
 
 paymentsMonthFilter.addEventListener("change", (event) => {
+  paymentsMonthWasManuallySelected = true;
   selectedPaymentsMonth = event.target.value || getCurrentMonthValue();
   renderPaymentsTable();
   updatePaymentsSummary();
@@ -11555,8 +11787,14 @@ if (paymentsToggleButton) {
   });
 }
 
-balanceBranchFilter.addEventListener("change", renderBalanceModule);
-balanceDateFilter.addEventListener("change", renderBalanceModule);
+balanceBranchFilter.addEventListener("change", () => {
+  balanceDateWasManuallySelected = false;
+  renderBalanceModule();
+});
+balanceDateFilter.addEventListener("change", (event) => {
+  balanceDateWasManuallySelected = Boolean(String(event.target.value || "").trim());
+  renderBalanceModule();
+});
 balanceExpenseBranchField.addEventListener("change", () => {
   syncBalanceExpenseResponsible();
 });
@@ -11661,10 +11899,20 @@ paymentsTableBody.addEventListener("click", async (event) => {
   if (!actionButton) return;
 
   if (actionButton.dataset.action === "save-payment") {
-    console.log("PAGO GUARDAR CLICKED", {
-      studentId: actionButton.dataset.id,
+    const studentId = actionButton.dataset.id;
+    const currentPaymentRecord = getPaymentRecord(studentId);
+    console.log("Guardar pago clic detectado", {
+      paymentId: currentPaymentRecord?.id || "",
+      studentId,
+      currentUser: {
+        id: getCurrentInternalUser()?.id || "",
+        username: getCurrentInternalUser()?.username || "",
+        role: getCurrentInternalUser()?.role || "",
+        branch: getCurrentInternalUser()?.branch || "",
+        allowedBranch: getAllowedBranch(),
+      },
     });
-    await savePaymentForStudent(actionButton.dataset.id);
+    await savePaymentForStudent(studentId);
   }
 
   if (actionButton.dataset.action === "edit-student") {
