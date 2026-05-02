@@ -76,6 +76,11 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
 ];
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
+const PAYMENT_TRACE_STUDENT_NAMES = new Set([
+  "SELENE ABREGON GUILLEN",
+  "ADRIANA PRIETO ZAMORANO",
+  "GERARDO ANTONIO JIMENEZ ELIZARRARAS",
+]);
 const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
   { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
@@ -696,6 +701,7 @@ let pendingAltaConfirmation = null;
 const SHARED_DATA_REFRESH_INTERVAL_MS = 15000;
 let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
+let sharedDataRefreshRequestSeq = 0;
 let balanceDateWasManuallySelected = false;
 
 monthFilter.value = selectedMonth;
@@ -823,7 +829,18 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
     return false;
   }
 
-  sharedDataRefreshPromise = (async () => {
+  const requestId = ++sharedDataRefreshRequestSeq;
+  console.log("refreshSharedSupabaseState inicio", {
+    requestId,
+    force,
+    render,
+    hasInFlightRefresh: Boolean(sharedDataRefreshPromise),
+    paymentRecordsBeforeRefresh: paymentRecords.length,
+    financeRecordsBeforeRefresh: financeRecords.length,
+  });
+
+  let refreshPromise = null;
+  refreshPromise = (async () => {
     const [
       nextInternalUsers,
       nextStudents,
@@ -844,6 +861,17 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
       dataService.entities.prospects.getAllPrimary(() => []),
     ]);
 
+    if (requestId !== sharedDataRefreshRequestSeq) {
+      console.log("refreshSharedSupabaseState descartado por respuesta obsoleta", {
+        requestId,
+        latestRequestId: sharedDataRefreshRequestSeq,
+        nextStudents: nextStudents.length,
+        nextPaymentRecords: nextPaymentRecords.length,
+        nextFinanceRecords: nextFinanceRecords.length,
+      });
+      return false;
+    }
+
     internalUsers = nextInternalUsers;
     students = nextStudents;
     attendanceRecords = nextAttendanceRecords;
@@ -858,6 +886,7 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
     lastSharedDataRefreshAt = Date.now();
 
     console.log("refreshSharedSupabaseState ejecutado", {
+      requestId,
       force,
       render,
       students: students.length,
@@ -865,6 +894,7 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
       paidPaymentRecords: paymentRecords.filter((record) => isRealPaidPaymentRecord(record)).length,
       financeRecords: financeRecords.length,
       linkedPaymentFinanceRecords: financeRecords.filter((record) => record.relatedPaymentId).length,
+      trackedPayments: getTrackedPaymentSnapshots(students),
     });
 
     if (render) {
@@ -875,13 +905,22 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
   })()
     .catch((error) => {
       console.error("No se pudieron refrescar los datos compartidos desde Supabase.", error);
+      console.log("refreshSharedSupabaseState error", {
+        requestId,
+        force,
+        render,
+        message: error?.message || error?.details || String(error),
+      });
       return false;
     })
     .finally(() => {
-      sharedDataRefreshPromise = null;
+      if (sharedDataRefreshPromise === refreshPromise) {
+        sharedDataRefreshPromise = null;
+      }
     });
 
-  return sharedDataRefreshPromise;
+  sharedDataRefreshPromise = refreshPromise;
+  return refreshPromise;
 }
 
 function saveAttendanceRecords() {
@@ -1056,6 +1095,49 @@ function summarizePaymentRecordForTrace(record = {}) {
     updatedAt: record.updatedAt || "",
     createdAt: record.createdAt || "",
   };
+}
+
+function summarizePaymentEligibilityForTrace(record = {}) {
+  const paidConcepts = getPaidPaymentConcepts(record).map(({ key, label, movementLabel }) => ({
+    field: key,
+    status: String(record?.[key] || "").trim(),
+    label,
+    movementLabel: movementLabel || label,
+  }));
+
+  return {
+    id: record.id || "",
+    studentId: record.studentId || "",
+    mesPago: getPaymentRecordMonth(record),
+    cantidadPagada: record.cantidadPagada || "",
+    parsedAmount: parsePaymentAmount(record.cantidadPagada),
+    paymentRealDate: getPaymentEffectiveDate(record),
+    paidConcepts,
+    isRealPaid: Boolean(record?.id) && parsePaymentAmount(record?.cantidadPagada) > 0 && paidConcepts.length > 0,
+  };
+}
+
+function getTrackedPaymentSnapshots(studentsList = students) {
+  return studentsList
+    .filter((student) => PAYMENT_TRACE_STUDENT_NAMES.has(String(student?.nombre || "").trim().toUpperCase()))
+    .map((student) => {
+      const historyRecord = getPersistentPaymentRecord(student.id);
+      const displayRecord = getPaymentDisplayRecord(student.id);
+      const canonicalMonthRecord = getCanonicalPaymentRecord(student.id, resolvePaymentSaveMonth());
+      const latestRecord = getCanonicalPaymentRecordForStudent(student.id);
+
+      return {
+        student: student.nombre || "",
+        studentId: student.id || "",
+        branch: student.sucursal || "",
+        history: summarizePaymentRecordForTrace(historyRecord),
+        display: summarizePaymentRecordForTrace(displayRecord),
+        canonicalMonthRecord: summarizePaymentRecordForTrace(canonicalMonthRecord || {}),
+        latestRecord: summarizePaymentRecordForTrace(latestRecord || {}),
+        displayEligibility: summarizePaymentEligibilityForTrace(displayRecord),
+        latestEligibility: summarizePaymentEligibilityForTrace(latestRecord || {}),
+      };
+    });
 }
 
 function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
@@ -7469,28 +7551,47 @@ function getPaymentRecord(studentId) {
   return (
     paymentRecords.find(
       (record) => record.studentId === studentId && !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
-    ) || {
-      mensualidadPactada: "",
-      certificadoP1: "",
-      certificadoP2: "",
-      mensualidad1: "",
-      mensualidad2: "",
-      mensualidad3: "",
-      mensualidad4: "",
-      mensualidad5: "",
-      pagosPendientes: "",
-      metodoPago: "",
-      cantidadPagada: "",
-      reportes: "",
-      observaciones: "",
-      paymentMovementConcept: "",
-      paymentRealDate: "",
-      mesPago: selectedPaymentsMonth,
-    }
+    ) || createEmptyPaymentRecord({ studentId, month: selectedPaymentsMonth })
   );
 }
 
+function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
+  return {
+    id: "",
+    studentId,
+    mensualidadPactada: "",
+    certificadoP1: "",
+    certificadoP2: "",
+    mensualidad1: "",
+    mensualidad2: "",
+    mensualidad3: "",
+    mensualidad4: "",
+    mensualidad5: "",
+    pagosPendientes: "",
+    metodoPago: "",
+    cantidadPagada: "",
+    reportes: "",
+    observaciones: "",
+    paymentMovementConcept: "",
+    paymentRealDate: "",
+    mesPago: month,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
 function getPersistentPaymentRecord(studentId) {
+  const stickyFields = [
+    "mensualidadPactada",
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+    "pagosPendientes",
+  ];
   const studentRecords = paymentRecords
     .filter((record) => record.studentId === studentId)
     .sort((left, right) =>
@@ -7498,49 +7599,68 @@ function getPersistentPaymentRecord(studentId) {
     );
   const latestRecord = studentRecords[studentRecords.length - 1] || null;
 
-  if (latestRecord?.id) {
-    const stickyFields = [
-      "mensualidadPactada",
-      "certificadoP1",
-      "certificadoP2",
-      "mensualidad1",
-      "mensualidad2",
-      "mensualidad3",
-      "mensualidad4",
-      "mensualidad5",
-      "pagosPendientes",
-    ];
+  if (!latestRecord) {
+    return createEmptyPaymentRecord({ studentId });
+  }
 
-    const mergedHistory = studentRecords.reduce((accumulator, record) => {
-      const nextRecord = { ...accumulator, ...record };
+  const mergedHistory = studentRecords.reduce(
+    (accumulator, record) => {
+      const nextRecord = { ...accumulator };
 
       stickyFields.forEach((field) => {
         const nextValue = String(record?.[field] ?? "").trim();
-        if (!nextValue && String(accumulator?.[field] ?? "").trim()) {
-          nextRecord[field] = accumulator[field];
+        if (nextValue) {
+          nextRecord[field] = record[field];
         }
       });
 
       return nextRecord;
-    }, {});
+    },
+    createEmptyPaymentRecord({ studentId })
+  );
 
+  return {
+    ...mergedHistory,
+    id: latestRecord.id || "",
+    studentId: latestRecord.studentId || studentId,
+    mesPago: latestRecord.mesPago || getPaymentRecordMonth(latestRecord),
+    createdAt: latestRecord.createdAt || "",
+    updatedAt: latestRecord.updatedAt || latestRecord.createdAt || "",
+  };
+}
+
+function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId) {
+  if (!monthRecord?.id) {
     return {
-      ...mergedHistory,
-      id: latestRecord.id || mergedHistory.id || "",
-      studentId: latestRecord.studentId || mergedHistory.studentId || studentId,
-      mesPago: latestRecord.mesPago || mergedHistory.mesPago || "",
-      metodoPago: latestRecord.metodoPago || "",
-      cantidadPagada: latestRecord.cantidadPagada || "",
-      reportes: latestRecord.reportes || "",
-      observaciones: latestRecord.observaciones || "",
-      paymentRealDate: latestRecord.paymentRealDate || "",
-      paymentMovementConcept: latestRecord.paymentMovementConcept || "",
-      updatedAt: latestRecord.updatedAt || mergedHistory.updatedAt || "",
-      createdAt: latestRecord.createdAt || mergedHistory.createdAt || "",
+      ...historyRecord,
+      id: "",
+      studentId,
+      mesPago: month,
+      metodoPago: "",
+      cantidadPagada: "",
+      reportes: "",
+      observaciones: "",
+      paymentRealDate: "",
+      paymentMovementConcept: "",
+      createdAt: "",
+      updatedAt: "",
     };
   }
 
-  return getPaymentRecord(studentId);
+  return {
+    ...historyRecord,
+    id: monthRecord.id || "",
+    studentId,
+    mesPago: month,
+    metodoPago: monthRecord.metodoPago || "",
+    cantidadPagada: monthRecord.cantidadPagada || "",
+    reportes: monthRecord.reportes || "",
+    observaciones: monthRecord.observaciones || "",
+    paymentRealDate: monthRecord.paymentRealDate || "",
+    paymentMovementConcept: monthRecord.paymentMovementConcept || "",
+    createdAt: monthRecord.createdAt || "",
+    updatedAt: monthRecord.updatedAt || monthRecord.createdAt || "",
+  };
 }
 
 function getPaymentDisplayRecord(studentId) {
@@ -7548,33 +7668,7 @@ function getPaymentDisplayRecord(studentId) {
   const editingMonth = resolvePaymentSaveMonth();
   const editingMonthRecord = getCanonicalPaymentRecord(studentId, editingMonth);
 
-  if (!editingMonthRecord?.id) {
-    return {
-      ...historyRecord,
-      id: historyRecord.id || "",
-      mesPago: editingMonth,
-      metodoPago: "",
-      cantidadPagada: "",
-      reportes: "",
-      observaciones: "",
-      paymentRealDate: "",
-      paymentMovementConcept: "",
-    };
-  }
-
-  return {
-    ...historyRecord,
-    id: editingMonthRecord.id || historyRecord.id || "",
-    mesPago: editingMonth,
-    metodoPago: editingMonthRecord.metodoPago || "",
-    cantidadPagada: editingMonthRecord.cantidadPagada || "",
-    reportes: editingMonthRecord.reportes || "",
-    observaciones: editingMonthRecord.observaciones || "",
-    paymentRealDate: editingMonthRecord.paymentRealDate || "",
-    paymentMovementConcept: editingMonthRecord.paymentMovementConcept || "",
-    createdAt: editingMonthRecord.createdAt || historyRecord.createdAt || "",
-    updatedAt: editingMonthRecord.updatedAt || historyRecord.updatedAt || "",
-  };
+  return buildPaymentEditableRecord(historyRecord, editingMonthRecord, editingMonth, studentId);
 }
 
 function getPaymentStudentIdentityKey(student) {
@@ -7667,11 +7761,7 @@ function getCanonicalPaymentRecordForStudent(studentId) {
 }
 
 function resolvePaymentSaveMonth() {
-  if (paymentsMonthWasManuallySelected && selectedPaymentsMonth) {
-    return selectedPaymentsMonth;
-  }
-
-  return getCurrentMexicoDateValue().slice(0, 7);
+  return selectedPaymentsMonth || getCurrentMexicoDateValue().slice(0, 7);
 }
 
 function getPreferredPaymentsMonth() {
@@ -7954,30 +8044,20 @@ function renderPaymentsTable() {
     branch: getAllowedBranch() || "Todas",
   });
 
-  const trackedStudents = [
-    "SELENE ABREGON GUILLEN",
-    "ADRIANA PRIETO ZAMORANO",
-    "GERARDO ANTONIO JIMENEZ ELIZARRARAS",
-  ];
-  const trackedPaymentRecords = trackedStudents
-    .map((name) => {
-      const student = studentsList.find((item) => String(item.nombre || "").trim().toUpperCase() === name);
-      if (!student) {
-        return null;
-      }
-
-      const payment = getPersistentPaymentRecord(student.id);
-      const displayRecord = getPaymentDisplayRecord(student.id);
-      return {
-        student: student.nombre,
-        studentId: student.id,
-        record: {
-          history: summarizePaymentRecordForTrace(payment),
-          display: summarizePaymentRecordForTrace(displayRecord),
-        },
-      };
-    })
-    .filter(Boolean);
+  const trackedPaymentRecords = getTrackedPaymentSnapshots(studentsList).map((entry) => ({
+    student: entry.student,
+    studentId: entry.studentId,
+    record: {
+      history: entry.history,
+      display: entry.display,
+      canonicalMonthRecord: entry.canonicalMonthRecord,
+      latestRecord: entry.latestRecord,
+    },
+    eligibility: {
+      display: entry.displayEligibility,
+      latest: entry.latestEligibility,
+    },
+  }));
 
   if (trackedPaymentRecords.length > 0) {
     console.log("PAGOS registros rastreados", trackedPaymentRecords);
@@ -8025,8 +8105,14 @@ async function savePaymentForStudent(studentId) {
     "observaciones",
   ];
 
-  const currentHistory = getPersistentPaymentRecord(studentId);
+  const historyRecord = getPersistentPaymentRecord(studentId);
   const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
+  const editingMonthRecord = buildPaymentEditableRecord(
+    historyRecord,
+    currentMonthRecord,
+    targetPaymentMonth,
+    studentId
+  );
   const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
   const canUpdateLatestSameDayRecord =
     Boolean(latestActualRecord?.id) &&
@@ -8038,31 +8124,19 @@ async function savePaymentForStudent(studentId) {
     ? recordToUpdate.id
     : crypto.randomUUID();
   const baseRecord = {
-    ...currentHistory,
+    ...historyRecord,
     id: resolvedPaymentId,
     studentId,
     mesPago: targetPaymentMonth,
     createdAt: recordToUpdate?.createdAt || new Date().toISOString(),
     updatedAt: recordToUpdate?.updatedAt || "",
-    metodoPago: recordToUpdate?.metodoPago || "",
-    cantidadPagada: recordToUpdate?.cantidadPagada || "",
-    reportes: recordToUpdate?.reportes || "",
-    observaciones: recordToUpdate?.observaciones || "",
-    paymentRealDate: recordToUpdate?.paymentRealDate || "",
-    paymentMovementConcept: recordToUpdate?.paymentMovementConcept || "",
+    metodoPago: editingMonthRecord.metodoPago || "",
+    cantidadPagada: editingMonthRecord.cantidadPagada || "",
+    reportes: editingMonthRecord.reportes || "",
+    observaciones: editingMonthRecord.observaciones || "",
+    paymentRealDate: editingMonthRecord.paymentRealDate || "",
+    paymentMovementConcept: editingMonthRecord.paymentMovementConcept || "",
   };
-
-  if (currentHistory.id && !isUuidValue(currentHistory.id) && !recordToUpdate?.id) {
-    console.warn("Se descartó un ID local de pago no válido antes del guardado en Supabase.", {
-      previousId: currentHistory.id,
-      replacementId: resolvedPaymentId,
-      studentId,
-      selectedPaymentsMonth,
-      targetPaymentMonth,
-      role: getCurrentInternalUser()?.role || "",
-      branch: getCurrentInternalUser()?.branch || "",
-    });
-  }
 
   const newRecord = {
     id: resolvedPaymentId,
@@ -8071,34 +8145,53 @@ async function savePaymentForStudent(studentId) {
     createdAt: baseRecord.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+  const formPayload = {};
 
   fields.forEach((field) => {
     const input = paymentsTableBody.querySelector(`[data-payment-field="${field}"][data-student-id="${studentId}"]`);
-    newRecord[field] = input ? input.value.trim() : "";
+    const value = input ? input.value.trim() : "";
+    formPayload[field] = value;
+    newRecord[field] = value;
+  });
+
+  console.log("PAGO payload que sale del formulario", {
+    studentId,
+    paymentId: resolvedPaymentId,
+    targetPaymentMonth,
+    formPayload,
   });
 
   const existingFinanceRecord = getLinkedPaymentFinanceRecords(resolvedPaymentId)[0] || null;
   const nextRecord = { ...baseRecord, ...newRecord };
-  newRecord.paymentMovementConcept = resolvePaymentMovementConcept(currentHistory, nextRecord, existingFinanceRecord);
+  const comparisonRecord = recordToUpdate || editingMonthRecord;
+  newRecord.paymentMovementConcept = resolvePaymentMovementConcept(
+    comparisonRecord,
+    nextRecord,
+    existingFinanceRecord
+  );
   newRecord.paymentRealDate = shouldCreateNewPaymentRow
     ? (isRealPaidPaymentRecord(nextRecord) ? todayInMexico : "")
-    : resolvePaymentRealDate(recordToUpdate || {}, nextRecord);
+    : resolvePaymentRealDate(comparisonRecord, nextRecord);
   const finalRecord = { ...baseRecord, ...newRecord };
-  const detectedChanges = getPaymentFieldChanges(currentHistory, finalRecord);
+  const detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
 
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
     shouldCreateNewPaymentRow,
+    historyRecord: summarizePaymentRecordForTrace(historyRecord),
+    editingMonthRecord: summarizePaymentRecordForTrace(editingMonthRecord),
     recordToUpdate: summarizePaymentRecordForTrace(recordToUpdate || {}),
     student: {
       id: student.id || "",
       nombre: student.nombre || "",
       sucursal: student.sucursal || "",
     },
-    currentRecord: summarizePaymentRecordForTrace(currentHistory),
+    currentRecord: summarizePaymentRecordForTrace(comparisonRecord),
+    currentRecordEligibility: summarizePaymentEligibilityForTrace(comparisonRecord),
     nextRecord: summarizePaymentRecordForTrace(finalRecord),
+    nextRecordEligibility: summarizePaymentEligibilityForTrace(finalRecord),
     changesDetected: detectedChanges,
     hasChanges: detectedChanges.length > 0,
   });
@@ -8190,11 +8283,38 @@ async function savePaymentForStudent(studentId) {
 function updatePaymentsSummary() {
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
   const today = getCurrentMexicoDateValue();
-  const todayTotal = paymentRecords
+  const todaySummaryCandidates = paymentRecords
     .filter((record) => activeStudentIds.has(record.studentId))
-    .filter((record) => isRealPaidPaymentRecord(record))
-    .filter((record) => getPaymentEffectiveDate(record) === today)
-    .reduce((total, record) => total + parsePaymentAmount(record.cantidadPagada), 0);
+    .map((record) => {
+      const eligibility = summarizePaymentEligibilityForTrace(record);
+      return {
+        ...eligibility,
+        includedInTodayTotal: eligibility.isRealPaid && eligibility.paymentRealDate === today,
+      };
+    });
+  const todayTotal = todaySummaryCandidates
+    .filter((record) => record.includedInTodayTotal)
+    .reduce((total, record) => total + record.parsedAmount, 0);
+  const trackedTodaySummary = getTrackedPaymentSnapshots(getActiveStudents()).map((entry) => ({
+    student: entry.student,
+    studentId: entry.studentId,
+    displayEligibility: entry.displayEligibility,
+    latestEligibility: entry.latestEligibility,
+  }));
+
+  console.log("PAGO todayTotal y minicontadores", {
+    today,
+    activeStudents: activeStudentIds.size,
+    paymentRecords: paymentRecords.length,
+    todayTotal,
+    recordsCountedToday: todaySummaryCandidates.filter((record) => record.includedInTodayTotal).length,
+    recordsEvaluated: todaySummaryCandidates.filter(
+      (record) =>
+        record.includedInTodayTotal ||
+        PAYMENT_TRACE_STUDENT_NAMES.has(String(getStudentById(record.studentId)?.nombre || "").trim().toUpperCase())
+    ),
+    trackedTodaySummary,
+  });
 
   if (paymentsTodayTotal) {
     paymentsTodayTotal.textContent = formatCurrency(todayTotal);
