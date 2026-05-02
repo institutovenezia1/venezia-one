@@ -1060,13 +1060,8 @@ function buildPaymentSupabaseTrace({
 
 function getCanonicalPaymentRecord(studentId, month = selectedPaymentsMonth) {
   return (
-    paymentRecords
-      .filter(
-        (record) =>
-          record.studentId === studentId &&
-          getPaymentRecordMonth(record) === month &&
-          isUuidValue(record.id)
-      )
+    getPaymentRecordsForStudentIdentity(studentId)
+      .filter((record) => getPaymentRecordMonth(record) === month && isUuidValue(record.id))
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )[0] || null
@@ -1121,6 +1116,7 @@ function getTrackedPaymentSnapshots(studentsList = students) {
   return studentsList
     .filter((student) => PAYMENT_TRACE_STUDENT_NAMES.has(String(student?.nombre || "").trim().toUpperCase()))
     .map((student) => {
+      const aliasIds = Array.from(getPaymentStudentAliasIds(student.id));
       const historyRecord = getPersistentPaymentRecord(student.id);
       const displayRecord = getPaymentDisplayRecord(student.id);
       const canonicalMonthRecord = getCanonicalPaymentRecord(student.id, resolvePaymentSaveMonth());
@@ -1129,6 +1125,7 @@ function getTrackedPaymentSnapshots(studentsList = students) {
       return {
         student: student.nombre || "",
         studentId: student.id || "",
+        aliasIds,
         branch: student.sucursal || "",
         history: summarizePaymentRecordForTrace(historyRecord),
         display: summarizePaymentRecordForTrace(displayRecord),
@@ -1166,6 +1163,34 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
       before: currentRecord?.[field] || "",
       after: nextRecord?.[field] || "",
     }));
+}
+
+function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {}, detectedChanges = []) {
+  if (!isRealPaidPaymentRecord(nextRecord)) {
+    return false;
+  }
+
+  if (getStoredPaymentRealDate(currentRecord)) {
+    return false;
+  }
+
+  if (detectedChanges.length === 0) {
+    return true;
+  }
+
+  const paymentMutationFields = new Set([
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+    "cantidadPagada",
+    "metodoPago",
+  ]);
+
+  return detectedChanges.some((change) => paymentMutationFields.has(change.field));
 }
 
 async function savePaymentRecord(record) {
@@ -7235,8 +7260,7 @@ function getVisibleAttendanceKeysFromSelection(studentsList = []) {
 }
 
 function getLatestPaymentRecordForStudent(studentId) {
-  return paymentRecords
-    .filter((record) => record.studentId === studentId)
+  return getPaymentRecordsForStudentIdentity(studentId)
     .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0] || {};
 }
 
@@ -7541,16 +7565,16 @@ function renderAttendanceHistory(studentId) {
 }
 
 function getPaymentRecord(studentId) {
-  const currentMonthRecord = paymentRecords.find(
-    (record) => record.studentId === studentId && getPaymentRecordMonth(record) === selectedPaymentsMonth
+  const currentMonthRecord = getPaymentRecordsForStudentIdentity(studentId).find(
+    (record) => getPaymentRecordMonth(record) === selectedPaymentsMonth
   );
   if (currentMonthRecord) {
     return currentMonthRecord;
   }
 
   return (
-    paymentRecords.find(
-      (record) => record.studentId === studentId && !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
+    getPaymentRecordsForStudentIdentity(studentId).find(
+      (record) => !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
     ) || createEmptyPaymentRecord({ studentId, month: selectedPaymentsMonth })
   );
 }
@@ -7592,8 +7616,7 @@ function getPersistentPaymentRecord(studentId) {
     "mensualidad5",
     "pagosPendientes",
   ];
-  const studentRecords = paymentRecords
-    .filter((record) => record.studentId === studentId)
+  const studentRecords = getPaymentRecordsForStudentIdentity(studentId)
     .sort((left, right) =>
       String(left.updatedAt || left.createdAt || "").localeCompare(String(right.updatedAt || right.createdAt || ""))
     );
@@ -7685,6 +7708,35 @@ function getPaymentStudentIdentityKey(student) {
   ].join("|");
 }
 
+function getPaymentStudentAliasIds(studentId, studentsList = students) {
+  const normalizedStudentId = String(studentId || "").trim();
+  if (!normalizedStudentId) {
+    return new Set();
+  }
+
+  const currentStudent = studentsList.find((student) => student.id === normalizedStudentId);
+  if (!currentStudent) {
+    return new Set([normalizedStudentId]);
+  }
+
+  const identityKey = getPaymentStudentIdentityKey(currentStudent);
+  const aliasIds = studentsList
+    .filter((student) => getPaymentStudentIdentityKey(student) === identityKey)
+    .map((student) => student.id)
+    .filter(Boolean);
+
+  return new Set(aliasIds.length > 0 ? aliasIds : [normalizedStudentId]);
+}
+
+function getPaymentRecordsForStudentIdentity(studentId, records = paymentRecords) {
+  const aliasIds = getPaymentStudentAliasIds(studentId);
+  if (aliasIds.size === 0) {
+    return [];
+  }
+
+  return records.filter((record) => aliasIds.has(record.studentId));
+}
+
 function getCanonicalStudentsForPayments(studentsList = getActiveStudents()) {
   const groupedStudents = new Map();
 
@@ -7752,8 +7804,8 @@ function getScopedPaymentRecords() {
 
 function getCanonicalPaymentRecordForStudent(studentId) {
   return (
-    paymentRecords
-      .filter((record) => record.studentId === studentId && isUuidValue(record.id))
+    getPaymentRecordsForStudentIdentity(studentId)
+      .filter((record) => isUuidValue(record.id))
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )[0] || null
@@ -8156,6 +8208,7 @@ async function savePaymentForStudent(studentId) {
 
   console.log("PAGO payload que sale del formulario", {
     studentId,
+    aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
     formPayload,
@@ -8173,13 +8226,23 @@ async function savePaymentForStudent(studentId) {
     ? (isRealPaidPaymentRecord(nextRecord) ? todayInMexico : "")
     : resolvePaymentRealDate(comparisonRecord, nextRecord);
   const finalRecord = { ...baseRecord, ...newRecord };
-  const detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
+  let detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
+  const shouldNormalizeLegacyRealDate =
+    !shouldCreateNewPaymentRow &&
+    shouldRefreshLegacyPaymentRealDate(comparisonRecord, finalRecord, detectedChanges);
+
+  if (shouldNormalizeLegacyRealDate) {
+    finalRecord.paymentRealDate = todayInMexico;
+    detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
+  }
 
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
+    aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
     shouldCreateNewPaymentRow,
+    shouldNormalizeLegacyRealDate,
     historyRecord: summarizePaymentRecordForTrace(historyRecord),
     editingMonthRecord: summarizePaymentRecordForTrace(editingMonthRecord),
     recordToUpdate: summarizePaymentRecordForTrace(recordToUpdate || {}),
