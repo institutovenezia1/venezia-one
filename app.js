@@ -1060,13 +1060,8 @@ function buildPaymentSupabaseTrace({
 
 function getCanonicalPaymentRecord(studentId, month = selectedPaymentsMonth) {
   return (
-    paymentRecords
-      .filter(
-        (record) =>
-          record.studentId === studentId &&
-          getPaymentRecordMonth(record) === month &&
-          isUuidValue(record.id)
-      )
+    getPaymentRecordsForStudentIdentity(studentId)
+      .filter((record) => getPaymentRecordMonth(record) === month && isUuidValue(record.id))
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )[0] || null
@@ -1121,6 +1116,7 @@ function getTrackedPaymentSnapshots(studentsList = students) {
   return studentsList
     .filter((student) => PAYMENT_TRACE_STUDENT_NAMES.has(String(student?.nombre || "").trim().toUpperCase()))
     .map((student) => {
+      const aliasIds = Array.from(getPaymentStudentAliasIds(student.id));
       const historyRecord = getPersistentPaymentRecord(student.id);
       const displayRecord = getPaymentDisplayRecord(student.id);
       const canonicalMonthRecord = getCanonicalPaymentRecord(student.id, resolvePaymentSaveMonth());
@@ -1129,6 +1125,7 @@ function getTrackedPaymentSnapshots(studentsList = students) {
       return {
         student: student.nombre || "",
         studentId: student.id || "",
+        aliasIds,
         branch: student.sucursal || "",
         history: summarizePaymentRecordForTrace(historyRecord),
         display: summarizePaymentRecordForTrace(displayRecord),
@@ -1168,32 +1165,162 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
     }));
 }
 
+function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {}, detectedChanges = []) {
+  if (!isRealPaidPaymentRecord(nextRecord)) {
+    return false;
+  }
+
+  if (getStoredPaymentRealDate(currentRecord)) {
+    return false;
+  }
+
+  if (detectedChanges.length === 0) {
+    return true;
+  }
+
+  const paymentMutationFields = new Set([
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+    "cantidadPagada",
+    "metodoPago",
+  ]);
+
+  return detectedChanges.some((change) => paymentMutationFields.has(change.field));
+}
+
 async function savePaymentRecord(record) {
   const payload = buildPaymentSupabasePayload(record);
+  let result = null;
+
   console.log('Pagos module target table: "student_payments"');
   console.log("PAGO payload", payload);
-  console.log("PAGO savePaymentRecord entrada", summarizePaymentRecordForTrace(record));
+  console.log("PAGO savePaymentRecord INICIO", summarizePaymentRecordForTrace(record));
 
-  const result = await dataService.entities.payments.upsertOne(record, { alertOnFailure: false });
-  console.log("PAGO savePaymentRecord resultado", {
-    synced: result.synced,
-    record: summarizePaymentRecordForTrace(result.record),
-    error: result.error
-      ? {
-          code: result.error.code || "",
-          message: result.error.message || "",
-          details: result.error.details || "",
-          hint: result.error.hint || "",
-        }
-      : null,
-  });
+  try {
+    result = await dataService.entities.payments.upsertOne(record, { alertOnFailure: false });
 
-  if (!result.synced) {
-    console.error("PAGO error", result.error);
-    console.error(
-      "PAGO error message",
-      result.error?.message || result.error?.details || String(result.error)
-    );
+    if (!result || typeof result !== "object") {
+      console.error("PAGO upsertOne resultado inesperado", result);
+      console.error("PAGO savePaymentRecord ERROR", {
+        studentId: record.studentId || "",
+        paymentId: record.id || "",
+        reason: "upsertOne returned null or non-object result",
+      });
+      return {
+        synced: false,
+        record,
+        error: {
+          message: "upsertOne returned null or a non-object result.",
+          rawResult: result,
+        },
+      };
+    }
+
+    if (!("synced" in result)) {
+      console.error("PAGO upsertOne resultado inesperado", result);
+      console.error("PAGO savePaymentRecord ERROR", {
+        studentId: record.studentId || "",
+        paymentId: record.id || "",
+        reason: 'upsertOne result is missing "synced"',
+      });
+      return {
+        synced: false,
+        record: result.record || record,
+        error: {
+          message: 'upsertOne result is missing "synced".',
+          rawResult: result,
+        },
+      };
+    }
+
+    console.log("PAGO savePaymentRecord resultado", {
+      synced: result.synced,
+      record: summarizePaymentRecordForTrace(result.record),
+      error: result.error
+        ? {
+            code: result.error.code || "",
+            message: result.error.message || "",
+            details: result.error.details || "",
+            hint: result.error.hint || "",
+          }
+        : null,
+    });
+
+    if (!result.synced) {
+      console.error("PAGO error", result.error);
+      console.error(
+        "PAGO error message",
+        result.error?.message || result.error?.details || String(result.error)
+      );
+      console.error(
+        "PAGO Supabase trace",
+        buildPaymentSupabaseTrace({
+          functionName: "savePaymentRecord",
+          table: "student_payments",
+          record,
+          payload,
+          student: getStudentById(record.studentId),
+          error: result.error,
+        })
+      );
+      console.error("PAGO savePaymentRecord ERROR", {
+        studentId: record.studentId || "",
+        paymentId: record.id || "",
+        synced: false,
+      });
+      console.warn("Payment saved only to local fallback cache after Supabase write failure.", {
+        id: record.id,
+        studentId: record.studentId,
+      });
+      return result;
+    }
+
+    const nextRecord = result.record;
+    if (!nextRecord || typeof nextRecord !== "object") {
+      console.error("PAGO upsertOne resultado inesperado", result);
+      console.error("PAGO savePaymentRecord ERROR", {
+        studentId: record.studentId || "",
+        paymentId: record.id || "",
+        reason: "upsertOne returned a synced response without record",
+      });
+      return {
+        ...result,
+        synced: false,
+        record,
+        error: {
+          message: "upsertOne returned a synced response without record.",
+          rawResult: result,
+        },
+      };
+    }
+
+    const existingIndex = paymentRecords.findIndex((item) => item.id === nextRecord.id);
+    if (existingIndex >= 0) {
+      paymentRecords[existingIndex] = nextRecord;
+    } else {
+      paymentRecords.unshift(nextRecord);
+    }
+
+    console.log("PAGO success", result.response || nextRecord);
+    console.log("PAGO savePaymentRecord EXITO", {
+      studentId: nextRecord.studentId || record.studentId || "",
+      paymentId: nextRecord.id || record.id || "",
+      synced: result.synced,
+      paymentRecordsCount: paymentRecords.length,
+    });
+    return result;
+  } catch (error) {
+    console.error("PAGO savePaymentRecord ERROR", {
+      studentId: record.studentId || "",
+      paymentId: record.id || "",
+      message: error?.message || error?.details || String(error),
+    });
+    console.error("PAGO savePaymentRecord ERROR detalle", error);
     console.error(
       "PAGO Supabase trace",
       buildPaymentSupabaseTrace({
@@ -1202,26 +1329,21 @@ async function savePaymentRecord(record) {
         record,
         payload,
         student: getStudentById(record.studentId),
-        error: result.error,
+        error,
       })
     );
-    console.warn("Payment saved only to local fallback cache after Supabase write failure.", {
-      id: record.id,
-      studentId: record.studentId,
+    return {
+      synced: false,
+      record,
+      error,
+    };
+  } finally {
+    console.log("PAGO savePaymentRecord FIN", {
+      studentId: record.studentId || "",
+      paymentId: record.id || "",
+      resultReceived: Boolean(result),
     });
-    return result;
   }
-
-  const nextRecord = result.record;
-  const existingIndex = paymentRecords.findIndex((item) => item.id === nextRecord.id);
-  if (existingIndex >= 0) {
-    paymentRecords[existingIndex] = nextRecord;
-  } else {
-    paymentRecords.unshift(nextRecord);
-  }
-
-  console.log("PAGO success", result.response || nextRecord);
-  return result;
 }
 
 function saveFinanceRecords() {
@@ -7235,8 +7357,7 @@ function getVisibleAttendanceKeysFromSelection(studentsList = []) {
 }
 
 function getLatestPaymentRecordForStudent(studentId) {
-  return paymentRecords
-    .filter((record) => record.studentId === studentId)
+  return getPaymentRecordsForStudentIdentity(studentId)
     .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0] || {};
 }
 
@@ -7541,16 +7662,16 @@ function renderAttendanceHistory(studentId) {
 }
 
 function getPaymentRecord(studentId) {
-  const currentMonthRecord = paymentRecords.find(
-    (record) => record.studentId === studentId && getPaymentRecordMonth(record) === selectedPaymentsMonth
+  const currentMonthRecord = getPaymentRecordsForStudentIdentity(studentId).find(
+    (record) => getPaymentRecordMonth(record) === selectedPaymentsMonth
   );
   if (currentMonthRecord) {
     return currentMonthRecord;
   }
 
   return (
-    paymentRecords.find(
-      (record) => record.studentId === studentId && !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
+    getPaymentRecordsForStudentIdentity(studentId).find(
+      (record) => !record.mesPago && getPaymentRecordMonth(record) === selectedPaymentsMonth
     ) || createEmptyPaymentRecord({ studentId, month: selectedPaymentsMonth })
   );
 }
@@ -7592,8 +7713,7 @@ function getPersistentPaymentRecord(studentId) {
     "mensualidad5",
     "pagosPendientes",
   ];
-  const studentRecords = paymentRecords
-    .filter((record) => record.studentId === studentId)
+  const studentRecords = getPaymentRecordsForStudentIdentity(studentId)
     .sort((left, right) =>
       String(left.updatedAt || left.createdAt || "").localeCompare(String(right.updatedAt || right.createdAt || ""))
     );
@@ -7685,6 +7805,35 @@ function getPaymentStudentIdentityKey(student) {
   ].join("|");
 }
 
+function getPaymentStudentAliasIds(studentId, studentsList = students) {
+  const normalizedStudentId = String(studentId || "").trim();
+  if (!normalizedStudentId) {
+    return new Set();
+  }
+
+  const currentStudent = studentsList.find((student) => student.id === normalizedStudentId);
+  if (!currentStudent) {
+    return new Set([normalizedStudentId]);
+  }
+
+  const identityKey = getPaymentStudentIdentityKey(currentStudent);
+  const aliasIds = studentsList
+    .filter((student) => getPaymentStudentIdentityKey(student) === identityKey)
+    .map((student) => student.id)
+    .filter(Boolean);
+
+  return new Set(aliasIds.length > 0 ? aliasIds : [normalizedStudentId]);
+}
+
+function getPaymentRecordsForStudentIdentity(studentId, records = paymentRecords) {
+  const aliasIds = getPaymentStudentAliasIds(studentId);
+  if (aliasIds.size === 0) {
+    return [];
+  }
+
+  return records.filter((record) => aliasIds.has(record.studentId));
+}
+
 function getCanonicalStudentsForPayments(studentsList = getActiveStudents()) {
   const groupedStudents = new Map();
 
@@ -7752,8 +7901,8 @@ function getScopedPaymentRecords() {
 
 function getCanonicalPaymentRecordForStudent(studentId) {
   return (
-    paymentRecords
-      .filter((record) => record.studentId === studentId && isUuidValue(record.id))
+    getPaymentRecordsForStudentIdentity(studentId)
+      .filter((record) => isUuidValue(record.id))
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )[0] || null
@@ -8067,6 +8216,24 @@ function renderPaymentsTable() {
 async function savePaymentForStudent(studentId) {
   const targetPaymentMonth = resolvePaymentSaveMonth();
   const todayInMexico = getCurrentMexicoDateValue();
+  let student = null;
+  let resolvedPaymentId = "";
+  let savedRecordBeforeRefresh = null;
+  let refreshResult = null;
+  let refreshRaisedError = false;
+  const summarizeRefreshComparablePayment = (record = {}) => ({
+    id: record.id || "",
+    studentId: record.studentId || "",
+    mesPago: record.mesPago || "",
+    metodoPago: record.metodoPago || "",
+    cantidadPagada: record.cantidadPagada || "",
+    paymentRealDate: record.paymentRealDate || "",
+    paymentMovementConcept: record.paymentMovementConcept || "",
+    reportes: record.reportes || "",
+    observaciones: record.observaciones || "",
+    updatedAt: record.updatedAt || "",
+  });
+
   console.log("PAGO savePaymentForStudent entrada", {
     studentId,
     selectedPaymentsMonth,
@@ -8079,205 +8246,351 @@ async function savePaymentForStudent(studentId) {
       allowedBranch: getAllowedBranch(),
     },
   });
-  await refreshSharedSupabaseState({ force: true, render: false });
-  const student = getStudentById(studentId);
-  if (!student) {
-    console.warn("PAGO savePaymentForStudent abortado: student no encontrado", {
-      studentId,
-      selectedPaymentsMonth,
-    });
-    alert("No se encontró la alumna vinculada para guardar el pago.");
-    return;
-  }
-
-  const fields = [
-    "mensualidadPactada",
-    "certificadoP1",
-    "certificadoP2",
-    "mensualidad1",
-    "mensualidad2",
-    "mensualidad3",
-    "mensualidad4",
-    "mensualidad5",
-    "metodoPago",
-    "cantidadPagada",
-    "reportes",
-    "observaciones",
-  ];
-
-  const historyRecord = getPersistentPaymentRecord(studentId);
-  const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
-  const editingMonthRecord = buildPaymentEditableRecord(
-    historyRecord,
-    currentMonthRecord,
-    targetPaymentMonth,
-    studentId
-  );
-  const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
-  const canUpdateLatestSameDayRecord =
-    Boolean(latestActualRecord?.id) &&
-    getPaymentRecordMonth(latestActualRecord) === targetPaymentMonth &&
-    getPaymentEffectiveDate(latestActualRecord) === todayInMexico;
-  const recordToUpdate = currentMonthRecord || (canUpdateLatestSameDayRecord ? latestActualRecord : null);
-  const shouldCreateNewPaymentRow = !recordToUpdate?.id;
-  const resolvedPaymentId = isUuidValue(recordToUpdate?.id)
-    ? recordToUpdate.id
-    : crypto.randomUUID();
-  const baseRecord = {
-    ...historyRecord,
-    id: resolvedPaymentId,
-    studentId,
-    mesPago: targetPaymentMonth,
-    createdAt: recordToUpdate?.createdAt || new Date().toISOString(),
-    updatedAt: recordToUpdate?.updatedAt || "",
-    metodoPago: editingMonthRecord.metodoPago || "",
-    cantidadPagada: editingMonthRecord.cantidadPagada || "",
-    reportes: editingMonthRecord.reportes || "",
-    observaciones: editingMonthRecord.observaciones || "",
-    paymentRealDate: editingMonthRecord.paymentRealDate || "",
-    paymentMovementConcept: editingMonthRecord.paymentMovementConcept || "",
-  };
-
-  const newRecord = {
-    id: resolvedPaymentId,
-    studentId,
-    mesPago: targetPaymentMonth,
-    createdAt: baseRecord.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  const formPayload = {};
-
-  fields.forEach((field) => {
-    const input = paymentsTableBody.querySelector(`[data-payment-field="${field}"][data-student-id="${studentId}"]`);
-    const value = input ? input.value.trim() : "";
-    formPayload[field] = value;
-    newRecord[field] = value;
-  });
-
-  console.log("PAGO payload que sale del formulario", {
-    studentId,
-    paymentId: resolvedPaymentId,
-    targetPaymentMonth,
-    formPayload,
-  });
-
-  const existingFinanceRecord = getLinkedPaymentFinanceRecords(resolvedPaymentId)[0] || null;
-  const nextRecord = { ...baseRecord, ...newRecord };
-  const comparisonRecord = recordToUpdate || editingMonthRecord;
-  newRecord.paymentMovementConcept = resolvePaymentMovementConcept(
-    comparisonRecord,
-    nextRecord,
-    existingFinanceRecord
-  );
-  newRecord.paymentRealDate = shouldCreateNewPaymentRow
-    ? (isRealPaidPaymentRecord(nextRecord) ? todayInMexico : "")
-    : resolvePaymentRealDate(comparisonRecord, nextRecord);
-  const finalRecord = { ...baseRecord, ...newRecord };
-  const detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
-
-  console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
-    studentId,
-    paymentId: resolvedPaymentId,
-    targetPaymentMonth,
-    shouldCreateNewPaymentRow,
-    historyRecord: summarizePaymentRecordForTrace(historyRecord),
-    editingMonthRecord: summarizePaymentRecordForTrace(editingMonthRecord),
-    recordToUpdate: summarizePaymentRecordForTrace(recordToUpdate || {}),
-    student: {
-      id: student.id || "",
-      nombre: student.nombre || "",
-      sucursal: student.sucursal || "",
-    },
-    currentRecord: summarizePaymentRecordForTrace(comparisonRecord),
-    currentRecordEligibility: summarizePaymentEligibilityForTrace(comparisonRecord),
-    nextRecord: summarizePaymentRecordForTrace(finalRecord),
-    nextRecordEligibility: summarizePaymentEligibilityForTrace(finalRecord),
-    changesDetected: detectedChanges,
-    hasChanges: detectedChanges.length > 0,
-  });
-
-  const saveResult = await savePaymentRecord(finalRecord);
-  console.log("PAGO después de savePaymentRecord", {
-    studentId,
-    paymentId: resolvedPaymentId,
-    synced: saveResult.synced,
-    record: summarizePaymentRecordForTrace(saveResult.record),
-    error: saveResult.error
-      ? {
-          code: saveResult.error.code || "",
-          message: saveResult.error.message || "",
-          details: saveResult.error.details || "",
-          hint: saveResult.error.hint || "",
-        }
-      : null,
-  });
-  if (!saveResult.synced) {
-    renderBalanceModule();
-    renderFinanceTable();
-    updateFinanceSummary();
-    updatePaymentsSummary();
-    renderDashboard();
-    console.warn("PAGO flujo finalizó en fallback local tras fallo de Supabase.", {
-      studentId,
-      paymentId: resolvedPaymentId,
-    });
-    alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
-    return;
-  }
-
-  const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
-  console.log("PAGO después de syncPaymentFinanceRecord", {
-    studentId,
-    paymentId: resolvedPaymentId,
-    synced: financeSyncResult.synced,
-    deleted: financeSyncResult.deleted || false,
-    duplicatesRemoved: financeSyncResult.duplicatesRemoved || 0,
-    record: financeSyncResult.record
-      ? {
-          id: financeSyncResult.record.id || "",
-          relatedPaymentId: financeSyncResult.record.relatedPaymentId || "",
-          fecha: financeSyncResult.record.fecha || "",
-          monto: financeSyncResult.record.monto || "",
-          categoria: financeSyncResult.record.categoria || "",
-        }
-      : null,
-    error: financeSyncResult.error
-      ? {
-          code: financeSyncResult.error.code || "",
-          message: financeSyncResult.error.message || "",
-          details: financeSyncResult.error.details || "",
-          hint: financeSyncResult.error.hint || "",
-        }
-      : null,
-  });
-  if (!financeSyncResult.synced) {
+  try {
     await refreshSharedSupabaseState({ force: true, render: false });
-    renderPaymentsTable();
-    renderBalanceModule();
-    renderFinanceTable();
-    updateFinanceSummary();
-    updatePaymentsSummary();
-    renderDashboard();
-    console.warn("PAGO guardado, pero finanzas no sincronizó.", {
+    student = getStudentById(studentId);
+    if (!student) {
+      console.warn("PAGO savePaymentForStudent abortado: student no encontrado", {
+        studentId,
+        selectedPaymentsMonth,
+      });
+      alert("No se encontró la alumna vinculada para guardar el pago.");
+      return;
+    }
+
+    const fields = [
+      "mensualidadPactada",
+      "certificadoP1",
+      "certificadoP2",
+      "mensualidad1",
+      "mensualidad2",
+      "mensualidad3",
+      "mensualidad4",
+      "mensualidad5",
+      "metodoPago",
+      "cantidadPagada",
+      "reportes",
+      "observaciones",
+    ];
+
+    const historyRecord = getPersistentPaymentRecord(studentId);
+    const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
+    const editingMonthRecord = buildPaymentEditableRecord(
+      historyRecord,
+      currentMonthRecord,
+      targetPaymentMonth,
+      studentId
+    );
+    const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
+    const canUpdateLatestSameDayRecord =
+      Boolean(latestActualRecord?.id) &&
+      getPaymentRecordMonth(latestActualRecord) === targetPaymentMonth &&
+      getPaymentEffectiveDate(latestActualRecord) === todayInMexico;
+    const recordToUpdate = currentMonthRecord || (canUpdateLatestSameDayRecord ? latestActualRecord : null);
+    const shouldCreateNewPaymentRow = !recordToUpdate?.id;
+    resolvedPaymentId = isUuidValue(recordToUpdate?.id)
+      ? recordToUpdate.id
+      : crypto.randomUUID();
+    const baseRecord = {
+      ...historyRecord,
+      id: resolvedPaymentId,
+      studentId,
+      mesPago: targetPaymentMonth,
+      createdAt: recordToUpdate?.createdAt || new Date().toISOString(),
+      updatedAt: recordToUpdate?.updatedAt || "",
+      metodoPago: editingMonthRecord.metodoPago || "",
+      cantidadPagada: editingMonthRecord.cantidadPagada || "",
+      reportes: editingMonthRecord.reportes || "",
+      observaciones: editingMonthRecord.observaciones || "",
+      paymentRealDate: editingMonthRecord.paymentRealDate || "",
+      paymentMovementConcept: editingMonthRecord.paymentMovementConcept || "",
+    };
+
+    const newRecord = {
+      id: resolvedPaymentId,
+      studentId,
+      mesPago: targetPaymentMonth,
+      createdAt: baseRecord.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const formPayload = {};
+
+    fields.forEach((field) => {
+      const input = paymentsTableBody.querySelector(`[data-payment-field="${field}"][data-student-id="${studentId}"]`);
+      const value = input ? input.value.trim() : "";
+      formPayload[field] = value;
+      newRecord[field] = value;
+    });
+
+    console.log("PAGO payload que sale del formulario", {
+      studentId,
+      aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
+      paymentId: resolvedPaymentId,
+      targetPaymentMonth,
+      formPayload,
+    });
+
+    const existingFinanceRecord = getLinkedPaymentFinanceRecords(resolvedPaymentId)[0] || null;
+    const nextRecord = { ...baseRecord, ...newRecord };
+    const comparisonRecord = recordToUpdate || editingMonthRecord;
+    newRecord.paymentMovementConcept = resolvePaymentMovementConcept(
+      comparisonRecord,
+      nextRecord,
+      existingFinanceRecord
+    );
+    newRecord.paymentRealDate = shouldCreateNewPaymentRow
+      ? (isRealPaidPaymentRecord(nextRecord) ? todayInMexico : "")
+      : resolvePaymentRealDate(comparisonRecord, nextRecord);
+    const finalRecord = { ...baseRecord, ...newRecord };
+    let detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
+    const shouldNormalizeLegacyRealDate =
+      !shouldCreateNewPaymentRow &&
+      shouldRefreshLegacyPaymentRealDate(comparisonRecord, finalRecord, detectedChanges);
+
+    if (shouldNormalizeLegacyRealDate) {
+      finalRecord.paymentRealDate = todayInMexico;
+      detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
+    }
+
+    console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
+      studentId,
+      aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
+      paymentId: resolvedPaymentId,
+      targetPaymentMonth,
+      shouldCreateNewPaymentRow,
+      shouldNormalizeLegacyRealDate,
+      historyRecord: summarizePaymentRecordForTrace(historyRecord),
+      editingMonthRecord: summarizePaymentRecordForTrace(editingMonthRecord),
+      recordToUpdate: summarizePaymentRecordForTrace(recordToUpdate || {}),
+      student: {
+        id: student.id || "",
+        nombre: student.nombre || "",
+        sucursal: student.sucursal || "",
+      },
+      currentRecord: summarizePaymentRecordForTrace(comparisonRecord),
+      currentRecordEligibility: summarizePaymentEligibilityForTrace(comparisonRecord),
+      nextRecord: summarizePaymentRecordForTrace(finalRecord),
+      nextRecordEligibility: summarizePaymentEligibilityForTrace(finalRecord),
+      changesDetected: detectedChanges,
+      hasChanges: detectedChanges.length > 0,
+    });
+
+    const saveResult = await savePaymentRecord(finalRecord);
+    console.log("PAGO después de savePaymentRecord", {
       studentId,
       paymentId: resolvedPaymentId,
+      synced: saveResult?.synced,
+      record: summarizePaymentRecordForTrace(saveResult?.record),
+      error: saveResult?.error
+        ? {
+            code: saveResult.error.code || "",
+            message: saveResult.error.message || "",
+            details: saveResult.error.details || "",
+            hint: saveResult.error.hint || "",
+          }
+        : null,
     });
-    alert("El pago se guardó, pero no se pudo sincronizar su ingreso financiero en Supabase.");
-    return;
-  }
+    if (!saveResult?.synced) {
+      renderBalanceModule();
+      renderFinanceTable();
+      updateFinanceSummary();
+      updatePaymentsSummary();
+      renderDashboard();
+      console.warn("PAGO flujo finalizó en fallback local tras fallo de Supabase.", {
+        studentId,
+        paymentId: resolvedPaymentId,
+      });
+      alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
+      return;
+    }
 
-  await refreshSharedSupabaseState({ force: true, render: false });
-  renderPaymentsTable();
-  renderBalanceModule();
-  renderFinanceTable();
-  updateFinanceSummary();
-  updatePaymentsSummary();
-  renderDashboard();
-  console.log("PAGO flujo completado y UI refrescada", {
-    studentId,
-    paymentId: resolvedPaymentId,
-    refreshedModules: ["paymentsTable", "balanceModule", "financeTable", "financeSummary", "paymentsSummary", "dashboard"],
-  });
+    savedRecordBeforeRefresh = summarizeRefreshComparablePayment(saveResult.record);
+    const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
+    console.log("PAGO después de syncPaymentFinanceRecord", {
+      studentId,
+      paymentId: resolvedPaymentId,
+      synced: financeSyncResult.synced,
+      deleted: financeSyncResult.deleted || false,
+      duplicatesRemoved: financeSyncResult.duplicatesRemoved || 0,
+      record: financeSyncResult.record
+        ? {
+            id: financeSyncResult.record.id || "",
+            relatedPaymentId: financeSyncResult.record.relatedPaymentId || "",
+            fecha: financeSyncResult.record.fecha || "",
+            monto: financeSyncResult.record.monto || "",
+            categoria: financeSyncResult.record.categoria || "",
+          }
+        : null,
+      error: financeSyncResult.error
+        ? {
+            code: financeSyncResult.error.code || "",
+            message: financeSyncResult.error.message || "",
+            details: financeSyncResult.error.details || "",
+            hint: financeSyncResult.error.hint || "",
+          }
+        : null,
+    });
+    if (!financeSyncResult.synced) {
+      try {
+        console.log("PAGO refresh post-save INICIO", {
+          studentId,
+          paymentId: resolvedPaymentId,
+          stage: "finance-sync-failed",
+          savedRecordBeforeRefresh,
+          localRecordBeforeRefresh: summarizeRefreshComparablePayment(
+            paymentRecords.find((item) => item.id === resolvedPaymentId) || getCanonicalPaymentRecord(studentId, targetPaymentMonth)
+          ),
+        });
+        refreshResult = await refreshSharedSupabaseState({ force: true, render: false });
+        const refreshedRecord =
+          paymentRecords.find((item) => item.id === resolvedPaymentId) || getCanonicalPaymentRecord(studentId, targetPaymentMonth);
+        const refreshedComparableRecord = summarizeRefreshComparablePayment(refreshedRecord);
+        const refreshOverwroteState =
+          JSON.stringify(savedRecordBeforeRefresh) !== JSON.stringify(refreshedComparableRecord);
+
+        if (refreshResult) {
+          console.log("PAGO refresh post-save EXITO", {
+            studentId,
+            paymentId: resolvedPaymentId,
+            stage: "finance-sync-failed",
+            refreshedRecord: refreshedComparableRecord,
+          });
+        } else {
+          console.error("PAGO refresh post-save ERROR", {
+            studentId,
+            paymentId: resolvedPaymentId,
+            stage: "finance-sync-failed",
+            reason: "refreshSharedSupabaseState returned false",
+            savedRecordBeforeRefresh,
+            refreshedRecord: refreshedComparableRecord,
+          });
+        }
+
+        if (refreshOverwroteState) {
+          console.warn("PAGO refresh post-save pisó el estado", {
+            studentId,
+            paymentId: resolvedPaymentId,
+            targetPaymentMonth,
+            stage: "finance-sync-failed",
+            beforeRefresh: savedRecordBeforeRefresh,
+            afterRefresh: refreshedComparableRecord,
+            refreshResult,
+          });
+        }
+      } catch (error) {
+        refreshRaisedError = true;
+        console.error("PAGO refresh post-save ERROR", {
+          studentId,
+          paymentId: resolvedPaymentId,
+          stage: "finance-sync-failed",
+          targetPaymentMonth,
+          message: error?.message || error?.details || String(error),
+        });
+        console.error("PAGO refresh post-save ERROR detalle", error);
+      }
+      renderPaymentsTable();
+      renderBalanceModule();
+      renderFinanceTable();
+      updateFinanceSummary();
+      updatePaymentsSummary();
+      renderDashboard();
+      console.warn("PAGO guardado, pero finanzas no sincronizó.", {
+        studentId,
+        paymentId: resolvedPaymentId,
+      });
+      alert("El pago se guardó, pero no se pudo sincronizar su ingreso financiero en Supabase.");
+      return;
+    }
+
+    try {
+      console.log("PAGO refresh post-save INICIO", {
+        studentId,
+        paymentId: resolvedPaymentId,
+        targetPaymentMonth,
+        savedRecordBeforeRefresh,
+        localRecordBeforeRefresh: summarizeRefreshComparablePayment(
+          paymentRecords.find((item) => item.id === resolvedPaymentId) || getCanonicalPaymentRecord(studentId, targetPaymentMonth)
+        ),
+      });
+      refreshResult = await refreshSharedSupabaseState({ force: true, render: false });
+      const refreshedRecord =
+        paymentRecords.find((item) => item.id === resolvedPaymentId) || getCanonicalPaymentRecord(studentId, targetPaymentMonth);
+      const refreshedComparableRecord = summarizeRefreshComparablePayment(refreshedRecord);
+      const refreshOverwroteState =
+        JSON.stringify(savedRecordBeforeRefresh) !== JSON.stringify(refreshedComparableRecord);
+
+      if (!refreshResult) {
+        console.error("PAGO refresh post-save ERROR", {
+          studentId,
+          paymentId: resolvedPaymentId,
+          targetPaymentMonth,
+          reason: "refreshSharedSupabaseState returned false",
+          savedRecordBeforeRefresh,
+          refreshedRecord: refreshedComparableRecord,
+        });
+      } else {
+        console.log("PAGO refresh post-save EXITO", {
+          studentId,
+          paymentId: resolvedPaymentId,
+          targetPaymentMonth,
+          refreshedRecord: refreshedComparableRecord,
+        });
+      }
+
+      if (refreshOverwroteState) {
+        console.warn("PAGO refresh post-save pisó el estado", {
+          studentId,
+          paymentId: resolvedPaymentId,
+          targetPaymentMonth,
+          beforeRefresh: savedRecordBeforeRefresh,
+          afterRefresh: refreshedComparableRecord,
+          refreshResult,
+        });
+      }
+    } catch (error) {
+      refreshRaisedError = true;
+      console.error("PAGO refresh post-save ERROR", {
+        studentId,
+        paymentId: resolvedPaymentId,
+        targetPaymentMonth,
+        message: error?.message || error?.details || String(error),
+      });
+      console.error("PAGO refresh post-save ERROR detalle", error);
+    } finally {
+      renderPaymentsTable();
+      renderBalanceModule();
+      renderFinanceTable();
+      updateFinanceSummary();
+      updatePaymentsSummary();
+      renderDashboard();
+    }
+
+    console.log("PAGO flujo completado y UI refrescada", {
+      studentId,
+      paymentId: resolvedPaymentId,
+      refreshResult,
+      refreshRaisedError,
+      refreshedModules: ["paymentsTable", "balanceModule", "financeTable", "financeSummary", "paymentsSummary", "dashboard"],
+    });
+  } catch (error) {
+    console.error("PAGO savePaymentForStudent ERROR", {
+      studentId,
+      paymentId: resolvedPaymentId,
+      targetPaymentMonth,
+      studentName: student?.nombre || "",
+      message: error?.message || error?.details || String(error),
+    });
+    console.error("PAGO savePaymentForStudent ERROR detalle", error);
+    alert("Ocurrió un error inesperado al guardar el pago.");
+  } finally {
+    console.log("PAGO savePaymentForStudent FIN", {
+      studentId,
+      paymentId: resolvedPaymentId,
+      targetPaymentMonth,
+      refreshResult,
+      refreshRaisedError,
+    });
+  }
 }
 
 function updatePaymentsSummary() {
