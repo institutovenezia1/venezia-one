@@ -1626,6 +1626,91 @@ td select {
   margin-bottom: 1rem;
 }
 
+.alta-pending-kpi-strip {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.alta-pending-kpi-card {
+  min-width: 0;
+  flex: 0 1 320px;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(201, 161, 74, 0.24);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.14), transparent 32%),
+    linear-gradient(180deg, #fffdf9 0%, #f2eadf 100%);
+  box-shadow: 0 14px 28px rgba(89, 67, 10, 0.08);
+}
+
+.alta-pending-kpi-label {
+  color: #7b7268;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.alta-pending-kpi-card strong {
+  color: #1a1a1a;
+  font-size: clamp(2rem, 3vw, 2.65rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.alta-pending-kpi-card small {
+  color: #8d6a20;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.alta-pending-filter-chips {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.alta-pending-filter-chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(201, 161, 74, 0.2);
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  background: rgba(255, 253, 249, 0.92);
+  color: #5f554a;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(89, 67, 10, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.alta-pending-filter-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 161, 74, 0.36);
+  box-shadow: 0 12px 24px rgba(89, 67, 10, 0.08);
+}
+
+.alta-pending-filter-chip.is-active {
+  border-color: rgba(201, 161, 74, 0.46);
+  background:
+    radial-gradient(circle at top left, rgba(201, 161, 74, 0.18), transparent 32%),
+    linear-gradient(180deg, #fff7e8 0%, #ecd59e 100%);
+  color: #6c4e12;
+  box-shadow: 0 14px 26px rgba(146, 108, 24, 0.14);
+}
+
 .altas-history-date-filter {
   display: grid;
   gap: 0.35rem;
@@ -5300,6 +5385,19 @@ body.access-selector-mode .module-section.active {
   .hero-slider {
     min-height: 540px;
   }
+
+  .alta-pending-kpi-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .alta-pending-kpi-card {
+    flex-basis: auto;
+  }
+
+  .alta-pending-filter-chips {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 720px) {
@@ -5342,6 +5440,16 @@ body.access-selector-mode .module-section.active {
   .alta-form-block-grid,
   .altas-history-stats {
     grid-template-columns: 1fr;
+  }
+
+  .alta-pending-filter-chips {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .alta-pending-filter-chip {
+    width: 100%;
+    justify-content: center;
   }
 
   .panel,

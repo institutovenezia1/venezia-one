@@ -794,7 +794,7 @@
             <div class="altas-history-header">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
-                <h3>Altas de la semana en curso</h3>
+                <h3>Altas pendientes por iniciar</h3>
               </div>
             </div>
 
@@ -813,13 +813,25 @@
               </article>
             </div>
 
-            <div class="altas-history-filter-row">
-              <label class="altas-history-date-filter">
-                <span>Consultar día</span>
-                <input id="altaDateFilter" type="date" />
-              </label>
-              <button class="secondary-btn" type="button" id="altaDateFilterClearButton">Quitar filtro</button>
-            </div>
+            <section class="alta-pending-kpi-strip" aria-label="Altas pendientes por iniciar">
+              <article class="alta-pending-kpi-card">
+                <span class="alta-pending-kpi-label">Altas pendientes por iniciar</span>
+                <strong id="altaPendingStartCount">0</strong>
+                <small id="altaPendingStartMeta">-</small>
+              </article>
+
+              <div class="alta-pending-filter-chips" role="tablist" aria-label="Filtrar altas pendientes por iniciar">
+                <button class="alta-pending-filter-chip is-active" type="button" data-alta-pending-filter="all" aria-pressed="true">
+                  Todas
+                </button>
+                <button class="alta-pending-filter-chip" type="button" data-alta-pending-filter="weekday" aria-pressed="false">
+                  Entre semana
+                </button>
+                <button class="alta-pending-filter-chip" type="button" data-alta-pending-filter="weekend" aria-pressed="false">
+                  Fin de semana
+                </button>
+              </div>
+            </section>
 
             <div class="table-wrapper altas-history-table-wrapper">
               <table>
