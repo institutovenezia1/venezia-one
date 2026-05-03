@@ -986,6 +986,13 @@ function isUuidValue(value) {
   );
 }
 
+function buildPaymentNotes(record = {}) {
+  const directNotes = [record.observaciones, record.notes].find(
+    (value) => value !== null && value !== undefined && String(value).trim()
+  );
+  return directNotes ? String(directNotes).trim() : "";
+}
+
 function buildPaymentSupabasePayload(record) {
   return {
     id: record.id,
