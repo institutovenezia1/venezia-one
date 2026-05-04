@@ -6784,26 +6784,82 @@ function hasPendingCourseStart(student, today = getCurrentMexicoDateValue()) {
   return Boolean(startDate) && startDate >= today;
 }
 
-function getAltasPendientesPorIniciar({
+function getAltaPendingDebugEntry(student) {
+  return {
+    id: student?.id || "-",
+    nombre: student?.nombre || "-",
+    fechaAlta: getStudentAltaCreatedDate(student) || "-",
+    fechaInicio: getStudentCourseStartDateValue(student) || "-",
+    curso: student?.curso || "-",
+    diaClases: String(student?.diaClases || "").trim() || "-",
+    horario: String(student?.horario || "").trim() || "-",
+    modalidadDetectada: classifyAltaScheduleType(student),
+  };
+}
+
+function matchesAltaPendingMonth(student, month) {
+  if (!month) {
+    return true;
+  }
+
+  const altaCreatedDate = getStudentAltaCreatedDate(student);
+  const courseStartDate = getStudentCourseStartDateValue(student);
+  return isDateInMonth(altaCreatedDate, month) || isDateInMonth(courseStartDate, month);
+}
+
+function getAltasPendientesPorIniciarDataset({
   month = selectedMonth,
   scheduleFilter = activeAltaPendingFilter,
   today = getCurrentMexicoDateValue(),
 } = {}) {
-  return getFilteredAltaHistory().filter((student) => {
-    if (!isDateInMonth(getStudentAltaCreatedDate(student), month)) {
-      return false;
-    }
+  const baseRecords = getFilteredAltaHistory();
+  const monthFiltered = baseRecords.filter((student) => matchesAltaPendingMonth(student, month));
+  const pendingStartFiltered = monthFiltered.filter((student) => hasPendingCourseStart(student, today));
+  const finalRecords = scheduleFilter === "all"
+    ? pendingStartFiltered
+    : pendingStartFiltered.filter((student) => classifyAltaScheduleType(student) === scheduleFilter);
 
-    if (!hasPendingCourseStart(student, today)) {
-      return false;
-    }
-
-    if (scheduleFilter === "all") {
-      return true;
-    }
-
-    return classifyAltaScheduleType(student) === scheduleFilter;
+  console.log("[Altas pendientes por iniciar] Dataset base", {
+    month,
+    scheduleFilter,
+    today,
+    count: baseRecords.length,
+    records: baseRecords.map(getAltaPendingDebugEntry),
   });
+  console.log("[Altas pendientes por iniciar] Después de filtro mes", {
+    month,
+    count: monthFiltered.length,
+    excluded: baseRecords
+      .filter((student) => !matchesAltaPendingMonth(student, month))
+      .map(getAltaPendingDebugEntry),
+  });
+  console.log("[Altas pendientes por iniciar] Después de filtro no han iniciado", {
+    today,
+    count: pendingStartFiltered.length,
+    excluded: monthFiltered
+      .filter((student) => !hasPendingCourseStart(student, today))
+      .map(getAltaPendingDebugEntry),
+  });
+  console.log("[Altas pendientes por iniciar] Después de filtro modalidad", {
+    scheduleFilter,
+    count: finalRecords.length,
+    excluded: scheduleFilter === "all"
+      ? []
+      : pendingStartFiltered
+          .filter((student) => classifyAltaScheduleType(student) !== scheduleFilter)
+          .map(getAltaPendingDebugEntry),
+  });
+
+  return {
+    baseRecords,
+    monthFiltered,
+    pendingStartFiltered,
+    finalRecords,
+  };
+}
+
+function getAltasPendientesPorIniciar(options = {}) {
+  return getAltasPendientesPorIniciarDataset(options).finalRecords;
 }
 
 function syncAltaPendingFilterChips() {
@@ -6835,7 +6891,8 @@ function renderAltaHistory() {
   const altaHistory = getFilteredAltaHistory();
   const currentWeekAltas = getCurrentWeekAltaHistory(today);
   const currentDayAltas = getAltaHistoryForDate(today);
-  const visibleAltas = getAltasPendientesPorIniciar();
+  const pendingAltasDataset = getAltasPendientesPorIniciarDataset();
+  const visibleAltas = pendingAltasDataset.finalRecords;
   const dayCount = currentDayAltas.length;
   const weekCount = currentWeekAltas.length;
   const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), selectedMonth)).length;
