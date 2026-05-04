@@ -218,6 +218,9 @@ const altaDateFilterClearButton = document.getElementById("altaDateFilterClearBu
 const altaDayCount = document.getElementById("altaDayCount");
 const altaWeekCount = document.getElementById("altaWeekCount");
 const altaMonthCount = document.getElementById("altaMonthCount");
+const altaPendingStartCount = document.getElementById("altaPendingStartCount");
+const altaPendingStartMeta = document.getElementById("altaPendingStartMeta");
+const altaPendingFilterChips = Array.from(document.querySelectorAll("[data-alta-pending-filter]"));
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
 const altaActiveTotal = document.getElementById("altaActiveTotal");
@@ -685,6 +688,7 @@ let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let attendanceTableExpanded = false;
 let selectedAltaDateFilter = "";
+let activeAltaPendingFilter = "all";
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
 let paymentsMonthWasManuallySelected = false;
@@ -3505,6 +3509,31 @@ function formatDisplayDate(dateValue) {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatMonthLabelEs(monthValue) {
+  if (!monthValue) {
+    return "-";
+  }
+
+  const monthDate = new Date(`${monthValue}-01T12:00:00`);
+  if (Number.isNaN(monthDate.getTime())) {
+    return monthValue;
+  }
+
+  const label = monthDate.toLocaleDateString("es-MX", {
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function normalizeLooseText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }
 
 function formatDisplayDateTime(dateValue) {
@@ -6690,6 +6719,157 @@ function getAltaHistoryForDate(dateValue) {
   return getFilteredAltaHistory().filter((student) => getStudentAltaCreatedDate(student) === normalizedDate);
 }
 
+function getAltaPendingFilterLabel(filterValue = activeAltaPendingFilter) {
+  if (filterValue === "weekday") {
+    return "Entre semana";
+  }
+  if (filterValue === "weekend") {
+    return "Fin de semana";
+  }
+  return "Todas";
+}
+
+function classifyAltaScheduleType(student) {
+  const scheduleText = [
+    student?.diaClases,
+    student?.horario,
+    student?.modalidad,
+    student?.tipoHorario,
+    student?.frecuencia,
+    student?.turno,
+    student?.schedule,
+  ]
+    .map(normalizeLooseText)
+    .filter(Boolean)
+    .join(" | ");
+
+  if (!scheduleText) {
+    return "unknown";
+  }
+
+  const weekdayPatterns = [
+    /\bentre semana\b/,
+    /\blunes\b/,
+    /\bmartes\b/,
+    /\bmiercoles\b/,
+    /\bjueves\b/,
+    /\b3 dias\b/,
+    /\btres dias\b/,
+    /\blunes a jueves\b/,
+    /\bmartes y jueves\b/,
+    /\blunes y miercoles\b/,
+  ];
+  const weekendPatterns = [
+    /\bfin de semana\b/,
+    /\bviernes\b/,
+    /\bsabado\b/,
+    /\bdomingo\b/,
+    /\b1 dia\b/,
+    /\bun dia\b/,
+    /\bviernes y sabado\b/,
+    /\bsabado y domingo\b/,
+  ];
+
+  if (weekendPatterns.some((pattern) => pattern.test(scheduleText))) {
+    return "weekend";
+  }
+  if (weekdayPatterns.some((pattern) => pattern.test(scheduleText))) {
+    return "weekday";
+  }
+  return "unknown";
+}
+
+function hasPendingCourseStart(student, today = getCurrentMexicoDateValue()) {
+  const startDate = getStudentCourseStartDateValue(student);
+  return Boolean(startDate) && startDate >= today;
+}
+
+function getAltaPendingDebugEntry(student) {
+  return {
+    id: student?.id || "-",
+    nombre: student?.nombre || "-",
+    fechaAlta: getStudentAltaCreatedDate(student) || "-",
+    fechaInicio: getStudentCourseStartDateValue(student) || "-",
+    curso: student?.curso || "-",
+    diaClases: String(student?.diaClases || "").trim() || "-",
+    horario: String(student?.horario || "").trim() || "-",
+    modalidadDetectada: classifyAltaScheduleType(student),
+  };
+}
+
+function matchesAltaPendingMonth(student, month) {
+  if (!month) {
+    return true;
+  }
+
+  const altaCreatedDate = getStudentAltaCreatedDate(student);
+  const courseStartDate = getStudentCourseStartDateValue(student);
+  return isDateInMonth(altaCreatedDate, month) || isDateInMonth(courseStartDate, month);
+}
+
+function getAltasPendientesPorIniciarDataset({
+  month = selectedMonth,
+  scheduleFilter = activeAltaPendingFilter,
+  today = getCurrentMexicoDateValue(),
+} = {}) {
+  const baseRecords = getFilteredAltaHistory();
+  const monthFiltered = baseRecords.filter((student) => matchesAltaPendingMonth(student, month));
+  const pendingStartFiltered = monthFiltered.filter((student) => hasPendingCourseStart(student, today));
+  const finalRecords = scheduleFilter === "all"
+    ? pendingStartFiltered
+    : pendingStartFiltered.filter((student) => classifyAltaScheduleType(student) === scheduleFilter);
+
+  console.log("[Altas pendientes por iniciar] Dataset base", {
+    month,
+    scheduleFilter,
+    today,
+    count: baseRecords.length,
+    records: baseRecords.map(getAltaPendingDebugEntry),
+  });
+  console.log("[Altas pendientes por iniciar] Después de filtro mes", {
+    month,
+    count: monthFiltered.length,
+    excluded: baseRecords
+      .filter((student) => !matchesAltaPendingMonth(student, month))
+      .map(getAltaPendingDebugEntry),
+  });
+  console.log("[Altas pendientes por iniciar] Después de filtro no han iniciado", {
+    today,
+    count: pendingStartFiltered.length,
+    excluded: monthFiltered
+      .filter((student) => !hasPendingCourseStart(student, today))
+      .map(getAltaPendingDebugEntry),
+  });
+  console.log("[Altas pendientes por iniciar] Después de filtro modalidad", {
+    scheduleFilter,
+    count: finalRecords.length,
+    excluded: scheduleFilter === "all"
+      ? []
+      : pendingStartFiltered
+          .filter((student) => classifyAltaScheduleType(student) !== scheduleFilter)
+          .map(getAltaPendingDebugEntry),
+  });
+
+  return {
+    baseRecords,
+    monthFiltered,
+    pendingStartFiltered,
+    finalRecords,
+  };
+}
+
+function getAltasPendientesPorIniciar(options = {}) {
+  return getAltasPendientesPorIniciarDataset(options).finalRecords;
+}
+
+function syncAltaPendingFilterChips() {
+  altaPendingFilterChips.forEach((chip) => {
+    const isActive = chip.dataset.altaPendingFilter === activeAltaPendingFilter;
+    chip.classList.toggle("is-active", isActive);
+    chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
 function getActiveStudentBranchSummary() {
   const activeStudents = students.filter((student) => !isStudentDeleted(student));
   const tlaxcalaCount = activeStudents.filter(
@@ -6710,12 +6890,12 @@ function renderAltaHistory() {
   const today = getCurrentMexicoDateValue();
   const altaHistory = getFilteredAltaHistory();
   const currentWeekAltas = getCurrentWeekAltaHistory(today);
-  const selectedDate = selectedAltaDateFilter || "";
-  const currentDayAltas = getAltaHistoryForDate(selectedDate || today);
-  const visibleAltas = selectedDate ? getAltaHistoryForDate(selectedDate) : currentWeekAltas;
+  const currentDayAltas = getAltaHistoryForDate(today);
+  const pendingAltasDataset = getAltasPendientesPorIniciarDataset();
+  const visibleAltas = pendingAltasDataset.finalRecords;
   const dayCount = currentDayAltas.length;
   const weekCount = currentWeekAltas.length;
-  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), today.slice(0, 7))).length;
+  const monthCount = altaHistory.filter((student) => isDateInMonth(getStudentAltaCreatedDate(student), selectedMonth)).length;
 
   if (altaDayCount) {
     altaDayCount.textContent = dayCount;
@@ -6726,12 +6906,13 @@ function renderAltaHistory() {
   if (altaMonthCount) {
     altaMonthCount.textContent = monthCount;
   }
-  if (altaDateFilter && altaDateFilter.value !== selectedDate) {
-    altaDateFilter.value = selectedDate;
+  if (altaPendingStartCount) {
+    altaPendingStartCount.textContent = visibleAltas.length;
   }
-  if (altaDateFilterClearButton) {
-    altaDateFilterClearButton.disabled = !selectedDate;
+  if (altaPendingStartMeta) {
+    altaPendingStartMeta.textContent = `${formatMonthLabelEs(selectedMonth)} · ${getAltaPendingFilterLabel()}`;
   }
+  syncAltaPendingFilterChips();
 
   altaHistoryTableBody.innerHTML = visibleAltas
     .map((student) => {
@@ -6768,9 +6949,7 @@ function renderAltaHistory() {
     .join("");
 
   altaHistoryEmptyState.hidden = visibleAltas.length > 0;
-  altaHistoryEmptyState.textContent = selectedDate
-    ? "No hay altas registradas para la fecha seleccionada en la sucursal visible."
-    : "No hay altas registradas en la semana actual para la sucursal visible.";
+  altaHistoryEmptyState.textContent = "No hay altas pendientes por iniciar en este filtro";
 }
 
 function getActiveStudents() {
@@ -12150,7 +12329,15 @@ monthFilter.addEventListener("change", (event) => {
   selectedMonth = event.target.value || getCurrentMonthValue();
   renderDashboard();
   renderTable();
+  renderAltaHistory();
   updateAttendanceSummary();
+});
+
+altaPendingFilterChips.forEach((chip) => {
+  chip.addEventListener("click", () => {
+    activeAltaPendingFilter = chip.dataset.altaPendingFilter || "all";
+    renderAltaHistory();
+  });
 });
 
 if (altaDateFilter) {
