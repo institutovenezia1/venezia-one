@@ -8090,6 +8090,38 @@ function getCanonicalPaymentRecordForStudent(studentId) {
   );
 }
 
+function getExistingPaymentRowForSave(studentId, month = selectedPaymentsMonth) {
+  const currentMonthRecord = getCanonicalPaymentRecord(studentId, month);
+  if (isUuidValue(currentMonthRecord?.id)) {
+    return {
+      record: currentMonthRecord,
+      source: "currentMonthRecord",
+    };
+  }
+
+  const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
+  if (isUuidValue(latestActualRecord?.id)) {
+    return {
+      record: latestActualRecord,
+      source: "latestActualRecord",
+    };
+  }
+
+  const fallbackRecord =
+    getPaymentRecordsForStudentIdentity(studentId).find((record) => isUuidValue(record?.id)) || null;
+  if (fallbackRecord) {
+    return {
+      record: fallbackRecord,
+      source: "identityFallbackRecord",
+    };
+  }
+
+  return {
+    record: null,
+    source: "newRecord",
+  };
+}
+
 function resolvePaymentSaveMonth() {
   return selectedPaymentsMonth || getCurrentMexicoDateValue().slice(0, 7);
 }
@@ -8460,16 +8492,33 @@ async function savePaymentForStudent(studentId) {
     targetPaymentMonth,
     studentId
   );
-  const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
-  const canUpdateLatestSameDayRecord =
-    Boolean(latestActualRecord?.id) &&
-    getPaymentRecordMonth(latestActualRecord) === targetPaymentMonth &&
-    getPaymentEffectiveDate(latestActualRecord) === todayInMexico;
-  const recordToUpdate = currentMonthRecord || (canUpdateLatestSameDayRecord ? latestActualRecord : null);
+  const existingPaymentRow = getExistingPaymentRowForSave(studentId, targetPaymentMonth);
+  const recordToUpdate = existingPaymentRow.record;
   const shouldCreateNewPaymentRow = !recordToUpdate?.id;
   const resolvedPaymentId = isUuidValue(recordToUpdate?.id)
     ? recordToUpdate.id
     : crypto.randomUUID();
+  console.log("=== PAGO EXISTING ROW CHECK ===", {
+    studentName,
+    studentId,
+    targetPaymentMonth,
+    existingPaymentRowFound: Boolean(recordToUpdate?.id),
+    existingPaymentRowSource: existingPaymentRow.source,
+    existingPaymentRowId: recordToUpdate?.id || "",
+    reusedPaymentId: resolvedPaymentId,
+  });
+  if (isJaquelinPaymentDebugStudent(studentName)) {
+    console.error("=== JAQUELIN DEBUG ===", {
+      stage: "savePaymentForStudent:existing-row-check",
+      studentName,
+      studentId,
+      targetPaymentMonth,
+      existingPaymentRowFound: Boolean(recordToUpdate?.id),
+      existingPaymentRowSource: existingPaymentRow.source,
+      existingPaymentRowId: recordToUpdate?.id || "",
+      reusedPaymentId: resolvedPaymentId,
+    });
+  }
   const baseRecord = {
     ...historyRecord,
     id: resolvedPaymentId,
@@ -8506,6 +8555,8 @@ async function savePaymentForStudent(studentId) {
     aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
+    existingPaymentRowSource: existingPaymentRow.source,
+    existingPaymentRowId: recordToUpdate?.id || "",
     formPayload,
   });
 
@@ -8558,6 +8609,8 @@ async function savePaymentForStudent(studentId) {
   console.log("PAGO después de savePaymentRecord", {
     studentId,
     paymentId: resolvedPaymentId,
+    reusedExistingPaymentId: Boolean(recordToUpdate?.id),
+    existingPaymentRowSource: existingPaymentRow.source,
     synced: saveResult.synced,
     record: summarizePaymentRecordForTrace(saveResult.record),
     error: saveResult.error
@@ -8569,6 +8622,17 @@ async function savePaymentForStudent(studentId) {
         }
       : null,
   });
+  if (saveResult.synced) {
+    console.log("=== PAGO SAVE SUCCESS ===", {
+      studentName,
+      studentId,
+      paymentId: resolvedPaymentId,
+      existingPaymentRowFound: Boolean(recordToUpdate?.id),
+      existingPaymentRowSource: existingPaymentRow.source,
+      existingPaymentRowId: recordToUpdate?.id || "",
+      reusedPaymentId: resolvedPaymentId,
+    });
+  }
   if (!saveResult.synced) {
     renderBalanceModule();
     renderFinanceTable();
