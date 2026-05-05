@@ -39,6 +39,20 @@ const EXPENSE_CATEGORIES = [
 
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
+const PAYMENT_LAST_MONTHLY_STATUS_OPTIONS = ["", "Pendiente", "Pagada"];
+const CONTINUITY_STATUS_OPTIONS = [
+  { value: "active_payment_pending", label: "Activa para cobro" },
+  { value: "pending_followup", label: "Pendiente de seguimiento" },
+  { value: "will_continue", label: "Sí continuará" },
+  { value: "will_not_continue", label: "No continuará" },
+];
+const NEXT_COURSE_OPTIONS = ["", "Uñas", "Pestañas", "Barbería", "Maquillaje"];
+const STUDENT_LIFECYCLE_STATUS = {
+  ACTIVE: "active",
+  COMPLETED_PENDING_CONTINUITY: "completed_pending_continuity",
+  ARCHIVED_NO_CONTINUATION: "archived_no_continuation",
+  ENROLLED_TO_NEXT_COURSE: "enrolled_to_next_course",
+};
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería", "COORD de maestras"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
@@ -368,6 +382,10 @@ const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
 const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
+const paymentsContinuityTableBody = document.getElementById("paymentsContinuityTableBody");
+const paymentsContinuityEmptyState = document.getElementById("paymentsContinuityEmptyState");
+const paymentsArchivedTableBody = document.getElementById("paymentsArchivedTableBody");
+const paymentsArchivedEmptyState = document.getElementById("paymentsArchivedEmptyState");
 const balanceBranchFilter = document.getElementById("balanceBranchFilter");
 const balanceDateFilter = document.getElementById("balanceDateFilter");
 const balanceIncomeTotal = document.getElementById("balanceIncomeTotal");
@@ -583,6 +601,11 @@ const statIngresosDashboard = document.getElementById("statIngresosDashboard");
 const statEgresosDashboard = document.getElementById("statEgresosDashboard");
 const statBalanceDashboard = document.getElementById("statBalanceDashboard");
 const statAnnualUtilityDashboard = document.getElementById("statAnnualUtilityDashboard");
+const statActiveForCollectionDashboard = document.getElementById("statActiveForCollectionDashboard");
+const statFinalMonthlyPaidDashboard = document.getElementById("statFinalMonthlyPaidDashboard");
+const statPendingFollowupDashboard = document.getElementById("statPendingFollowupDashboard");
+const statWillContinueDashboard = document.getElementById("statWillContinueDashboard");
+const statNoContinueDashboard = document.getElementById("statNoContinueDashboard");
 const statTlaxcalaIncomeDashboard = document.getElementById("statTlaxcalaIncomeDashboard");
 const statPueblaIncomeDashboard = document.getElementById("statPueblaIncomeDashboard");
 const dashboardFinancialAlerts = document.getElementById("dashboardFinancialAlerts");
@@ -6498,6 +6521,42 @@ function getDashboardActiveStudents() {
   return getActiveStudents().filter((student) => matchesDashboardBranch(student.sucursal));
 }
 
+function getDashboardScopedStudents() {
+  return students.filter((student) => !isStudentDeleted(student) && matchesDashboardBranch(student.sucursal));
+}
+
+function getDashboardCollectionLifecycleSummary() {
+  const scopedStudents = getDashboardScopedStudents();
+  return scopedStudents.reduce(
+    (summary, student) => {
+      const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
+      if (lifecycle.activeForCollection) {
+        summary.activeForCollection += 1;
+      }
+      if (lifecycle.lastMonthlyPaid) {
+        summary.lastMonthlyPaid += 1;
+      }
+      if (lifecycle.pendingFollowup) {
+        summary.pendingFollowup += 1;
+      }
+      if (lifecycle.willContinue) {
+        summary.willContinue += 1;
+      }
+      if (lifecycle.archivedNoContinuation) {
+        summary.noContinue += 1;
+      }
+      return summary;
+    },
+    {
+      activeForCollection: 0,
+      lastMonthlyPaid: 0,
+      pendingFollowup: 0,
+      willContinue: 0,
+      noContinue: 0,
+    }
+  );
+}
+
 function getDashboardPaymentRecords() {
   const activeStudentIds = new Set(getDashboardActiveStudents().map((student) => student.id));
   return paymentRecords.filter(
@@ -6583,12 +6642,28 @@ function renderDashboard() {
     branch: dashboardBranchFilter.value,
     displayMonth: dashboardSelectedMonth,
   });
+  const collectionSummary = getDashboardCollectionLifecycleSummary();
 
   statIngresosDashboard.textContent = formatCurrency(financeSnapshot.windows.month.ingresos);
   statEgresosDashboard.textContent = formatCurrency(financeSnapshot.windows.month.egresos);
   statBalanceDashboard.textContent = formatCurrency(financeSnapshot.windows.month.utilidad);
   if (statAnnualUtilityDashboard) {
     statAnnualUtilityDashboard.textContent = formatCurrency(financeSnapshot.year.utilidad);
+  }
+  if (statActiveForCollectionDashboard) {
+    statActiveForCollectionDashboard.textContent = String(collectionSummary.activeForCollection);
+  }
+  if (statFinalMonthlyPaidDashboard) {
+    statFinalMonthlyPaidDashboard.textContent = String(collectionSummary.lastMonthlyPaid);
+  }
+  if (statPendingFollowupDashboard) {
+    statPendingFollowupDashboard.textContent = String(collectionSummary.pendingFollowup);
+  }
+  if (statWillContinueDashboard) {
+    statWillContinueDashboard.textContent = String(collectionSummary.willContinue);
+  }
+  if (statNoContinueDashboard) {
+    statNoContinueDashboard.textContent = String(collectionSummary.noContinue);
   }
 
   renderDashboardFinanceComparison(financeSnapshot);
@@ -7322,6 +7397,7 @@ function getActiveStudents() {
     return (
       matchesCurrentBranch(student.sucursal) &&
       !isStudentDeleted(student) &&
+      normalizeLifecycleStatus(student.lifecycleStatus) !== STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION &&
       (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita")
     );
   });
@@ -8129,6 +8205,148 @@ function getPaymentRecord(studentId) {
   );
 }
 
+function normalizeLastMonthlyPaymentStatus(value) {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+  if (normalizedValue === "pagada") return "Pagada";
+  if (normalizedValue === "pendiente") return "Pendiente";
+  return "";
+}
+
+function normalizeContinuityStatus(value) {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+  if (normalizedValue === "pending_followup") return "pending_followup";
+  if (normalizedValue === "will_continue") return "will_continue";
+  if (normalizedValue === "will_not_continue") return "will_not_continue";
+  if (normalizedValue === "active_payment_pending") return "active_payment_pending";
+  return "active_payment_pending";
+}
+
+function normalizeLifecycleStatus(value) {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+  if (normalizedValue === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION) {
+    return STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+  }
+  if (normalizedValue === STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY) {
+    return STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY;
+  }
+  if (normalizedValue === STUDENT_LIFECYCLE_STATUS.ENROLLED_TO_NEXT_COURSE) {
+    return STUDENT_LIFECYCLE_STATUS.ENROLLED_TO_NEXT_COURSE;
+  }
+  return STUDENT_LIFECYCLE_STATUS.ACTIVE;
+}
+
+function normalizeNextCourse(value) {
+  const normalizedValue = String(value || "").trim().toLowerCase();
+  return NEXT_COURSE_OPTIONS.find((option) => option.toLowerCase() === normalizedValue) || "";
+}
+
+function getCourseMonthlyPaymentFields(student) {
+  const fields = ["mensualidad1", "mensualidad2", "mensualidad3", "mensualidad4"];
+  if (courseUsesFifthMonth(student?.curso)) {
+    fields.push("mensualidad5");
+  }
+  return fields;
+}
+
+function getFinalMonthlyPaymentField(student) {
+  const fields = getCourseMonthlyPaymentFields(student);
+  return fields[fields.length - 1] || "mensualidad4";
+}
+
+function getStudentPaymentReferenceDateByField(field, student, sessions = getStudentAttendanceReferenceSessions(student)) {
+  const rule = getStudentPaymentReferenceRule(field);
+  if (!rule) {
+    return "";
+  }
+
+  if (rule.onlyFifthMonth && !courseUsesFifthMonth(student?.curso)) {
+    return "";
+  }
+
+  return sessions[rule.sessionIndex]?.date || "";
+}
+
+function isMonthlyPaymentCovered(status) {
+  const normalizedStatus = String(status || "").trim();
+  return normalizedStatus === "Pagado" || normalizedStatus === "No aplica";
+}
+
+function hasStudentPendingMonthlyPayments(student, paymentRecord) {
+  return getCourseMonthlyPaymentFields(student).some((field) => !isMonthlyPaymentCovered(paymentRecord?.[field]));
+}
+
+function isLastMonthlyPaymentSettled(student, paymentRecord) {
+  const explicitStatus = normalizeLastMonthlyPaymentStatus(paymentRecord?.lastMonthlyPaymentStatus);
+  if (explicitStatus === "Pagada") {
+    return true;
+  }
+
+  const finalField = getFinalMonthlyPaymentField(student);
+  return String(paymentRecord?.[finalField] || "").trim() === "Pagado";
+}
+
+function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDisplayRecord(student?.id), anchorDate = getCurrentMexicoDateValue()) {
+  const continuityStatus = normalizeContinuityStatus(paymentRecord?.continuityStatus || student?.continuityStatus);
+  const nextCourse = continuityStatus === "will_continue"
+    ? normalizeNextCourse(paymentRecord?.nextCourse || student?.nextCourse)
+    : "";
+  const lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(
+    paymentRecord?.lastMonthlyPaymentStatus || student?.lastMonthlyPaymentStatus
+  );
+  const finalMonthlyReferenceDate = getStudentPaymentReferenceDateByField(getFinalMonthlyPaymentField(student), student);
+  const finalMonthlyReferencePassed = Boolean(finalMonthlyReferenceDate && finalMonthlyReferenceDate < anchorDate);
+  const lastMonthlyPaid = lastMonthlyPaymentStatus === "Pagada" || isLastMonthlyPaymentSettled(student, paymentRecord);
+  const hasPendingMonthlyPayments = hasStudentPendingMonthlyPayments(student, paymentRecord);
+  const archivedNoContinuation = continuityStatus === "will_not_continue" ||
+    normalizeLifecycleStatus(paymentRecord?.lifecycleStatus || student?.lifecycleStatus) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+
+  let lifecycleStatus = STUDENT_LIFECYCLE_STATUS.ACTIVE;
+  if (archivedNoContinuation) {
+    lifecycleStatus = STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+  } else if (!hasPendingMonthlyPayments || lastMonthlyPaid || finalMonthlyReferencePassed) {
+    lifecycleStatus = STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY;
+  }
+
+  const resolvedContinuityStatus =
+    lifecycleStatus === STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY &&
+    continuityStatus === "active_payment_pending"
+      ? "pending_followup"
+      : continuityStatus;
+
+  const activeForCollection =
+    !isStudentDeleted(student) &&
+    lifecycleStatus !== STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION &&
+    hasPendingMonthlyPayments &&
+    !lastMonthlyPaid &&
+    !finalMonthlyReferencePassed;
+
+  const pendingFollowup =
+    lifecycleStatus === STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY &&
+    resolvedContinuityStatus === "pending_followup";
+  const willContinue =
+    lifecycleStatus === STUDENT_LIFECYCLE_STATUS.COMPLETED_PENDING_CONTINUITY &&
+    resolvedContinuityStatus === "will_continue";
+
+  return {
+    activeForCollection,
+    hasPendingMonthlyPayments,
+    finalMonthlyReferenceDate,
+    finalMonthlyReferencePassed,
+    lastMonthlyPaid,
+    lastMonthlyPaymentStatus: lastMonthlyPaid ? "Pagada" : lastMonthlyPaymentStatus || "Pendiente",
+    continuityStatus: resolvedContinuityStatus,
+    nextCourse,
+    lifecycleStatus,
+    pendingFollowup,
+    willContinue,
+    archivedNoContinuation,
+  };
+}
+
+function getContinuityStatusLabel(status) {
+  return CONTINUITY_STATUS_OPTIONS.find((option) => option.value === normalizeContinuityStatus(status))?.label || "Activa para cobro";
+}
+
 function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
   return {
     id: "",
@@ -8146,6 +8364,10 @@ function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
     cantidadPagada: "",
     reportes: "",
     observaciones: "",
+    lastMonthlyPaymentStatus: "",
+    continuityStatus: "active_payment_pending",
+    nextCourse: "",
+    lifecycleStatus: STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentMovementConcept: "",
     paymentRealDate: "",
     mesPago: month,
@@ -8165,6 +8387,10 @@ function getPersistentPaymentRecord(studentId) {
     "mensualidad4",
     "mensualidad5",
     "pagosPendientes",
+    "lastMonthlyPaymentStatus",
+    "continuityStatus",
+    "nextCourse",
+    "lifecycleStatus",
   ];
   const studentRecords = getPaymentRecordsForStudentIdentity(studentId)
     .sort((left, right) =>
@@ -8213,6 +8439,10 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
       cantidadPagada: "",
       reportes: "",
       observaciones: "",
+      lastMonthlyPaymentStatus: historyRecord.lastMonthlyPaymentStatus || "",
+      continuityStatus: historyRecord.continuityStatus || "active_payment_pending",
+      nextCourse: historyRecord.nextCourse || "",
+      lifecycleStatus: historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
       paymentRealDate: "",
       paymentMovementConcept: "",
       createdAt: "",
@@ -8229,6 +8459,10 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
     cantidadPagada: monthRecord.cantidadPagada || "",
     reportes: monthRecord.reportes || "",
     observaciones: monthRecord.observaciones || "",
+    lastMonthlyPaymentStatus: monthRecord.lastMonthlyPaymentStatus || historyRecord.lastMonthlyPaymentStatus || "",
+    continuityStatus: monthRecord.continuityStatus || historyRecord.continuityStatus || "active_payment_pending",
+    nextCourse: monthRecord.nextCourse || historyRecord.nextCourse || "",
+    lifecycleStatus: monthRecord.lifecycleStatus || historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentRealDate: monthRecord.paymentRealDate || "",
     paymentMovementConcept: monthRecord.paymentMovementConcept || "",
     createdAt: monthRecord.createdAt || "",
@@ -8448,6 +8682,15 @@ function renderPaymentSelectOptions(selectedValue, options) {
     .join("");
 }
 
+function renderContinuityStatusOptions(selectedValue) {
+  return CONTINUITY_STATUS_OPTIONS
+    .map(
+      (option) =>
+        `<option value="${escapeHtml(option.value)}" ${option.value === selectedValue ? "selected" : ""}>${escapeHtml(option.label)}</option>`
+    )
+    .join("");
+}
+
 function getStudentPaymentReferenceRule(field) {
   return STUDENT_PAYMENT_REFERENCE_RULES.find((rule) => rule.field === field) || null;
 }
@@ -8609,6 +8852,52 @@ function getFilteredStudentsForPayments() {
     });
 }
 
+function buildStudentLifecyclePatch(student, paymentRecord) {
+  const lifecycle = getStudentCollectionLifecycle(student, paymentRecord);
+
+  return {
+    lifecycleStatus: lifecycle.lifecycleStatus,
+    continuityStatus: lifecycle.continuityStatus,
+    nextCourse: lifecycle.nextCourse,
+    lastMonthlyPaymentStatus: lifecycle.lastMonthlyPaymentStatus,
+  };
+}
+
+async function syncStudentLifecycleFromPaymentRecord(student, paymentRecord) {
+  if (!student?.id) {
+    return {
+      synced: true,
+      skipped: true,
+    };
+  }
+
+  const patch = buildStudentLifecyclePatch(student, paymentRecord);
+  const nextStudentRecord = {
+    ...student,
+    ...patch,
+  };
+
+  return saveStudentRecord(nextStudentRecord);
+}
+
+function getStudentsPendingContinuityFollowup(studentsList = students) {
+  return studentsList
+    .filter((student) => !isStudentDeleted(student))
+    .filter((student) => matchesCurrentBranch(student.sucursal))
+    .filter((student) => normalizeLifecycleStatus(student.lifecycleStatus) !== STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION)
+    .filter((student) => {
+      const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
+      return !lifecycle.activeForCollection && !lifecycle.archivedNoContinuation;
+    });
+}
+
+function getArchivedNoContinuationStudents(studentsList = students) {
+  return studentsList
+    .filter((student) => !isStudentDeleted(student))
+    .filter((student) => matchesCurrentBranch(student.sucursal))
+    .filter((student) => normalizeLifecycleStatus(student.lifecycleStatus) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION);
+}
+
 function renderPaymentsTable() {
   syncPreferredPaymentsMonth();
   const studentsList = getFilteredStudentsForPayments();
@@ -8624,6 +8913,7 @@ function renderPaymentsTable() {
       const payment = getPaymentDisplayRecord(student.id);
       const studentSessions = getStudentAttendanceReferenceSessions(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
+      const lifecycle = getStudentCollectionLifecycle(student, payment);
       return `
         <tr>
           <td>
@@ -8647,6 +8937,9 @@ function renderPaymentsTable() {
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
+          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lifecycle.lastMonthlyPaymentStatus, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS)}</select></td>
+          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}">${renderContinuityStatusOptions(lifecycle.continuityStatus)}</select></td>
+          <td><select data-payment-field="nextCourse" data-student-id="${student.id}">${renderPaymentSelectOptions(lifecycle.nextCourse, NEXT_COURSE_OPTIONS)}</select></td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
@@ -8695,6 +8988,58 @@ function renderPaymentsTable() {
 
   if (trackedPaymentRecords.length > 0) {
     console.log("PAGOS registros rastreados", trackedPaymentRecords);
+  }
+
+  renderPaymentsLifecyclePanels();
+}
+
+function renderPaymentsLifecyclePanels() {
+  const followupStudents = getStudentsPendingContinuityFollowup()
+    .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
+  const archivedStudents = getArchivedNoContinuationStudents()
+    .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
+
+  if (paymentsContinuityTableBody) {
+    paymentsContinuityTableBody.innerHTML = followupStudents
+      .map((student) => {
+        const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
+        return `
+          <tr>
+            <td>${escapeHtml(student.nombre || "-")}</td>
+            <td>${escapeHtml(student.curso || "-")}</td>
+            <td>${escapeHtml(lifecycle.lastMonthlyPaymentStatus || "-")}</td>
+            <td>${escapeHtml(getContinuityStatusLabel(lifecycle.continuityStatus))}</td>
+            <td>${escapeHtml(lifecycle.nextCourse || "-")}</td>
+            <td>${escapeHtml(lifecycle.finalMonthlyReferenceDate || "-")}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  if (paymentsContinuityEmptyState) {
+    paymentsContinuityEmptyState.hidden = followupStudents.length > 0;
+  }
+
+  if (paymentsArchivedTableBody) {
+    paymentsArchivedTableBody.innerHTML = archivedStudents
+      .map((student) => {
+        const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
+        return `
+          <tr>
+            <td>${escapeHtml(student.nombre || "-")}</td>
+            <td>${escapeHtml(student.curso || "-")}</td>
+            <td>${escapeHtml(getContinuityStatusLabel(lifecycle.continuityStatus))}</td>
+            <td>${escapeHtml(lifecycle.lastMonthlyPaymentStatus || "-")}</td>
+            <td>${escapeHtml(lifecycle.nextCourse || "-")}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  if (paymentsArchivedEmptyState) {
+    paymentsArchivedEmptyState.hidden = archivedStudents.length > 0;
   }
 }
 
@@ -8754,6 +9099,9 @@ async function savePaymentForStudent(studentId) {
     "cantidadPagada",
     "reportes",
     "observaciones",
+    "lastMonthlyPaymentStatus",
+    "continuityStatus",
+    "nextCourse",
   ];
 
   const historyRecord = getPersistentPaymentRecord(studentId);
@@ -8822,6 +9170,16 @@ async function savePaymentForStudent(studentId) {
     newRecord[field] = value;
   });
 
+  newRecord.lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(newRecord.lastMonthlyPaymentStatus);
+  newRecord.continuityStatus = normalizeContinuityStatus(newRecord.continuityStatus);
+  newRecord.nextCourse =
+    newRecord.continuityStatus === "will_continue" ? normalizeNextCourse(newRecord.nextCourse) : "";
+
+  if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
+    alert("Selecciona el siguiente curso si la alumna continuará.");
+    return;
+  }
+
   console.log("PAGO payload que sale del formulario", {
     studentId,
     aliasStudentIds: Array.from(getPaymentStudentAliasIds(studentId)),
@@ -8853,6 +9211,12 @@ async function savePaymentForStudent(studentId) {
     finalRecord.paymentRealDate = todayInMexico;
     detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
   }
+
+  const lifecycleAfterSave = getStudentCollectionLifecycle(student, finalRecord);
+  finalRecord.lifecycleStatus = lifecycleAfterSave.lifecycleStatus;
+  finalRecord.lastMonthlyPaymentStatus = lifecycleAfterSave.lastMonthlyPaymentStatus;
+  finalRecord.continuityStatus = lifecycleAfterSave.continuityStatus;
+  finalRecord.nextCourse = lifecycleAfterSave.nextCourse;
 
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
@@ -8916,6 +9280,19 @@ async function savePaymentForStudent(studentId) {
       paymentId: resolvedPaymentId,
     });
     alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
+    return;
+  }
+
+  const lifecycleSyncResult = await syncStudentLifecycleFromPaymentRecord(student, saveResult.record);
+  if (!lifecycleSyncResult.synced) {
+    await refreshSharedSupabaseState({ force: true, render: false });
+    renderPaymentsTable();
+    renderBalanceModule();
+    renderFinanceTable();
+    updateFinanceSummary();
+    updatePaymentsSummary();
+    renderDashboard();
+    alert("El pago se guardó, pero no se pudo actualizar el estado de continuidad de la alumna.");
     return;
   }
 
@@ -9754,6 +10131,7 @@ function renderStudentFile(studentId) {
   }
 
   const payment = getLatestPaymentRecordForStudent(studentId);
+  const collectionLifecycle = getStudentCollectionLifecycle(student, payment);
   const attendanceHistory = attendanceRecords
     .filter((record) => record.studentId === studentId)
     .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
@@ -9861,6 +10239,10 @@ function renderStudentFile(studentId) {
     { label: "Método de pago", value: payment.metodoPago || "-", badge: true, tone: "blue" },
     { label: "Cantidad pagada", value: payment.cantidadPagada || "-" },
     { label: "Estado financiero", value: hasPendingPayments ? "Con pendientes" : "Al corriente", badge: true, tone: hasPendingPayments ? "red" : "green" },
+    { label: "Activa para cobro", value: collectionLifecycle.activeForCollection ? "Sí" : "No", badge: true, tone: collectionLifecycle.activeForCollection ? "green" : "greige" },
+    { label: "Última mensualidad", value: collectionLifecycle.lastMonthlyPaymentStatus || "-", badge: true, tone: collectionLifecycle.lastMonthlyPaid ? "green" : "gold" },
+    { label: "Continuidad", value: getContinuityStatusLabel(collectionLifecycle.continuityStatus), badge: true, tone: collectionLifecycle.archivedNoContinuation ? "red" : collectionLifecycle.willContinue ? "purple" : collectionLifecycle.pendingFollowup ? "gold" : "blue" },
+    { label: "Siguiente curso", value: collectionLifecycle.nextCourse || "-" },
     { label: "Reportes", value: payment.reportes || "-" },
     { label: "Observaciones de pago", value: payment.observaciones || "-" },
   ]);
