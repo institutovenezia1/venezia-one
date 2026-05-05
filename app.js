@@ -80,7 +80,14 @@ const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "SELENE ABREGON GUILLEN",
   "ADRIANA PRIETO ZAMORANO",
   "GERARDO ANTONIO JIMENEZ ELIZARRARAS",
+  "HELEN KARINA QUINTERO DURAN",
+  "JAQUELIN HUERTA RODRIGUEZ",
 ]);
+const PAYMENT_COMPARISON_STUDENT_NAMES = new Set([
+  "HELEN KARINA QUINTERO DURAN",
+  "JAQUELIN HUERTA RODRIGUEZ",
+]);
+const paymentComparisonSnapshots = new Map();
 const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
   { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
@@ -1024,6 +1031,7 @@ function buildPaymentSupabaseTrace({
   record,
   payload,
   student = null,
+  result = null,
   error = null,
 }) {
   const currentUser = getCurrentInternalUser();
@@ -1032,6 +1040,7 @@ function buildPaymentSupabaseTrace({
     table,
     paymentId: record?.id || payload?.id || "",
     studentId: record?.studentId || payload?.student_id || "",
+    studentName: student?.nombre || "",
     paymentMonth: record?.mesPago || "",
     currentUser: {
       id: currentUser?.id || "",
@@ -1047,17 +1056,13 @@ function buildPaymentSupabaseTrace({
           sucursal: student.sucursal || "",
         }
       : null,
-    payloadSummary: payload
-      ? {
-          id: payload.id,
-          student_id: payload.student_id,
-          payment_method: payload.payment_method,
-          tuition_amount: payload.tuition_amount,
-          updated_at: payload.updated_at,
-          created_at: payload.created_at,
-          notes_preview: String(payload.notes || "").slice(0, 180),
-        }
-      : null,
+    payload: payload || null,
+    rawResult: result || null,
+    status: result?.response?.status ?? error?.status ?? null,
+    statusText: result?.response?.statusText || error?.statusText || "",
+    message: error?.message || "",
+    details: error?.details || "",
+    hint: error?.hint || "",
     supabaseError: error
       ? {
           code: error.code || "",
@@ -1067,6 +1072,19 @@ function buildPaymentSupabaseTrace({
         }
       : null,
   };
+}
+
+function registerPaymentComparisonTrace(trace) {
+  const studentName = String(trace?.studentName || "").trim().toUpperCase();
+  if (!PAYMENT_COMPARISON_STUDENT_NAMES.has(studentName)) {
+    return;
+  }
+
+  paymentComparisonSnapshots.set(studentName, trace);
+  console.log("PAGO comparación Helen vs Jaquelin", {
+    helen: paymentComparisonSnapshots.get("HELEN KARINA QUINTERO DURAN") || null,
+    jaquelin: paymentComparisonSnapshots.get("JAQUELIN HUERTA RODRIGUEZ") || null,
+  });
 }
 
 function getCanonicalPaymentRecord(studentId, month = selectedPaymentsMonth) {
@@ -1205,17 +1223,36 @@ function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {},
 }
 
 async function savePaymentRecord(record) {
+  const student = getStudentById(record.studentId);
   const payload = buildPaymentSupabasePayload(record);
   console.log('Pagos module target table: "student_payments"');
   console.log("PAGO payload", payload);
   console.log("PAGO savePaymentRecord entrada", summarizePaymentRecordForTrace(record));
 
   const result = await dataService.entities.payments.upsertOne(record, { alertOnFailure: false });
+  const finalSupabasePayload = result.response?.payload?.[0] || payload;
+  const trace = buildPaymentSupabaseTrace({
+    functionName: "savePaymentRecord",
+    table: "student_payments",
+    record,
+    payload: finalSupabasePayload,
+    student,
+    result,
+    error: result.error,
+  });
+
   console.log("PAGO savePaymentRecord resultado", {
     synced: result.synced,
+    studentId: record.studentId || "",
+    paymentId: record.id || "",
+    studentName: student?.nombre || "",
+    payload: finalSupabasePayload,
+    rawUpsertOneResult: result,
+    rawSupabaseResponse: result.response || null,
     record: summarizePaymentRecordForTrace(result.record),
     error: result.error
       ? {
+          status: result.response?.status ?? result.error.status ?? null,
           code: result.error.code || "",
           message: result.error.message || "",
           details: result.error.details || "",
@@ -1223,6 +1260,7 @@ async function savePaymentRecord(record) {
         }
       : null,
   });
+  registerPaymentComparisonTrace(trace);
 
   if (!result.synced) {
     console.error("PAGO error", result.error);
@@ -1230,17 +1268,7 @@ async function savePaymentRecord(record) {
       "PAGO error message",
       result.error?.message || result.error?.details || String(result.error)
     );
-    console.error(
-      "PAGO Supabase trace",
-      buildPaymentSupabaseTrace({
-        functionName: "savePaymentRecord",
-        table: "student_payments",
-        record,
-        payload,
-        student: getStudentById(record.studentId),
-        error: result.error,
-      })
-    );
+    console.error("PAGO Supabase trace", trace);
     console.warn("Payment saved only to local fallback cache after Supabase write failure.", {
       id: record.id,
       studentId: record.studentId,
