@@ -130,12 +130,18 @@
       }
 
       const payload = records.map(toDb);
-      const { data, error } = await client
+      const { data, error, status, statusText } = await client
         .from(table)
         .upsert(payload, { onConflict: "id" })
         .select();
 
       if (error) {
+        error.supabaseResponse = {
+          data: data || [],
+          payload,
+          status: status || null,
+          statusText: statusText || "",
+        };
         throw error;
       }
 
@@ -143,6 +149,8 @@
         records: (data || []).map(fromDb),
         data: data || [],
         payload,
+        status: status || null,
+        statusText: statusText || "",
       };
     }
 
@@ -206,9 +214,11 @@
         const hadExistingRecord = existingRecords.some((item) => item.id === record.id);
         const payload = [toDb(record)];
         const operationLabel = hadExistingRecord ? "update" : "insert";
+        const shouldTracePayload =
+          table === "prospects" || table === "staff" || table === "students" || table === "student_payments";
 
         try {
-          if (table === "prospects" || table === "staff" || table === "students") {
+          if (shouldTracePayload) {
             console.log(`Supabase payload for "${table}" ${operationLabel}:`, payload[0]);
           }
 
@@ -226,11 +236,19 @@
             record: syncedRecord,
             synced: true,
             error: null,
-            response: response.data,
+            response: {
+              data: response.data,
+              payload: response.payload,
+              status: response.status || null,
+              statusText: response.statusText || "",
+            },
           };
         } catch (error) {
           console.error(`Supabase ${operationLabel} failed for ${table}. Full error:`, error);
           console.error(`Supabase ${operationLabel} message for ${table}:`, getSupabaseErrorMessage(error));
+          if (table === "student_payments") {
+            console.error(`Supabase ${operationLabel} response for ${table}:`, error.supabaseResponse || null);
+          }
           if (persistLocalOnMutationFailure) {
             localService.setAll(mergeRecord(existingRecords, record));
           } else {
@@ -243,7 +261,12 @@
             record,
             synced: false,
             error,
-            response: null,
+            response: error.supabaseResponse || {
+              data: [],
+              payload,
+              status: error.status || null,
+              statusText: error.statusText || "",
+            },
           };
         }
       },
@@ -679,7 +702,7 @@
       metodoPago: record.payment_method || "",
       cantidadPagada: extractAltaMetadata(record.notes, "Cantidad pagada"),
       reportes: record.reports || "",
-      observaciones: extractAltaMetadata(record.notes, "Observaciones") || record.notes || "",
+      observaciones: extractAltaMetadata(record.notes, "Observaciones"),
       updatedAt: record.updated_at || "",
       createdAt: record.created_at || "",
     }),
