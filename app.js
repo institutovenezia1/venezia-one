@@ -76,6 +76,10 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
 ];
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
+const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
+const ALTA_FINANCE_SOURCE = "altas";
+const ALTA_INSCRIPTION_CONCEPT_KEY = "inscription_payment";
+const ALTA_INSCRIPTION_CONCEPT_LABEL = "Pago de inscripción";
 const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "SELENE ABREGON GUILLEN",
   "ADRIANA PRIETO ZAMORANO",
@@ -369,6 +373,7 @@ const balanceDateFilter = document.getElementById("balanceDateFilter");
 const balanceIncomeTotal = document.getElementById("balanceIncomeTotal");
 const balanceExpenseTotal = document.getElementById("balanceExpenseTotal");
 const balanceCashTotal = document.getElementById("balanceCashTotal");
+const balanceInscriptionTotal = document.getElementById("balanceInscriptionTotal");
 const balanceSummaryIncome = document.getElementById("balanceSummaryIncome");
 const balanceSummaryExpense = document.getElementById("balanceSummaryExpense");
 const balanceSummaryCash = document.getElementById("balanceSummaryCash");
@@ -5321,6 +5326,92 @@ function buildPaymentFinanceReference(paymentId) {
   return paymentId ? `${PAYMENT_FINANCE_REFERENCE_PREFIX}${paymentId}` : "";
 }
 
+function buildAltaInscriptionFinanceReference(altaId) {
+  return altaId ? `${ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX}${altaId}` : "";
+}
+
+function isAltaInscriptionFinanceRecord(record) {
+  const normalizedSource = String(record?.source || "").trim().toLowerCase();
+  const normalizedConceptKey = String(record?.conceptKey || "").trim().toLowerCase();
+  const reference = String(record?.reference || "").trim();
+
+  return (
+    (normalizedSource === ALTA_FINANCE_SOURCE && normalizedConceptKey === ALTA_INSCRIPTION_CONCEPT_KEY) ||
+    reference.startsWith(ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX)
+  );
+}
+
+function mapAltaInscriptionFinanceRecord(record) {
+  return {
+    ...record,
+    sourceType: "alta-inscription",
+    sourceRecordId: record.id,
+    sourceStudentId: record.relatedStudentId || record.relatedAltaId || "",
+    sourceAltaId: record.relatedAltaId || record.relatedStudentId || "",
+  };
+}
+
+function buildAltaInscriptionFinanceRecord(altaRecord, deltaInscripcion) {
+  const currentUser = getCurrentInternalUser();
+
+  return {
+    id: crypto.randomUUID(),
+    fecha: getCurrentMexicoDateValue(),
+    sucursal: altaRecord.sucursal || "",
+    tipo: "Ingreso",
+    categoria: "Inscripción",
+    concepto: ALTA_INSCRIPTION_CONCEPT_LABEL,
+    paymentConcept: ALTA_INSCRIPTION_CONCEPT_LABEL,
+    source: ALTA_FINANCE_SOURCE,
+    conceptKey: ALTA_INSCRIPTION_CONCEPT_KEY,
+    alumna: altaRecord.nombre || "",
+    monto: deltaInscripcion,
+    metodoPago: altaRecord.metodoPago || "-",
+    usuario: currentUser?.username || altaRecord.usuarioAlta || "",
+    observaciones: "Movimiento incremental generado desde Altas.",
+    createdAt: new Date().toISOString(),
+    reference: buildAltaInscriptionFinanceReference(altaRecord.id),
+    relatedStudentId: altaRecord.id || "",
+    relatedAltaId: altaRecord.id || "",
+  };
+}
+
+async function syncAltaInscriptionFinanceDelta(previousStudentRecord, nextStudentRecord) {
+  const previousPaidAmount = parsePaymentAmount(previousStudentRecord?.cantidadPago);
+  const newPaidAmount = parsePaymentAmount(nextStudentRecord?.cantidadPago);
+  const deltaInscripcion = newPaidAmount - previousPaidAmount;
+
+  if (!(deltaInscripcion > 0)) {
+    if (deltaInscripcion < 0) {
+      console.info("ALTA inscripción sin ajuste automático por delta negativo", {
+        studentId: nextStudentRecord?.id || "",
+        previousPaidAmount,
+        newPaidAmount,
+        deltaInscripcion,
+      });
+    }
+
+    return {
+      synced: true,
+      created: false,
+      deltaInscripcion,
+      previousPaidAmount,
+      newPaidAmount,
+    };
+  }
+
+  const financeRecord = buildAltaInscriptionFinanceRecord(nextStudentRecord, deltaInscripcion);
+  const saveResult = await saveFinanceRecord(financeRecord);
+
+  return {
+    ...saveResult,
+    created: saveResult.synced,
+    deltaInscripcion,
+    previousPaidAmount,
+    newPaidAmount,
+  };
+}
+
 function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
   if (!paymentId) {
     return [];
@@ -5559,6 +5650,9 @@ function getCentralFinanceRecords() {
   const linkedPaymentFinanceRecords = financeRecords
     .filter((record) => record.relatedPaymentId)
     .map(mapLinkedPaymentFinanceRecord);
+  const linkedAltaInscriptionFinanceRecords = financeRecords
+    .filter((record) => !record.relatedPaymentId && isAltaInscriptionFinanceRecord(record))
+    .map(mapAltaInscriptionFinanceRecord);
   const linkedPaymentIds = new Set(
     linkedPaymentFinanceRecords
       .map((record) => record.sourceRecordId)
@@ -5567,6 +5661,7 @@ function getCentralFinanceRecords() {
   const nativeFinanceRecords = financeRecords.filter(
     (record) =>
       !record.relatedPaymentId &&
+      !isAltaInscriptionFinanceRecord(record) &&
       record.sourceType !== "payment" &&
       record.sourceType !== "balance-expense" &&
       !String(record.id || "").startsWith("payment:") &&
@@ -5575,6 +5670,7 @@ function getCentralFinanceRecords() {
 
   return nativeFinanceRecords.concat(
     linkedPaymentFinanceRecords,
+    linkedAltaInscriptionFinanceRecords,
     getDerivedFinanceIncomeRecords(linkedPaymentIds),
     getDerivedFinanceExpenseRecords()
   );
@@ -8880,13 +8976,18 @@ function getBalanceIncomeRows() {
   const studentsById = new Map(students.map((student) => [student.id, student]));
 
   return getCentralFinanceRecords()
-    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
+    .filter(
+      (record) =>
+        record.tipo === "Ingreso" &&
+        (record.sourceType === "payment" || record.sourceType === "alta-inscription")
+    )
     .filter(Boolean)
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
     .filter((record) => matchesBalanceDate(record.fecha))
     .map((record) => ({
       id: record.sourceRecordId || record.id,
+      sourceType: record.sourceType || "",
       studentId: record.sourceStudentId || "",
       fecha: record.fecha,
       alumna: studentsById.get(record.sourceStudentId)?.nombre || record.alumna || "-",
@@ -8946,7 +9047,11 @@ function syncBalanceDailyView() {
   const todayInMexico = getCurrentMexicoDateValue();
   const selectedBranch = balanceBranchFilter?.value || "";
   const availableIncomeDates = getCentralFinanceRecords()
-    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
+    .filter(
+      (record) =>
+        record.tipo === "Ingreso" &&
+        (record.sourceType === "payment" || record.sourceType === "alta-inscription")
+    )
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !selectedBranch || record.sucursal === selectedBranch)
     .map((record) => String(record.fecha || "").slice(0, 10))
@@ -9074,6 +9179,9 @@ function renderBalanceExpensesTable() {
 
 function updateBalanceSummary() {
   const incomes = getBalanceIncomeRows();
+  const inscriptionTotal = incomes
+    .filter((record) => record.sourceType === "alta-inscription")
+    .reduce((sum, record) => sum + Number(record.monto || 0), 0);
   const expenses = getFilteredBalanceExpenses();
   const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
   const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
@@ -9088,6 +9196,9 @@ function updateBalanceSummary() {
   [balanceCashTotal, balanceSummaryCash].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(cashTotal);
   });
+  if (balanceInscriptionTotal) {
+    balanceInscriptionTotal.textContent = formatCurrency(inscriptionTotal);
+  }
 }
 
 function renderBalanceModule() {
@@ -9221,9 +9332,18 @@ function renderFinanceTable() {
 
   financeTableBody.innerHTML = records
     .map((record) => {
-      const isDerivedRecord = record.sourceType === "payment" || record.sourceType === "balance-expense";
+      const isDerivedRecord =
+        record.sourceType === "payment" ||
+        record.sourceType === "balance-expense" ||
+        record.sourceType === "alta-inscription";
       const actionsMarkup = isDerivedRecord
-        ? `<span class="table-muted-note">${record.sourceType === "payment" ? "Gestiona en Pagos" : "Gestiona en Balance"}</span>`
+        ? `<span class="table-muted-note">${
+            record.sourceType === "payment"
+              ? "Gestiona en Pagos"
+              : record.sourceType === "alta-inscription"
+                ? "Gestiona en Altas"
+                : "Gestiona en Balance"
+          }</span>`
         : `
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-finance" data-id="${record.id}">Editar</button>
@@ -11395,6 +11515,11 @@ function editFinanceRecord(id) {
     return;
   }
 
+  if (isAltaInscriptionFinanceRecord(record)) {
+    alert("Este movimiento proviene de Altas. Modíficalo desde su módulo de origen.");
+    return;
+  }
+
   document.getElementById("financeId").value = record.id;
   document.getElementById("financeFecha").value = record.fecha;
   document.getElementById("financeSucursal").value = record.sucursal;
@@ -11412,6 +11537,12 @@ function editFinanceRecord(id) {
 }
 
 function deleteFinanceRecord(id) {
+  const record = financeRecords.find((item) => item.id === id);
+  if (record && isAltaInscriptionFinanceRecord(record)) {
+    alert("Este movimiento proviene de Altas. Modíficalo desde su módulo de origen.");
+    return;
+  }
+
   if (String(id || "").startsWith("payment:") || String(id || "").startsWith("balance-expense:")) {
     alert("Este movimiento proviene de Pagos o Balance. Modíficalo desde su módulo de origen.");
     return;
@@ -11838,6 +11969,7 @@ form.addEventListener("submit", async (event) => {
 
 async function finalizeAltaSubmission(altaData) {
   const isEditingExistingStudent = Boolean(document.getElementById("altaStudentId").value);
+  const previousStudentRecord = students.find((student) => student.id === altaData.id) || null;
   console.log("ALTA -> students payload", {
     id: altaData.id,
     full_name: altaData.nombre || "",
@@ -11861,6 +11993,11 @@ async function finalizeAltaSubmission(altaData) {
     return;
   }
 
+  const inscriptionFinanceSyncResult = await syncAltaInscriptionFinanceDelta(
+    previousStudentRecord,
+    studentSaveResult.record || altaData
+  );
+
   prospects = prospects.map((prospect) =>
     prospect.id === altaData.prospectId ? { ...prospect, estado: "Alta completada" } : prospect
   );
@@ -11882,6 +12019,14 @@ async function finalizeAltaSubmission(altaData) {
   syncStudentAccessRecords();
   renderAll();
   resetAltaForm();
+  if (!inscriptionFinanceSyncResult.synced) {
+    alert(
+      `${
+        isEditingExistingStudent ? "La alta se actualizó" : "La alta se guardó"
+      }, pero no se pudo sincronizar el movimiento incremental de inscripción en Balance.`
+    );
+    return;
+  }
   alert(isEditingExistingStudent ? "Alta actualizada correctamente." : "Alta guardada correctamente.");
 }
 
