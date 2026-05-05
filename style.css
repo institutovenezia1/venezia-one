@@ -367,6 +367,43 @@ textarea {
   color: var(--color-accent);
 }
 
+.stat-card small {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.balance-inscription-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.7rem;
+  padding: 0.18rem;
+  border-radius: 999px;
+  background: rgba(184, 160, 120, 0.12);
+}
+
+.balance-inscription-toggle-btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6c6258;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.42rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.balance-inscription-toggle-btn.is-active {
+  background: #ffffff;
+  color: #241d18;
+  box-shadow: 0 8px 18px rgba(77, 63, 40, 0.12);
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);

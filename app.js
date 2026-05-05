@@ -374,6 +374,8 @@ const balanceIncomeTotal = document.getElementById("balanceIncomeTotal");
 const balanceExpenseTotal = document.getElementById("balanceExpenseTotal");
 const balanceCashTotal = document.getElementById("balanceCashTotal");
 const balanceInscriptionTotal = document.getElementById("balanceInscriptionTotal");
+const balanceInscriptionMeta = document.getElementById("balanceInscriptionMeta");
+const balanceInscriptionToggleButtons = Array.from(document.querySelectorAll("[data-balance-inscription-view]"));
 const balanceSummaryIncome = document.getElementById("balanceSummaryIncome");
 const balanceSummaryExpense = document.getElementById("balanceSummaryExpense");
 const balanceSummaryCash = document.getElementById("balanceSummaryCash");
@@ -719,6 +721,7 @@ let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
 let sharedDataRefreshRequestSeq = 0;
 let balanceDateWasManuallySelected = false;
+let activeBalanceInscriptionView = "day";
 
 monthFilter.value = selectedMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
@@ -3608,6 +3611,33 @@ function formatDisplayDate(dateValue) {
   });
 }
 
+function getWeekRangeForDate(dateValue) {
+  const normalizedDate = dateValue || getCurrentMexicoDateValue();
+  const baseDate = new Date(`${normalizedDate}T12:00:00`);
+  if (Number.isNaN(baseDate.getTime())) {
+    return {
+      from: normalizedDate,
+      to: normalizedDate,
+      label: normalizedDate,
+    };
+  }
+
+  const day = baseDate.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(baseDate);
+  start.setDate(baseDate.getDate() + diffToMonday);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const from = formatDateForInput(start);
+  const to = formatDateForInput(end);
+
+  return {
+    from,
+    to,
+    label: `${formatDisplayDate(from)} - ${formatDisplayDate(to)}`,
+  };
+}
+
 function formatMonthLabelEs(monthValue) {
   if (!monthValue) {
     return "-";
@@ -5351,6 +5381,12 @@ function mapAltaInscriptionFinanceRecord(record) {
   };
 }
 
+function getOperationalInscriptionRecords(records = financeRecords) {
+  return records
+    .filter((record) => !record.relatedPaymentId && isAltaInscriptionFinanceRecord(record))
+    .map(mapAltaInscriptionFinanceRecord);
+}
+
 function buildAltaInscriptionFinanceRecord(altaRecord, deltaInscripcion) {
   const currentUser = getCurrentInternalUser();
 
@@ -5650,9 +5686,6 @@ function getCentralFinanceRecords() {
   const linkedPaymentFinanceRecords = financeRecords
     .filter((record) => record.relatedPaymentId)
     .map(mapLinkedPaymentFinanceRecord);
-  const linkedAltaInscriptionFinanceRecords = financeRecords
-    .filter((record) => !record.relatedPaymentId && isAltaInscriptionFinanceRecord(record))
-    .map(mapAltaInscriptionFinanceRecord);
   const linkedPaymentIds = new Set(
     linkedPaymentFinanceRecords
       .map((record) => record.sourceRecordId)
@@ -5670,7 +5703,6 @@ function getCentralFinanceRecords() {
 
   return nativeFinanceRecords.concat(
     linkedPaymentFinanceRecords,
-    linkedAltaInscriptionFinanceRecords,
     getDerivedFinanceIncomeRecords(linkedPaymentIds),
     getDerivedFinanceExpenseRecords()
   );
@@ -8976,18 +9008,13 @@ function getBalanceIncomeRows() {
   const studentsById = new Map(students.map((student) => [student.id, student]));
 
   return getCentralFinanceRecords()
-    .filter(
-      (record) =>
-        record.tipo === "Ingreso" &&
-        (record.sourceType === "payment" || record.sourceType === "alta-inscription")
-    )
+    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
     .filter(Boolean)
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
     .filter((record) => matchesBalanceDate(record.fecha))
     .map((record) => ({
       id: record.sourceRecordId || record.id,
-      sourceType: record.sourceType || "",
       studentId: record.sourceStudentId || "",
       fecha: record.fecha,
       alumna: studentsById.get(record.sourceStudentId)?.nombre || record.alumna || "-",
@@ -9047,11 +9074,8 @@ function syncBalanceDailyView() {
   const todayInMexico = getCurrentMexicoDateValue();
   const selectedBranch = balanceBranchFilter?.value || "";
   const availableIncomeDates = getCentralFinanceRecords()
-    .filter(
-      (record) =>
-        record.tipo === "Ingreso" &&
-        (record.sourceType === "payment" || record.sourceType === "alta-inscription")
-    )
+    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
+    .concat(getOperationalInscriptionRecords())
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => !selectedBranch || record.sucursal === selectedBranch)
     .map((record) => String(record.fecha || "").slice(0, 10))
@@ -9177,11 +9201,52 @@ function renderBalanceExpensesTable() {
   return rows;
 }
 
+function updateBalanceInscriptionToggleUI() {
+  balanceInscriptionToggleButtons.forEach((button) => {
+    const isActive = button.dataset.balanceInscriptionView === activeBalanceInscriptionView;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function getBalanceInscriptionSummary() {
+  const anchorDate = balanceDateFilter?.value || getCurrentMexicoDateValue();
+  const scope = activeBalanceInscriptionView === "week" ? "week" : "day";
+  const scopedRecords = getFinanceRecordsForScope({
+    records: getOperationalInscriptionRecords(),
+    scope,
+    date: anchorDate,
+    branch: balanceBranchFilter?.value || "",
+  });
+  const total = scopedRecords.reduce((sum, record) => sum + Number(record.monto || 0), 0);
+  const label =
+    scope === "week"
+      ? `Semana ${getWeekRangeForDate(anchorDate).label}`
+      : `Fecha ${formatDisplayDate(anchorDate)}`;
+
+  return {
+    scope,
+    total,
+    label,
+    count: scopedRecords.length,
+  };
+}
+
+function renderBalanceInscriptionMetric() {
+  if (!balanceInscriptionTotal) {
+    return;
+  }
+
+  updateBalanceInscriptionToggleUI();
+  const summary = getBalanceInscriptionSummary();
+  balanceInscriptionTotal.textContent = formatCurrency(summary.total);
+  if (balanceInscriptionMeta) {
+    balanceInscriptionMeta.textContent = summary.label;
+  }
+}
+
 function updateBalanceSummary() {
   const incomes = getBalanceIncomeRows();
-  const inscriptionTotal = incomes
-    .filter((record) => record.sourceType === "alta-inscription")
-    .reduce((sum, record) => sum + Number(record.monto || 0), 0);
   const expenses = getFilteredBalanceExpenses();
   const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
   const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
@@ -9196,9 +9261,6 @@ function updateBalanceSummary() {
   [balanceCashTotal, balanceSummaryCash].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(cashTotal);
   });
-  if (balanceInscriptionTotal) {
-    balanceInscriptionTotal.textContent = formatCurrency(inscriptionTotal);
-  }
 }
 
 function renderBalanceModule() {
@@ -9206,6 +9268,7 @@ function renderBalanceModule() {
   syncBalanceExpenseResponsible();
   const incomeRows = renderBalanceIncomeTable();
   const expenseRows = renderBalanceExpensesTable();
+  renderBalanceInscriptionMetric();
   updateBalanceSummary();
   console.log("BALANCE render", {
     activeDate,
@@ -12727,6 +12790,17 @@ balanceBranchFilter.addEventListener("change", () => {
 balanceDateFilter.addEventListener("change", (event) => {
   balanceDateWasManuallySelected = Boolean(String(event.target.value || "").trim());
   renderBalanceModule();
+});
+balanceInscriptionToggleButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextView = button.dataset.balanceInscriptionView === "week" ? "week" : "day";
+    if (activeBalanceInscriptionView === nextView) {
+      return;
+    }
+
+    activeBalanceInscriptionView = nextView;
+    renderBalanceInscriptionMetric();
+  });
 });
 balanceExpenseBranchField.addEventListener("change", () => {
   syncBalanceExpenseResponsible();

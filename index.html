@@ -1414,7 +1414,26 @@
             </article>
             <article class="stat-card">
               <p>Inscripciones</p>
+              <div class="balance-inscription-toggle" role="tablist" aria-label="Cambiar vista de inscripciones">
+                <button
+                  class="balance-inscription-toggle-btn is-active"
+                  type="button"
+                  data-balance-inscription-view="day"
+                  aria-pressed="true"
+                >
+                  Diario
+                </button>
+                <button
+                  class="balance-inscription-toggle-btn"
+                  type="button"
+                  data-balance-inscription-view="week"
+                  aria-pressed="false"
+                >
+                  Semanal
+                </button>
+              </div>
               <strong id="balanceInscriptionTotal">$0</strong>
+              <small id="balanceInscriptionMeta">Fecha actual</small>
             </article>
             <article class="stat-card">
               <p>Egresos</p>
@@ -1491,7 +1510,7 @@
           <section class="panel table-panel balance-income-panel">
             <div class="section-heading">
               <p class="eyebrow">Ingresos automáticos</p>
-              <h3>Ingresos provenientes de Pagos y Altas</h3>
+              <h3>Ingresos provenientes de Pagos</h3>
             </div>
 
             <div class="table-wrapper">
@@ -1510,7 +1529,7 @@
             </div>
 
             <p id="balanceIncomeEmptyState" class="empty-state">
-              No hay ingresos automáticos para los filtros seleccionados.
+              No hay ingresos de Pagos para los filtros seleccionados.
             </p>
           </section>
 
