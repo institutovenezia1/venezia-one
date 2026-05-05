@@ -902,6 +902,7 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
 
     await normalizeInternalUsers();
     await reconcilePaymentFinanceRecords();
+    await reconcileAltaInscriptionRecords();
     lastSharedDataRefreshAt = Date.now();
 
     console.log("refreshSharedSupabaseState ejecutado", {
@@ -5381,9 +5382,51 @@ function mapAltaInscriptionFinanceRecord(record) {
   };
 }
 
+function getAltaInscriptionLinkedRecords(studentId, records = financeRecords) {
+  if (!studentId) {
+    return [];
+  }
+
+  return records.filter((record) => {
+    if (record.relatedPaymentId || !isAltaInscriptionFinanceRecord(record)) {
+      return false;
+    }
+
+    return (
+      String(record.relatedStudentId || "").trim() === String(studentId).trim() ||
+      String(record.relatedAltaId || "").trim() === String(studentId).trim()
+    );
+  });
+}
+
+function isAltaInscriptionRecordCancelled(record) {
+  return Boolean(record?.cancelled);
+}
+
+function isOperationalInscriptionRecordActive(record, studentsById = new Map(students.map((student) => [student.id, student]))) {
+  if (!record || isAltaInscriptionRecordCancelled(record)) {
+    return false;
+  }
+
+  const linkedStudentId = String(record.relatedStudentId || record.relatedAltaId || "").trim();
+  if (!linkedStudentId) {
+    return false;
+  }
+
+  const linkedStudent = studentsById.get(linkedStudentId);
+  if (!linkedStudent || isStudentDeleted(linkedStudent)) {
+    return false;
+  }
+
+  return true;
+}
+
 function getOperationalInscriptionRecords(records = financeRecords) {
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
   return records
     .filter((record) => !record.relatedPaymentId && isAltaInscriptionFinanceRecord(record))
+    .filter((record) => isOperationalInscriptionRecordActive(record, studentsById))
     .map(mapAltaInscriptionFinanceRecord);
 }
 
@@ -5409,6 +5452,107 @@ function buildAltaInscriptionFinanceRecord(altaRecord, deltaInscripcion) {
     reference: buildAltaInscriptionFinanceReference(altaRecord.id),
     relatedStudentId: altaRecord.id || "",
     relatedAltaId: altaRecord.id || "",
+    cancelled: false,
+    cancelledAt: "",
+    cancelledBy: "",
+    cancelledReason: "",
+  };
+}
+
+async function invalidateAltaInscriptionRecordsForStudent(studentId, reason = "Alta eliminada") {
+  const linkedRecords = getAltaInscriptionLinkedRecords(studentId);
+  if (linkedRecords.length === 0) {
+    return {
+      synced: true,
+      updatedCount: 0,
+    };
+  }
+
+  let synced = true;
+  let updatedCount = 0;
+  const cancelledAt = new Date().toISOString();
+  const cancelledBy = getCurrentInternalUser()?.id || "";
+
+  for (const record of linkedRecords) {
+    if (isAltaInscriptionRecordCancelled(record)) {
+      continue;
+    }
+
+    const saveResult = await saveFinanceRecord({
+      ...record,
+      cancelled: true,
+      cancelledAt,
+      cancelledBy,
+      cancelledReason: reason,
+    });
+
+    if (!saveResult.synced) {
+      synced = false;
+      break;
+    }
+
+    updatedCount += 1;
+  }
+
+  return {
+    synced,
+    updatedCount,
+  };
+}
+
+function getReconcilableInvalidAltaInscriptionRecords(records = financeRecords) {
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  return records.filter((record) => {
+    if (record.relatedPaymentId || !isAltaInscriptionFinanceRecord(record) || isAltaInscriptionRecordCancelled(record)) {
+      return false;
+    }
+
+    const linkedStudentId = String(record.relatedStudentId || record.relatedAltaId || "").trim();
+    if (!linkedStudentId) {
+      return true;
+    }
+
+    const linkedStudent = studentsById.get(linkedStudentId);
+    return !linkedStudent || isStudentDeleted(linkedStudent);
+  });
+}
+
+async function reconcileAltaInscriptionRecords() {
+  const invalidRecords = getReconcilableInvalidAltaInscriptionRecords();
+  if (invalidRecords.length === 0) {
+    return {
+      synced: true,
+      updatedCount: 0,
+    };
+  }
+
+  let synced = true;
+  let updatedCount = 0;
+
+  for (const record of invalidRecords) {
+    const linkedStudentId = String(record.relatedStudentId || record.relatedAltaId || "").trim();
+    const saveResult = await saveFinanceRecord({
+      ...record,
+      cancelled: true,
+      cancelledAt: record.cancelledAt || new Date().toISOString(),
+      cancelledBy: record.cancelledBy || "system",
+      cancelledReason:
+        record.cancelledReason ||
+        (linkedStudentId ? "Alta eliminada o inactiva" : "Alta vinculada inexistente"),
+    });
+
+    if (!saveResult.synced) {
+      synced = false;
+      break;
+    }
+
+    updatedCount += 1;
+  }
+
+  return {
+    synced,
+    updatedCount,
   };
 }
 
@@ -11702,6 +11846,11 @@ async function deleteStudentRecord(id) {
     return;
   }
 
+  const inscriptionInvalidationResult = await invalidateAltaInscriptionRecordsForStudent(
+    id,
+    "Alta eliminada desde Altas"
+  );
+
   syncStudentAccessRecords();
   if (document.getElementById("altaStudentId").value === id) {
     resetAltaForm();
@@ -11711,6 +11860,10 @@ async function deleteStudentRecord(id) {
     currentPortalStudentId = "";
   }
   renderAll();
+  if (!inscriptionInvalidationResult.synced) {
+    alert("La alumna quedó eliminada, pero no se pudieron invalidar sus registros de inscripción en Balance.");
+    return;
+  }
   alert("La alumna quedó marcada como eliminada y se ocultó de los módulos activos.");
 }
 
