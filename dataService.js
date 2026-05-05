@@ -211,8 +211,27 @@
       // Supabase mutation path for migrated entities.
       async upsertOne(record, options = {}) {
         const existingRecords = localService.getAll(fallbackFactory);
-        const hadExistingRecord = existingRecords.some((item) => item.id === record.id);
-        const payload = [toDb(record)];
+        let normalizedRecord = record;
+        if (table === "student_payments") {
+          const existingRecordByStudentId = existingRecords.find(
+            (item) => item.studentId === record.studentId && item.id !== record.id
+          );
+          if (existingRecordByStudentId?.id) {
+            normalizedRecord = {
+              ...record,
+              id: existingRecordByStudentId.id,
+              createdAt: record.createdAt || existingRecordByStudentId.createdAt || null,
+            };
+            console.log('Supabase payment existing row reused before upsert:', {
+              studentId: record.studentId || "",
+              previousId: record.id || "",
+              reusedId: existingRecordByStudentId.id,
+            });
+          }
+        }
+
+        const hadExistingRecord = existingRecords.some((item) => item.id === normalizedRecord.id);
+        const payload = [toDb(normalizedRecord)];
         const operationLabel = hadExistingRecord ? "update" : "insert";
         const shouldTracePayload =
           table === "prospects" || table === "staff" || table === "students" || table === "student_payments";
@@ -222,13 +241,13 @@
             console.log(`Supabase payload for "${table}" ${operationLabel}:`, payload[0]);
           }
 
-          const response = await upsertManyToSupabase([record]);
+          const response = await upsertManyToSupabase([normalizedRecord]);
           console.log(`Supabase response for "${table}" ${operationLabel}:`, response.data);
           if (table === "students" && response.records.length === 0) {
             throw new Error('Supabase upsert to "students" returned no rows.');
           }
 
-          const syncedRecord = response.records[0] || record;
+          const syncedRecord = response.records[0] || normalizedRecord;
           localService.setAll(
             mergeRecord(localService.getAll(fallbackFactory), syncedRecord)
           );
@@ -258,7 +277,7 @@
             globalScope.alert(`No se pudo guardar ${uiLabel} en Supabase.`);
           }
           return {
-            record,
+            record: normalizedRecord,
             synced: false,
             error,
             response: error.supabaseResponse || {
