@@ -448,19 +448,7 @@ const financeHistoricalMeta = document.getElementById("financeHistoricalMeta");
 const financeHistoricalTableBody = document.getElementById("financeHistoricalTableBody");
 const financeHistoricalEmptyState = document.getElementById("financeHistoricalEmptyState");
 const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
-const miVeneziaLoginUserField = document.getElementById("miVeneziaTelefono");
-const miVeneziaLoginSubmitButton = miVeneziaLoginForm?.querySelector('button[type="submit"]') || null;
-const miVeneziaLoginStatus = document.getElementById("miVeneziaLoginStatus");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
-const miVeneziaOpeningPanel = document.getElementById("miVeneziaOpeningPanel");
-const miVeneziaOpeningTitle = document.getElementById("miVeneziaOpeningTitle");
-const miVeneziaOpeningMessage = document.getElementById("miVeneziaOpeningMessage");
-const miVeneziaMinimalDashboard = document.getElementById("miVeneziaMinimalDashboard");
-const miVeneziaMinimalTitle = document.getElementById("miVeneziaMinimalTitle");
-const miVeneziaMinimalMessage = document.getElementById("miVeneziaMinimalMessage");
-const miVeneziaMinimalStudentName = document.getElementById("miVeneziaMinimalStudentName");
-const miVeneziaMinimalStudentCourse = document.getElementById("miVeneziaMinimalStudentCourse");
-const miVeneziaMinimalLogoutButton = document.getElementById("miVeneziaMinimalLogoutButton");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
 const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
 const miVeneziaRoot = document.getElementById("miVeneziaPortal") || miVeneziaShell || miVeneziaDashboard;
@@ -522,9 +510,6 @@ const miVeneziaConfirmContratoButton = document.getElementById("miVeneziaConfirm
 const miVeneziaPasswordForm = document.getElementById("miVeneziaPasswordForm");
 const miVeneziaPasswordFeedback = document.getElementById("miVeneziaPasswordFeedback");
 const miVeneziaPasswordSubmitButton = document.getElementById("miVeneziaPasswordSubmitButton");
-const androidDebugPanel = document.getElementById("androidDebugPanel");
-const androidDebugCurrentStep = document.getElementById("androidDebugCurrentStep");
-const androidDebugLog = document.getElementById("androidDebugLog");
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
@@ -671,10 +656,6 @@ const DASHBOARD_ADVISORS = [
 
 const DASHBOARD_BRANCHES = ["Tlaxcala", "Puebla"];
 const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
-const runtimeSearchParams = new URLSearchParams(window.location.search);
-const debugAndroidMode = runtimeSearchParams.get("debugandroid") === "1";
-const debugAndroidMinimalMode = runtimeSearchParams.get("minimalportal") === "1";
-const forceCompatiblePortalMode = runtimeSearchParams.get("safeportal") === "1";
 const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
   { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" },
 ];
@@ -784,8 +765,6 @@ let lastSharedDataRefreshAt = 0;
 let sharedDataRefreshRequestSeq = 0;
 let balanceDateWasManuallySelected = false;
 let activeBalanceInscriptionView = "day";
-let miVeneziaLoginInFlight = false;
-let androidDebugStepCounter = 0;
 
 monthFilter.value = selectedMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
@@ -1650,300 +1629,6 @@ function resetPortalPasswordForm(form, feedbackElement) {
     form.reset();
   }
   setPortalPasswordFeedback(feedbackElement);
-}
-
-function setMiVeneziaLoginStatus(message = "", tone = "") {
-  if (!miVeneziaLoginStatus) {
-    return;
-  }
-
-  miVeneziaLoginStatus.hidden = !message;
-  miVeneziaLoginStatus.textContent = message;
-  miVeneziaLoginStatus.classList.remove("is-error", "is-success");
-
-  if (message && tone) {
-    miVeneziaLoginStatus.classList.add(`is-${tone}`);
-  }
-}
-
-function restoreMiVeneziaLoginSubmitButton(label = "Ingresar") {
-  if (!miVeneziaLoginSubmitButton) {
-    return;
-  }
-
-  miVeneziaLoginSubmitButton.disabled = false;
-  miVeneziaLoginSubmitButton.textContent = label;
-}
-
-function setMiVeneziaLoginBusy(label = "Validando acceso...") {
-  if (miVeneziaLoginSubmitButton) {
-    miVeneziaLoginSubmitButton.disabled = true;
-    miVeneziaLoginSubmitButton.textContent = label;
-  }
-
-  setMiVeneziaLoginStatus(label);
-}
-
-function stringifyAndroidDebugDetails(details = null) {
-  if (details === null || details === undefined || details === "") {
-    return "";
-  }
-
-  if (typeof details === "string") {
-    return details;
-  }
-
-  try {
-    return JSON.stringify(details);
-  } catch (error) {
-    return String(details);
-  }
-}
-
-function appendAndroidDebugStep(label, details = null) {
-  if (!debugAndroidMode || !androidDebugPanel) {
-    return;
-  }
-
-  androidDebugPanel.hidden = false;
-  androidDebugStepCounter += 1;
-  const detailText = stringifyAndroidDebugDetails(details);
-  const line = `${String(androidDebugStepCounter).padStart(2, "0")}. ${label}${detailText ? ` | ${detailText}` : ""}`;
-
-  if (androidDebugCurrentStep) {
-    androidDebugCurrentStep.textContent = label;
-  }
-
-  if (androidDebugLog) {
-    androidDebugLog.textContent = androidDebugLog.textContent
-      ? `${androidDebugLog.textContent}\n${line}`
-      : line;
-    androidDebugLog.scrollTop = androidDebugLog.scrollHeight;
-  }
-}
-
-function appendAndroidDebugError(source, error) {
-  if (!debugAndroidMode) {
-    return;
-  }
-
-  const normalizedError =
-    typeof error === "string"
-      ? { message: error }
-      : {
-          message: error?.message || String(error),
-          stack: String(error?.stack || "").split("\n").slice(0, 3).join(" | "),
-        };
-
-  appendAndroidDebugStep(`ERROR en ${source}`, normalizedError);
-}
-
-function showMiVeneziaOpeningPanel(title = "Abriendo portal...", message = "Estamos preparando tu acceso.") {
-  if (miVeneziaLoginPanel) {
-    miVeneziaLoginPanel.hidden = true;
-  }
-  if (miVeneziaMinimalDashboard) {
-    miVeneziaMinimalDashboard.hidden = true;
-  }
-  if (miVeneziaDashboard) {
-    miVeneziaDashboard.hidden = true;
-  }
-  if (miVeneziaOpeningPanel) {
-    miVeneziaOpeningPanel.hidden = false;
-    miVeneziaOpeningPanel.setAttribute("aria-busy", "true");
-  }
-  if (miVeneziaOpeningTitle) {
-    miVeneziaOpeningTitle.textContent = title;
-  }
-  if (miVeneziaOpeningMessage) {
-    miVeneziaOpeningMessage.textContent = message;
-  }
-}
-
-function hideMiVeneziaOpeningPanel() {
-  if (miVeneziaOpeningPanel) {
-    miVeneziaOpeningPanel.hidden = true;
-    miVeneziaOpeningPanel.setAttribute("aria-busy", "false");
-  }
-}
-
-function hideMiVeneziaMinimalDashboard() {
-  if (miVeneziaMinimalDashboard) {
-    miVeneziaMinimalDashboard.hidden = true;
-  }
-}
-
-function renderMiVeneziaMinimalDashboard() {
-  const student = getStudentById(currentPortalStudentId);
-  if (!student || isStudentDeleted(student)) {
-    throw new Error("No se pudo abrir el dashboard mínimo porque la alumna no está disponible.");
-  }
-
-  appendAndroidDebugStep("Paso 7: render dashboard mínimo iniciado", {
-    studentId: student.id,
-    studentName: student.nombre || "",
-  });
-
-  if (miVeneziaMinimalTitle) {
-    miVeneziaMinimalTitle.textContent = "Mi Venezia - Modo mínimo";
-  }
-  if (miVeneziaMinimalMessage) {
-    miVeneziaMinimalMessage.textContent =
-      "Este modo confirma que el login abrió el portal y aísla el render completo de Android.";
-  }
-  if (miVeneziaMinimalStudentName) {
-    miVeneziaMinimalStudentName.textContent = student.nombre || "Estudiante";
-  }
-  if (miVeneziaMinimalStudentCourse) {
-    miVeneziaMinimalStudentCourse.textContent = student.curso || "Sin curso";
-  }
-
-  appendAndroidDebugStep("Paso 8: bloques base renderizados", {
-    mode: "minimal",
-  });
-
-  hideMiVeneziaOpeningPanel();
-  if (miVeneziaLoginPanel) {
-    miVeneziaLoginPanel.hidden = true;
-  }
-  if (miVeneziaDashboard) {
-    miVeneziaDashboard.hidden = true;
-  }
-  if (miVeneziaMinimalDashboard) {
-    miVeneziaMinimalDashboard.hidden = false;
-  }
-
-  appendAndroidDebugStep("Paso 9: portal listo", {
-    mode: "minimal",
-  });
-}
-
-function handleMiVeneziaLoginFailure({
-  login = "",
-  step = "login",
-  error = null,
-  userMessage = "No se pudo completar el acceso de Mi Venezia en este dispositivo. Intenta de nuevo.",
-  restoreButtonLabel = "Ingresar",
-} = {}) {
-  miVeneziaLoginInFlight = false;
-  currentPortalStudentId = "";
-  dataService.sessions.clearStudent();
-  hideMiVeneziaOpeningPanel();
-  hideMiVeneziaMinimalDashboard();
-  if (miVeneziaLoginPanel) {
-    miVeneziaLoginPanel.hidden = false;
-  }
-  if (miVeneziaDashboard) {
-    miVeneziaDashboard.hidden = true;
-    miVeneziaDashboard.setAttribute("aria-busy", "false");
-  }
-
-  setMiVeneziaLoginStatus(userMessage, "error");
-  appendAndroidDebugError(step, error || userMessage);
-  console.error("[Mi Venezia] Login flow failed", {
-    login,
-    step,
-    error: error?.message || String(error || userMessage),
-    stack: error?.stack || "",
-  });
-  restoreMiVeneziaLoginSubmitButton(restoreButtonLabel);
-}
-
-function isLikelyAndroidPortalClient() {
-  const userAgent = String(window.navigator?.userAgent || "");
-  return /android/i.test(userAgent);
-}
-
-function shouldUseCompatiblePortalMode() {
-  return forceCompatiblePortalMode || isLikelyAndroidPortalClient();
-}
-
-function resolveMiVeneziaRenderValue(step, resolver, fallbackValue) {
-  try {
-    return resolver();
-  } catch (error) {
-    appendAndroidDebugError(step, error);
-    console.error(`[Mi Venezia] Fallo en ${step}`, error);
-    return typeof fallbackValue === "function" ? fallbackValue(error) : fallbackValue;
-  }
-}
-
-function runMiVeneziaRenderGuard(step, renderFn, fallbackFn = null) {
-  try {
-    renderFn();
-    return true;
-  } catch (error) {
-    appendAndroidDebugError(step, error);
-    console.error(`[Mi Venezia] Fallo al renderizar ${step}`, error);
-    if (typeof fallbackFn === "function") {
-      try {
-        fallbackFn(error);
-      } catch (fallbackError) {
-        appendAndroidDebugError(`${step}:fallback`, fallbackError);
-        console.error(`[Mi Venezia] Fallo también el fallback de ${step}`, fallbackError);
-      }
-    }
-    return false;
-  }
-}
-
-function buildMiVeneziaFallbackPaymentOverview(student, payment = {}, paymentEntries = []) {
-  const amount = payment?.mensualidadPactada || student?.mensualidad || student?.colegiatura || "-";
-  const method = payment?.metodoPago || student?.metodoPago || "-";
-  const pendingSummary = String(payment?.pagosPendientes || "").trim();
-  const hasEntries = paymentEntries.length > 0;
-
-  return {
-    references: [],
-    pendingReferences: [],
-    upcomingReference: null,
-    statusLabel: pendingSummary && pendingSummary !== "0" ? `${pendingSummary} pendientes` : hasEntries ? "Con actividad" : "Por confirmar",
-    statusTone: pendingSummary && pendingSummary !== "0" ? "red" : hasEntries ? "blue" : "gold",
-    mensualidadPactada: amount,
-    metodoPago: method,
-    observaciones: payment?.observaciones || "-",
-    pendingSummary: pendingSummary || "0",
-    monthlyProgress: "Por confirmar",
-    certificateOneStatus: String(payment?.certificadoP1 || "").trim() || "-",
-    certificateTwoStatus: String(payment?.certificadoP2 || "").trim() || "-",
-    nextPaymentText: hasEntries ? "Consulta tus pagos registrados" : "Por confirmar",
-  };
-}
-
-function buildMiVeneziaFallbackAttendanceOverview(student, attendanceHistory = [], attendanceCalendar = []) {
-  const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
-  const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
-  const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
-  const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
-  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(student?.curso);
-  const clasesTomadas = asistencias + recuperaciones;
-  const completionRate = totalClases > 0 ? Math.round((clasesTomadas / totalClases) * 100) : 0;
-
-  return {
-    asistencias,
-    faltas,
-    permisos,
-    recuperaciones,
-    totalClases,
-    clasesRegistradas: attendanceHistory.length,
-    clasesTomadas,
-    clasesPendientes: Math.max(totalClases - attendanceHistory.length, 0),
-    completionRate,
-    latestRegistered: null,
-    nextClass: null,
-    messageTitle: "Portal en modo compatible",
-    messageCopy: "Mostramos tu información esencial mientras terminamos de cargar el resto del portal.",
-    toneClass: "is-neutral",
-  };
-}
-
-function buildMiVeneziaFallbackDocumentsOverview(student) {
-  return {
-    reglamento: getStudentReglamentoStatus(student),
-    contrato: getStudentContratoStatus(student),
-    pendingCount: 0,
-    summaryLabel: "Por confirmar",
-  };
 }
 
 function stripDiacritics(value) {
@@ -10928,7 +10613,7 @@ function openStudentFile(studentId) {
 }
 
 function getStudentPortalLoginMatch(identifier, password) {
-  const normalizedIdentifier = normalizeStudentPortalLoginIdentifier(identifier);
+  const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
   const normalizedPassword = String(password || "");
   if (!normalizedIdentifier || !normalizedPassword) {
     return null;
@@ -10938,15 +10623,9 @@ function getStudentPortalLoginMatch(identifier, password) {
     if (isStudentDeleted(student)) {
       return false;
     }
-    const portalUser = normalizeStudentPortalLoginIdentifier(student.portalUser || student.telefono || "");
+    const portalUser = String(student.portalUser || "").trim().toLowerCase();
     return portalUser === normalizedIdentifier && String(student.portalPassword || "") === normalizedPassword;
   }) || null;
-}
-
-function normalizeStudentPortalLoginIdentifier(value) {
-  const rawValue = String(value || "").trim();
-  const digits = normalizePhone(rawValue);
-  return digits || rawValue.toLowerCase();
 }
 
 function getStudentPaymentEntries(student) {
@@ -11814,27 +11493,7 @@ function setMiVeneziaView(view) {
 }
 
 function resetMiVeneziaScrollPosition() {
-  const runOnNextFrame =
-    typeof window.requestAnimationFrame === "function"
-      ? window.requestAnimationFrame.bind(window)
-      : (callback) => window.setTimeout(callback, 16);
-
-  const safeWindowScrollToTop = () => {
-    try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    } catch (error) {
-      console.warn("Scroll suave no compatible; se usa fallback para Mi Venezia.", error);
-    }
-
-    try {
-      window.scrollTo(0, 0);
-    } catch (fallbackError) {
-      console.warn("No se pudo reposicionar el scroll principal de Mi Venezia.", fallbackError);
-    }
-  };
-
-  runOnNextFrame(() => {
+  requestAnimationFrame(() => {
     if (mainContentShell && typeof mainContentShell.scrollTo === "function") {
       mainContentShell.scrollTo(0, 0);
     }
@@ -11846,7 +11505,7 @@ function resetMiVeneziaScrollPosition() {
     }
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    safeWindowScrollToTop();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
 
@@ -11908,114 +11567,6 @@ function renderMiVeneziaReglamento(student) {
     miVeneziaConfirmReadButton.disabled = confirmado;
     miVeneziaConfirmReadButton.textContent = confirmado ? "Reglamento leído" : "Confirmo lectura";
   }
-}
-
-function renderMiVeneziaSecondarySections({
-  student,
-  documentsOverview,
-  paymentOverview,
-  attendanceOverview,
-  attendanceCalendar,
-  notices,
-  achievements,
-  scheduleEntries,
-  nextClassMetaParts,
-}) {
-  runMiVeneziaRenderGuard(
-    "miVeneziaDocuments",
-    () => renderMiVeneziaDocuments(student)
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaDocumentsSummary",
-    () => renderMiVeneziaDocumentsSummary(miVeneziaDocumentsSummary, documentsOverview),
-    () =>
-      renderInfoList(miVeneziaDocumentsSummary, [
-        { label: "Documentos", value: "Consulta la sección para ver tu estado." },
-      ])
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaUpcomingSummary",
-    () =>
-      renderMiVeneziaUpcomingSummary(miVeneziaUpcoming, [
-        {
-          label: "Próxima clase",
-          value: attendanceOverview.nextClass
-            ? `${formatDisplayDate(attendanceOverview.nextClass.date) || attendanceOverview.nextClass.date} · ${getMiVeneziaSafeText(student.horario, "Horario por confirmar")}`
-            : "Tu calendario se actualizará pronto.",
-          meta: attendanceOverview.nextClass
-            ? nextClassMetaParts.join(" · ")
-            : "Tu calendario se actualizará pronto.",
-        },
-      ]),
-    () =>
-      renderMiVeneziaUpcomingSummary(miVeneziaUpcoming, [
-        {
-          label: "Próximo paso",
-          value: "Portal abierto en modo compatible.",
-          meta: "Las secciones secundarias seguirán cargando con tolerancia a fallos.",
-        },
-      ])
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaNextAction",
-    () =>
-      renderMiVeneziaActionCard(
-        miVeneziaNextAction,
-        getMiVeneziaNextAction(student, {
-          documents: documentsOverview,
-          payments: paymentOverview,
-          attendance: attendanceOverview,
-        })
-      ),
-    () =>
-      renderMiVeneziaActionCard(miVeneziaNextAction, {
-        eyebrow: "Compatibilidad",
-        badge: "Base lista",
-        title: "Tu portal ya abrió",
-        copy: "Seguimos cargando módulos secundarios de forma segura para este dispositivo.",
-        meta: "Puedes navegar por la información esencial aunque una parte visual falle.",
-        toneClass: "is-blue",
-      })
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaAchievements",
-    () => renderMiVeneziaAchievements(miVeneziaAchievements, achievements),
-    () => renderMiVeneziaAchievements(miVeneziaAchievements, [])
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaNoticesPreview",
-    () => renderMiVeneziaNotices(miVeneziaNoticesPreview, notices, "No tienes avisos pendientes por ahora."),
-    () => renderMiVeneziaNotices(miVeneziaNoticesPreview, [], "No tienes avisos pendientes por ahora.")
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaNoticesList",
-    () => renderMiVeneziaNotices(miVeneziaNoticesList, notices, "No tienes avisos pendientes por ahora."),
-    () => renderMiVeneziaNotices(miVeneziaNoticesList, [], "No tienes avisos pendientes por ahora.")
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaClasses",
-    () => renderMiVeneziaClasses(miVeneziaClassesList, student, attendanceCalendar, attendanceOverview),
-    () => {
-      if (miVeneziaClassesList) {
-        miVeneziaClassesList.innerHTML =
-          '<p class="student-empty-copy">Tu portal abrió en modo compatible. Si esta sección no carga, vuelve a intentarlo más tarde.</p>';
-      }
-    }
-  );
-  runMiVeneziaRenderGuard(
-    "miVeneziaPaymentSchedule",
-    () =>
-      renderInfoList(
-        miVeneziaPaymentSchedule,
-        scheduleEntries.length > 0
-          ? scheduleEntries
-          : [{ label: "Calendario", value: "Tu calendario se actualizará pronto." }]
-      ),
-    () =>
-      renderInfoList(miVeneziaPaymentSchedule, [
-        { label: "Calendario", value: "Portal abierto en modo compatible." },
-      ])
-  );
 }
 
 function renderMiVeneziaContrato(student) {
@@ -12194,135 +11745,48 @@ function renderWebScholarshipSection() {
 }
 
 function renderMiVeneziaDashboard() {
-  const shouldTraceStudentPortalRender = debugAndroidMode && (miVeneziaLoginInFlight || currentAccessMode === "student");
-  const compatiblePortalMode = shouldUseCompatiblePortalMode();
-  if (shouldTraceStudentPortalRender) {
-    appendAndroidDebugStep("Paso 7: render dashboard iniciado", {
-      studentId: currentPortalStudentId,
-      compatiblePortalMode,
-    });
-  }
   const student = getStudentById(currentPortalStudentId);
   if (!student || isStudentDeleted(student)) {
-    runMiVeneziaRenderGuard("miVeneziaTheme:empty", () => applyMiVeneziaPortalTheme(""));
-    const emptyAvatarDisplay = resolveMiVeneziaRenderValue(
-      "miVeneziaAvatar:empty",
-      () => getStudentAvatarDisplay(""),
-      { type: "fallback", label: "MV" }
-    );
-    runMiVeneziaRenderGuard("miVeneziaAvatarApply:empty", () => {
-      applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, emptyAvatarDisplay);
-      applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, emptyAvatarDisplay);
-    });
+    applyMiVeneziaPortalTheme("");
+    const emptyAvatarDisplay = getStudentAvatarDisplay("");
+    applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, emptyAvatarDisplay);
+    applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, emptyAvatarDisplay);
     dataService.sessions.clearStudent();
     currentPortalStudentId = "";
     miVeneziaAttendanceExpanded = false;
     currentMiVeneziaView = "dashboard";
-    hideMiVeneziaOpeningPanel();
-    hideMiVeneziaMinimalDashboard();
     miVeneziaLoginPanel.hidden = false;
     miVeneziaDashboard.hidden = true;
-    miVeneziaDashboard.setAttribute("aria-busy", "false");
     return;
   }
 
-  hideMiVeneziaMinimalDashboard();
-  if (miVeneziaOpeningTitle && !miVeneziaOpeningPanel?.hidden) {
-    miVeneziaOpeningTitle.textContent = "Renderizando dashboard...";
-  }
-  if (miVeneziaOpeningMessage && !miVeneziaOpeningPanel?.hidden) {
-    miVeneziaOpeningMessage.textContent = "Cargando bloques base de Mi Venezia.";
-  }
-  miVeneziaLoginPanel.hidden = true;
-  miVeneziaDashboard.setAttribute("aria-busy", "true");
-
-  const payment = resolveMiVeneziaRenderValue(
-    "getPaymentRecord",
-    () => getPaymentRecord(student.id),
-    {}
-  );
-  const latestPayment = resolveMiVeneziaRenderValue(
-    "getLatestPaymentRecordForStudent",
-    () => getLatestPaymentRecordForStudent(student.id),
-    {}
-  );
-  const paymentEntries = resolveMiVeneziaRenderValue(
-    "getStudentPaymentEntries",
-    () => getStudentPaymentEntries(student),
-    []
-  );
-  const attendanceHistory = resolveMiVeneziaRenderValue(
-    "getAttendanceHistory",
-    () =>
-      attendanceRecords
-        .filter((record) => record.studentId === student.id)
-        .sort((a, b) => a.fecha.localeCompare(b.fecha)),
-    []
-  );
-  const attendanceCalendar = resolveMiVeneziaRenderValue(
-    "getStudentAttendanceCalendar",
-    () => getStudentAttendanceCalendar(student),
-    []
-  );
-  const paymentOverview = resolveMiVeneziaRenderValue(
-    "getMiVeneziaPaymentOverview",
-    () => getMiVeneziaPaymentOverview(student, payment, paymentEntries, latestPayment),
-    () => buildMiVeneziaFallbackPaymentOverview(student, payment, paymentEntries)
-  );
-  const attendanceOverview = resolveMiVeneziaRenderValue(
-    "getMiVeneziaAttendanceOverview",
-    () => getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCalendar),
-    () => buildMiVeneziaFallbackAttendanceOverview(student, attendanceHistory, attendanceCalendar)
-  );
-  const documentsOverview = resolveMiVeneziaRenderValue(
-    "getMiVeneziaDocumentsOverview",
-    () => getMiVeneziaDocumentsOverview(student),
-    () => buildMiVeneziaFallbackDocumentsOverview(student)
-  );
-  const statusSummary = resolveMiVeneziaRenderValue(
-    "getMiVeneziaStudentStatusSummary",
-    () =>
-      getMiVeneziaStudentStatusSummary(student, {
-        documents: documentsOverview,
-        payments: paymentOverview,
-        attendance: attendanceOverview,
-      }),
-    {
-      label: "Portal en modo compatible",
-      tone: "is-blue",
-      detail: "Mostramos tu información esencial mientras terminamos de cargar el resto del portal.",
-    }
-  );
-  const achievements = resolveMiVeneziaRenderValue(
-    "getMiVeneziaAchievements",
-    () =>
-      getMiVeneziaAchievements({
-        documents: documentsOverview,
-        payments: paymentOverview,
-        attendance: attendanceOverview,
-      }),
-    []
-  );
-  const notices = resolveMiVeneziaRenderValue(
-    "getMiVeneziaNoticeItems",
-    () =>
-      getMiVeneziaNoticeItems(student, {
-        documents: documentsOverview,
-        payments: paymentOverview,
-        attendance: attendanceOverview,
-      }),
-    []
-  );
-  const supportWhatsappUrl = resolveMiVeneziaRenderValue(
-    "getStudentPortalWhatsappUrl",
-    () => getStudentPortalWhatsappUrl(student),
-    getWebWhatsAppUrl("Hola, necesito apoyo con Mi Venezia.")
-  );
-  const scheduleEntries = resolveMiVeneziaRenderValue(
-    "getStudentPaymentScheduleEntries",
-    () => getStudentPaymentScheduleEntries(student),
-    []
-  );
+  const payment = getPaymentRecord(student.id);
+  const latestPayment = getLatestPaymentRecordForStudent(student.id);
+  const paymentEntries = getStudentPaymentEntries(student);
+  const attendanceHistory = attendanceRecords
+    .filter((record) => record.studentId === student.id)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const attendanceCalendar = getStudentAttendanceCalendar(student);
+  const paymentOverview = getMiVeneziaPaymentOverview(student, payment, paymentEntries, latestPayment);
+  const attendanceOverview = getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCalendar);
+  const documentsOverview = getMiVeneziaDocumentsOverview(student);
+  const statusSummary = getMiVeneziaStudentStatusSummary(student, {
+    documents: documentsOverview,
+    payments: paymentOverview,
+    attendance: attendanceOverview,
+  });
+  const achievements = getMiVeneziaAchievements({
+    documents: documentsOverview,
+    payments: paymentOverview,
+    attendance: attendanceOverview,
+  });
+  const notices = getMiVeneziaNoticeItems(student, {
+    documents: documentsOverview,
+    payments: paymentOverview,
+    attendance: attendanceOverview,
+  });
+  const supportWhatsappUrl = getStudentPortalWhatsappUrl(student);
+  const scheduleEntries = getStudentPaymentScheduleEntries(student);
   const profileSummary = [
     { label: "Nombre", value: getMiVeneziaSafeText(student.nombre) },
     { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
@@ -12340,21 +11804,11 @@ function renderMiVeneziaDashboard() {
   const attendancePercent = attendanceOverview.totalClases > 0
     ? `${attendanceOverview.completionRate}%`
     : "Sin información disponible por ahora.";
-  const studentDisplayName = resolveMiVeneziaRenderValue(
-    "toStudentPortalNameCase",
-    () => toStudentPortalNameCase(student.nombre),
-    getMiVeneziaSafeText(student.nombre, "Estudiante")
-  );
-  runMiVeneziaRenderGuard("miVeneziaTheme", () => applyMiVeneziaPortalTheme(student.nombre));
-  const avatarDisplay = resolveMiVeneziaRenderValue(
-    "getStudentAvatarDisplay",
-    () => getStudentAvatarDisplay(student),
-    { type: "fallback", label: "MV" }
-  );
-  runMiVeneziaRenderGuard("miVeneziaAvatarApply", () => {
-    applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, avatarDisplay);
-    applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, avatarDisplay);
-  });
+  const studentDisplayName = toStudentPortalNameCase(student.nombre);
+  applyMiVeneziaPortalTheme(student.nombre);
+  const avatarDisplay = getStudentAvatarDisplay(student);
+  applyStudentAvatarDisplay(miVeneziaAvatarImage, miVeneziaAvatarFallback, avatarDisplay);
+  applyStudentAvatarDisplay(miVeneziaSidebarAvatarImage, miVeneziaSidebarAvatarFallback, avatarDisplay);
   const nextClassMetaParts = [
     attendanceOverview.nextClass?.classLabel || "",
     student.curso || "",
@@ -12362,229 +11816,167 @@ function renderMiVeneziaDashboard() {
     student.maestra || student.maestro || student.docente || "",
   ].filter(Boolean);
 
-  runMiVeneziaRenderGuard("miVeneziaHero", () => {
-    if (miVeneziaHeroName) {
-      miVeneziaHeroName.textContent = `Hola, ${studentDisplayName || getMiVeneziaSafeText(student.nombre, "Estudiante")}`;
-    }
-    if (miVeneziaHeroMeta) {
-      miVeneziaHeroMeta.textContent = compatiblePortalMode
-        ? "Tu portal académico personalizado en modo compatible"
-        : "Tu portal académico personalizado";
-    }
-    renderInfoList(miVeneziaHeroSummary, [
-      { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
-      { label: "Plantel", value: getMiVeneziaSafeText(student.sucursal) },
-      { label: "Nivel / acceso", value: getMiVeneziaSafeText(student.accesoElegido) },
-      { label: "Horario", value: getMiVeneziaSafeText(student.horario) },
-    ]);
-  });
+  miVeneziaHeroName.textContent = `Hola, ${studentDisplayName || getMiVeneziaSafeText(student.nombre, "Estudiante")}`;
+  miVeneziaHeroMeta.textContent = "Tu portal académico personalizado";
+  renderInfoList(miVeneziaHeroSummary, [
+    { label: "Curso", value: getMiVeneziaSafeText(student.curso) },
+    { label: "Plantel", value: getMiVeneziaSafeText(student.sucursal) },
+    { label: "Nivel / acceso", value: getMiVeneziaSafeText(student.accesoElegido) },
+    { label: "Horario", value: getMiVeneziaSafeText(student.horario) },
+  ]);
 
-  runMiVeneziaRenderGuard("miVeneziaSidebar", () => {
-    if (miVeneziaSidebarName) {
-      miVeneziaSidebarName.textContent = studentDisplayName || "Estudiante";
-    }
-    if (miVeneziaSidebarMeta) {
-      miVeneziaSidebarMeta.textContent = `${getMiVeneziaSafeText(student.curso)} · ${getMiVeneziaSafeText(student.sucursal)} · ${getMiVeneziaSafeText(student.horario)}`;
-    }
-    if (miVeneziaSidebarStatus) {
-      miVeneziaSidebarStatus.className = `student-badge ${statusSummary.tone}`.trim();
-      miVeneziaSidebarStatus.textContent = statusSummary.label;
-    }
-  });
-
-  runMiVeneziaRenderGuard("miVeneziaStats", () => {
-    if (miVeneziaStatCourse) {
-      miVeneziaStatCourse.textContent = getMiVeneziaSafeText(student.curso, "-");
-    }
-    if (miVeneziaStatAttendance) {
-      miVeneziaStatAttendance.textContent = `${attendanceOverview.completionRate}%`;
-    }
-    if (miVeneziaStatPayments) {
-      miVeneziaStatPayments.textContent = paymentOverview.nextPaymentText;
-    }
-    if (miVeneziaStatStatus) {
-      miVeneziaStatStatus.textContent = statusSummary.label;
-    }
-    if (miVeneziaContactButton) {
-      miVeneziaContactButton.href = supportWhatsappUrl;
-    }
-    if (miVeneziaWhatsappSupportButton) {
-      miVeneziaWhatsappSupportButton.href = supportWhatsappUrl;
-    }
-  });
-
-  if (shouldTraceStudentPortalRender) {
-    appendAndroidDebugStep("Paso 8: bloques base renderizados", {
-      studentId: student.id,
-      currentView: currentMiVeneziaView,
-      compatiblePortalMode,
-    });
+  if (miVeneziaSidebarName) {
+    miVeneziaSidebarName.textContent = studentDisplayName || "Estudiante";
+  }
+  if (miVeneziaSidebarMeta) {
+    miVeneziaSidebarMeta.textContent = `${getMiVeneziaSafeText(student.curso)} · ${getMiVeneziaSafeText(student.sucursal)} · ${getMiVeneziaSafeText(student.horario)}`;
+  }
+  if (miVeneziaSidebarStatus) {
+    miVeneziaSidebarStatus.className = `student-badge ${statusSummary.tone}`.trim();
+    miVeneziaSidebarStatus.textContent = statusSummary.label;
   }
 
-  runMiVeneziaRenderGuard("miVeneziaStatusCard", () => {
-    renderMiVeneziaStatusCard(miVeneziaStudentStatus, statusSummary);
-  });
+  miVeneziaStatCourse.textContent = getMiVeneziaSafeText(student.curso, "-");
+  miVeneziaStatAttendance.textContent = `${attendanceOverview.completionRate}%`;
+  miVeneziaStatPayments.textContent = paymentOverview.nextPaymentText;
+  miVeneziaStatStatus.textContent = statusSummary.label;
+  miVeneziaContactButton.href = supportWhatsappUrl;
+  if (miVeneziaWhatsappSupportButton) {
+    miVeneziaWhatsappSupportButton.href = supportWhatsappUrl;
+  }
 
-  runMiVeneziaRenderGuard("miVeneziaDashboardPaymentSummary", () => {
-    renderStudentFileInfoList(miVeneziaDashboardPaymentSummary, [
-      { label: "Próximo pago", value: paymentOverview.nextPaymentText, highlight: true },
-      { label: "Monto", value: monthlyAmountLabel },
-      { label: "Fecha límite", value: paymentOverview.upcomingReference?.date || "Estamos preparando esta información." },
-      { label: "Estado", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
-    ]);
-  });
+  renderMiVeneziaStatusCard(miVeneziaStudentStatus, statusSummary);
+  renderMiVeneziaDocuments(student);
+  renderMiVeneziaDocumentsSummary(miVeneziaDocumentsSummary, documentsOverview);
+  renderMiVeneziaUpcomingSummary(miVeneziaUpcoming, [
+    {
+      label: "Próxima clase",
+      value: attendanceOverview.nextClass
+        ? `${formatDisplayDate(attendanceOverview.nextClass.date) || attendanceOverview.nextClass.date} · ${getMiVeneziaSafeText(student.horario, "Horario por confirmar")}`
+        : "Tu calendario se actualizará pronto.",
+      meta: attendanceOverview.nextClass
+        ? nextClassMetaParts.join(" · ")
+        : "Tu calendario se actualizará pronto.",
+    },
+  ]);
+  renderMiVeneziaActionCard(
+    miVeneziaNextAction,
+    getMiVeneziaNextAction(student, {
+      documents: documentsOverview,
+      payments: paymentOverview,
+      attendance: attendanceOverview,
+    })
+  );
 
-  runMiVeneziaRenderGuard("miVeneziaDashboardProgressSummary", () => {
-    renderStudentFileInfoList(miVeneziaDashboardProgressSummary, [
-      { label: "Clase actual", value: attendanceOverview.latestRegistered?.classLabel || attendanceOverview.nextClass?.classLabel || "Sin información disponible por ahora." },
-      { label: "Total de clases", value: String(attendanceOverview.totalClases || 0) },
-      { label: "Porcentaje", value: `${attendanceOverview.completionRate}%`, highlight: true },
-    ]);
-  });
+  renderStudentFileInfoList(miVeneziaDashboardPaymentSummary, [
+    { label: "Próximo pago", value: paymentOverview.nextPaymentText, highlight: true },
+    { label: "Monto", value: monthlyAmountLabel },
+    { label: "Fecha límite", value: paymentOverview.upcomingReference?.date || "Estamos preparando esta información." },
+    { label: "Estado", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
+  ]);
 
-  runMiVeneziaRenderGuard("miVeneziaDashboardAttendanceSummary", () => {
-    renderStudentFileInfoList(miVeneziaDashboardAttendanceSummary, [
-      { label: "Clases asistidas", value: String(attendanceOverview.asistencias + attendanceOverview.recuperaciones), badge: true, tone: "green" },
-      { label: "Faltas", value: String(attendanceOverview.faltas), badge: true, tone: "red" },
-      { label: "Asistencia", value: attendancePercent, highlight: true },
-    ]);
-  });
+  renderStudentFileInfoList(miVeneziaDashboardProgressSummary, [
+    { label: "Clase actual", value: attendanceOverview.latestRegistered?.classLabel || attendanceOverview.nextClass?.classLabel || "Sin información disponible por ahora." },
+    { label: "Total de clases", value: String(attendanceOverview.totalClases || 0) },
+    { label: "Porcentaje", value: `${attendanceOverview.completionRate}%`, highlight: true },
+  ]);
 
-  runMiVeneziaRenderGuard("miVeneziaPerfil", () => {
-    renderInfoList(miVeneziaPerfil, profileSummary);
-  });
+  renderStudentFileInfoList(miVeneziaDashboardAttendanceSummary, [
+    { label: "Clases asistidas", value: String(attendanceOverview.asistencias + attendanceOverview.recuperaciones), badge: true, tone: "green" },
+    { label: "Faltas", value: String(attendanceOverview.faltas), badge: true, tone: "red" },
+    { label: "Asistencia", value: attendancePercent, highlight: true },
+  ]);
 
-  runMiVeneziaRenderGuard("miVeneziaPagos", () => {
-    renderStudentFileInfoList(miVeneziaPagos, [
-      { label: "Resumen actual", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
-      { label: "Próximo pago", value: paymentOverview.nextPaymentText, highlight: true },
-      { label: "Monto de referencia", value: monthlyAmountLabel },
-      { label: "Método de pago", value: getMiVeneziaSafeText(paymentOverview.metodoPago), badge: true, tone: "blue" },
-      { label: "Estado", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
-      { label: "Pagos pendientes", value: paymentOverview.pendingSummary },
-      { label: "Mensualidades", value: paymentOverview.monthlyProgress },
-      { label: "C1", value: paymentOverview.certificateOneStatus, badge: true, tone: getPaymentTone(paymentOverview.certificateOneStatus) },
-      { label: "C2", value: paymentOverview.certificateTwoStatus, badge: true, tone: getPaymentTone(paymentOverview.certificateTwoStatus) },
-      { label: "Observaciones", value: getMiVeneziaSafeText(paymentOverview.observaciones, "Sin información disponible por ahora.") },
-    ]);
-  });
+  renderMiVeneziaAchievements(miVeneziaAchievements, achievements);
+  renderMiVeneziaNotices(miVeneziaNoticesPreview, notices, "No tienes avisos pendientes por ahora.");
+  renderMiVeneziaNotices(miVeneziaNoticesList, notices, "No tienes avisos pendientes por ahora.");
+  renderMiVeneziaClasses(miVeneziaClassesList, student, attendanceCalendar, attendanceOverview);
 
-  runMiVeneziaRenderGuard("miVeneziaResumenAsistencias", () => {
-    renderStudentFileInfoList(miVeneziaResumenAsistencias, [
-      { label: "Asistencias", value: String(attendanceOverview.asistencias + attendanceOverview.recuperaciones), badge: true, tone: "green" },
-      { label: "Faltas", value: String(attendanceOverview.faltas), badge: true, tone: "red" },
-      { label: "Porcentaje", value: attendancePercent, highlight: true },
-      { label: "Permisos", value: String(attendanceOverview.permisos), badge: true, tone: "gold" },
-      {
-        label: "Último registro",
-        value: attendanceOverview.latestRegistered
-          ? `${attendanceOverview.latestRegistered.classLabel} · ${attendanceOverview.latestRegistered.resultLabel}`
-          : "Sin información disponible por ahora.",
-      },
-    ]);
-  });
+  renderInfoList(miVeneziaPerfil, profileSummary);
 
-  runMiVeneziaRenderGuard("miVeneziaAttendanceTable", () => {
-    const attendanceTableState = buildMiVeneziaAttendanceTableRows(
-      student,
-      attendanceCalendar,
-      miVeneziaAttendanceExpanded
-    );
-    if (miVeneziaAsistenciasBody) {
-      miVeneziaAsistenciasBody.innerHTML = attendanceTableState.rows;
-    }
-    if (miVeneziaAsistenciasEmptyState) {
-      miVeneziaAsistenciasEmptyState.hidden = attendanceCalendar.length > 0;
-    }
-    if (miVeneziaAttendanceToggle) {
-      miVeneziaAttendanceToggle.hidden = !attendanceTableState.shouldShowToggle;
-      miVeneziaAttendanceToggle.textContent = miVeneziaAttendanceExpanded ? "Ver menos" : "Ver más";
-    }
-  });
+  renderStudentFileInfoList(miVeneziaPagos, [
+    { label: "Resumen actual", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
+    { label: "Próximo pago", value: paymentOverview.nextPaymentText, highlight: true },
+    { label: "Monto de referencia", value: monthlyAmountLabel },
+    { label: "Método de pago", value: getMiVeneziaSafeText(paymentOverview.metodoPago), badge: true, tone: "blue" },
+    { label: "Estado", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
+    { label: "Pagos pendientes", value: paymentOverview.pendingSummary },
+    { label: "Mensualidades", value: paymentOverview.monthlyProgress },
+    { label: "C1", value: paymentOverview.certificateOneStatus, badge: true, tone: getPaymentTone(paymentOverview.certificateOneStatus) },
+    { label: "C2", value: paymentOverview.certificateTwoStatus, badge: true, tone: getPaymentTone(paymentOverview.certificateTwoStatus) },
+    { label: "Observaciones", value: getMiVeneziaSafeText(paymentOverview.observaciones, "Sin información disponible por ahora.") },
+  ]);
 
-  runMiVeneziaRenderGuard("miVeneziaPaymentsTable", () => {
-    if (miVeneziaPagosBody) {
-      miVeneziaPagosBody.innerHTML = paymentEntries
-        .map(
-          (entry) => `
-            <tr>
-              <td>${escapeHtml(entry.fecha || "-")}</td>
-              <td>${escapeHtml(entry.concepto || "-")}</td>
-              <td>${entry.monto > 0 ? formatCurrency(entry.monto) : "Sin información disponible por ahora."}</td>
-              <td>${escapeHtml(entry.estatus || "-")}</td>
-            </tr>
-          `
-        )
-        .join("");
-    }
-    if (miVeneziaPagosEmptyState) {
-      miVeneziaPagosEmptyState.hidden = paymentEntries.length > 0;
-    }
-  });
+  renderInfoList(
+    miVeneziaPaymentSchedule,
+    scheduleEntries.length > 0
+      ? scheduleEntries
+      : [{ label: "Calendario", value: "Tu calendario se actualizará pronto." }]
+  );
 
-  runMiVeneziaRenderGuard("miVeneziaProgressStatus", () => {
-    if (!miVeneziaProgressStatus) {
-      return;
-    }
-    miVeneziaProgressStatus.className = `mi-venezia-progress-status ${attendanceOverview.toneClass}`.trim();
-    miVeneziaProgressStatus.innerHTML = `
-      <div class="mi-venezia-progress-meter" aria-hidden="true">
-        <span class="mi-venezia-progress-meter-fill" style="width: ${Math.max(0, Math.min(attendanceOverview.completionRate, 100))}%;"></span>
-      </div>
-      <strong>${escapeHtml(attendanceOverview.messageTitle)}</strong>
-      <p>${escapeHtml(attendanceOverview.messageCopy || "Vas avanzando en tu formación. Cada clase suma a tu futuro profesional.")}</p>
-    `;
-  });
+  renderStudentFileInfoList(miVeneziaResumenAsistencias, [
+    { label: "Asistencias", value: String(attendanceOverview.asistencias + attendanceOverview.recuperaciones), badge: true, tone: "green" },
+    { label: "Faltas", value: String(attendanceOverview.faltas), badge: true, tone: "red" },
+    { label: "Porcentaje", value: attendancePercent, highlight: true },
+    { label: "Permisos", value: String(attendanceOverview.permisos), badge: true, tone: "gold" },
+    {
+      label: "Último registro",
+      value: attendanceOverview.latestRegistered
+        ? `${attendanceOverview.latestRegistered.classLabel} · ${attendanceOverview.latestRegistered.resultLabel}`
+        : "Sin información disponible por ahora.",
+    },
+  ]);
 
-  hideMiVeneziaOpeningPanel();
+  const attendanceTableState = buildMiVeneziaAttendanceTableRows(
+    student,
+    attendanceCalendar,
+    miVeneziaAttendanceExpanded
+  );
+  miVeneziaAsistenciasBody.innerHTML = attendanceTableState.rows;
+  miVeneziaAsistenciasEmptyState.hidden = attendanceCalendar.length > 0;
+  if (miVeneziaAttendanceToggle) {
+    miVeneziaAttendanceToggle.hidden = !attendanceTableState.shouldShowToggle;
+    miVeneziaAttendanceToggle.textContent = miVeneziaAttendanceExpanded ? "Ver menos" : "Ver más";
+  }
+
+  miVeneziaPagosBody.innerHTML = paymentEntries
+    .map(
+      (entry) => `
+        <tr>
+          <td>${escapeHtml(entry.fecha || "-")}</td>
+          <td>${escapeHtml(entry.concepto || "-")}</td>
+          <td>${entry.monto > 0 ? formatCurrency(entry.monto) : "Sin información disponible por ahora."}</td>
+          <td>${escapeHtml(entry.estatus || "-")}</td>
+        </tr>
+      `
+    )
+    .join("");
+  miVeneziaPagosEmptyState.hidden = paymentEntries.length > 0;
+  miVeneziaProgressStatus.className = `mi-venezia-progress-status ${attendanceOverview.toneClass}`.trim();
+  miVeneziaProgressStatus.innerHTML = `
+    <div class="mi-venezia-progress-meter" aria-hidden="true">
+      <span class="mi-venezia-progress-meter-fill" style="width: ${Math.max(0, Math.min(attendanceOverview.completionRate, 100))}%;"></span>
+    </div>
+    <strong>${escapeHtml(attendanceOverview.messageTitle)}</strong>
+    <p>${escapeHtml(attendanceOverview.messageCopy || "Vas avanzando en tu formación. Cada clase suma a tu futuro profesional.")}</p>
+  `;
+
+  miVeneziaLoginPanel.hidden = true;
   miVeneziaDashboard.hidden = false;
-  miVeneziaDashboard.setAttribute("aria-busy", "false");
-  runMiVeneziaRenderGuard("renderMiVeneziaViewState", () => renderMiVeneziaViewState());
-  runMiVeneziaRenderGuard("resetMiVeneziaScrollPosition", () => resetMiVeneziaScrollPosition());
-  runMiVeneziaRenderGuard("studentSession:set", () => dataService.sessions.setStudent(student.id));
-  if (shouldTraceStudentPortalRender) {
-    appendAndroidDebugStep("Paso 9: portal listo", {
-      mode: compatiblePortalMode ? "compatible" : "full",
-      studentId: student.id,
-    });
-  }
-
-  const renderSecondarySections = () => {
-    renderMiVeneziaSecondarySections({
-      student,
-      documentsOverview,
-      paymentOverview,
-      attendanceOverview,
-      attendanceCalendar,
-      notices,
-      achievements,
-      scheduleEntries,
-      nextClassMetaParts,
-    });
-  };
-
-  if (compatiblePortalMode) {
-    window.setTimeout(renderSecondarySections, 0);
-    return;
-  }
-
-  renderSecondarySections();
+  renderMiVeneziaViewState();
+  resetMiVeneziaScrollPosition();
+  dataService.sessions.setStudent(student.id);
 }
 
 function logoutMiVenezia() {
   currentPortalStudentId = "";
   miVeneziaAttendanceExpanded = false;
   currentMiVeneziaView = "dashboard";
-  miVeneziaLoginInFlight = false;
   miVeneziaLoginForm.reset();
-  hideMiVeneziaOpeningPanel();
-  hideMiVeneziaMinimalDashboard();
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
   dataService.sessions.clearStudent();
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
-  setMiVeneziaLoginStatus("");
-  restoreMiVeneziaLoginSubmitButton("Ingresar");
 }
 
 async function handleMiVeneziaPasswordChange(event) {
@@ -13783,92 +13175,21 @@ openStudentPortalButton.addEventListener("click", () => {
 miVeneziaLoginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const formData = new FormData(miVeneziaLoginForm);
-  const rawLogin = String(formData.get("telefono") || "");
-  const login = normalizeStudentPortalLoginIdentifier(rawLogin);
+  const login = String(formData.get("telefono") || "").trim();
   const password = String(formData.get("password") || "");
-  const originalButtonLabel = miVeneziaLoginSubmitButton?.textContent || "Ingresar";
+  const student = getStudentPortalLoginMatch(login, password);
 
-  miVeneziaLoginInFlight = true;
-  setMiVeneziaLoginBusy("Validando acceso...");
-  appendAndroidDebugStep("Paso 1: submit recibido", {
-    rawLogin,
-  });
-
-  if (miVeneziaLoginUserField) {
-    miVeneziaLoginUserField.value = login;
+  if (!student) {
+    alert("Usuario o contraseña incorrectos.");
+    return;
   }
 
-  try {
-    appendAndroidDebugStep("Paso 2: credenciales normalizadas", {
-      login,
-      passwordLength: password.length,
-    });
-
-    setMiVeneziaLoginStatus("Buscando tu acceso...");
-    appendAndroidDebugStep("Paso 3: búsqueda de alumna", {
-      login,
-    });
-    const student = getStudentPortalLoginMatch(login, password);
-    if (!student) {
-      miVeneziaLoginInFlight = false;
-      setMiVeneziaLoginStatus("Usuario o contraseña incorrectos.", "error");
-      appendAndroidDebugStep("Paso 4: alumna no encontrada", {
-        login,
-      });
-      restoreMiVeneziaLoginSubmitButton(originalButtonLabel);
-      return;
-    }
-
-    appendAndroidDebugStep("Paso 4: alumna encontrada", {
-      studentId: student.id,
-      studentName: student.nombre || "",
-      portalUser: student.portalUser || "",
-    });
-
-    currentPortalStudentId = student.id;
-    miVeneziaAttendanceExpanded = false;
-    currentMiVeneziaView = "dashboard";
-    resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
-    dataService.sessions.setStudent(student.id);
-    appendAndroidDebugStep("Paso 5: sesión creada", {
-      studentId: student.id,
-    });
-
-    setMiVeneziaLoginStatus("Abriendo portal...");
-    showMiVeneziaOpeningPanel("Abriendo portal...", "Confirmamos tu acceso. Ahora estamos abriendo tu portal.");
-    appendAndroidDebugStep("Paso 6: cambio de vista solicitado", {
-      minimalMode: debugAndroidMinimalMode,
-    });
-
-    window.setTimeout(() => {
-      try {
-        if (debugAndroidMinimalMode) {
-          renderMiVeneziaMinimalDashboard();
-        } else {
-          renderMiVeneziaDashboard();
-        }
-
-        miVeneziaLoginInFlight = false;
-        miVeneziaLoginForm.reset();
-        setMiVeneziaLoginStatus("");
-        restoreMiVeneziaLoginSubmitButton(originalButtonLabel);
-      } catch (error) {
-        handleMiVeneziaLoginFailure({
-          login,
-          step: "renderMiVeneziaDashboard",
-          error,
-          restoreButtonLabel: originalButtonLabel,
-        });
-      }
-    }, 0);
-  } catch (error) {
-    handleMiVeneziaLoginFailure({
-      login,
-      step: "submit/validacion/login",
-      error,
-      restoreButtonLabel: originalButtonLabel,
-    });
-  }
+  currentPortalStudentId = student.id;
+  miVeneziaAttendanceExpanded = false;
+  currentMiVeneziaView = "dashboard";
+  resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+  renderMiVeneziaDashboard();
+  miVeneziaLoginForm.reset();
 });
 
 function handleMiVeneziaViewNavigation(event) {
@@ -13916,10 +13237,6 @@ if (miVeneziaAttendanceToggle) {
 
 miVeneziaPasswordForm.addEventListener("submit", handleMiVeneziaPasswordChange);
 teacherPortalPasswordForm.addEventListener("submit", handleTeacherPortalPasswordChange);
-
-if (miVeneziaMinimalLogoutButton) {
-  miVeneziaMinimalLogoutButton.addEventListener("click", logoutMiVenezia);
-}
 
 async function handleWebLeadSubmit(event) {
   console.log("WEB ENVIAR SOLICITUD CLICKED");
@@ -14643,21 +13960,6 @@ window.setInterval(() => {
   void refreshSharedSupabaseState();
 }, SHARED_DATA_REFRESH_INTERVAL_MS);
 
-if (debugAndroidMode) {
-  appendAndroidDebugStep("Modo debug Android activo", {
-    minimalMode: debugAndroidMinimalMode,
-    query: window.location.search,
-  });
-
-  window.addEventListener("error", (event) => {
-    appendAndroidDebugError("window.onerror", event.error || event.message || "Error desconocido");
-  });
-
-  window.addEventListener("unhandledrejection", (event) => {
-    appendAndroidDebugError("window.onunhandledrejection", event.reason || "Promesa rechazada");
-  });
-}
-
 async function initApp() {
   await refreshSharedSupabaseState({ force: true, render: false });
   teacherRecords = dataService.entities.teachers.getAll(() => []);
@@ -14676,9 +13978,6 @@ async function initApp() {
   resetAltaForm();
   resetBalanceExpenseForm();
   resetFinanceForm();
-  hideMiVeneziaOpeningPanel();
-  hideMiVeneziaMinimalDashboard();
-  setMiVeneziaLoginStatus("");
   updateWebAppointmentFields();
   currentInternalUserId = dataService.sessions.getInternal();
   currentPortalStudentId = dataService.sessions.getStudent();
