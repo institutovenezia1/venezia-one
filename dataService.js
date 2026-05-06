@@ -21,9 +21,80 @@
     internalSession: "venezia-one-v2-internal-session",
     studentSession: "venezia-one-v2-mi-venezia-session",
   };
+  const volatileSessionStore = new Map();
+
+  function canUseStorage(storage, probeKey) {
+    if (!storage) {
+      return false;
+    }
+
+    try {
+      storage.setItem(probeKey, probeKey);
+      storage.removeItem(probeKey);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  const localStorageAvailable = canUseStorage(globalScope.localStorage, "__venezia_local_storage_probe__");
+  const sessionStorageAvailable = canUseStorage(globalScope.sessionStorage, "__venezia_session_storage_probe__");
 
   function getStorage() {
     return globalScope.localStorage;
+  }
+
+  function getSessionPersistenceStorage() {
+    if (sessionStorageAvailable) {
+      return globalScope.sessionStorage;
+    }
+
+    if (localStorageAvailable) {
+      return globalScope.localStorage;
+    }
+
+    return null;
+  }
+
+  function readSessionValue(key) {
+    const storage = getSessionPersistenceStorage();
+    if (storage) {
+      try {
+        return storage.getItem(key) || "";
+      } catch (error) {
+        console.warn(`No se pudo leer la sesión ${key} desde storage persistente.`, error);
+      }
+    }
+
+    return volatileSessionStore.get(key) || "";
+  }
+
+  function writeSessionValue(key, value) {
+    const storage = getSessionPersistenceStorage();
+    if (storage) {
+      try {
+        storage.setItem(key, value);
+        volatileSessionStore.delete(key);
+        return;
+      } catch (error) {
+        console.warn(`No se pudo guardar la sesión ${key} en storage persistente.`, error);
+      }
+    }
+
+    volatileSessionStore.set(key, String(value || ""));
+  }
+
+  function removeSessionValue(key) {
+    const storage = getSessionPersistenceStorage();
+    if (storage) {
+      try {
+        storage.removeItem(key);
+      } catch (error) {
+        console.warn(`No se pudo limpiar la sesión ${key} en storage persistente.`, error);
+      }
+    }
+
+    volatileSessionStore.delete(key);
   }
 
   function readCollection(key, fallbackFactory) {
@@ -994,13 +1065,13 @@
         globalScope.localStorage.removeItem(STORAGE_KEYS.internalSession);
       },
       getStudent() {
-        return globalScope.sessionStorage.getItem(STORAGE_KEYS.studentSession) || "";
+        return readSessionValue(STORAGE_KEYS.studentSession);
       },
       setStudent(value) {
-        globalScope.sessionStorage.setItem(STORAGE_KEYS.studentSession, value);
+        writeSessionValue(STORAGE_KEYS.studentSession, value);
       },
       clearStudent() {
-        globalScope.sessionStorage.removeItem(STORAGE_KEYS.studentSession);
+        removeSessionValue(STORAGE_KEYS.studentSession);
       },
     },
   };

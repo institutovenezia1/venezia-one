@@ -448,6 +448,8 @@ const financeHistoricalMeta = document.getElementById("financeHistoricalMeta");
 const financeHistoricalTableBody = document.getElementById("financeHistoricalTableBody");
 const financeHistoricalEmptyState = document.getElementById("financeHistoricalEmptyState");
 const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
+const miVeneziaLoginUserField = document.getElementById("miVeneziaTelefono");
+const miVeneziaLoginSubmitButton = miVeneziaLoginForm?.querySelector('button[type="submit"]') || null;
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
 const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
@@ -1631,9 +1633,23 @@ function resetPortalPasswordForm(form, feedbackElement) {
   setPortalPasswordFeedback(feedbackElement);
 }
 
+function stripDiacritics(value) {
+  const normalized = String(value || "");
+
+  if (typeof normalized.normalize !== "function") {
+    return normalized;
+  }
+
+  try {
+    return normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  } catch (error) {
+    console.warn("No se pudo normalizar texto con diacríticos.", error);
+    return normalized;
+  }
+}
+
 function normalizeInternalLookupValue(value) {
-  return String(value || "")
-    .normalize("NFD")
+  return stripDiacritics(value)
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
@@ -1801,9 +1817,7 @@ function getStaffBirthYear(value) {
 }
 
 function slugifyStaffUsername(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return stripDiacritics(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "")
     .trim();
@@ -1946,9 +1960,7 @@ function saveTeacherPaymentsCollection() {
 }
 
 function normalizeTeacherSpecialty(value) {
-  const normalized = String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  const normalized = stripDiacritics(value)
     .trim()
     .toLowerCase();
 
@@ -1971,9 +1983,7 @@ function normalizeTeacherCoverageSpecialty(value) {
 }
 
 function normalizeTeacherShift(value) {
-  const normalized = String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  const normalized = stripDiacritics(value)
     .trim()
     .toLowerCase();
 
@@ -1984,9 +1994,7 @@ function normalizeTeacherShift(value) {
 }
 
 function normalizeTeacherAttendanceStatus(value) {
-  const normalized = String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  const normalized = stripDiacritics(value)
     .trim()
     .toLowerCase();
 
@@ -2031,9 +2039,7 @@ function getTeacherSpecialtyDisplay(record) {
 }
 
 function normalizeTeacherPosition(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return stripDiacritics(value)
     .trim()
     .toLowerCase();
 }
@@ -2175,9 +2181,7 @@ function findMatchingStaffForTeacherRecord(record) {
     }
   }
 
-  const normalizedName = getTeacherDisplayName(record)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  const normalizedName = stripDiacritics(getTeacherDisplayName(record))
     .trim()
     .toLowerCase();
   const normalizedBranch = String(record.sucursal || "").trim().toLowerCase();
@@ -2186,9 +2190,7 @@ function findMatchingStaffForTeacherRecord(record) {
       if (!isEligibleTeacherStaffPosition(staffRecord.puesto)) {
         return false;
       }
-      const staffName = String(staffRecord.nombre || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+      const staffName = stripDiacritics(String(staffRecord.nombre || ""))
         .trim()
         .toLowerCase();
       const sameBranch =
@@ -3685,9 +3687,7 @@ function formatMonthLabelEs(monthValue) {
 }
 
 function normalizeLooseText(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return stripDiacritics(value)
     .trim()
     .toLowerCase();
 }
@@ -10588,7 +10588,7 @@ function openStudentFile(studentId) {
 }
 
 function getStudentPortalLoginMatch(identifier, password) {
-  const normalizedIdentifier = String(identifier || "").trim().toLowerCase();
+  const normalizedIdentifier = normalizeStudentPortalLoginIdentifier(identifier);
   const normalizedPassword = String(password || "");
   if (!normalizedIdentifier || !normalizedPassword) {
     return null;
@@ -10598,9 +10598,15 @@ function getStudentPortalLoginMatch(identifier, password) {
     if (isStudentDeleted(student)) {
       return false;
     }
-    const portalUser = String(student.portalUser || "").trim().toLowerCase();
+    const portalUser = normalizeStudentPortalLoginIdentifier(student.portalUser || student.telefono || "");
     return portalUser === normalizedIdentifier && String(student.portalPassword || "") === normalizedPassword;
   }) || null;
+}
+
+function normalizeStudentPortalLoginIdentifier(value) {
+  const rawValue = String(value || "").trim();
+  const digits = normalizePhone(rawValue);
+  return digits || rawValue.toLowerCase();
 }
 
 function getStudentPaymentEntries(student) {
@@ -10989,9 +10995,7 @@ const PORTAL_THEME_AVATAR_SOURCES = {
 };
 
 function normalizePortalThemeName(value) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  return stripDiacritics(value)
     .toLowerCase()
     .replace(/[^a-z\s]/g, " ")
     .replace(/\s+/g, " ")
@@ -11470,7 +11474,27 @@ function setMiVeneziaView(view) {
 }
 
 function resetMiVeneziaScrollPosition() {
-  requestAnimationFrame(() => {
+  const runOnNextFrame =
+    typeof window.requestAnimationFrame === "function"
+      ? window.requestAnimationFrame.bind(window)
+      : (callback) => window.setTimeout(callback, 16);
+
+  const safeWindowScrollToTop = () => {
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    } catch (error) {
+      console.warn("Scroll suave no compatible; se usa fallback para Mi Venezia.", error);
+    }
+
+    try {
+      window.scrollTo(0, 0);
+    } catch (fallbackError) {
+      console.warn("No se pudo reposicionar el scroll principal de Mi Venezia.", fallbackError);
+    }
+  };
+
+  runOnNextFrame(() => {
     if (mainContentShell && typeof mainContentShell.scrollTo === "function") {
       mainContentShell.scrollTo(0, 0);
     }
@@ -11482,7 +11506,7 @@ function resetMiVeneziaScrollPosition() {
     }
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    safeWindowScrollToTop();
   });
 }
 
@@ -13152,21 +13176,61 @@ openStudentPortalButton.addEventListener("click", () => {
 miVeneziaLoginForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const formData = new FormData(miVeneziaLoginForm);
-  const login = String(formData.get("telefono") || "").trim();
+  const login = normalizeStudentPortalLoginIdentifier(formData.get("telefono"));
   const password = String(formData.get("password") || "");
-  const student = getStudentPortalLoginMatch(login, password);
+  const originalButtonLabel = miVeneziaLoginSubmitButton?.textContent || "Ingresar";
 
-  if (!student) {
-    alert("Usuario o contraseña incorrectos.");
-    return;
+  if (miVeneziaLoginUserField) {
+    miVeneziaLoginUserField.value = login;
   }
 
-  currentPortalStudentId = student.id;
-  miVeneziaAttendanceExpanded = false;
-  currentMiVeneziaView = "dashboard";
-  resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
-  renderMiVeneziaDashboard();
-  miVeneziaLoginForm.reset();
+  if (miVeneziaLoginSubmitButton) {
+    miVeneziaLoginSubmitButton.disabled = true;
+    miVeneziaLoginSubmitButton.textContent = "Ingresando...";
+  }
+
+  try {
+    console.info("[Mi Venezia] Intento de login", {
+      login,
+      currentAccessMode,
+      currentPortalStudentId,
+    });
+
+    const student = getStudentPortalLoginMatch(login, password);
+    if (!student) {
+      alert("Usuario o contraseña incorrectos.");
+      return;
+    }
+
+    console.info("[Mi Venezia] Login validado", {
+      studentId: student.id,
+      studentName: student.nombre || "",
+      portalUser: student.portalUser || "",
+    });
+
+    currentPortalStudentId = student.id;
+    miVeneziaAttendanceExpanded = false;
+    currentMiVeneziaView = "dashboard";
+    resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+    renderMiVeneziaDashboard();
+    miVeneziaLoginForm.reset();
+  } catch (error) {
+    currentPortalStudentId = "";
+    dataService.sessions.clearStudent();
+    miVeneziaLoginPanel.hidden = false;
+    miVeneziaDashboard.hidden = true;
+    console.error("[Mi Venezia] Login Android/mobile flow failed", {
+      login,
+      error: error?.message || String(error),
+      stack: error?.stack || "",
+    });
+    alert("No se pudo completar el acceso de Mi Venezia en este dispositivo. Intenta de nuevo.");
+  } finally {
+    if (miVeneziaLoginSubmitButton) {
+      miVeneziaLoginSubmitButton.disabled = false;
+      miVeneziaLoginSubmitButton.textContent = originalButtonLabel;
+    }
+  }
 });
 
 function handleMiVeneziaViewNavigation(event) {

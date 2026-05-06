@@ -2103,12 +2103,31 @@
             <form id="miVeneziaLoginForm" class="prospect-form">
               <label>
                 <span>Usuario Mi Venezia</span>
-                <input id="miVeneziaTelefono" name="telefono" type="text" required />
+                <input
+                  id="miVeneziaTelefono"
+                  name="telefono"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="username"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  required
+                />
               </label>
 
               <label>
                 <span>Contraseña</span>
-                <input id="miVeneziaPassword" name="password" type="password" required />
+                <input
+                  id="miVeneziaPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  required
+                />
               </label>
 
               <div class="form-actions full-width">
