@@ -100,6 +100,17 @@ const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
 const ALTA_FINANCE_SOURCE = "altas";
 const ALTA_INSCRIPTION_CONCEPT_KEY = "inscription_payment";
 const ALTA_INSCRIPTION_CONCEPT_LABEL = "Pago de inscripción";
+const PAYMENT_CAPTURE_MUTATION_FIELDS = new Set([
+  "certificadoP1",
+  "certificadoP2",
+  "mensualidad1",
+  "mensualidad2",
+  "mensualidad3",
+  "mensualidad4",
+  "mensualidad5",
+  "cantidadPagada",
+  "metodoPago",
+]);
 const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "SELENE ABREGON GUILLEN",
   "ADRIANA PRIETO ZAMORANO",
@@ -1268,27 +1279,12 @@ function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {},
     return false;
   }
 
-  if (getStoredPaymentRealDate(currentRecord)) {
-    return false;
-  }
-
-  if (!isRealPaidPaymentRecord(currentRecord)) {
+  const hasCaptureMutation = detectedChanges.some((change) => PAYMENT_CAPTURE_MUTATION_FIELDS.has(change.field));
+  if (hasCaptureMutation) {
     return true;
   }
 
-  const paymentMutationFields = new Set([
-    "certificadoP1",
-    "certificadoP2",
-    "mensualidad1",
-    "mensualidad2",
-    "mensualidad3",
-    "mensualidad4",
-    "mensualidad5",
-    "cantidadPagada",
-    "metodoPago",
-  ]);
-
-  return detectedChanges.some((change) => paymentMutationFields.has(change.field)) && !isRealPaidPaymentRecord(currentRecord);
+  return !getStoredPaymentRealDate(currentRecord) && !isRealPaidPaymentRecord(currentRecord);
 }
 
 async function savePaymentRecord(record) {
@@ -5647,6 +5643,60 @@ function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
     });
 }
 
+function getIsoDateValue(value) {
+  return String(value || "").slice(0, 10);
+}
+
+function getLatestDateValue(values = []) {
+  return values
+    .map((value) => getIsoDateValue(value))
+    .filter(Boolean)
+    .sort((left, right) => left.localeCompare(right))
+    .pop() || "";
+}
+
+function getReconciledPaymentRealDate(record, linkedFinanceRecords = []) {
+  if (!isRealPaidPaymentRecord(record)) {
+    return "";
+  }
+
+  const storedDate = getStoredPaymentRealDate(record);
+  const latestKnownDate = getLatestDateValue([
+    record.updatedAt,
+    record.createdAt,
+    ...linkedFinanceRecords.map((financeRecord) => financeRecord.createdAt),
+  ]);
+
+  if (!latestKnownDate) {
+    return "";
+  }
+
+  if (!storedDate) {
+    return latestKnownDate;
+  }
+
+  if (latestKnownDate <= storedDate) {
+    return "";
+  }
+
+  const linkedFinanceDates = linkedFinanceRecords.map((financeRecord) => getIsoDateValue(financeRecord.fecha)).filter(Boolean);
+  const allLinkedFinanceMatchStored =
+    linkedFinanceDates.length === 0 || linkedFinanceDates.every((financeDate) => financeDate === storedDate);
+  const hasFreshLinkedFinanceWrite = linkedFinanceRecords.some(
+    (financeRecord) => getIsoDateValue(financeRecord.createdAt) >= latestKnownDate
+  );
+
+  if (!allLinkedFinanceMatchStored) {
+    return "";
+  }
+
+  if (linkedFinanceRecords.length === 0) {
+    return latestKnownDate;
+  }
+
+  return hasFreshLinkedFinanceWrite ? latestKnownDate : "";
+}
+
 function getPaymentEffectiveDate(record) {
   const storedRealDate = getStoredPaymentRealDate(record);
   if (storedRealDate) {
@@ -5683,7 +5733,7 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
 
   return {
     id: existingFinanceRecord?.id || crypto.randomUUID(),
-    fecha: existingFinanceRecord?.fecha || getPaymentEffectiveDate(paymentRecord),
+    fecha: getPaymentEffectiveDate(paymentRecord),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
     categoria: getPaymentFinanceCategory(paymentRecord),
@@ -5921,6 +5971,21 @@ function auditPaymentFinanceLinks({
   const missingStoredPaymentDate = payments.filter(
     (record) => isRealPaidPaymentRecord(record) && !getStoredPaymentRealDate(record)
   );
+  const stalePaymentRealDate = payments
+    .map((record) => {
+      const linkedRecords = linkedFinanceByPaymentId.get(record.id) || [];
+      const reconciledPaymentRealDate = getReconciledPaymentRealDate(record, linkedRecords);
+      if (!reconciledPaymentRealDate) {
+        return null;
+      }
+
+      return {
+        paymentRecord: record,
+        linkedFinanceRecords: linkedRecords,
+        reconciledPaymentRealDate,
+      };
+    })
+    .filter(Boolean);
   const ineligibleLinkedFinance = finance
     .filter((record) => {
       if (!record.relatedPaymentId) {
@@ -5939,6 +6004,7 @@ function auditPaymentFinanceLinks({
     duplicateLinkedFinance,
     orphanLinkedFinance,
     missingStoredPaymentDate,
+    stalePaymentRealDate,
     ineligibleLinkedFinance,
   };
 }
@@ -5949,6 +6015,7 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
     findings.duplicateLinkedFinance.length === 0 &&
     findings.orphanLinkedFinance.length === 0 &&
     findings.missingStoredPaymentDate.length === 0 &&
+    findings.stalePaymentRealDate.length === 0 &&
     findings.ineligibleLinkedFinance.length === 0
   ) {
     return findings;
@@ -5974,6 +6041,14 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
       studentId: record.studentId,
       fallbackDate: getLegacyPaymentRealDateFallback(record),
     })),
+    stalePaymentRealDate: findings.stalePaymentRealDate.map(({ paymentRecord, linkedFinanceRecords, reconciledPaymentRealDate }) => ({
+      paymentId: paymentRecord.id,
+      studentId: paymentRecord.studentId,
+      storedPaymentRealDate: getStoredPaymentRealDate(paymentRecord),
+      updatedAt: paymentRecord.updatedAt || "",
+      linkedFinanceRecordIds: linkedFinanceRecords.map((record) => record.id),
+      reconciledPaymentRealDate,
+    })),
     ineligibleLinkedFinance: findings.ineligibleLinkedFinance.map(({ financeRecord, paymentRecord }) => ({
       financeRecordId: financeRecord.id,
       paymentId: financeRecord.relatedPaymentId,
@@ -5987,6 +6062,36 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
 async function reconcilePaymentFinanceRecords() {
   const findings = auditPaymentFinanceLinks();
   const studentsById = new Map(students.map((student) => [student.id, student]));
+
+  for (const finding of findings.stalePaymentRealDate) {
+    const patchedPaymentRecord = {
+      ...finding.paymentRecord,
+      paymentRealDate: finding.reconciledPaymentRealDate,
+    };
+    const paymentSaveResult = await savePaymentRecord(patchedPaymentRecord);
+    if (!paymentSaveResult.synced) {
+      console.error("No se pudo reconciliar la fecha real persistida del pago.", {
+        paymentId: finding.paymentRecord.id,
+        studentId: finding.paymentRecord.studentId,
+        reconciledPaymentRealDate: finding.reconciledPaymentRealDate,
+        error: paymentSaveResult.error,
+      });
+      break;
+    }
+
+    const financeSyncResult = await syncPaymentFinanceRecord(paymentSaveResult.record, {
+      student: studentsById.get(paymentSaveResult.record.studentId) || null,
+    });
+    if (!financeSyncResult.synced) {
+      console.error("No se pudo reconciliar la fecha del movimiento financiero ligado al pago.", {
+        paymentId: paymentSaveResult.record.id,
+        studentId: paymentSaveResult.record.studentId,
+        reconciledPaymentRealDate: finding.reconciledPaymentRealDate,
+        error: financeSyncResult.error,
+      });
+      break;
+    }
+  }
 
   for (const record of findings.missingLinkedFinance) {
     const syncResult = await syncPaymentFinanceRecord(record, {
