@@ -213,19 +213,33 @@
         const existingRecords = localService.getAll(fallbackFactory);
         let normalizedRecord = record;
         if (table === "student_payments") {
-          const existingRecordByStudentId = existingRecords.find(
-            (item) => item.studentId === record.studentId && item.id !== record.id
+          const targetMonth = String(record.mesPago || "").trim();
+          const getPaymentMonthKey = (item) => {
+            if (item?.mesPago) {
+              return String(item.mesPago).trim();
+            }
+
+            const timestamp = String(item?.updatedAt || item?.createdAt || "").slice(0, 7);
+            return timestamp || "";
+          };
+          const existingRecordByStudentAndMonth = existingRecords.find(
+            (item) =>
+              item.studentId === record.studentId &&
+              item.id !== record.id &&
+              getPaymentMonthKey(item) &&
+              getPaymentMonthKey(item) === targetMonth
           );
-          if (existingRecordByStudentId?.id) {
+          if (existingRecordByStudentAndMonth?.id) {
             normalizedRecord = {
               ...record,
-              id: existingRecordByStudentId.id,
-              createdAt: record.createdAt || existingRecordByStudentId.createdAt || null,
+              id: existingRecordByStudentAndMonth.id,
+              createdAt: record.createdAt || existingRecordByStudentAndMonth.createdAt || null,
             };
-            console.log('Supabase payment existing row reused before upsert:', {
+            console.log('Supabase payment existing month row reused before upsert:', {
               studentId: record.studentId || "",
+              targetMonth,
               previousId: record.id || "",
-              reusedId: existingRecordByStudentId.id,
+              reusedId: existingRecordByStudentAndMonth.id,
             });
           }
         }

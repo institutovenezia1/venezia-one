@@ -1272,7 +1272,7 @@ function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {},
     return false;
   }
 
-  if (detectedChanges.length === 0) {
+  if (!isRealPaidPaymentRecord(currentRecord)) {
     return true;
   }
 
@@ -1288,7 +1288,7 @@ function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {},
     "metodoPago",
   ]);
 
-  return detectedChanges.some((change) => paymentMutationFields.has(change.field));
+  return detectedChanges.some((change) => paymentMutationFields.has(change.field)) && !isRealPaidPaymentRecord(currentRecord);
 }
 
 async function savePaymentRecord(record) {
@@ -5296,6 +5296,11 @@ function getStoredPaymentRealDate(record) {
 }
 
 function getLegacyPaymentRealDateFallback(record) {
+  const updatedDate = String(record?.updatedAt || "").slice(0, 10);
+  if (updatedDate) {
+    return updatedDate;
+  }
+
   const createdDate = String(record?.createdAt || "").slice(0, 10);
   if (createdDate) {
     return createdDate;
@@ -5314,7 +5319,7 @@ function resolvePaymentRealDate(currentRecord, nextRecord) {
   }
 
   if (!isRealPaidPaymentRecord(currentRecord)) {
-    return formatDateForInput(new Date());
+    return getCurrentMexicoDateValue();
   }
 
   return getLegacyPaymentRealDateFallback(currentRecord || nextRecord);
@@ -8796,20 +8801,13 @@ function getExistingPaymentRowForSave(studentId, month = selectedPaymentsMonth) 
     };
   }
 
-  const latestActualRecord = getCanonicalPaymentRecordForStudent(studentId);
-  if (isUuidValue(latestActualRecord?.id)) {
+  const legacyMonthRecord = getPaymentRecordsForStudentIdentity(studentId).find(
+    (record) => isUuidValue(record?.id) && !record.mesPago && getPaymentRecordMonth(record) === month
+  );
+  if (isUuidValue(legacyMonthRecord?.id)) {
     return {
-      record: latestActualRecord,
-      source: "latestActualRecord",
-    };
-  }
-
-  const fallbackRecord =
-    getPaymentRecordsForStudentIdentity(studentId).find((record) => isUuidValue(record?.id)) || null;
-  if (fallbackRecord) {
-    return {
-      record: fallbackRecord,
-      source: "identityFallbackRecord",
+      record: legacyMonthRecord,
+      source: "legacyMonthRecord",
     };
   }
 
