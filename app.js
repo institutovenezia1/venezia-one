@@ -11761,6 +11761,10 @@ function renderMiVeneziaDashboard() {
     return;
   }
 
+  miVeneziaLoginPanel.hidden = true;
+  miVeneziaDashboard.hidden = false;
+  miVeneziaDashboard.setAttribute("aria-busy", "true");
+
   const payment = getPaymentRecord(student.id);
   const latestPayment = getLatestPaymentRecordForStudent(student.id);
   const paymentEntries = getStudentPaymentEntries(student);
@@ -11962,8 +11966,7 @@ function renderMiVeneziaDashboard() {
     <p>${escapeHtml(attendanceOverview.messageCopy || "Vas avanzando en tu formación. Cada clase suma a tu futuro profesional.")}</p>
   `;
 
-  miVeneziaLoginPanel.hidden = true;
-  miVeneziaDashboard.hidden = false;
+  miVeneziaDashboard.setAttribute("aria-busy", "false");
   renderMiVeneziaViewState();
   resetMiVeneziaScrollPosition();
   dataService.sessions.setStudent(student.id);
@@ -13219,6 +13222,7 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
     dataService.sessions.clearStudent();
     miVeneziaLoginPanel.hidden = false;
     miVeneziaDashboard.hidden = true;
+    miVeneziaDashboard.setAttribute("aria-busy", "false");
     console.error("[Mi Venezia] Login Android/mobile flow failed", {
       login,
       error: error?.message || String(error),
