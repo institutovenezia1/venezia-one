@@ -2133,11 +2133,46 @@
               <div class="form-actions full-width">
                 <button class="primary-btn" type="submit">Ingresar</button>
               </div>
+
+              <div id="miVeneziaLoginStatus" class="portal-inline-status" hidden aria-live="polite"></div>
             </form>
 
             <p class="empty-state">
               Ingresa con el usuario y la contraseña generados en Altas para acceder a tu portal.
             </p>
+          </section>
+
+          <section class="panel student-opening-panel" id="miVeneziaOpeningPanel" hidden aria-live="polite" aria-busy="false">
+            <div class="section-heading">
+              <p class="eyebrow">Abriendo Mi Venezia</p>
+              <h3 id="miVeneziaOpeningTitle">Validando acceso...</h3>
+            </div>
+            <p id="miVeneziaOpeningMessage" class="student-opening-copy">
+              Estamos preparando tu portal.
+            </p>
+          </section>
+
+          <section class="panel student-minimal-dashboard" id="miVeneziaMinimalDashboard" hidden>
+            <div class="section-heading">
+              <p class="eyebrow">Modo mínimo</p>
+              <h3 id="miVeneziaMinimalTitle">Mi Venezia</h3>
+            </div>
+            <p id="miVeneziaMinimalMessage" class="student-opening-copy">
+              Este modo confirma que el login sí abrió el portal y aísla el render completo.
+            </p>
+            <div class="info-list">
+              <div class="info-item">
+                <strong>Alumna</strong>
+                <span id="miVeneziaMinimalStudentName">-</span>
+              </div>
+              <div class="info-item">
+                <strong>Curso</strong>
+                <span id="miVeneziaMinimalStudentCourse">-</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="secondary-btn" type="button" id="miVeneziaMinimalLogoutButton">Cerrar sesión</button>
+            </div>
           </section>
 
           <section class="module-section-inner student-dashboard" id="miVeneziaDashboard" hidden>
@@ -2681,6 +2716,12 @@
               </div>
             </div>
           </section>
+
+          <aside id="androidDebugPanel" class="portal-debug-panel" hidden aria-live="polite">
+            <strong class="portal-debug-title">Android Debug</strong>
+            <p id="androidDebugCurrentStep" class="portal-debug-current">Esperando interacción…</p>
+            <pre id="androidDebugLog" class="portal-debug-log"></pre>
+          </aside>
         </section>
 
         <section class="module-section" id="teacherPortalSection">
