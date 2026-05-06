@@ -484,6 +484,7 @@
       "Fecha de nacimiento",
       "Usuario de acceso",
       "Contraseña temporal",
+      "Cobertura Mi Venezia",
     ]);
 
     return String(notes || "")
@@ -502,6 +503,7 @@
       record.fechaNacimiento ? `Fecha de nacimiento: ${record.fechaNacimiento}` : "",
       record.username ? `Usuario de acceso: ${record.username}` : "",
       record.password ? `Contraseña temporal: ${record.password}` : "",
+      record.contactScheduleScope ? `Cobertura Mi Venezia: ${record.contactScheduleScope}` : "",
     ]
       .filter(Boolean)
       .join(" | ");
@@ -899,6 +901,7 @@
           fechaNacimiento: extractStaffMetadata(record.notes, "Fecha de nacimiento"),
           username: extractStaffMetadata(record.notes, "Usuario de acceso"),
           password: extractStaffMetadata(record.notes, "Contraseña temporal"),
+          contactScheduleScope: extractStaffMetadata(record.notes, "Cobertura Mi Venezia"),
           observaciones: stripStaffMetadata(record.notes || ""),
           createdAt: record.created_at || null,
         }),

@@ -56,6 +56,12 @@ const STUDENT_LIFECYCLE_STATUS = {
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería", "COORD de maestras"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
+const DIRECTOR_CONTACT_SCOPE_OPTIONS = [
+  { value: "", label: "Sin definir / único responsable" },
+  { value: "all", label: "Toda la sucursal" },
+  { value: "weekday", label: "Entre semana" },
+  { value: "weekend", label: "Fin de semana" },
+];
 const TEACHER_ATTENDANCE_STATUS_OPTIONS = ["Asistió", "Falta", "Permiso"];
 const TEACHER_OPERATIONAL_STATUS_OPTIONS = ["Activo", "Inactivo"];
 const TEACHER_PAYMENT_TYPE = "Por turnos trabajados";
@@ -639,6 +645,9 @@ const DASHBOARD_ADVISORS = [
 
 const DASHBOARD_BRANCHES = ["Tlaxcala", "Puebla"];
 const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
+const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
+  { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" },
+];
 const WEB_DEFAULT_COURSES = [
   {
     name: "Uñas",
@@ -4918,6 +4927,7 @@ function getStaffFormData() {
     fechaIngreso: formData.get("fechaIngreso"),
     fechaNacimiento: String(formData.get("fechaNacimiento") || "").trim(),
     estado: formData.get("estado"),
+    contactScheduleScope: normalizeDirectorContactScope(formData.get("contactScheduleScope")),
     linkedUserId: String(formData.get("linkedUserId") || "").trim(),
     username,
     password,
@@ -5255,6 +5265,7 @@ function resetStaffForm() {
   document.getElementById("staffId").value = "";
   document.getElementById("staffLinkedUser").value = "";
   document.getElementById("staffFechaIngreso").value = formatDateForInput(new Date());
+  document.getElementById("staffContactScheduleScope").value = "";
   staffSubmitButton.textContent = "Guardar personal";
   syncStaffAccessFields();
 }
@@ -6811,6 +6822,7 @@ function renderStaffTable() {
           <td>${escapeHtml(record.puesto)}</td>
           <td>${escapeHtml(record.area)}</td>
           <td>${escapeHtml(record.sucursal)}</td>
+          <td>${escapeHtml(getDirectorContactScopeLabel(record.contactScheduleScope))}</td>
           <td>${escapeHtml(record.fechaIngreso)}</td>
           <td><span class="status-pill">${escapeHtml(record.estado)}</span></td>
           <td>${escapeHtml(getStaffAccessLabel(record))}</td>
@@ -6890,6 +6902,7 @@ function editStaffRecord(id) {
   document.getElementById("staffFechaIngreso").value = record.fechaIngreso;
   document.getElementById("staffFechaNacimiento").value = record.fechaNacimiento || "";
   document.getElementById("staffEstado").value = record.estado;
+  document.getElementById("staffContactScheduleScope").value = normalizeDirectorContactScope(record.contactScheduleScope);
   document.getElementById("staffLinkedUser").value = record.linkedUserId || "";
   staffAccessUsername.value = record.username || "";
   staffTemporaryPassword.value = record.password || "";
@@ -7216,6 +7229,184 @@ function classifyAltaScheduleType(student) {
     return "weekday";
   }
   return "unknown";
+}
+
+function normalizeDirectorContactScope(value) {
+  const normalizedValue = normalizeLooseText(value);
+  if (!normalizedValue) {
+    return "";
+  }
+  if (normalizedValue === "all" || normalizedValue.includes("toda la sucursal") || normalizedValue.includes("general")) {
+    return "all";
+  }
+  if (normalizedValue === "weekday" || normalizedValue.includes("entre semana")) {
+    return "weekday";
+  }
+  if (
+    normalizedValue === "weekend" ||
+    normalizedValue.includes("fin de semana") ||
+    normalizedValue.includes("sabado") ||
+    normalizedValue.includes("domingo") ||
+    normalizedValue.includes("viernes")
+  ) {
+    return "weekend";
+  }
+  return "";
+}
+
+function getDirectorContactScopeLabel(value) {
+  return DIRECTOR_CONTACT_SCOPE_OPTIONS.find((option) => option.value === normalizeDirectorContactScope(value))?.label || "Sin definir / único responsable";
+}
+
+function isDirectorInternalRole(role) {
+  return String(role || "").trim() === "Director de sucursal";
+}
+
+function getLinkedStaffRecordForInternalUser(user) {
+  if (!user) {
+    return null;
+  }
+
+  return (
+    staffRecords.find((record) => record.linkedUserId === user.id) ||
+    staffRecords.find((record) => record.username && record.username === user.username) ||
+    null
+  );
+}
+
+function getDirectorContactBootstrapRule(branch, scheduleType) {
+  const normalizedBranch = normalizeLooseText(branch);
+  const normalizedScheduleType = String(scheduleType || "").trim().toLowerCase();
+
+  return (
+    DIRECTOR_CONTACT_BOOTSTRAP_RULES.find(
+      (rule) =>
+        normalizeLooseText(rule.branch) === normalizedBranch &&
+        String(rule.scheduleType || "").trim().toLowerCase() === normalizedScheduleType
+    ) || null
+  );
+}
+
+function getDirectorContactCandidatesForBranch(branch) {
+  const normalizedBranch = normalizeLooseText(branch);
+  if (!normalizedBranch) {
+    return [];
+  }
+
+  const candidates = internalUsers
+    .filter((user) => String(user.status || "Activo").trim().toLowerCase() !== "inactivo")
+    .filter((user) => isDirectorInternalRole(user.role))
+    .map((user) => {
+      const linkedStaff = getLinkedStaffRecordForInternalUser(user);
+      const resolvedBranch = linkedStaff?.sucursal || user.branch || "";
+      const phone = normalizePhone(linkedStaff?.telefono || user.phone);
+      const coverage = normalizeDirectorContactScope(linkedStaff?.contactScheduleScope);
+      const position = linkedStaff?.puesto || user.role || "";
+      const name = linkedStaff?.nombre || user.fullName || "";
+
+      return {
+        userId: user.id,
+        branch: resolvedBranch,
+        phone,
+        coverage,
+        position,
+        name,
+      };
+    })
+    .filter((candidate) => normalizeLooseText(candidate.branch) === normalizedBranch)
+    .filter((candidate) => Boolean(candidate.phone) && String(candidate.name || "").trim());
+
+  const getPriority = (position) => {
+    const normalizedPosition = normalizeLooseText(position);
+    if (normalizedPosition === "director de sucursal") return 0;
+    if (normalizedPosition === "director administrativo de sucursal") return 1;
+    if (normalizedPosition === "gerente de sucursal") return 2;
+    return 99;
+  };
+
+  return candidates
+    .sort((left, right) => {
+      const priorityDiff = getPriority(left.position) - getPriority(right.position);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      return String(left.name || "").localeCompare(String(right.name || ""), "es-MX");
+    })
+    .filter((candidate, index, collection) => collection.findIndex((item) => item.userId === candidate.userId) === index);
+}
+
+function getUniquePhonesFromDirectorCandidates(candidates) {
+  return Array.from(new Set(candidates.map((candidate) => normalizePhone(candidate.phone)).filter(Boolean)));
+}
+
+function resolveDirectorContactByBranchAndSchedule(branch, scheduleType = "unknown") {
+  const candidates = getDirectorContactCandidatesForBranch(branch);
+  const uniquePhones = getUniquePhonesFromDirectorCandidates(candidates);
+
+  if (candidates.length === 1) {
+    return {
+      phone: candidates[0].phone,
+      source: "branch-single-director",
+      candidate: candidates[0],
+    };
+  }
+
+  if (candidates.length > 1) {
+    const scopedMatches =
+      scheduleType === "weekday" || scheduleType === "weekend"
+        ? candidates.filter((candidate) => candidate.coverage === scheduleType)
+        : [];
+    const scopedMatchPhones = getUniquePhonesFromDirectorCandidates(scopedMatches);
+    if (scopedMatches.length === 1 || scopedMatchPhones.length === 1) {
+      return {
+        phone: scopedMatches[0]?.phone || scopedMatchPhones[0] || "",
+        source: "branch-schedule-match",
+        candidate: scopedMatches[0] || null,
+      };
+    }
+
+    const generalMatches = candidates.filter((candidate) => candidate.coverage === "all");
+    const generalMatchPhones = getUniquePhonesFromDirectorCandidates(generalMatches);
+    if (generalMatches.length === 1 || generalMatchPhones.length === 1) {
+      return {
+        phone: generalMatches[0]?.phone || generalMatchPhones[0] || "",
+        source: "branch-general-director",
+        candidate: generalMatches[0] || null,
+      };
+    }
+
+    if (uniquePhones.length === 1) {
+      return {
+        phone: uniquePhones[0],
+        source: "branch-shared-phone",
+        candidate: candidates[0] || null,
+      };
+    }
+  }
+
+  const bootstrapRule = getDirectorContactBootstrapRule(branch, scheduleType);
+  if (bootstrapRule) {
+    return {
+      phone: normalizePhone(bootstrapRule.phone),
+      source: "bootstrap-rule",
+      candidate: null,
+    };
+  }
+
+  return {
+    phone: "",
+    source: candidates.length > 0 ? "ambiguous-branch-directors" : "missing-branch-director",
+    candidate: null,
+  };
+}
+
+function buildWhatsAppUrlWithMessage(phone, message) {
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone || normalizedPhone.length < 10) {
+    return "";
+  }
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 function hasPendingCourseStart(student, today = getCurrentMexicoDateValue()) {
@@ -10349,19 +10540,20 @@ function countStudentRegisteredPayments(student) {
 }
 
 function getStudentPortalWhatsappUrl(student) {
-  const branchLabel = student.sucursal ? ` de ${student.sucursal}` : "";
-  const message = encodeURIComponent(
-    `Hola, soy ${student.nombre || "estudiante"} y necesito apoyo con mi cuenta de Mi Venezia${branchLabel}.`
-  );
-  return `https://wa.me/${WEB_DEFAULT_WHATSAPP_NUMBER}?text=${message}`;
+  const branchLabel = student?.sucursal ? ` de ${student.sucursal}` : "";
+  const scheduleType = classifyAltaScheduleType(student);
+  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(student?.sucursal, scheduleType);
+  const message = `Hola, soy ${student?.nombre || "estudiante"} y necesito apoyo con mi cuenta de Mi Venezia${branchLabel}.`;
+
+  if (resolvedDirectorContact.phone) {
+    return buildWhatsAppUrlWithMessage(resolvedDirectorContact.phone, message);
+  }
+
+  return buildWhatsAppUrlWithMessage(WEB_DEFAULT_WHATSAPP_NUMBER, message);
 }
 
 function getStudentDirectorWhatsappUrl(student) {
-  const studentName = String(student?.nombre || "el estudiante").trim();
-  const message = encodeURIComponent(
-    `Hola directora, soy ${studentName} y tengo una duda sobre mi información en Mi Venezia.`
-  );
-  return `https://wa.me/522461379504?text=${message}`;
+  return getStudentPortalWhatsappUrl(student);
 }
 
 function isStudentPaymentPendingStatus(value) {
@@ -11948,10 +12140,14 @@ function getTeacherPortalRuleCards(profile) {
 function getTeacherDirectorWhatsappUrl(profile) {
   const teacherName = String(profile?.nombreCompleto || "la maestra").trim();
   const branchLabel = profile?.sucursal ? ` de ${profile.sucursal}` : "";
-  const message = encodeURIComponent(
-    `Hola Dirección, soy ${teacherName}${branchLabel} y tengo una duda sobre mi portal de maestras.`
-  );
-  return `https://wa.me/522461379504?text=${message}`;
+  const message = `Hola Dirección, soy ${teacherName}${branchLabel} y tengo una duda sobre mi portal de maestras.`;
+  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(profile?.sucursal, "unknown");
+
+  if (resolvedDirectorContact.phone) {
+    return buildWhatsAppUrlWithMessage(resolvedDirectorContact.phone, message);
+  }
+
+  return buildWhatsAppUrlWithMessage(WEB_DEFAULT_WHATSAPP_NUMBER, message);
 }
 
 function renderTeacherPortalDashboard() {
