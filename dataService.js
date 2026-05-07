@@ -3,6 +3,14 @@
 // - localStorage remains as cache/fallback for graceful offline behavior.
 // - all other entities still use localStorage until later migrations.
 (function initDataService(globalScope) {
+  function __veneziaGet(value, key) {
+    return value == null ? undefined : value[key];
+  }
+
+  function __veneziaCoalesce(value, fallback) {
+    return value == null ? fallback : value;
+  }
+
   const STORAGE_KEYS = {
     prospects: "venezia-one-v2-prospectos",
     students: "venezia-one-v2-altas",
@@ -184,7 +192,7 @@
     }
 
     async function selectAllFromSupabase() {
-      const client = globalScope.VeneziaSupabase?.client;
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
       if (!client) {
         throw new Error(`Supabase client unavailable for ${table}`);
       }
@@ -203,7 +211,7 @@
     }
 
     async function upsertManyToSupabase(records) {
-      const client = globalScope.VeneziaSupabase?.client;
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
       if (!client) {
         throw new Error(`Supabase client unavailable for ${table}`);
       }
@@ -294,11 +302,11 @@
         if (table === "student_payments") {
           const targetMonth = String(record.mesPago || "").trim();
           const getPaymentMonthKey = (item) => {
-            if (item?.mesPago) {
+            if (__veneziaGet(item, "mesPago")) {
               return String(item.mesPago).trim();
             }
 
-            const timestamp = String(item?.updatedAt || item?.createdAt || "").slice(0, 7);
+            const timestamp = String(__veneziaGet(item, "updatedAt") || __veneziaGet(item, "createdAt") || "").slice(0, 7);
             return timestamp || "";
           };
           const existingRecordByStudentAndMonth = existingRecords.find(
@@ -308,7 +316,7 @@
               getPaymentMonthKey(item) &&
               getPaymentMonthKey(item) === targetMonth
           );
-          if (existingRecordByStudentAndMonth?.id) {
+          if (__veneziaGet(existingRecordByStudentAndMonth, "id")) {
             normalizedRecord = {
               ...record,
               id: existingRecordByStudentAndMonth.id,
@@ -387,7 +395,7 @@
         const nextRecords = existingRecords.filter((record) => record.id !== id);
 
         try {
-          const client = globalScope.VeneziaSupabase?.client;
+          const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
           if (!client) {
             throw new Error(`Supabase client unavailable for ${table}`);
           }
@@ -445,7 +453,7 @@
   }
 
   function toNullableNumberValue(value) {
-    const normalized = String(value ?? "").trim();
+    const normalized = String(__veneziaCoalesce(value, "")).trim();
     if (!normalized) {
       return null;
     }
@@ -929,7 +937,7 @@
   globalScope.VeneziaDataService = {
     keys: STORAGE_KEYS,
     provider: "supabase+localStorage",
-    supabaseReady: Boolean(globalScope.VeneziaSupabase?.client),
+    supabaseReady: Boolean(__veneziaGet(globalScope.VeneziaSupabase, "client")),
     entities: {
       // Supabase-based modules:
       internalUsers: createSupabaseEntityService({

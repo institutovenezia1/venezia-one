@@ -1,3 +1,22 @@
+window.__veneziaAppScriptLoaded = true;
+window.__VENEZIA_APP_SCRIPT_LOADED = true;
+
+function __veneziaGet(value, key) {
+  return value == null ? undefined : value[key];
+}
+
+function __veneziaCoalesce(value, fallback) {
+  return value == null ? fallback : value;
+}
+
+function scrollWindowToTopCompat() {
+  try {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (error) {
+    window.scrollTo(0, 0);
+  }
+}
+
 const PROSPECTS_STORAGE_KEY = "venezia-one-v2-prospectos";
 const STUDENTS_STORAGE_KEY = "venezia-one-v2-altas";
 const ATTENDANCE_STORAGE_KEY = "venezia-one-v2-asistencias";
@@ -452,9 +471,9 @@ const financeHistoricalEmptyState = document.getElementById("financeHistoricalEm
 const miVeneziaLoginForm = document.getElementById("miVeneziaLoginForm");
 const miVeneziaLoginPanel = document.getElementById("miVeneziaLoginPanel");
 const miVeneziaDashboard = document.getElementById("miVeneziaDashboard");
-const miVeneziaShell = miVeneziaDashboard?.querySelector(".student-shell") || null;
+const miVeneziaShell = miVeneziaDashboard ? miVeneziaDashboard.querySelector(".student-shell") : null;
 const miVeneziaRoot = document.getElementById("miVeneziaPortal") || miVeneziaShell || miVeneziaDashboard;
-const miVeneziaStudentMain = miVeneziaDashboard?.querySelector(".student-main") || null;
+const miVeneziaStudentMain = miVeneziaDashboard ? miVeneziaDashboard.querySelector(".student-main") : null;
 const miVeneziaLogoutButton = document.getElementById("miVeneziaLogoutButton");
 const miVeneziaSidebarName = document.getElementById("miVeneziaSidebarName");
 const miVeneziaSidebarMeta = document.getElementById("miVeneziaSidebarMeta");
@@ -512,7 +531,7 @@ const miVeneziaConfirmContratoButton = document.getElementById("miVeneziaConfirm
 const miVeneziaPasswordForm = document.getElementById("miVeneziaPasswordForm");
 const miVeneziaPasswordFeedback = document.getElementById("miVeneziaPasswordFeedback");
 const miVeneziaPasswordSubmitButton = document.getElementById("miVeneziaPasswordSubmitButton");
-const miVeneziaLoginSubmitButton = miVeneziaLoginForm?.querySelector('button[type="submit"]') || null;
+const miVeneziaLoginSubmitButton = miVeneziaLoginForm ? miVeneziaLoginForm.querySelector('button[type="submit"]') : null;
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
@@ -834,7 +853,7 @@ async function saveStudentRecord(record) {
   const existingRecord = students.find((student) => student.id === record.id);
   const normalizedRecord = {
     ...record,
-    createdAt: existingRecord?.createdAt || record.createdAt || new Date().toISOString(),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || record.createdAt || new Date().toISOString(),
   };
 
   console.log('Altas module target table: "students"');
@@ -861,7 +880,7 @@ async function saveStudentRecord(record) {
     console.error('Supabase error for "students" write:', result.error);
     console.error(
       'Supabase error message for "students" write:',
-      result.error?.message || result.error?.details || String(result.error)
+      __veneziaGet(result.error, "message") || __veneziaGet(result.error, "details") || String(result.error)
     );
     console.warn("Alta write rejected because Supabase could not confirm the shared record.", {
       id: record.id,
@@ -976,7 +995,7 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
         requestId,
         force,
         render,
-        message: error?.message || error?.details || String(error),
+        message: __veneziaGet(error, "message") || __veneziaGet(error, "details") || String(error),
       });
       return false;
     })
@@ -1012,7 +1031,7 @@ async function saveAttendanceRecord(record) {
     console.error("ASISTENCIA error", result.error);
     console.error(
       "ASISTENCIA error message",
-      result.error?.message || result.error?.details || String(result.error)
+      __veneziaGet(result.error, "message") || __veneziaGet(result.error, "details") || String(result.error)
     );
     console.warn("Attendance saved only to local fallback cache after Supabase write failure.", {
       id: record.id,
@@ -1038,7 +1057,7 @@ function savePaymentRecords() {
 }
 
 function toNullablePaymentNumber(value) {
-  const normalized = String(value ?? "").trim();
+  const normalized = String(__veneziaCoalesce(value, "")).trim();
   if (!normalized) {
     return null;
   }
@@ -1094,15 +1113,15 @@ function buildPaymentSupabaseTrace({
   return {
     functionName,
     table,
-    paymentId: record?.id || payload?.id || "",
-    studentId: record?.studentId || payload?.student_id || "",
-    studentName: student?.nombre || "",
-    paymentMonth: record?.mesPago || "",
+    paymentId: __veneziaGet(record, "id") || __veneziaGet(payload, "id") || "",
+    studentId: __veneziaGet(record, "studentId") || __veneziaGet(payload, "student_id") || "",
+    studentName: __veneziaGet(student, "nombre") || "",
+    paymentMonth: __veneziaGet(record, "mesPago") || "",
     currentUser: {
-      id: currentUser?.id || "",
-      username: currentUser?.username || "",
-      role: currentUser?.role || "",
-      branch: currentUser?.branch || "",
+      id: __veneziaGet(currentUser, "id") || "",
+      username: __veneziaGet(currentUser, "username") || "",
+      role: __veneziaGet(currentUser, "role") || "",
+      branch: __veneziaGet(currentUser, "branch") || "",
       allowedBranch: getAllowedBranch(),
     },
     student: student
@@ -1114,11 +1133,11 @@ function buildPaymentSupabaseTrace({
       : null,
     payload: payload || null,
     rawResult: result || null,
-    status: result?.response?.status ?? error?.status ?? null,
-    statusText: result?.response?.statusText || error?.statusText || "",
-    message: error?.message || "",
-    details: error?.details || "",
-    hint: error?.hint || "",
+    status: __veneziaCoalesce(__veneziaGet(__veneziaGet(result, "response"), "status"), __veneziaCoalesce(__veneziaGet(error, "status"), null)),
+    statusText: __veneziaGet(__veneziaGet(result, "response"), "statusText") || __veneziaGet(error, "statusText") || "",
+    message: __veneziaGet(error, "message") || "",
+    details: __veneziaGet(error, "details") || "",
+    hint: __veneziaGet(error, "hint") || "",
     supabaseError: error
       ? {
           code: error.code || "",
@@ -1131,7 +1150,7 @@ function buildPaymentSupabaseTrace({
 }
 
 function registerPaymentComparisonTrace(trace) {
-  const studentName = String(trace?.studentName || "").trim().toUpperCase();
+  const studentName = String(__veneziaGet(trace, "studentName") || "").trim().toUpperCase();
   if (!PAYMENT_COMPARISON_STUDENT_NAMES.has(studentName)) {
     return;
   }
@@ -1162,11 +1181,11 @@ function buildVisiblePaymentConsoleTrace({
     studentId,
     paymentId,
     payload,
-    status: response?.status ?? error?.status ?? null,
-    statusText: response?.statusText || error?.statusText || "",
-    message: error?.message || "",
-    details: error?.details || "",
-    hint: error?.hint || "",
+    status: __veneziaCoalesce(__veneziaGet(response, "status"), __veneziaCoalesce(__veneziaGet(error, "status"), null)),
+    statusText: __veneziaGet(response, "statusText") || __veneziaGet(error, "statusText") || "",
+    message: __veneziaGet(error, "message") || "",
+    details: __veneziaGet(error, "details") || "",
+    hint: __veneziaGet(error, "hint") || "",
     rawResponse: response || null,
   };
 }
@@ -1208,7 +1227,7 @@ function summarizePaymentRecordForTrace(record = {}) {
 function summarizePaymentEligibilityForTrace(record = {}) {
   const paidConcepts = getPaidPaymentConcepts(record).map(({ key, label, movementLabel }) => ({
     field: key,
-    status: String(record?.[key] || "").trim(),
+    status: String(__veneziaGet(record, key) || "").trim(),
     label,
     movementLabel: movementLabel || label,
   }));
@@ -1221,13 +1240,13 @@ function summarizePaymentEligibilityForTrace(record = {}) {
     parsedAmount: parsePaymentAmount(record.cantidadPagada),
     paymentRealDate: getPaymentEffectiveDate(record),
     paidConcepts,
-    isRealPaid: Boolean(record?.id) && parsePaymentAmount(record?.cantidadPagada) > 0 && paidConcepts.length > 0,
+    isRealPaid: Boolean(__veneziaGet(record, "id")) && parsePaymentAmount(__veneziaGet(record, "cantidadPagada")) > 0 && paidConcepts.length > 0,
   };
 }
 
 function getTrackedPaymentSnapshots(studentsList = students) {
   return studentsList
-    .filter((student) => PAYMENT_TRACE_STUDENT_NAMES.has(String(student?.nombre || "").trim().toUpperCase()))
+    .filter((student) => PAYMENT_TRACE_STUDENT_NAMES.has(String(__veneziaGet(student, "nombre") || "").trim().toUpperCase()))
     .map((student) => {
       const aliasIds = Array.from(getPaymentStudentAliasIds(student.id));
       const historyRecord = getPersistentPaymentRecord(student.id);
@@ -1270,11 +1289,11 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
   ];
 
   return fields
-    .filter((field) => String(currentRecord?.[field] || "") !== String(nextRecord?.[field] || ""))
+    .filter((field) => String(__veneziaGet(currentRecord, field) || "") !== String(__veneziaGet(nextRecord, field) || ""))
     .map((field) => ({
       field,
-      before: currentRecord?.[field] || "",
-      after: nextRecord?.[field] || "",
+      before: __veneziaGet(currentRecord, field) || "",
+      after: __veneziaGet(nextRecord, field) || "",
     }));
 }
 
@@ -1293,7 +1312,7 @@ function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {},
 
 async function savePaymentRecord(record) {
   const student = getStudentById(record.studentId);
-  const studentName = student?.nombre || "";
+  const studentName = __veneziaGet(student, "nombre") || "";
   const payload = buildPaymentSupabasePayload(record);
   console.log("=== PAGO SAVE START ===", {
     studentName,
@@ -1315,7 +1334,7 @@ async function savePaymentRecord(record) {
   console.log("PAGO savePaymentRecord entrada", summarizePaymentRecordForTrace(record));
 
   const result = await dataService.entities.payments.upsertOne(record, { alertOnFailure: false });
-  const finalSupabasePayload = result.response?.payload?.[0] || payload;
+  const finalSupabasePayload = __veneziaGet(__veneziaGet(result.response, "payload"), 0) || payload;
   const trace = buildPaymentSupabaseTrace({
     functionName: "savePaymentRecord",
     table: "student_payments",
@@ -1347,7 +1366,7 @@ async function savePaymentRecord(record) {
     record: summarizePaymentRecordForTrace(result.record),
     error: result.error
       ? {
-          status: result.response?.status ?? result.error.status ?? null,
+          status: __veneziaCoalesce(__veneziaGet(result.response, "status"), __veneziaCoalesce(result.error.status, null)),
           code: result.error.code || "",
           message: result.error.message || "",
           details: result.error.details || "",
@@ -1371,7 +1390,7 @@ async function savePaymentRecord(record) {
     console.error("PAGO error", result.error);
     console.error(
       "PAGO error message",
-      result.error?.message || result.error?.details || String(result.error)
+      __veneziaGet(result.error, "message") || __veneziaGet(result.error, "details") || String(result.error)
     );
     console.error("PAGO Supabase trace", trace);
     console.warn("Payment saved only to local fallback cache after Supabase write failure.", {
@@ -1421,7 +1440,7 @@ async function saveFinanceRecord(record) {
     console.error("finance error", result.error);
     console.error(
       "finance error message",
-      result.error?.message || result.error?.details || String(result.error)
+      __veneziaGet(result.error, "message") || __veneziaGet(result.error, "details") || String(result.error)
     );
     console.error("finance Supabase trace", {
       functionName: "saveFinanceRecord",
@@ -1430,10 +1449,10 @@ async function saveFinanceRecord(record) {
       relatedPaymentId: record.relatedPaymentId || "",
       relatedStudentId: record.relatedStudentId || "",
       currentUser: {
-        id: getCurrentInternalUser()?.id || "",
-        username: getCurrentInternalUser()?.username || "",
-        role: getCurrentInternalUser()?.role || "",
-        branch: getCurrentInternalUser()?.branch || "",
+        id: __veneziaGet(getCurrentInternalUser(), "id") || "",
+        username: __veneziaGet(getCurrentInternalUser(), "username") || "",
+        role: __veneziaGet(getCurrentInternalUser(), "role") || "",
+        branch: __veneziaGet(getCurrentInternalUser(), "branch") || "",
         allowedBranch: getAllowedBranch(),
       },
       payloadSummary: {
@@ -1445,10 +1464,10 @@ async function saveFinanceRecord(record) {
         metodoPago: record.metodoPago || "",
       },
       supabaseError: {
-        code: result.error?.code || "",
-        message: result.error?.message || "",
-        details: result.error?.details || "",
-        hint: result.error?.hint || "",
+        code: __veneziaGet(result.error, "code") || "",
+        message: __veneziaGet(result.error, "message") || "",
+        details: __veneziaGet(result.error, "details") || "",
+        hint: __veneziaGet(result.error, "hint") || "",
       },
     });
     console.warn("Finance record saved only to local fallback cache after Supabase write failure.", {
@@ -1552,7 +1571,7 @@ async function saveInternalUserRecord(record) {
 }
 
 function cloneSerializable(value) {
-  return JSON.parse(JSON.stringify(value ?? []));
+  return JSON.parse(JSON.stringify(__veneziaCoalesce(value, [])));
 }
 
 function restoreCollectionFromSnapshot(key, snapshot) {
@@ -1562,7 +1581,7 @@ function restoreCollectionFromSnapshot(key, snapshot) {
 }
 
 function getSupabaseClientOrThrow() {
-  const client = window.VeneziaSupabase?.client;
+  const client = __veneziaGet(window.VeneziaSupabase, "client");
   if (!client) {
     throw new Error("No hay conexión disponible con el registro principal.");
   }
@@ -1647,7 +1666,7 @@ function getMiVeneziaErrorMessage(error, fallback = "Error desconocido") {
   if (!error) {
     return fallback;
   }
-  return error.message || error.reason?.message || String(error) || fallback;
+  return error.message || __veneziaGet(error.reason, "message") || String(error) || fallback;
 }
 
 function createMiVeneziaFallbackId() {
@@ -1702,7 +1721,7 @@ function getMiVeneziaRuntimeAlertElement() {
   const host =
     dashboardVisible
       ? miVeneziaStudentMain ||
-        miVeneziaDashboard?.querySelector(".student-main") ||
+        (miVeneziaDashboard ? miVeneziaDashboard.querySelector(".student-main") : null) ||
         miVeneziaDashboard
       : miVeneziaLoginPanel || miVeneziaDashboard;
 
@@ -1943,7 +1962,7 @@ function getPermissionFallbackFromStaff(user) {
 
 function isCoordinatorTeacherStaff(user = getCurrentInternalUser()) {
   const linkedStaffRecord = getLinkedTeacherStaffRecordForUser(user);
-  const normalizedPosition = String(linkedStaffRecord?.puesto || "").trim().toLowerCase();
+  const normalizedPosition = String(__veneziaGet(linkedStaffRecord, "puesto") || "").trim().toLowerCase();
   return normalizedPosition === "coordinadora de maestras";
 }
 
@@ -2044,20 +2063,20 @@ async function syncStaffInternalAccess(record) {
   const existingUser =
     internalUsers.find((user) => user.id === record.linkedUserId) ||
     internalUsers.find((user) => user.username === record.username);
-  const preservedAllBranchesScope = isAllBranchesScope(existingUser?.branch) ? "Todas" : "";
+  const preservedAllBranchesScope = isAllBranchesScope(__veneziaGet(existingUser, "branch")) ? "Todas" : "";
   const internalUserPayload = {
-    id: existingUser?.id || record.linkedUserId || crypto.randomUUID(),
+    id: __veneziaGet(existingUser, "id") || record.linkedUserId || createMiVeneziaCompatibleId(),
     fullName: record.nombre || "",
     username: record.username || "",
     phone: record.telefono || "",
     password: record.password || "",
-    role: existingUser?.role || mappedRole,
-    branch: preservedAllBranchesScope || record.sucursal || existingUser?.branch || "",
-    status: record.estado || existingUser?.status || "Activo",
+    role: __veneziaGet(existingUser, "role") || mappedRole,
+    branch: preservedAllBranchesScope || record.sucursal || __veneziaGet(existingUser, "branch") || "",
+    status: record.estado || __veneziaGet(existingUser, "status") || "Activo",
     permissions:
-      Array.isArray(existingUser?.permissions) && existingUser.permissions.length > 0
+      Array.isArray(__veneziaGet(existingUser, "permissions")) && existingUser.permissions.length > 0
         ? existingUser.permissions
-        : [...(BASE_ROLE_PERMISSIONS[existingUser?.role || mappedRole] || [])],
+        : [...(BASE_ROLE_PERMISSIONS[__veneziaGet(existingUser, "role") || mappedRole] || [])],
   };
   const saveResult = await dataService.entities.internalUsers.upsertOne(internalUserPayload, { alertOnFailure: false });
   const nextUser = {
@@ -2174,8 +2193,8 @@ function normalizeTeacherOperationalStatus(value) {
 }
 
 function getTeacherOperationalSpecialty(record) {
-  const coverageSpecialty = normalizeTeacherCoverageSpecialty(record?.coberturaEspecialidad);
-  const primarySpecialty = normalizeTeacherSpecialty(record?.especialidad);
+  const coverageSpecialty = normalizeTeacherCoverageSpecialty(__veneziaGet(record, "coberturaEspecialidad"));
+  const primarySpecialty = normalizeTeacherSpecialty(__veneziaGet(record, "especialidad"));
 
   if (coverageSpecialty && (!primarySpecialty || primarySpecialty === "COORD de maestras")) {
     return coverageSpecialty;
@@ -2185,11 +2204,11 @@ function getTeacherOperationalSpecialty(record) {
 }
 
 function getTeacherCoverageDisplay(record) {
-  return normalizeTeacherCoverageSpecialty(record?.coberturaEspecialidad);
+  return normalizeTeacherCoverageSpecialty(__veneziaGet(record, "coberturaEspecialidad"));
 }
 
 function getTeacherSpecialtyDisplay(record) {
-  const primarySpecialty = normalizeTeacherSpecialty(record?.especialidad);
+  const primarySpecialty = normalizeTeacherSpecialty(__veneziaGet(record, "especialidad"));
   const coverageSpecialty = getTeacherCoverageDisplay(record);
 
   if (!coverageSpecialty) {
@@ -2233,20 +2252,20 @@ function getDefaultTeacherSpecialtyFromPosition(position) {
 }
 
 function getTeacherDisplayName(record) {
-  return record?.nombreCompleto || record?.nombre || record?.teacherName || record?.legacyNombreCompleto || "Maestra";
+  return __veneziaGet(record, "nombreCompleto") || __veneziaGet(record, "nombre") || __veneziaGet(record, "teacherName") || __veneziaGet(record, "legacyNombreCompleto") || "Maestra";
 }
 
 function getTeacherConfigTimestamp(record) {
-  return String(record?.updatedAt || record?.createdAt || "");
+  return String(__veneziaGet(record, "updatedAt") || __veneziaGet(record, "createdAt") || "");
 }
 
 function getTeacherStaffAccessUsername(staffRecord) {
-  if (staffRecord?.username) {
+  if (__veneziaGet(staffRecord, "username")) {
     return staffRecord.username;
   }
 
-  const linkedUser = internalUsers.find((user) => user.id === staffRecord?.linkedUserId);
-  return linkedUser?.username || "";
+  const linkedUser = internalUsers.find((user) => user.id === __veneziaGet(staffRecord, "linkedUserId"));
+  return __veneziaGet(linkedUser, "username") || "";
 }
 
 function getTeacherConfigById(id, configs = teacherRecords) {
@@ -2386,20 +2405,20 @@ function buildTeacherProfileFromStaff(staffRecord, configRecord = null) {
   return {
     id: staffRecord.id,
     staffId: staffRecord.id,
-    linkedUserId: staffRecord.linkedUserId || resolvedConfig?.linkedUserId || "",
+    linkedUserId: staffRecord.linkedUserId || __veneziaGet(resolvedConfig, "linkedUserId") || "",
     nombreCompleto: staffRecord.nombre || "",
     puesto: staffRecord.puesto || "",
     sucursal: staffRecord.sucursal || "",
     usuario: getTeacherStaffAccessUsername(staffRecord),
     especialidad:
-      normalizeTeacherSpecialty(resolvedConfig?.especialidad) ||
+      normalizeTeacherSpecialty(__veneziaGet(resolvedConfig, "especialidad")) ||
       getDefaultTeacherSpecialtyFromPosition(staffRecord.puesto),
-    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(resolvedConfig?.coberturaEspecialidad),
-    tipoPago: normalizeTeacherPaymentType(resolvedConfig?.tipoPago || TEACHER_PAYMENT_TYPE),
+    coberturaEspecialidad: normalizeTeacherCoverageSpecialty(__veneziaGet(resolvedConfig, "coberturaEspecialidad")),
+    tipoPago: normalizeTeacherPaymentType(__veneziaGet(resolvedConfig, "tipoPago") || TEACHER_PAYMENT_TYPE),
     estadoDocente: normalizeTeacherOperationalStatus(
-      resolvedConfig?.estadoDocente || staffRecord.estado || "Activo"
+      __veneziaGet(resolvedConfig, "estadoDocente") || staffRecord.estado || "Activo"
     ),
-    configuracionOperativa: resolvedConfig?.configuracionOperativa || "",
+    configuracionOperativa: __veneziaGet(resolvedConfig, "configuracionOperativa") || "",
     isConfigured: Boolean(resolvedConfig),
     source: "staff",
   };
@@ -2430,7 +2449,7 @@ function normalizeTeacherDataAgainstStaff() {
 
   teacherRecords.forEach((record) => {
     const matchedStaff = findMatchingStaffForTeacherRecord(record);
-    const canonicalId = matchedStaff?.id || record.staffId || record.id;
+    const canonicalId = __veneziaGet(matchedStaff, "id") || record.staffId || record.id;
     legacyToCanonicalTeacherId.set(record.id, canonicalId);
     if (!groupedRecords.has(canonicalId)) {
       groupedRecords.set(canonicalId, []);
@@ -2444,27 +2463,26 @@ function normalizeTeacherDataAgainstStaff() {
     )[0];
     const matchedStaff = entries.map((entry) => entry.matchedStaff).find(Boolean) || null;
     const preservedOperationalStatus =
-      entries.find((entry) => String(entry.record.estadoDocente || "").trim())?.record?.estadoDocente ||
+      __veneziaGet(__veneziaGet(entries.find((entry) => String(entry.record.estadoDocente || "").trim()), "record"), "estadoDocente") ||
       latestEntry.record.estadoDocente ||
       latestEntry.record.status ||
-      matchedStaff?.estado ||
+      __veneziaGet(matchedStaff, "estado") ||
       "Activo";
     const specialty =
       normalizeTeacherSpecialty(
         latestEntry.record.especialidad ||
-          entries.find((entry) => normalizeTeacherSpecialty(entry.record.especialidad))?.record?.especialidad ||
-          getDefaultTeacherSpecialtyFromPosition(matchedStaff?.puesto)
+          __veneziaGet(__veneziaGet(entries.find((entry) => normalizeTeacherSpecialty(entry.record.especialidad)), "record"), "especialidad") ||
+          getDefaultTeacherSpecialtyFromPosition(__veneziaGet(matchedStaff, "puesto"))
       ) || "";
 
     return {
       id: canonicalId,
-      staffId: matchedStaff?.id || latestEntry.record.staffId || "",
-      linkedUserId: matchedStaff?.linkedUserId || latestEntry.record.linkedUserId || "",
+      staffId: __veneziaGet(matchedStaff, "id") || latestEntry.record.staffId || "",
+      linkedUserId: __veneziaGet(matchedStaff, "linkedUserId") || latestEntry.record.linkedUserId || "",
       especialidad: specialty,
       coberturaEspecialidad: normalizeTeacherCoverageSpecialty(
         latestEntry.record.coberturaEspecialidad ||
-          entries.find((entry) => normalizeTeacherCoverageSpecialty(entry.record.coberturaEspecialidad))?.record
-            ?.coberturaEspecialidad
+          __veneziaGet(__veneziaGet(entries.find((entry) => normalizeTeacherCoverageSpecialty(entry.record.coberturaEspecialidad)), "record"), "coberturaEspecialidad")
       ),
       tipoPago: normalizeTeacherPaymentType(latestEntry.record.tipoPago || TEACHER_PAYMENT_TYPE),
       estadoDocente: normalizeTeacherOperationalStatus(preservedOperationalStatus),
@@ -2488,9 +2506,9 @@ function normalizeTeacherDataAgainstStaff() {
     return {
       ...record,
       teacherId: canonicalTeacherId,
-      teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
-      sucursal: teacherProfile?.sucursal || record.sucursal || "",
-      especialidad: normalizeTeacherSpecialty(teacherProfile?.especialidad || record.especialidad),
+      teacherName: __veneziaGet(teacherProfile, "nombreCompleto") || record.teacherName || "",
+      sucursal: __veneziaGet(teacherProfile, "sucursal") || record.sucursal || "",
+      especialidad: normalizeTeacherSpecialty(__veneziaGet(teacherProfile, "especialidad") || record.especialidad),
       turno: normalizeTeacherShift(record.turno),
       estatus: normalizeTeacherAttendanceStatus(record.estatus),
     };
@@ -2502,8 +2520,8 @@ function normalizeTeacherDataAgainstStaff() {
     return {
       ...record,
       teacherId: canonicalTeacherId,
-      teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
-      sucursal: teacherProfile?.sucursal || record.sucursal || "",
+      teacherName: __veneziaGet(teacherProfile, "nombreCompleto") || record.teacherName || "",
+      sucursal: __veneziaGet(teacherProfile, "sucursal") || record.sucursal || "",
     };
   });
 
@@ -2790,7 +2808,7 @@ function getTeacherFormData() {
   return {
     id: selectedStaff.id,
     staffId: selectedStaff.id,
-    linkedUserId: selectedStaff.linkedUserId || existingRecord?.linkedUserId || "",
+    linkedUserId: selectedStaff.linkedUserId || __veneziaGet(existingRecord, "linkedUserId") || "",
     especialidad:
       normalizeTeacherSpecialty(formData.get("especialidad")) ||
       getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto),
@@ -2798,7 +2816,7 @@ function getTeacherFormData() {
     tipoPago: normalizeTeacherPaymentType(formData.get("tipoPago")),
     estadoDocente: normalizeTeacherOperationalStatus(formData.get("estadoDocente")),
     configuracionOperativa: String(formData.get("configuracionOperativa") || "").trim(),
-    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     legacyNombreCompleto: "",
     legacySucursal: "",
@@ -2820,17 +2838,17 @@ function getTeacherAttendanceFormData() {
   const allowedBranch = getAllowedBranch();
 
   return {
-    id: existingLogicalRecord?.id || existingRecord?.id || existingId || crypto.randomUUID(),
-    teacherId: selectedTeacher?.id || "",
-    teacherName: selectedTeacher?.nombreCompleto || "",
+    id: __veneziaGet(existingLogicalRecord, "id") || __veneziaGet(existingRecord, "id") || existingId || createMiVeneziaCompatibleId(),
+    teacherId: __veneziaGet(selectedTeacher, "id") || "",
+    teacherName: __veneziaGet(selectedTeacher, "nombreCompleto") || "",
     fecha: String(formData.get("fecha") || "").trim(),
-    sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
+    sucursal: allowedBranch || __veneziaGet(selectedTeacher, "sucursal") || String(formData.get("sucursal") || "").trim(),
     especialidad: getTeacherOperationalSpecialty(selectedTeacher) || normalizeTeacherSpecialty(formData.get("especialidad")),
     turno: normalizeTeacherShift(formData.get("turno")),
     estatus: normalizeTeacherAttendanceStatus(formData.get("estatus")),
     observacion: String(formData.get("observacion") || "").trim(),
-    recordedBy: getCurrentInternalUser()?.id || "",
-    createdAt: existingLogicalRecord?.createdAt || existingRecord?.createdAt || new Date().toISOString(),
+    recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
+    createdAt: __veneziaGet(existingLogicalRecord, "createdAt") || __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -2851,16 +2869,16 @@ function getTeacherPaymentFormData() {
   const periodRange = getTeacherPeriodRange(periodMonth, fortnight);
 
   return {
-    id: existingRecord?.id || existingId || crypto.randomUUID(),
-    teacherId: selectedTeacher?.id || teacherId,
-    teacherName: selectedTeacher?.nombreCompleto || existingRecord?.teacherName || "",
-    sucursal: allowedBranch || selectedTeacher?.sucursal || String(formData.get("sucursal") || "").trim(),
+    id: __veneziaGet(existingRecord, "id") || existingId || createMiVeneziaCompatibleId(),
+    teacherId: __veneziaGet(selectedTeacher, "id") || teacherId,
+    teacherName: __veneziaGet(selectedTeacher, "nombreCompleto") || __veneziaGet(existingRecord, "teacherName") || "",
+    sucursal: allowedBranch || __veneziaGet(selectedTeacher, "sucursal") || String(formData.get("sucursal") || "").trim(),
     especialidadOperativa:
       normalizeTeacherSpecialty(formData.get("especialidadOperativa")) ||
       getTeacherOperationalSpecialty(selectedTeacher) ||
-      existingRecord?.especialidadOperativa ||
+      __veneziaGet(existingRecord, "especialidadOperativa") ||
       "",
-    turno: normalizeTeacherShift(formData.get("turno")) || existingRecord?.turno || "",
+    turno: normalizeTeacherShift(formData.get("turno")) || __veneziaGet(existingRecord, "turno") || "",
     fechaPago: String(formData.get("fechaPago") || "").trim(),
     periodMonth,
     fortnight,
@@ -2870,8 +2888,8 @@ function getTeacherPaymentFormData() {
     montoPagado: Number(formData.get("montoPagado") || 0),
     metodoPago: String(formData.get("metodoPago") || "").trim(),
     nota: String(formData.get("nota") || "").trim(),
-    recordedBy: getCurrentInternalUser()?.id || "",
-    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
+    createdAt: __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -2890,11 +2908,11 @@ async function saveTeacherRecord(record) {
   const nextRecord = {
     ...existingRecord,
     ...record,
-    id: matchedStaff?.id || record.staffId || record.id || existingRecord?.id || crypto.randomUUID(),
-    staffId: matchedStaff?.id || record.staffId || record.id || existingRecord?.staffId || "",
-    linkedUserId: record.linkedUserId || existingRecord?.linkedUserId || matchedStaff?.linkedUserId || "",
-    estadoDocente: normalizeTeacherOperationalStatus(record.estadoDocente || existingRecord?.estadoDocente || "Activo"),
-    createdAt: existingRecord?.createdAt || record.createdAt || new Date().toISOString(),
+    id: __veneziaGet(matchedStaff, "id") || record.staffId || record.id || __veneziaGet(existingRecord, "id") || createMiVeneziaCompatibleId(),
+    staffId: __veneziaGet(matchedStaff, "id") || record.staffId || record.id || __veneziaGet(existingRecord, "staffId") || "",
+    linkedUserId: record.linkedUserId || __veneziaGet(existingRecord, "linkedUserId") || __veneziaGet(matchedStaff, "linkedUserId") || "",
+    estadoDocente: normalizeTeacherOperationalStatus(record.estadoDocente || __veneziaGet(existingRecord, "estadoDocente") || "Activo"),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || record.createdAt || new Date().toISOString(),
     updatedAt: record.updatedAt || new Date().toISOString(),
   };
 
@@ -2925,9 +2943,9 @@ function saveTeacherAttendanceRecord(record) {
   const teacherProfile = getTeacherProfileById(record.teacherId);
   const nextRecord = {
     ...record,
-    teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
-    sucursal: teacherProfile?.sucursal || record.sucursal || "",
-    especialidad: normalizeTeacherSpecialty(teacherProfile?.especialidad || record.especialidad),
+    teacherName: __veneziaGet(teacherProfile, "nombreCompleto") || record.teacherName || "",
+    sucursal: __veneziaGet(teacherProfile, "sucursal") || record.sucursal || "",
+    especialidad: normalizeTeacherSpecialty(__veneziaGet(teacherProfile, "especialidad") || record.especialidad),
     turno: normalizeTeacherShift(record.turno),
     estatus: normalizeTeacherAttendanceStatus(record.estatus),
   };
@@ -2949,8 +2967,8 @@ function saveTeacherPaymentRecord(record) {
   const teacherProfile = getTeacherProfileById(record.teacherId);
   const nextRecord = {
     ...record,
-    teacherName: teacherProfile?.nombreCompleto || record.teacherName || "",
-    sucursal: teacherProfile?.sucursal || record.sucursal || "",
+    teacherName: __veneziaGet(teacherProfile, "nombreCompleto") || record.teacherName || "",
+    sucursal: __veneziaGet(teacherProfile, "sucursal") || record.sucursal || "",
     especialidadOperativa:
       normalizeTeacherSpecialty(record.especialidadOperativa) ||
       getTeacherOperationalSpecialty(teacherProfile) ||
@@ -2965,12 +2983,12 @@ function saveTeacherPaymentRecord(record) {
 }
 
 function getLatestTeacherObservation(records = []) {
-  return (
+  return __veneziaGet((
     [...records]
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )
-      .find((record) => String(record.observacion || "").trim())?.observacion || ""
+      .find((record) => String(record.observacion || "").trim()), "observacion") || ""
   );
 }
 
@@ -2984,7 +3002,7 @@ function consolidateTeacherAttendanceGroup(records = []) {
   )[0];
   const teacher = getTeacherProfileById(latestRecord.teacherId);
   const specialty = normalizeTeacherSpecialty(
-    latestRecord.especialidad || teacher?.especialidad || records.find((record) => record.especialidad)?.especialidad
+    latestRecord.especialidad || __veneziaGet(teacher, "especialidad") || __veneziaGet(records.find((record) => record.especialidad), "especialidad")
   );
   const attendedRecords = records.filter(
     (record) => normalizeTeacherAttendanceStatus(record.estatus) === "Asistió"
@@ -3010,7 +3028,7 @@ function consolidateTeacherAttendanceGroup(records = []) {
     teacherId: latestRecord.teacherId || "",
     teacherName: latestRecord.teacherName || getTeacherDisplayName(teacher),
     fecha: latestRecord.fecha || "",
-    sucursal: latestRecord.sucursal || teacher?.sucursal || "",
+    sucursal: latestRecord.sucursal || __veneziaGet(teacher, "sucursal") || "",
     especialidad: specialty,
     turno: shift,
     estatus: status,
@@ -3047,8 +3065,8 @@ function getConsolidatedTeacherAttendanceEntries(sourceRecords = teacherAttendan
 }
 
 function getTeacherSummaryRange() {
-  const dateFrom = teacherSummaryDateFromFilter?.value || "";
-  const dateTo = teacherSummaryDateToFilter?.value || "";
+  const dateFrom = __veneziaGet(teacherSummaryDateFromFilter, "value") || "";
+  const dateTo = __veneziaGet(teacherSummaryDateToFilter, "value") || "";
 
   if (dateFrom || dateTo) {
     return {
@@ -3261,22 +3279,22 @@ function syncTeacherConfigFields() {
     return;
   }
 
-  document.getElementById("teacherId").value = existingConfig?.id || "";
-  document.getElementById("teacherLinkedUserId").value = selectedStaff.linkedUserId || existingConfig?.linkedUserId || "";
+  document.getElementById("teacherId").value = __veneziaGet(existingConfig, "id") || "";
+  document.getElementById("teacherLinkedUserId").value = selectedStaff.linkedUserId || __veneziaGet(existingConfig, "linkedUserId") || "";
   document.getElementById("teacherFullName").value = selectedStaff.nombre || "";
   teacherPosition.value = selectedStaff.puesto || "";
   document.getElementById("teacherBranch").value = selectedStaff.sucursal || "";
   document.getElementById("teacherUsername").value = getTeacherStaffAccessUsername(selectedStaff);
   document.getElementById("teacherSpecialty").value =
-    normalizeTeacherSpecialty(existingConfig?.especialidad) ||
+    normalizeTeacherSpecialty(__veneziaGet(existingConfig, "especialidad")) ||
     getDefaultTeacherSpecialtyFromPosition(selectedStaff.puesto) ||
     "";
-  teacherCoverageSpecialty.value = normalizeTeacherCoverageSpecialty(existingConfig?.coberturaEspecialidad) || "";
+  teacherCoverageSpecialty.value = normalizeTeacherCoverageSpecialty(__veneziaGet(existingConfig, "coberturaEspecialidad")) || "";
   document.getElementById("teacherPaymentType").value = TEACHER_PAYMENT_TYPE;
   teacherOperationalStatus.value = normalizeTeacherOperationalStatus(
-    existingConfig?.estadoDocente || selectedStaff.estado || "Activo"
+    __veneziaGet(existingConfig, "estadoDocente") || selectedStaff.estado || "Activo"
   );
-  document.getElementById("teacherOperationalNotes").value = existingConfig?.configuracionOperativa || "";
+  document.getElementById("teacherOperationalNotes").value = __veneziaGet(existingConfig, "configuracionOperativa") || "";
   teacherSubmitButton.textContent = existingConfig ? "Actualizar configuración" : "Guardar configuración";
   teacherConfigHelper.textContent = existingConfig
     ? "Esta docente ya está enlazada con Personal. Aquí sólo ajustas especialidad, estatus y operación."
@@ -3585,7 +3603,7 @@ function editTeacherRecord(id) {
   document.getElementById("teacherOperationalNotes").value = record.configuracionOperativa || "";
   teacherSubmitButton.textContent = "Actualizar configuración";
   setActiveModule("maestras");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function editTeacherAttendanceRecord(teacherId, dateValue) {
@@ -3609,7 +3627,7 @@ function editTeacherAttendanceRecord(teacherId, dateValue) {
   teacherAttendanceSubmitButton.textContent = "Actualizar asistencia";
   updateTeacherAttendanceHelper();
   setActiveModule("maestras");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function editTeacherPaymentRecord(paymentId) {
@@ -3637,7 +3655,7 @@ function editTeacherPaymentRecord(paymentId) {
   teacherPaymentSubmitButton.textContent = "Actualizar pago";
   syncTeacherPaymentFields();
   setActiveModule("maestras");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function getCurrentMonthValue() {
@@ -4153,10 +4171,10 @@ function getFormData() {
   const isAutoFollowup = shouldAutoAssignFollowup(estado);
   const proximoSeguimiento = isAutoFollowup
     ? getAutoFollowupDate(new Date())
-    : String(formData.get("proximoSeguimiento") || existingProspect?.proximoSeguimiento || "");
+    : String(formData.get("proximoSeguimiento") || __veneziaGet(existingProspect, "proximoSeguimiento") || "");
 
   return {
-    id: existingId || crypto.randomUUID(),
+    id: existingId || createMiVeneziaCompatibleId(),
     nombre: formData.get("nombre").trim(),
     telefono: normalizePhone(formData.get("telefono")),
     fechaContacto,
@@ -4169,10 +4187,10 @@ function getFormData() {
     proximoSeguimiento,
     asesoraAsignada: String(formData.get("asesoraAsignada") || ""),
     temperatura: normalizeTemperatureValue(formData.get("temperatura")),
-    contacto: existingProspect?.contacto || "",
+    contacto: __veneziaGet(existingProspect, "contacto") || "",
     notas: formData.get("notas").trim(),
     accesoInteres: formData.get("accesoInteres"),
-    createdAt: existingProspect?.createdAt || new Date(`${fechaContacto}T12:00:00`).toISOString(),
+    createdAt: __veneziaGet(existingProspect, "createdAt") || new Date(`${fechaContacto}T12:00:00`).toISOString(),
   };
 }
 
@@ -4189,7 +4207,7 @@ function getAltaFormData() {
   ).trim();
   const existingStudentId = String(formData.get("studentId") || "").trim();
   const existingStudent = students.find((student) => student.id === existingStudentId);
-  const createdAt = existingStudent?.createdAt || new Date().toISOString();
+  const createdAt = __veneziaGet(existingStudent, "createdAt") || new Date().toISOString();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
   const portalPassword = buildStudentPortalPassword(fechaNacimiento);
@@ -4222,7 +4240,7 @@ function getAltaFormData() {
   ];
 
   return {
-    id: existingStudentId || crypto.randomUUID(),
+    id: existingStudentId || createMiVeneziaCompatibleId(),
     prospectId: document.getElementById("altaProspectId").value,
     studentCode,
     fechaInscripcion: fechaInicio,
@@ -4255,10 +4273,10 @@ function getAltaFormData() {
     observaciones: [rawObservaciones, ...metadataSegments].filter(Boolean).join(" | "),
     portalUser,
     portalPassword,
-    lecturaReglamento: existingStudent?.lecturaReglamento || false,
-    fechaLecturaReglamento: existingStudent?.fechaLecturaReglamento || "",
-    lecturaContrato: existingStudent?.lecturaContrato || false,
-    fechaLecturaContrato: existingStudent?.fechaLecturaContrato || "",
+    lecturaReglamento: __veneziaGet(existingStudent, "lecturaReglamento") || false,
+    fechaLecturaReglamento: __veneziaGet(existingStudent, "fechaLecturaReglamento") || "",
+    lecturaContrato: __veneziaGet(existingStudent, "lecturaContrato") || false,
+    fechaLecturaContrato: __veneziaGet(existingStudent, "fechaLecturaContrato") || "",
     estado: "Activa",
     createdAt,
   };
@@ -4436,8 +4454,8 @@ function updateAltaElectorFieldLabel() {
     return;
   }
 
-  const birthDate = document.getElementById("altaFechaNacimiento")?.value || "";
-  const tutorName = document.getElementById("altaTutor")?.value || "";
+  const birthDate = __veneziaGet(document.getElementById("altaFechaNacimiento"), "value") || "";
+  const tutorName = __veneziaGet(document.getElementById("altaTutor"), "value") || "";
   const isMinor = isStudentMinorByBirthDate(birthDate);
   const usesTutor = isMinor && String(tutorName).trim();
 
@@ -4462,12 +4480,12 @@ function buildStudentPortalPassword(dateValue) {
 }
 
 function getStudentStartDateValue(student) {
-  const createdAt = String(student?.createdAt || "").trim();
-  return String(student?.fechaInicio || student?.fechaInscripcion || (createdAt ? createdAt.slice(0, 10) : "")).trim();
+  const createdAt = String(__veneziaGet(student, "createdAt") || "").trim();
+  return String(__veneziaGet(student, "fechaInicio") || __veneziaGet(student, "fechaInscripcion") || (createdAt ? createdAt.slice(0, 10) : "")).trim();
 }
 
 function getStudentCourseStartDateValue(student) {
-  return String(student?.fechaInicio || student?.fechaInscripcion || "").trim();
+  return String(__veneziaGet(student, "fechaInicio") || __veneziaGet(student, "fechaInscripcion") || "").trim();
 }
 
 function getLocalDateValueFromTimestamp(value) {
@@ -4490,7 +4508,7 @@ function getLocalDateValueFromTimestamp(value) {
 }
 
 function getStudentAltaCreatedDate(student) {
-  return getLocalDateValueFromTimestamp(student?.createdAt);
+  return getLocalDateValueFromTimestamp(__veneziaGet(student, "createdAt"));
 }
 
 function syncAltaDateDisplay(value = "") {
@@ -4506,7 +4524,7 @@ function isAllBranchesScope(branch) {
 }
 
 function isStudentDeleted(student) {
-  return String(student?.estado || "").trim().toLowerCase() === "eliminada";
+  return String(__veneziaGet(student, "estado") || "").trim().toLowerCase() === "eliminada";
 }
 
 function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
@@ -4773,9 +4791,9 @@ function applyRoleToSidebar() {
   if (currentAccessMode === "internal") {
     const currentUser = getCurrentInternalUser();
     console.debug("[Permisos] Menú visible", {
-      id: currentUser?.id || "",
-      username: currentUser?.username || "",
-      permissions: currentUser?.permissions || [],
+      id: __veneziaGet(currentUser, "id") || "",
+      username: __veneziaGet(currentUser, "username") || "",
+      permissions: __veneziaGet(currentUser, "permissions") || [],
       visibleModules: Array.from(navItems)
         .filter((item) => !item.hidden)
         .map((item) => item.dataset.module),
@@ -4788,8 +4806,8 @@ function updateSessionUI() {
   mountTeacherPortalShell();
   if (currentAccessMode !== "student" && shouldForceTeacherPortalAccess(user) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Corrigiendo modo de acceso a teacher", {
-      username: user?.username || "",
-      role: user?.role || "",
+      username: __veneziaGet(user, "username") || "",
+      role: __veneziaGet(user, "role") || "",
       previousMode: currentAccessMode,
     });
     currentAccessMode = "teacher";
@@ -5010,7 +5028,7 @@ function syncStudentAccessRecords() {
 
     changed = true;
     return {
-      id: crypto.randomUUID(),
+      id: createMiVeneziaCompatibleId(),
       studentId: student.id,
       telefono: normalizePhone(student.telefono),
       password: student.portalPassword || getDefaultStudentPassword(student.telefono),
@@ -5035,7 +5053,7 @@ function getFinanceFormData() {
   }
 
   return {
-    id: existingId || crypto.randomUUID(),
+    id: existingId || createMiVeneziaCompatibleId(),
     fecha: formData.get("fecha"),
     sucursal,
     tipo: formData.get("tipo"),
@@ -5045,7 +5063,7 @@ function getFinanceFormData() {
     metodoPago: formData.get("metodoPago"),
     observaciones: formData.get("observaciones").trim(),
     usuario: formData.get("usuario").trim(),
-    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
   };
 }
 
@@ -5068,10 +5086,10 @@ function getInternalUserFormData() {
   }
 
   return {
-    id: existingId || crypto.randomUUID(),
+    id: existingId || createMiVeneziaCompatibleId(),
     fullName: String(formData.get("nombre") || "").trim(),
     username,
-    phone: existingUser?.phone || "",
+    phone: __veneziaGet(existingUser, "phone") || "",
     password: String(formData.get("password") || "").trim(),
     role,
     branch: formData.get("sucursal"),
@@ -5090,7 +5108,7 @@ function getStaffFormData() {
   const password = staffTemporaryPassword.value.trim();
 
   return {
-    id: existingId || crypto.randomUUID(),
+    id: existingId || createMiVeneziaCompatibleId(),
     nombre: String(formData.get("nombre") || "").trim(),
     telefono: normalizePhone(formData.get("telefono")),
     puesto: formData.get("puesto"),
@@ -5104,7 +5122,7 @@ function getStaffFormData() {
     username,
     password,
     observaciones: String(formData.get("observaciones") || "").trim(),
-    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
   };
 }
 
@@ -5127,7 +5145,7 @@ function getWebLeadFormData() {
   const notes = "Lead captado desde Web Venezia.";
 
   return {
-    id: crypto.randomUUID(),
+    id: createMiVeneziaCompatibleId(),
     nombre: String(formData.get("nombre") || "").trim(),
     telefono: normalizePhone(formData.get("telefono")),
     fechaContacto: today,
@@ -5455,7 +5473,7 @@ function getPaidPaymentConcepts(record) {
 }
 
 function isRealPaidPaymentRecord(record) {
-  return Boolean(record?.id) && parsePaymentAmount(record?.cantidadPagada) > 0 && getPaidPaymentConcepts(record).length > 0;
+  return Boolean(__veneziaGet(record, "id")) && parsePaymentAmount(__veneziaGet(record, "cantidadPagada")) > 0 && getPaidPaymentConcepts(record).length > 0;
 }
 
 function getPaymentMovementConceptLabels(record) {
@@ -5463,21 +5481,21 @@ function getPaymentMovementConceptLabels(record) {
 }
 
 function getStoredPaymentRealDate(record) {
-  const value = String(record?.paymentRealDate || "").slice(0, 10);
+  const value = String(__veneziaGet(record, "paymentRealDate") || "").slice(0, 10);
   return value || "";
 }
 
 function getLegacyPaymentRealDateFallback(record) {
-  const updatedDate = String(record?.updatedAt || "").slice(0, 10);
+  const updatedDate = String(__veneziaGet(record, "updatedAt") || "").slice(0, 10);
   if (updatedDate) {
     return updatedDate;
   }
 
-  const createdDate = String(record?.createdAt || "").slice(0, 10);
+  const createdDate = String(__veneziaGet(record, "createdAt") || "").slice(0, 10);
   if (createdDate) {
     return createdDate;
   }
-  return record?.mesPago ? `${record.mesPago}-01` : "";
+  return __veneziaGet(record, "mesPago") ? `${record.mesPago}-01` : "";
 }
 
 function resolvePaymentRealDate(currentRecord, nextRecord) {
@@ -5506,12 +5524,12 @@ function isAccumulatedPaymentConcept(value) {
 }
 
 function getSafeStoredPaymentConcept(record) {
-  const directValue = normalizePaymentMovementConcept(record?.paymentMovementConcept || record?.paymentConcept);
+  const directValue = normalizePaymentMovementConcept(__veneziaGet(record, "paymentMovementConcept") || __veneziaGet(record, "paymentConcept"));
   if (directValue) {
     return directValue;
   }
 
-  const conceptValue = normalizePaymentMovementConcept(record?.concepto);
+  const conceptValue = normalizePaymentMovementConcept(__veneziaGet(record, "concepto"));
   if (conceptValue && !isAccumulatedPaymentConcept(conceptValue)) {
     return conceptValue;
   }
@@ -5522,8 +5540,8 @@ function getSafeStoredPaymentConcept(record) {
 function getChangedPaymentMovementConcepts(currentRecord, nextRecord) {
   return BALANCE_PAYMENT_CONCEPT_FIELDS
     .filter(({ key }) => {
-      const previousStatus = String(currentRecord?.[key] || "").trim();
-      const nextStatus = String(nextRecord?.[key] || "").trim();
+      const previousStatus = String(__veneziaGet(currentRecord, key) || "").trim();
+      const nextStatus = String(__veneziaGet(nextRecord, key) || "").trim();
       return isEligiblePaymentStatus(nextStatus) && previousStatus !== nextStatus;
     })
     .map(({ movementLabel, label }) => movementLabel || label);
@@ -5537,7 +5555,7 @@ function resolvePaymentMovementConcept(currentRecord, nextRecord, existingFinanc
 
   const storedConcept =
     getSafeStoredPaymentConcept(existingFinanceRecord) ||
-    normalizePaymentMovementConcept(currentRecord?.paymentMovementConcept);
+    normalizePaymentMovementConcept(__veneziaGet(currentRecord, "paymentMovementConcept"));
   if (storedConcept) {
     return storedConcept;
   }
@@ -5556,7 +5574,7 @@ function getBalancePaymentConceptDisplay(record) {
     return storedConcept;
   }
 
-  const category = normalizePaymentMovementConcept(record?.categoria);
+  const category = normalizePaymentMovementConcept(__veneziaGet(record, "categoria"));
   if (category === "Colegiatura" || category === "Certificado P1" || category === "Certificado P2") {
     return "Pago registrado";
   }
@@ -5573,9 +5591,9 @@ function buildAltaInscriptionFinanceReference(altaId) {
 }
 
 function isAltaInscriptionFinanceRecord(record) {
-  const normalizedSource = String(record?.source || "").trim().toLowerCase();
-  const normalizedConceptKey = String(record?.conceptKey || "").trim().toLowerCase();
-  const reference = String(record?.reference || "").trim();
+  const normalizedSource = String(__veneziaGet(record, "source") || "").trim().toLowerCase();
+  const normalizedConceptKey = String(__veneziaGet(record, "conceptKey") || "").trim().toLowerCase();
+  const reference = String(__veneziaGet(record, "reference") || "").trim();
 
   return (
     (normalizedSource === ALTA_FINANCE_SOURCE && normalizedConceptKey === ALTA_INSCRIPTION_CONCEPT_KEY) ||
@@ -5611,7 +5629,7 @@ function getAltaInscriptionLinkedRecords(studentId, records = financeRecords) {
 }
 
 function isAltaInscriptionRecordCancelled(record) {
-  return Boolean(record?.cancelled);
+  return Boolean(__veneziaGet(record, "cancelled"));
 }
 
 function isOperationalInscriptionRecordActive(record, studentsById = new Map(students.map((student) => [student.id, student]))) {
@@ -5645,7 +5663,7 @@ function buildAltaInscriptionFinanceRecord(altaRecord, deltaInscripcion) {
   const currentUser = getCurrentInternalUser();
 
   return {
-    id: crypto.randomUUID(),
+    id: createMiVeneziaCompatibleId(),
     fecha: getCurrentMexicoDateValue(),
     sucursal: altaRecord.sucursal || "",
     tipo: "Ingreso",
@@ -5657,7 +5675,7 @@ function buildAltaInscriptionFinanceRecord(altaRecord, deltaInscripcion) {
     alumna: altaRecord.nombre || "",
     monto: deltaInscripcion,
     metodoPago: altaRecord.metodoPago || "-",
-    usuario: currentUser?.username || altaRecord.usuarioAlta || "",
+    usuario: __veneziaGet(currentUser, "username") || altaRecord.usuarioAlta || "",
     observaciones: "Movimiento incremental generado desde Altas.",
     createdAt: new Date().toISOString(),
     reference: buildAltaInscriptionFinanceReference(altaRecord.id),
@@ -5682,7 +5700,7 @@ async function invalidateAltaInscriptionRecordsForStudent(studentId, reason = "A
   let synced = true;
   let updatedCount = 0;
   const cancelledAt = new Date().toISOString();
-  const cancelledBy = getCurrentInternalUser()?.id || "";
+  const cancelledBy = __veneziaGet(getCurrentInternalUser(), "id") || "";
 
   for (const record of linkedRecords) {
     if (isAltaInscriptionRecordCancelled(record)) {
@@ -5768,14 +5786,14 @@ async function reconcileAltaInscriptionRecords() {
 }
 
 async function syncAltaInscriptionFinanceDelta(previousStudentRecord, nextStudentRecord) {
-  const previousPaidAmount = parsePaymentAmount(previousStudentRecord?.cantidadPago);
-  const newPaidAmount = parsePaymentAmount(nextStudentRecord?.cantidadPago);
+  const previousPaidAmount = parsePaymentAmount(__veneziaGet(previousStudentRecord, "cantidadPago"));
+  const newPaidAmount = parsePaymentAmount(__veneziaGet(nextStudentRecord, "cantidadPago"));
   const deltaInscripcion = newPaidAmount - previousPaidAmount;
 
   if (!(deltaInscripcion > 0)) {
     if (deltaInscripcion < 0) {
       console.info("ALTA inscripción sin ajuste automático por delta negativo", {
-        studentId: nextStudentRecord?.id || "",
+        studentId: __veneziaGet(nextStudentRecord, "id") || "",
         previousPaidAmount,
         newPaidAmount,
         deltaInscripcion,
@@ -5908,7 +5926,7 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
   const paymentConcept = resolvePaymentMovementConcept(paymentRecord, paymentRecord, existingFinanceRecord);
 
   return {
-    id: existingFinanceRecord?.id || crypto.randomUUID(),
+    id: __veneziaGet(existingFinanceRecord, "id") || createMiVeneziaCompatibleId(),
     fecha: getPaymentEffectiveDate(paymentRecord),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
@@ -5921,7 +5939,7 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
     usuario: student.usuarioAlta || student.inscribio || "",
     observaciones: paymentRecord.observaciones || "",
     createdAt:
-      existingFinanceRecord?.createdAt ||
+      __veneziaGet(existingFinanceRecord, "createdAt") ||
       paymentRecord.updatedAt ||
       paymentRecord.createdAt ||
       new Date().toISOString(),
@@ -5933,20 +5951,20 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
 
 function isSamePaymentFinanceRecord(currentRecord, nextRecord) {
   return (
-    String(currentRecord?.fecha || "") === String(nextRecord?.fecha || "") &&
-    String(currentRecord?.sucursal || "") === String(nextRecord?.sucursal || "") &&
-    String(currentRecord?.tipo || "") === String(nextRecord?.tipo || "") &&
-    String(currentRecord?.categoria || "") === String(nextRecord?.categoria || "") &&
-    String(currentRecord?.concepto || "") === String(nextRecord?.concepto || "") &&
-    Number(currentRecord?.monto || 0) === Number(nextRecord?.monto || 0) &&
-    String(currentRecord?.metodoPago || "") === String(nextRecord?.metodoPago || "") &&
-    String(currentRecord?.usuario || "") === String(nextRecord?.usuario || "") &&
-    String(currentRecord?.observaciones || "") === String(nextRecord?.observaciones || "") &&
-    String(currentRecord?.paymentConcept || "") === String(nextRecord?.paymentConcept || "") &&
-    String(currentRecord?.alumna || "") === String(nextRecord?.alumna || "") &&
-    String(currentRecord?.reference || "") === String(nextRecord?.reference || "") &&
-    String(currentRecord?.relatedStudentId || "") === String(nextRecord?.relatedStudentId || "") &&
-    String(currentRecord?.relatedPaymentId || "") === String(nextRecord?.relatedPaymentId || "")
+    String(__veneziaGet(currentRecord, "fecha") || "") === String(__veneziaGet(nextRecord, "fecha") || "") &&
+    String(__veneziaGet(currentRecord, "sucursal") || "") === String(__veneziaGet(nextRecord, "sucursal") || "") &&
+    String(__veneziaGet(currentRecord, "tipo") || "") === String(__veneziaGet(nextRecord, "tipo") || "") &&
+    String(__veneziaGet(currentRecord, "categoria") || "") === String(__veneziaGet(nextRecord, "categoria") || "") &&
+    String(__veneziaGet(currentRecord, "concepto") || "") === String(__veneziaGet(nextRecord, "concepto") || "") &&
+    Number(__veneziaGet(currentRecord, "monto") || 0) === Number(__veneziaGet(nextRecord, "monto") || 0) &&
+    String(__veneziaGet(currentRecord, "metodoPago") || "") === String(__veneziaGet(nextRecord, "metodoPago") || "") &&
+    String(__veneziaGet(currentRecord, "usuario") || "") === String(__veneziaGet(nextRecord, "usuario") || "") &&
+    String(__veneziaGet(currentRecord, "observaciones") || "") === String(__veneziaGet(nextRecord, "observaciones") || "") &&
+    String(__veneziaGet(currentRecord, "paymentConcept") || "") === String(__veneziaGet(nextRecord, "paymentConcept") || "") &&
+    String(__veneziaGet(currentRecord, "alumna") || "") === String(__veneziaGet(nextRecord, "alumna") || "") &&
+    String(__veneziaGet(currentRecord, "reference") || "") === String(__veneziaGet(nextRecord, "reference") || "") &&
+    String(__veneziaGet(currentRecord, "relatedStudentId") || "") === String(__veneziaGet(nextRecord, "relatedStudentId") || "") &&
+    String(__veneziaGet(currentRecord, "relatedPaymentId") || "") === String(__veneziaGet(nextRecord, "relatedPaymentId") || "")
   );
 }
 
@@ -5970,9 +5988,9 @@ async function deleteLinkedPaymentFinanceRecords(paymentId) {
 }
 
 async function syncPaymentFinanceRecord(paymentRecord, { student: providedStudent = null } = {}) {
-  const linkedRecords = getLinkedPaymentFinanceRecords(paymentRecord?.id);
+  const linkedRecords = getLinkedPaymentFinanceRecords(__veneziaGet(paymentRecord, "id"));
   const canonicalRecord = linkedRecords[0] || null;
-  const student = providedStudent || getStudentById(paymentRecord?.studentId);
+  const student = providedStudent || getStudentById(__veneziaGet(paymentRecord, "studentId"));
   const isEligible = isRealPaidPaymentRecord(paymentRecord) && Boolean(student);
 
   if (!isEligible) {
@@ -6228,7 +6246,7 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
     ineligibleLinkedFinance: findings.ineligibleLinkedFinance.map(({ financeRecord, paymentRecord }) => ({
       financeRecordId: financeRecord.id,
       paymentId: financeRecord.relatedPaymentId,
-      studentId: paymentRecord?.studentId || "",
+      studentId: __veneziaGet(paymentRecord, "studentId") || "",
     })),
   });
 
@@ -6337,7 +6355,7 @@ function getFinanceRecordsForScope({
   const weekRange = getWeekRange(anchorDate);
 
   return records.filter((record) => {
-    const recordDate = String(record?.fecha || "").slice(0, 10);
+    const recordDate = String(__veneziaGet(record, "fecha") || "").slice(0, 10);
     if (!recordDate) {
       return false;
     }
@@ -6670,7 +6688,7 @@ function buildFinanceSummary(
       })
     );
   const anchorYear = String(month || anchorDate).slice(0, 4);
-  const currentYearRows = monthlyHistoryRows.filter((row) => row.month?.startsWith(`${anchorYear}-`));
+  const currentYearRows = monthlyHistoryRows.filter((row) => String(row.month || "").startsWith(`${anchorYear}-`));
   const yearTotals = currentYearRows.reduce(
     (totals, row) => ({
       ingresos: totals.ingresos + row.ingresos,
@@ -6939,7 +6957,7 @@ function normalizeDashboardOrigin(prospect) {
 
 function getAdvisorNameForProspect(prospect) {
   const linkedStudent = students.find((student) => student.prospectId === prospect.id);
-  const advisor = linkedStudent?.usuarioAlta || prospect.inscribio || "";
+  const advisor = __veneziaGet(linkedStudent, "usuarioAlta") || prospect.inscribio || "";
   return DASHBOARD_ADVISORS.includes(advisor) ? advisor : "";
 }
 
@@ -7069,7 +7087,7 @@ function populateStaffLinkedUsers() {
 
 function getVisibleInternalUsers() {
   return internalUsers.filter((user) =>
-    getCurrentInternalUser()?.role === "Director General" ? true : matchesCurrentBranch(user.branch)
+    __veneziaGet(getCurrentInternalUser(), "role") === "Director General" ? true : matchesCurrentBranch(user.branch)
   );
 }
 
@@ -7110,7 +7128,7 @@ function getStaffAccessLabel(record) {
   }
 
   const user = internalUsers.find((item) => item.id === record.linkedUserId);
-  return user?.username || "-";
+  return __veneziaGet(user, "username") || "-";
 }
 
 function renderStaffTable() {
@@ -7161,7 +7179,7 @@ function editInternalUser(id) {
   });
   internalUserSubmitButton.textContent = "Actualizar usuario";
   setActiveModule("usuarios-accesos");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 async function toggleInternalUserState(id) {
@@ -7169,7 +7187,7 @@ async function toggleInternalUserState(id) {
     user.id === id ? { ...user, status: user.status === "Activo" ? "Inactivo" : "Activo" } : user
   );
   await saveInternalUsers();
-  if (currentInternalUserId === id && getCurrentInternalUser()?.status !== "Activo") {
+  if (currentInternalUserId === id && __veneziaGet(getCurrentInternalUser(), "status") !== "Activo") {
     logoutInternalSession();
     return;
   }
@@ -7213,7 +7231,7 @@ function editStaffRecord(id) {
   staffSubmitButton.textContent = "Actualizar personal";
   syncStaffAccessFields();
   setActiveModule("personal");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 async function deleteStaffRecord(id) {
@@ -7486,13 +7504,13 @@ function getAltaPendingFilterLabel(filterValue = activeAltaPendingFilter) {
 
 function classifyAltaScheduleType(student) {
   const scheduleText = [
-    student?.diaClases,
-    student?.horario,
-    student?.modalidad,
-    student?.tipoHorario,
-    student?.frecuencia,
-    student?.turno,
-    student?.schedule,
+    __veneziaGet(student, "diaClases"),
+    __veneziaGet(student, "horario"),
+    __veneziaGet(student, "modalidad"),
+    __veneziaGet(student, "tipoHorario"),
+    __veneziaGet(student, "frecuencia"),
+    __veneziaGet(student, "turno"),
+    __veneziaGet(student, "schedule"),
   ]
     .map(normalizeLooseText)
     .filter(Boolean)
@@ -7558,7 +7576,7 @@ function normalizeDirectorContactScope(value) {
 }
 
 function getDirectorContactScopeLabel(value) {
-  return DIRECTOR_CONTACT_SCOPE_OPTIONS.find((option) => option.value === normalizeDirectorContactScope(value))?.label || "Sin definir / único responsable";
+  return __veneziaGet(DIRECTOR_CONTACT_SCOPE_OPTIONS.find((option) => option.value === normalizeDirectorContactScope(value)), "label") || "Sin definir / único responsable";
 }
 
 function isDirectorInternalRole(role) {
@@ -7601,11 +7619,11 @@ function getDirectorContactCandidatesForBranch(branch) {
     .filter((user) => isDirectorInternalRole(user.role))
     .map((user) => {
       const linkedStaff = getLinkedStaffRecordForInternalUser(user);
-      const resolvedBranch = linkedStaff?.sucursal || user.branch || "";
-      const phone = normalizePhone(linkedStaff?.telefono || user.phone);
-      const coverage = normalizeDirectorContactScope(linkedStaff?.contactScheduleScope);
-      const position = linkedStaff?.puesto || user.role || "";
-      const name = linkedStaff?.nombre || user.fullName || "";
+      const resolvedBranch = __veneziaGet(linkedStaff, "sucursal") || user.branch || "";
+      const phone = normalizePhone(__veneziaGet(linkedStaff, "telefono") || user.phone);
+      const coverage = normalizeDirectorContactScope(__veneziaGet(linkedStaff, "contactScheduleScope"));
+      const position = __veneziaGet(linkedStaff, "puesto") || user.role || "";
+      const name = __veneziaGet(linkedStaff, "nombre") || user.fullName || "";
 
       return {
         userId: user.id,
@@ -7662,7 +7680,7 @@ function resolveDirectorContactByBranchAndSchedule(branch, scheduleType = "unkno
     const scopedMatchPhones = getUniquePhonesFromDirectorCandidates(scopedMatches);
     if (scopedMatches.length === 1 || scopedMatchPhones.length === 1) {
       return {
-        phone: scopedMatches[0]?.phone || scopedMatchPhones[0] || "",
+        phone: __veneziaGet(scopedMatches[0], "phone") || scopedMatchPhones[0] || "",
         source: "branch-schedule-match",
         candidate: scopedMatches[0] || null,
       };
@@ -7672,7 +7690,7 @@ function resolveDirectorContactByBranchAndSchedule(branch, scheduleType = "unkno
     const generalMatchPhones = getUniquePhonesFromDirectorCandidates(generalMatches);
     if (generalMatches.length === 1 || generalMatchPhones.length === 1) {
       return {
-        phone: generalMatches[0]?.phone || generalMatchPhones[0] || "",
+        phone: __veneziaGet(generalMatches[0], "phone") || generalMatchPhones[0] || "",
         source: "branch-general-director",
         candidate: generalMatches[0] || null,
       };
@@ -7719,13 +7737,13 @@ function hasPendingCourseStart(student, today = getCurrentMexicoDateValue()) {
 
 function getAltaPendingDebugEntry(student) {
   return {
-    id: student?.id || "-",
-    nombre: student?.nombre || "-",
+    id: __veneziaGet(student, "id") || "-",
+    nombre: __veneziaGet(student, "nombre") || "-",
     fechaAlta: getStudentAltaCreatedDate(student) || "-",
     fechaInicio: getStudentCourseStartDateValue(student) || "-",
-    curso: student?.curso || "-",
-    diaClases: String(student?.diaClases || "").trim() || "-",
-    horario: String(student?.horario || "").trim() || "-",
+    curso: __veneziaGet(student, "curso") || "-",
+    diaClases: String(__veneziaGet(student, "diaClases") || "").trim() || "-",
+    horario: String(__veneziaGet(student, "horario") || "").trim() || "-",
     modalidadDetectada: classifyAltaScheduleType(student),
   };
 }
@@ -7902,17 +7920,17 @@ function getStudentById(studentId) {
 }
 
 function getStudentReglamentoStatus(student) {
-  const fechaConfirmacion = String(student?.fechaLecturaReglamento || "").trim();
+  const fechaConfirmacion = String(__veneziaGet(student, "fechaLecturaReglamento") || "").trim();
   return {
-    confirmado: Boolean(student?.lecturaReglamento || fechaConfirmacion),
+    confirmado: Boolean(__veneziaGet(student, "lecturaReglamento") || fechaConfirmacion),
     fechaConfirmacion,
   };
 }
 
 function getStudentContratoStatus(student) {
-  const fechaConfirmacion = String(student?.fechaLecturaContrato || "").trim();
+  const fechaConfirmacion = String(__veneziaGet(student, "fechaLecturaContrato") || "").trim();
   return {
-    confirmado: Boolean(student?.lecturaContrato || fechaConfirmacion),
+    confirmado: Boolean(__veneziaGet(student, "lecturaContrato") || fechaConfirmacion),
     fechaConfirmacion,
   };
 }
@@ -7949,7 +7967,7 @@ function getStudentAttendanceBaseDate(student, history = []) {
     return "";
   }
 
-  return alignDateToSelectedClassDay(sourceDate, student?.diaClases || "");
+  return alignDateToSelectedClassDay(sourceDate, __veneziaGet(student, "diaClases") || "");
 }
 
 function getStudentAttendanceSessionDates(student) {
@@ -8054,7 +8072,7 @@ function loadStudentIntoAlta(studentId) {
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData(getAltaFormData()));
   setActiveModule("altas");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function populateSelectWithValues(select, values, defaultLabel) {
@@ -8236,7 +8254,7 @@ function isWeekdayAttendanceDay(dayLabel) {
 }
 
 function isWeekdayStudent(student) {
-  return isWeekdayAttendanceDay(student?.diaClases);
+  return isWeekdayAttendanceDay(__veneziaGet(student, "diaClases"));
 }
 
 function addDaysToDateValue(dateValue, days) {
@@ -8253,12 +8271,12 @@ function getAttendanceSessionDates(baseDate, sessionCount = DEFAULT_ATTENDANCE_S
 }
 
 function getAttendanceWeekdayIndex(dayLabel) {
-  return {
+  return __veneziaCoalesce({
     Viernes: 5,
     Sábado: 6,
     Domingo: 0,
     "Entre semana": 2,
-  }[normalizeAttendanceDayLabel(dayLabel)] ?? null;
+  }[normalizeAttendanceDayLabel(dayLabel)], null);
 }
 
 function alignDateToSelectedClassDay(dateValue, dayLabel) {
@@ -8287,7 +8305,7 @@ function getAttendanceBaseDate(studentsList) {
       .map((student) => getStudentStartDateValue(student))
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b))[0] || formatDateForInput(new Date());
-  const selectedDay = attendanceDayFilter.value || studentsList[0]?.diaClases || "";
+  const selectedDay = attendanceDayFilter.value || __veneziaGet(studentsList[0], "diaClases") || "";
   return alignDateToSelectedClassDay(firstStartDate, selectedDay);
 }
 
@@ -8363,13 +8381,13 @@ function getStudentAttendanceSessionGroups(student) {
     return [];
   }
 
-  return getAttendanceSessionGroups(baseDate, getAttendanceSessionCountForCourse(student.curso), student?.diaClases || "");
+  return getAttendanceSessionGroups(baseDate, getAttendanceSessionCountForCourse(student.curso), __veneziaGet(student, "diaClases") || "");
 }
 
 function getStudentAttendanceReferenceSessions(student) {
   return getStudentAttendanceSessionGroups(student).map((group) => ({
     key: group.key,
-    date: group.slots[0]?.date || "",
+    date: __veneziaGet(group.slots[0], "date") || "",
     classLabel: group.label,
   }));
 }
@@ -8389,7 +8407,7 @@ function getLatestPaymentRecordForStudent(studentId) {
 }
 
 function getAttendanceMeta(record, label) {
-  const source = String(record?.observaciones || "");
+  const source = String(__veneziaGet(record, "observaciones") || "");
   const segment = source.split(" | ").find((item) => item.startsWith(`${label}: `));
   return segment ? segment.slice(label.length + 2).trim() : "";
 }
@@ -8507,7 +8525,7 @@ function renderAttendanceTable() {
               const paymentCellClass = paymentReference
                 ? ` class="attendance-payment-cell ${paymentReference.toneClass}${paymentReference.isPriority ? " attendance-payment-cell-priority" : ""}"`
                 : "";
-              const sessionCellClass = `attendance-session-cell${paymentReference ? ` attendance-session-cell-payment ${paymentReference.toneClass}` : ""}${paymentReference?.isPriority ? " attendance-session-cell-payment-priority" : ""}`;
+              const sessionCellClass = `attendance-session-cell${paymentReference ? ` attendance-session-cell-payment ${paymentReference.toneClass}` : ""}${__veneziaGet(paymentReference, "isPriority") ? " attendance-session-cell-payment-priority" : ""}`;
               return `
                 <td${paymentCellClass}>
                   <div class="${sessionCellClass}">
@@ -8537,7 +8555,7 @@ function renderAttendanceTable() {
                                 data-session-date="${slot.date}"
                                 data-student-id="${student.id}"
                                 title="${escapeHtml(title)}"
-                              >${renderAttendanceOptions(record?.estado || "")}</select>
+                              >${renderAttendanceOptions(__veneziaGet(record, "estado") || "")}</select>
                             </div>
                           `;
                         })
@@ -8578,21 +8596,21 @@ async function saveAttendanceForStudent(studentId) {
   }
 
   const studentSessions = getStudentAttendanceSessionDates(student);
-  const date = studentSessions[0]?.date || attendanceDate.value || formatDateForInput(new Date());
+  const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || formatDateForInput(new Date());
   const sessionFields = Array.from(
     attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
   );
   const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
   const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
   const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
-  const firstSelectedSessionDate = sessionFields.find((field) => field.value)?.dataset.sessionDate || date;
+  const firstSelectedSessionDate = __veneziaGet(sessionFields.find((field) => field.value), "dataset").sessionDate || date;
   const recordsToSave = sessionFields
     .filter((field) => field.value)
     .map((field) => {
       const sessionDate = field.dataset.sessionDate;
       const existingIndex = attendanceRecords.findIndex((record) => record.studentId === studentId && record.fecha === sessionDate);
       return {
-        id: existingIndex >= 0 ? attendanceRecords[existingIndex].id : crypto.randomUUID(),
+        id: existingIndex >= 0 ? attendanceRecords[existingIndex].id : createMiVeneziaCompatibleId(),
         studentId,
         fecha: sessionDate,
         estado: field.value,
@@ -8600,11 +8618,11 @@ async function saveAttendanceForStudent(studentId) {
           sessionDate === date || sessionDate === firstSelectedSessionDate
             ? buildAttendanceNotes({
                 reglamento: automaticReglamentoStatus,
-                reportes: reportesField?.value.trim() || "",
-                observaciones: observacionesField?.value.trim() || "",
+                reportes: __veneziaGet(reportesField, "value").trim() || "",
+                observaciones: __veneziaGet(observacionesField, "value").trim() || "",
               })
-            : attendanceRecords[existingIndex]?.observaciones || "",
-        recordedBy: getCurrentInternalUser()?.id || "",
+            : __veneziaGet(attendanceRecords[existingIndex], "observaciones") || "",
+        recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
         createdAt:
           existingIndex >= 0
             ? attendanceRecords[existingIndex].createdAt || new Date().toISOString()
@@ -8740,7 +8758,7 @@ function normalizeNextCourse(value) {
 
 function getCourseMonthlyPaymentFields(student) {
   const fields = ["mensualidad1", "mensualidad2", "mensualidad3", "mensualidad4"];
-  if (courseUsesFifthMonth(student?.curso)) {
+  if (courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
     fields.push("mensualidad5");
   }
   return fields;
@@ -8757,11 +8775,11 @@ function getStudentPaymentReferenceDateByField(field, student, sessions = getStu
     return "";
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(student?.curso)) {
+  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
     return "";
   }
 
-  return sessions[rule.sessionIndex]?.date || "";
+  return __veneziaGet(sessions[rule.sessionIndex], "date") || "";
 }
 
 function isMonthlyPaymentCovered(status) {
@@ -8770,33 +8788,33 @@ function isMonthlyPaymentCovered(status) {
 }
 
 function hasStudentPendingMonthlyPayments(student, paymentRecord) {
-  return getCourseMonthlyPaymentFields(student).some((field) => !isMonthlyPaymentCovered(paymentRecord?.[field]));
+  return getCourseMonthlyPaymentFields(student).some((field) => !isMonthlyPaymentCovered(__veneziaGet(paymentRecord, field)));
 }
 
 function isLastMonthlyPaymentSettled(student, paymentRecord) {
-  const explicitStatus = normalizeLastMonthlyPaymentStatus(paymentRecord?.lastMonthlyPaymentStatus);
+  const explicitStatus = normalizeLastMonthlyPaymentStatus(__veneziaGet(paymentRecord, "lastMonthlyPaymentStatus"));
   if (explicitStatus === "Pagada") {
     return true;
   }
 
   const finalField = getFinalMonthlyPaymentField(student);
-  return String(paymentRecord?.[finalField] || "").trim() === "Pagado";
+  return String(__veneziaGet(paymentRecord, finalField) || "").trim() === "Pagado";
 }
 
-function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDisplayRecord(student?.id), anchorDate = getCurrentMexicoDateValue()) {
-  const continuityStatus = normalizeContinuityStatus(paymentRecord?.continuityStatus || student?.continuityStatus);
+function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDisplayRecord(__veneziaGet(student, "id")), anchorDate = getCurrentMexicoDateValue()) {
+  const continuityStatus = normalizeContinuityStatus(__veneziaGet(paymentRecord, "continuityStatus") || __veneziaGet(student, "continuityStatus"));
   const nextCourse = continuityStatus === "will_continue"
-    ? normalizeNextCourse(paymentRecord?.nextCourse || student?.nextCourse)
+    ? normalizeNextCourse(__veneziaGet(paymentRecord, "nextCourse") || __veneziaGet(student, "nextCourse"))
     : "";
   const lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(
-    paymentRecord?.lastMonthlyPaymentStatus || student?.lastMonthlyPaymentStatus
+    __veneziaGet(paymentRecord, "lastMonthlyPaymentStatus") || __veneziaGet(student, "lastMonthlyPaymentStatus")
   );
   const finalMonthlyReferenceDate = getStudentPaymentReferenceDateByField(getFinalMonthlyPaymentField(student), student);
   const finalMonthlyReferencePassed = Boolean(finalMonthlyReferenceDate && finalMonthlyReferenceDate < anchorDate);
   const lastMonthlyPaid = lastMonthlyPaymentStatus === "Pagada" || isLastMonthlyPaymentSettled(student, paymentRecord);
   const hasPendingMonthlyPayments = hasStudentPendingMonthlyPayments(student, paymentRecord);
   const archivedNoContinuation = continuityStatus === "will_not_continue" ||
-    normalizeLifecycleStatus(paymentRecord?.lifecycleStatus || student?.lifecycleStatus) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+    normalizeLifecycleStatus(__veneziaGet(paymentRecord, "lifecycleStatus") || __veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
 
   let lifecycleStatus = STUDENT_LIFECYCLE_STATUS.ACTIVE;
   if (archivedNoContinuation) {
@@ -8842,7 +8860,7 @@ function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDispla
 }
 
 function getContinuityStatusLabel(status) {
-  return CONTINUITY_STATUS_OPTIONS.find((option) => option.value === normalizeContinuityStatus(status))?.label || "Activa para cobro";
+  return __veneziaGet(CONTINUITY_STATUS_OPTIONS.find((option) => option.value === normalizeContinuityStatus(status)), "label") || "Activa para cobro";
 }
 
 function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
@@ -8905,7 +8923,7 @@ function getPersistentPaymentRecord(studentId) {
       const nextRecord = { ...accumulator };
 
       stickyFields.forEach((field) => {
-        const nextValue = String(record?.[field] ?? "").trim();
+        const nextValue = String(__veneziaCoalesce(__veneziaGet(record, field), "")).trim();
         if (nextValue) {
           nextRecord[field] = record[field];
         }
@@ -8927,7 +8945,7 @@ function getPersistentPaymentRecord(studentId) {
 }
 
 function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId) {
-  if (!monthRecord?.id) {
+  if (!__veneziaGet(monthRecord, "id")) {
     return {
       ...historyRecord,
       id: "",
@@ -8977,16 +8995,16 @@ function getPaymentDisplayRecord(studentId) {
 }
 
 function getPaymentStudentIdentityKey(student) {
-  const phoneKey = String(student?.telefono || student?.portalUser || "").trim().toLowerCase();
+  const phoneKey = String(__veneziaGet(student, "telefono") || __veneziaGet(student, "portalUser") || "").trim().toLowerCase();
   if (phoneKey) {
     return phoneKey;
   }
 
   return [
-    String(student?.nombre || "").trim().toLowerCase(),
-    String(student?.curso || "").trim().toLowerCase(),
-    String(student?.horario || "").trim().toLowerCase(),
-    String(student?.sucursal || "").trim().toLowerCase(),
+    String(__veneziaGet(student, "nombre") || "").trim().toLowerCase(),
+    String(__veneziaGet(student, "curso") || "").trim().toLowerCase(),
+    String(__veneziaGet(student, "horario") || "").trim().toLowerCase(),
+    String(__veneziaGet(student, "sucursal") || "").trim().toLowerCase(),
   ].join("|");
 }
 
@@ -9037,15 +9055,15 @@ function getCanonicalStudentsForPayments(studentsList = getActiveStudents()) {
     return [...entries].sort((left, right) => {
       const leftPayment = getPersistentPaymentRecord(left.id);
       const rightPayment = getPersistentPaymentRecord(right.id);
-      const leftHasPayment = Boolean(leftPayment?.id);
-      const rightHasPayment = Boolean(rightPayment?.id);
+      const leftHasPayment = Boolean(__veneziaGet(leftPayment, "id"));
+      const rightHasPayment = Boolean(__veneziaGet(rightPayment, "id"));
 
       if (leftHasPayment !== rightHasPayment) {
         return rightHasPayment ? 1 : -1;
       }
 
-      const leftUpdated = String(leftPayment?.updatedAt || leftPayment?.createdAt || "");
-      const rightUpdated = String(rightPayment?.updatedAt || rightPayment?.createdAt || "");
+      const leftUpdated = String(__veneziaGet(leftPayment, "updatedAt") || __veneziaGet(leftPayment, "createdAt") || "");
+      const rightUpdated = String(__veneziaGet(rightPayment, "updatedAt") || __veneziaGet(rightPayment, "createdAt") || "");
       if (leftUpdated !== rightUpdated) {
         return rightUpdated.localeCompare(leftUpdated);
       }
@@ -9096,7 +9114,7 @@ function getCanonicalPaymentRecordForStudent(studentId) {
 
 function getExistingPaymentRowForSave(studentId, month = selectedPaymentsMonth) {
   const currentMonthRecord = getCanonicalPaymentRecord(studentId, month);
-  if (isUuidValue(currentMonthRecord?.id)) {
+  if (isUuidValue(__veneziaGet(currentMonthRecord, "id"))) {
     return {
       record: currentMonthRecord,
       source: "currentMonthRecord",
@@ -9104,9 +9122,9 @@ function getExistingPaymentRowForSave(studentId, month = selectedPaymentsMonth) 
   }
 
   const legacyMonthRecord = getPaymentRecordsForStudentIdentity(studentId).find(
-    (record) => isUuidValue(record?.id) && !record.mesPago && getPaymentRecordMonth(record) === month
+    (record) => isUuidValue(__veneziaGet(record, "id")) && !record.mesPago && getPaymentRecordMonth(record) === month
   );
-  if (isUuidValue(legacyMonthRecord?.id)) {
+  if (isUuidValue(__veneziaGet(legacyMonthRecord, "id"))) {
     return {
       record: legacyMonthRecord,
       source: "legacyMonthRecord",
@@ -9191,7 +9209,7 @@ function getPaymentReferenceRuleBySessionIndex(sessionIndex) {
 }
 
 function getPaymentReferenceShortLabel(reference) {
-  return String(reference?.label || "").trim().toUpperCase();
+  return String(__veneziaGet(reference, "label") || "").trim().toUpperCase();
 }
 
 function getAttendancePaymentReferenceToneClass(reference) {
@@ -9211,7 +9229,7 @@ function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStude
     return null;
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(student?.curso)) {
+  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
     return null;
   }
 
@@ -9238,7 +9256,7 @@ function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentA
     return null;
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(student?.curso)) {
+  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
     return {
       ...rule,
       value: "No aplica",
@@ -9248,7 +9266,7 @@ function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentA
   const session = sessions[rule.sessionIndex];
   return {
     ...rule,
-    value: session?.date ? formatDisplayDate(session.date) : "-",
+    value: __veneziaGet(session, "date") ? formatDisplayDate(session.date) : "-",
   };
 }
 
@@ -9260,7 +9278,7 @@ function getStudentPaymentScheduleEntries(student) {
   const sessions = getStudentPortalSessionDates(student);
 
   return STUDENT_PAYMENT_REFERENCE_RULES
-    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(student?.curso))
+    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso")))
     .map((rule) => buildStudentPaymentReferenceEntry(rule, student, sessions))
     .filter(Boolean)
     .map((entry) => ({
@@ -9275,7 +9293,7 @@ function renderPaymentStatusSelect(field, student, payment, sessions = getStuden
     : payment[field] || "";
   const disabled = field === "mensualidad5" && !courseUsesFifthMonth(student.curso) ? "disabled" : "";
   const reference = getStudentPaymentReferenceByField(field, student, sessions);
-  const referenceLabel = reference?.value || "-";
+  const referenceLabel = __veneziaGet(reference, "value") || "-";
   const title = reference ? `${reference.label}: ${reference.value}` : "";
   return `
     <div class="payment-status-cell" ${title ? `title="${escapeHtml(title)}"` : ""}>
@@ -9355,7 +9373,7 @@ function buildStudentLifecyclePatch(student, paymentRecord) {
 }
 
 async function syncStudentLifecycleFromPaymentRecord(student, paymentRecord) {
-  if (!student?.id) {
+  if (!__veneziaGet(student, "id")) {
     return {
       synced: true,
       skipped: true,
@@ -9538,7 +9556,7 @@ async function savePaymentForStudent(studentId) {
   const targetPaymentMonth = resolvePaymentSaveMonth();
   const todayInMexico = getCurrentMexicoDateValue();
   const student = getStudentById(studentId);
-  const studentName = student?.nombre || "";
+  const studentName = __veneziaGet(student, "nombre") || "";
   console.log("=== PAGO SAVE START ===", {
     stage: "savePaymentForStudent:start",
     studentName,
@@ -9560,10 +9578,10 @@ async function savePaymentForStudent(studentId) {
     selectedPaymentsMonth,
     targetPaymentMonth,
     currentUser: {
-      id: getCurrentInternalUser()?.id || "",
-      username: getCurrentInternalUser()?.username || "",
-      role: getCurrentInternalUser()?.role || "",
-      branch: getCurrentInternalUser()?.branch || "",
+      id: __veneziaGet(getCurrentInternalUser(), "id") || "",
+      username: __veneziaGet(getCurrentInternalUser(), "username") || "",
+      role: __veneziaGet(getCurrentInternalUser(), "role") || "",
+      branch: __veneziaGet(getCurrentInternalUser(), "branch") || "",
       allowedBranch: getAllowedBranch(),
     },
   });
@@ -9605,17 +9623,17 @@ async function savePaymentForStudent(studentId) {
   );
   const existingPaymentRow = getExistingPaymentRowForSave(studentId, targetPaymentMonth);
   const recordToUpdate = existingPaymentRow.record;
-  const shouldCreateNewPaymentRow = !recordToUpdate?.id;
-  const resolvedPaymentId = isUuidValue(recordToUpdate?.id)
+  const shouldCreateNewPaymentRow = !__veneziaGet(recordToUpdate, "id");
+  const resolvedPaymentId = isUuidValue(__veneziaGet(recordToUpdate, "id"))
     ? recordToUpdate.id
-    : crypto.randomUUID();
+    : createMiVeneziaCompatibleId();
   console.log("=== PAGO EXISTING ROW CHECK ===", {
     studentName,
     studentId,
     targetPaymentMonth,
-    existingPaymentRowFound: Boolean(recordToUpdate?.id),
+    existingPaymentRowFound: Boolean(__veneziaGet(recordToUpdate, "id")),
     existingPaymentRowSource: existingPaymentRow.source,
-    existingPaymentRowId: recordToUpdate?.id || "",
+    existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
     reusedPaymentId: resolvedPaymentId,
   });
   if (isJaquelinPaymentDebugStudent(studentName)) {
@@ -9624,9 +9642,9 @@ async function savePaymentForStudent(studentId) {
       studentName,
       studentId,
       targetPaymentMonth,
-      existingPaymentRowFound: Boolean(recordToUpdate?.id),
+      existingPaymentRowFound: Boolean(__veneziaGet(recordToUpdate, "id")),
       existingPaymentRowSource: existingPaymentRow.source,
-      existingPaymentRowId: recordToUpdate?.id || "",
+      existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
       reusedPaymentId: resolvedPaymentId,
     });
   }
@@ -9635,8 +9653,8 @@ async function savePaymentForStudent(studentId) {
     id: resolvedPaymentId,
     studentId,
     mesPago: targetPaymentMonth,
-    createdAt: recordToUpdate?.createdAt || new Date().toISOString(),
-    updatedAt: recordToUpdate?.updatedAt || "",
+    createdAt: __veneziaGet(recordToUpdate, "createdAt") || new Date().toISOString(),
+    updatedAt: __veneziaGet(recordToUpdate, "updatedAt") || "",
     metodoPago: editingMonthRecord.metodoPago || "",
     cantidadPagada: editingMonthRecord.cantidadPagada || "",
     reportes: editingMonthRecord.reportes || "",
@@ -9677,7 +9695,7 @@ async function savePaymentForStudent(studentId) {
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
     existingPaymentRowSource: existingPaymentRow.source,
-    existingPaymentRowId: recordToUpdate?.id || "",
+    existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
     formPayload,
   });
 
@@ -9736,7 +9754,7 @@ async function savePaymentForStudent(studentId) {
   console.log("PAGO después de savePaymentRecord", {
     studentId,
     paymentId: resolvedPaymentId,
-    reusedExistingPaymentId: Boolean(recordToUpdate?.id),
+    reusedExistingPaymentId: Boolean(__veneziaGet(recordToUpdate, "id")),
     existingPaymentRowSource: existingPaymentRow.source,
     synced: saveResult.synced,
     record: summarizePaymentRecordForTrace(saveResult.record),
@@ -9754,9 +9772,9 @@ async function savePaymentForStudent(studentId) {
       studentName,
       studentId,
       paymentId: resolvedPaymentId,
-      existingPaymentRowFound: Boolean(recordToUpdate?.id),
+      existingPaymentRowFound: Boolean(__veneziaGet(recordToUpdate, "id")),
       existingPaymentRowSource: existingPaymentRow.source,
-      existingPaymentRowId: recordToUpdate?.id || "",
+      existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
       reusedPaymentId: resolvedPaymentId,
     });
   }
@@ -9874,7 +9892,7 @@ function updatePaymentsSummary() {
     recordsEvaluated: todaySummaryCandidates.filter(
       (record) =>
         record.includedInTodayTotal ||
-        PAYMENT_TRACE_STUDENT_NAMES.has(String(getStudentById(record.studentId)?.nombre || "").trim().toUpperCase())
+        PAYMENT_TRACE_STUDENT_NAMES.has(String(__veneziaGet(getStudentById(record.studentId), "nombre") || "").trim().toUpperCase())
     ),
     trackedTodaySummary,
   });
@@ -10004,7 +10022,7 @@ function populateBalanceExpenseResponsibleOptions(selectedValue = "") {
 }
 
 function getBalanceResponsibleSuggestion(branch) {
-  return getBalanceResponsibleCandidates(branch)[0]?.nombre || "";
+  return __veneziaGet(getBalanceResponsibleCandidates(branch)[0], "nombre") || "";
 }
 
 function syncBalanceExpenseResponsible({ force = false, selectedValue = "" } = {}) {
@@ -10036,7 +10054,7 @@ function getBalanceIncomeRows() {
       id: record.sourceRecordId || record.id,
       studentId: record.sourceStudentId || "",
       fecha: record.fecha,
-      alumna: studentsById.get(record.sourceStudentId)?.nombre || record.alumna || "-",
+      alumna: __veneziaGet(studentsById.get(record.sourceStudentId), "nombre") || record.alumna || "-",
       concepto: getBalancePaymentConceptDisplay(record),
       monto: Number(record.monto || 0),
       sucursal: record.sucursal || "",
@@ -10091,7 +10109,7 @@ function syncBalanceDailyView() {
   }
 
   const todayInMexico = getCurrentMexicoDateValue();
-  const selectedBranch = balanceBranchFilter?.value || "";
+  const selectedBranch = __veneziaGet(balanceBranchFilter, "value") || "";
   const availableIncomeDates = getCentralFinanceRecords()
     .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
     .concat(getOperationalInscriptionRecords())
@@ -10144,7 +10162,7 @@ function getBalanceExpenseFormData() {
   }
 
   return {
-    id: existingId || crypto.randomUUID(),
+    id: existingId || createMiVeneziaCompatibleId(),
     fecha: String(formData.get("fecha") || "").trim(),
     sucursal,
     nombreGasto: String(formData.get("nombreGasto") || "").trim(),
@@ -10153,7 +10171,7 @@ function getBalanceExpenseFormData() {
     total,
     nota: String(formData.get("nota") || "").trim(),
     responsableGasto: String(formData.get("responsableGasto") || "").trim(),
-    createdAt: existingRecord?.createdAt || new Date().toISOString(),
+    createdAt: __veneziaGet(existingRecord, "createdAt") || new Date().toISOString(),
   };
 }
 
@@ -10229,13 +10247,13 @@ function updateBalanceInscriptionToggleUI() {
 }
 
 function getBalanceInscriptionSummary() {
-  const anchorDate = balanceDateFilter?.value || getCurrentMexicoDateValue();
+  const anchorDate = __veneziaGet(balanceDateFilter, "value") || getCurrentMexicoDateValue();
   const scope = activeBalanceInscriptionView === "week" ? "week" : "day";
   const scopedRecords = getFinanceRecordsForScope({
     records: getOperationalInscriptionRecords(),
     scope,
     date: anchorDate,
-    branch: balanceBranchFilter?.value || "",
+    branch: __veneziaGet(balanceBranchFilter, "value") || "",
   });
   const total = scopedRecords.reduce((sum, record) => sum + Number(record.monto || 0), 0);
   const label =
@@ -10291,7 +10309,7 @@ function renderBalanceModule() {
   updateBalanceSummary();
   console.log("BALANCE render", {
     activeDate,
-    branchFilter: balanceBranchFilter?.value || "",
+    branchFilter: __veneziaGet(balanceBranchFilter, "value") || "",
     totalFinanceRecords: financeRecords.length,
     linkedPaymentFinanceRecords: financeRecords.filter((record) => record.relatedPaymentId).length,
     incomeRowsShown: incomeRows.length,
@@ -10316,7 +10334,7 @@ function editBalanceExpense(id) {
   syncBalanceExpenseResponsible({ selectedValue: record.responsableGasto || "" });
   balanceExpenseSubmitButton.textContent = "Actualizar egreso";
   setActiveModule("balance");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function deleteBalanceExpense(id) {
@@ -10601,7 +10619,7 @@ function getPaymentTone(value) {
 }
 
 function getStudentWhatsAppUrl(student) {
-  return getWhatsAppUrlByPhone(normalizePhone(student?.telefono));
+  return getWhatsAppUrlByPhone(normalizePhone(__veneziaGet(student, "telefono")));
 }
 
 async function copyStudentFileValue(value, button) {
@@ -10878,10 +10896,10 @@ function countStudentRegisteredPayments(student) {
 }
 
 function getStudentPortalWhatsappUrl(student) {
-  const branchLabel = student?.sucursal ? ` de ${student.sucursal}` : "";
+  const branchLabel = __veneziaGet(student, "sucursal") ? ` de ${student.sucursal}` : "";
   const scheduleType = classifyAltaScheduleType(student);
-  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(student?.sucursal, scheduleType);
-  const message = `Hola, soy ${student?.nombre || "estudiante"} y necesito apoyo con mi cuenta de Mi Venezia${branchLabel}.`;
+  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(__veneziaGet(student, "sucursal"), scheduleType);
+  const message = `Hola, soy ${__veneziaGet(student, "nombre") || "estudiante"} y necesito apoyo con mi cuenta de Mi Venezia${branchLabel}.`;
 
   if (resolvedDirectorContact.phone) {
     return buildWhatsAppUrlWithMessage(resolvedDirectorContact.phone, message);
@@ -10906,14 +10924,14 @@ function getMiVeneziaPaymentOverview(
   sessions = getStudentPortalSessionDates(student)
 ) {
   const references = STUDENT_PAYMENT_REFERENCE_RULES
-    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(student?.curso))
+    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso")))
     .map((rule) => {
       const reference = buildStudentPaymentReferenceEntry(rule, student, sessions);
       return {
         field: rule.field,
         shortLabel: getPaymentReferenceShortLabel(rule) || String(rule.label || "").trim().toUpperCase(),
-        date: reference?.value || "-",
-        status: String(payment?.[rule.field] || "").trim(),
+        date: __veneziaGet(reference, "value") || "-",
+        status: String(__veneziaGet(payment, rule.field) || "").trim(),
       };
     });
 
@@ -10922,7 +10940,7 @@ function getMiVeneziaPaymentOverview(
   const upcomingReference = pendingReferences[0] || unresolvedReferences[0] || null;
   const monthlyReferences = references.filter((entry) => entry.field.startsWith("mensualidad"));
   const monthlyCompleted = monthlyReferences.filter((entry) => entry.status === "Pagado" || entry.status === "Parcial").length;
-  const numericPendingCount = Number.parseInt(String(payment?.pagosPendientes || "").trim(), 10);
+  const numericPendingCount = Number.parseInt(String(__veneziaGet(payment, "pagosPendientes") || "").trim(), 10);
   const pendingCount = Number.isFinite(numericPendingCount) ? numericPendingCount : pendingReferences.length;
   const registeredReferenceCount = references.filter((entry) => entry.status).length;
   const hasRegisteredPayments = paymentEntries.length > 0 || registeredReferenceCount > 0;
@@ -10948,13 +10966,13 @@ function getMiVeneziaPaymentOverview(
     upcomingReference,
     statusLabel,
     statusTone,
-    mensualidadPactada: payment?.mensualidadPactada || student?.mensualidad || student?.colegiatura || "-",
-    metodoPago: payment?.metodoPago || latestPayment?.metodoPago || student?.metodoPago || "-",
-    observaciones: payment?.observaciones || latestPayment?.observaciones || "-",
-    pendingSummary: String(payment?.pagosPendientes || "").trim() || String(pendingCount || 0),
+    mensualidadPactada: __veneziaGet(payment, "mensualidadPactada") || __veneziaGet(student, "mensualidad") || __veneziaGet(student, "colegiatura") || "-",
+    metodoPago: __veneziaGet(payment, "metodoPago") || __veneziaGet(latestPayment, "metodoPago") || __veneziaGet(student, "metodoPago") || "-",
+    observaciones: __veneziaGet(payment, "observaciones") || __veneziaGet(latestPayment, "observaciones") || "-",
+    pendingSummary: String(__veneziaGet(payment, "pagosPendientes") || "").trim() || String(pendingCount || 0),
     monthlyProgress: `${monthlyCompleted} de ${monthlyReferences.length || 0}`,
-    certificateOneStatus: String(payment?.certificadoP1 || "").trim() || "-",
-    certificateTwoStatus: String(payment?.certificadoP2 || "").trim() || "-",
+    certificateOneStatus: String(__veneziaGet(payment, "certificadoP1") || "").trim() || "-",
+    certificateTwoStatus: String(__veneziaGet(payment, "certificadoP2") || "").trim() || "-",
     nextPaymentText: upcomingReference
       ? `${upcomingReference.shortLabel} · ${upcomingReference.date}`
       : hasRegisteredPayments
@@ -10968,7 +10986,7 @@ function getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCa
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
-  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(student?.curso);
+  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(__veneziaGet(student, "curso"));
   const clasesRegistradas = attendanceCalendar.filter((entry) => entry.record).length;
   const clasesTomadas = asistencias + recuperaciones;
   const clasesPendientes = Math.max(totalClases - clasesRegistradas, 0);
@@ -11083,7 +11101,7 @@ function getMiVeneziaNextAction(student, context) {
       badge: attendance.nextClass.classLabel,
       title: "Tu siguiente paso: asistir a tu próxima clase",
       copy: `Tu siguiente sesión programada es el ${formatDisplayDate(attendance.nextClass.date) || attendance.nextClass.date}.`,
-      meta: `${student?.horario || "-"} · ${student?.sucursal || "-"}`,
+      meta: `${__veneziaGet(student, "horario") || "-"} · ${__veneziaGet(student, "sucursal") || "-"}`,
       toneClass: "is-blue",
     };
   }
@@ -11103,14 +11121,14 @@ function renderMiVeneziaActionCard(container, action) {
     return;
   }
 
-  container.className = `mi-venezia-action-card ${action?.toneClass || ""}`.trim();
+  container.className = `mi-venezia-action-card ${__veneziaGet(action, "toneClass") || ""}`.trim();
   container.innerHTML = `
-    <span class="mi-venezia-action-eyebrow">${escapeHtml(action?.eyebrow || "Acción")}</span>
+    <span class="mi-venezia-action-eyebrow">${escapeHtml(__veneziaGet(action, "eyebrow") || "Acción")}</span>
     <div class="mi-venezia-action-body">
-      <span class="mi-venezia-action-badge">${escapeHtml(action?.badge || "-")}</span>
-      <strong class="mi-venezia-action-title">${escapeHtml(action?.title || "Sin acción disponible")}</strong>
-      <p class="mi-venezia-action-copy">${escapeHtml(action?.copy || "Tu próxima acción aparecerá aquí.")}</p>
-      <small class="mi-venezia-action-meta">${escapeHtml(action?.meta || "")}</small>
+      <span class="mi-venezia-action-badge">${escapeHtml(__veneziaGet(action, "badge") || "-")}</span>
+      <strong class="mi-venezia-action-title">${escapeHtml(__veneziaGet(action, "title") || "Sin acción disponible")}</strong>
+      <p class="mi-venezia-action-copy">${escapeHtml(__veneziaGet(action, "copy") || "Tu próxima acción aparecerá aquí.")}</p>
+      <small class="mi-venezia-action-meta">${escapeHtml(__veneziaGet(action, "meta") || "")}</small>
     </div>
   `;
 }
@@ -11158,7 +11176,7 @@ function renderMiVeneziaDocumentsSummary(container, documents) {
 }
 
 function getMiVeneziaSafeText(value, fallback = "Sin información disponible por ahora.") {
-  const normalized = String(value ?? "").trim();
+  const normalized = String(__veneziaCoalesce(value, "")).trim();
   return normalized || fallback;
 }
 
@@ -11250,7 +11268,7 @@ function getSuggestedPortalThemeFromName(fullName) {
 }
 
 function toStudentPortalNameCase(value) {
-  const normalized = String(value ?? "").trim().replace(/\s+/g, " ");
+  const normalized = String(__veneziaCoalesce(value, "")).trim().replace(/\s+/g, " ");
   if (!normalized) {
     return "";
   }
@@ -11285,7 +11303,7 @@ function getStudentPortalAvatarFallback(fullName) {
 }
 
 function getStudentAvatarDisplay(student) {
-  const fullName = typeof student === "string" ? student : student?.nombre || "";
+  const fullName = typeof student === "string" ? student : __veneziaGet(student, "nombre") || "";
   const themeKey = getSuggestedPortalThemeFromName(fullName);
   const source = PORTAL_THEME_AVATAR_SOURCES[themeKey] || PORTAL_THEME_AVATAR_SOURCES.neutral;
 
@@ -11299,15 +11317,15 @@ function getStudentAvatarDisplay(student) {
 
 function applyStudentAvatarDisplay(imageElement, fallbackElement, display) {
   if (fallbackElement) {
-    fallbackElement.textContent = display?.fallbackText || "V";
+    fallbackElement.textContent = __veneziaGet(display, "fallbackText") || "V";
   }
 
   if (!imageElement) {
     return;
   }
 
-  const nextSrc = display?.src || "";
-  const nextFallbackSrc = display?.fallbackSrc || "";
+  const nextSrc = __veneziaGet(display, "src") || "";
+  const nextFallbackSrc = __veneziaGet(display, "fallbackSrc") || "";
 
   if (!nextSrc) {
     imageElement.hidden = true;
@@ -11486,7 +11504,7 @@ function getMiVeneziaNoticeItems(student, context) {
   if (attendance.nextClass) {
     notices.push({
       title: "Próxima clase programada",
-      copy: `${attendance.nextClass.classLabel} · ${formatDisplayDate(attendance.nextClass.date) || attendance.nextClass.date} · ${getMiVeneziaSafeText(student?.horario, "Horario por confirmar")}`,
+      copy: `${attendance.nextClass.classLabel} · ${formatDisplayDate(attendance.nextClass.date) || attendance.nextClass.date} · ${getMiVeneziaSafeText(__veneziaGet(student, "horario"), "Horario por confirmar")}`,
       tone: "is-blue",
     });
   }
@@ -11501,8 +11519,8 @@ function renderMiVeneziaStatusCard(container, summary) {
 
   container.innerHTML = `
     <div class="student-status-card">
-      <span class="student-badge ${escapeHtml(summary?.tone || "is-neutral")}">${escapeHtml(summary?.label || "Estudiante activo")}</span>
-      <p class="student-card-meta">${escapeHtml(summary?.detail || "Tu portal está listo.")}</p>
+      <span class="student-badge ${escapeHtml(__veneziaGet(summary, "tone") || "is-neutral")}">${escapeHtml(__veneziaGet(summary, "label") || "Estudiante activo")}</span>
+      <p class="student-card-meta">${escapeHtml(__veneziaGet(summary, "detail") || "Tu portal está listo.")}</p>
     </div>
   `;
 }
@@ -11587,7 +11605,7 @@ function renderMiVeneziaClasses(container, student, attendanceCalendar = [], att
     return;
   }
 
-  const nextClassId = attendanceOverview.nextClass?.date || "";
+  const nextClassId = __veneziaGet(attendanceOverview.nextClass, "date") || "";
 
   if (isWeekdayStudent(student)) {
     container.innerHTML = getMiVeneziaAttendanceWeekGroups(attendanceCalendar)
@@ -11607,7 +11625,7 @@ function renderMiVeneziaClasses(container, student, attendanceCalendar = [], att
                       <div>
                         <span class="student-class-label">${escapeHtml(group.label)}</span>
                         <strong>${escapeHtml(entry.weekdayLabel || entry.classLabel || "Clase")}</strong>
-                        <p>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "Por confirmar")} · ${escapeHtml(getMiVeneziaSafeText(student?.horario, "Horario por confirmar"))}</p>
+                        <p>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "Por confirmar")} · ${escapeHtml(getMiVeneziaSafeText(__veneziaGet(student, "horario"), "Horario por confirmar"))}</p>
                       </div>
                       <span class="student-badge ${entry.resultLabel === "Pendiente" ? "is-neutral" : "is-blue"}">${escapeHtml(entry.resultLabel || "Pendiente")}</span>
                     </article>
@@ -11630,7 +11648,7 @@ function renderMiVeneziaClasses(container, student, attendanceCalendar = [], att
           <div>
             <span class="student-class-label">${escapeHtml(entry.classLabel || "Clase")}</span>
             <strong>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "Por confirmar")}</strong>
-            <p>${escapeHtml(getMiVeneziaSafeText(student?.curso, "Curso por confirmar"))} · ${escapeHtml(getMiVeneziaSafeText(student?.horario, "Horario por confirmar"))}</p>
+            <p>${escapeHtml(getMiVeneziaSafeText(__veneziaGet(student, "curso"), "Curso por confirmar"))} · ${escapeHtml(getMiVeneziaSafeText(__veneziaGet(student, "horario"), "Horario por confirmar"))}</p>
           </div>
           <span class="student-badge ${entry.resultLabel === "Pendiente" ? "is-neutral" : "is-blue"}">${escapeHtml(entry.resultLabel || "Pendiente")}</span>
         </article>
@@ -11784,14 +11802,14 @@ function buildMiVeneziaFallbackPaymentOverview(student, payment, paymentEntries 
     upcomingReference: null,
     statusLabel: latestEntry ? "Información disponible" : "Por confirmar",
     statusTone: latestEntry ? "blue" : "gold",
-    mensualidadPactada: payment?.mensualidadPactada || student?.mensualidad || student?.colegiatura || "-",
-    metodoPago: payment?.metodoPago || latestEntry?.metodoPago || "-",
-    observaciones: payment?.observaciones || "-",
-    pendingSummary: String(payment?.pagosPendientes || "").trim() || "0",
+    mensualidadPactada: __veneziaGet(payment, "mensualidadPactada") || __veneziaGet(student, "mensualidad") || __veneziaGet(student, "colegiatura") || "-",
+    metodoPago: __veneziaGet(payment, "metodoPago") || __veneziaGet(latestEntry, "metodoPago") || "-",
+    observaciones: __veneziaGet(payment, "observaciones") || "-",
+    pendingSummary: String(__veneziaGet(payment, "pagosPendientes") || "").trim() || "0",
     monthlyProgress: paymentEntries.length > 0 ? `${paymentEntries.length} registro${paymentEntries.length === 1 ? "" : "s"}` : "Sin detalle",
-    certificateOneStatus: String(payment?.certificadoP1 || "").trim() || "-",
-    certificateTwoStatus: String(payment?.certificadoP2 || "").trim() || "-",
-    nextPaymentText: latestEntry?.fecha ? `Último registro · ${latestEntry.fecha}` : "Por confirmar",
+    certificateOneStatus: String(__veneziaGet(payment, "certificadoP1") || "").trim() || "-",
+    certificateTwoStatus: String(__veneziaGet(payment, "certificadoP2") || "").trim() || "-",
+    nextPaymentText: __veneziaGet(latestEntry, "fecha") ? `Último registro · ${latestEntry.fecha}` : "Por confirmar",
   };
 }
 
@@ -11800,7 +11818,7 @@ function buildMiVeneziaFallbackAttendanceOverview(student, attendanceHistory = [
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
-  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(student?.curso);
+  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(__veneziaGet(student, "curso"));
   const clasesTomadas = asistencias + recuperaciones;
   const completionRate = totalClases > 0 ? Math.round((clasesTomadas / totalClases) * 100) : 0;
 
@@ -12264,11 +12282,11 @@ function renderMiVeneziaPrimaryContent(student, context) {
     renderStudentFileInfoList(miVeneziaDashboardPaymentSummary, [
       { label: "Próximo pago", value: paymentOverview.nextPaymentText, highlight: true },
       { label: "Monto", value: monthlyAmountLabel },
-      { label: "Fecha límite", value: paymentOverview.upcomingReference?.date || "Estamos preparando esta información." },
+      { label: "Fecha límite", value: __veneziaGet(paymentOverview.upcomingReference, "date") || "Estamos preparando esta información." },
       { label: "Estado", value: paymentOverview.statusLabel, badge: true, tone: paymentOverview.statusTone },
     ]);
     renderStudentFileInfoList(miVeneziaDashboardProgressSummary, [
-      { label: "Clase actual", value: attendanceOverview.latestRegistered?.classLabel || attendanceOverview.nextClass?.classLabel || "Sin información disponible por ahora." },
+      { label: "Clase actual", value: __veneziaGet(attendanceOverview.latestRegistered, "classLabel") || __veneziaGet(attendanceOverview.nextClass, "classLabel") || "Sin información disponible por ahora." },
       { label: "Total de clases", value: String(attendanceOverview.totalClases || 0) },
       { label: "Porcentaje", value: `${attendanceOverview.completionRate}%`, highlight: true },
     ]);
@@ -12389,7 +12407,7 @@ function renderMiVeneziaPrimaryContent(student, context) {
 function renderMiVeneziaSecondaryContent(student, context) {
   const { documentsOverview, attendanceOverview, notices, achievements, nextAction, attendanceCalendar } = context;
   const nextClassMetaParts = [
-    attendanceOverview.nextClass?.classLabel || "",
+    __veneziaGet(attendanceOverview.nextClass, "classLabel") || "",
     student.curso || "",
     student.horario || "",
     student.maestra || student.maestro || student.docente || "",
@@ -12467,7 +12485,7 @@ function resetMiVeneziaScrollPosition() {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollWindowToTopCompat();
     } catch (error) {
       window.scrollTo(0, 0);
     }
@@ -12862,12 +12880,12 @@ async function handleMiVeneziaPasswordChange(event) {
     let accessWarning = "";
     const existingAccessRecord = studentAccessRecords.find((record) => record.studentId === latestStudent.id);
     const accessRecordPayload = {
-      id: existingAccessRecord?.id || createMiVeneziaCompatibleId(),
+      id: __veneziaGet(existingAccessRecord, "id") || createMiVeneziaCompatibleId(),
       studentId: latestStudent.id,
       telefono: normalizePhone(latestStudent.telefono),
       password: newPassword,
-      notes: existingAccessRecord?.notes || "",
-      createdAt: existingAccessRecord?.createdAt || new Date().toISOString(),
+      notes: __veneziaGet(existingAccessRecord, "notes") || "",
+      createdAt: __veneziaGet(existingAccessRecord, "createdAt") || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     const accessSaveResult = await saveStudentPortalAccessRecord(accessRecordPayload);
@@ -12891,7 +12909,7 @@ async function handleMiVeneziaPasswordChange(event) {
   } catch (error) {
     setPortalPasswordFeedback(
       miVeneziaPasswordFeedback,
-      error?.message || "No se pudo actualizar la contraseña.",
+      __veneziaGet(error, "message") || "No se pudo actualizar la contraseña.",
       "error"
     );
   } finally {
@@ -12987,7 +13005,7 @@ async function handleTeacherPortalPasswordChange(event) {
   } catch (error) {
     setPortalPasswordFeedback(
       teacherPortalPasswordFeedback,
-      error?.message || "No se pudo actualizar la contraseña.",
+      __veneziaGet(error, "message") || "No se pudo actualizar la contraseña.",
       "error"
     );
   } finally {
@@ -13043,7 +13061,7 @@ function getTeacherPortalPayrollEntries(profile, range = getTeacherPortalCurrent
 }
 
 function getTeacherPortalPaymentDates(range = getTeacherPortalCurrentRange()) {
-  if (!range?.from || !range?.to) {
+  if (!__veneziaGet(range, "from") || !__veneziaGet(range, "to")) {
     return [];
   }
 
@@ -13088,10 +13106,10 @@ function getTeacherPortalRuleCards(profile) {
 }
 
 function getTeacherDirectorWhatsappUrl(profile) {
-  const teacherName = String(profile?.nombreCompleto || "la maestra").trim();
-  const branchLabel = profile?.sucursal ? ` de ${profile.sucursal}` : "";
+  const teacherName = String(__veneziaGet(profile, "nombreCompleto") || "la maestra").trim();
+  const branchLabel = __veneziaGet(profile, "sucursal") ? ` de ${profile.sucursal}` : "";
   const message = `Hola Dirección, soy ${teacherName}${branchLabel} y tengo una duda sobre mi portal de maestras.`;
-  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(profile?.sucursal, "unknown");
+  const resolvedDirectorContact = resolveDirectorContactByBranchAndSchedule(__veneziaGet(profile, "sucursal"), "unknown");
 
   if (resolvedDirectorContact.phone) {
     return buildWhatsAppUrlWithMessage(resolvedDirectorContact.phone, message);
@@ -13107,12 +13125,12 @@ function renderTeacherPortalDashboard() {
   const profile = getTeacherProfileByInternalUser(user);
 
   console.info("[Portal Maestras] Render", {
-    username: user?.username || "",
-    role: user?.role || "",
+    username: __veneziaGet(user, "username") || "",
+    role: __veneziaGet(user, "role") || "",
     currentAccessMode,
     teacherMode: isTeacherInternalUser(user),
-    linkedStaffId: linkedStaff?.id || "",
-    linkedConfigId: linkedConfig?.id || "",
+    linkedStaffId: __veneziaGet(linkedStaff, "id") || "",
+    linkedConfigId: __veneziaGet(linkedConfig, "id") || "",
     profileFound: Boolean(profile),
   });
 
@@ -13268,7 +13286,7 @@ function editFinanceRecord(id) {
   document.getElementById("financeUsuario").value = record.usuario;
   financeSubmitButton.textContent = "Actualizar movimiento";
   setActiveModule("finanzas");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function deleteFinanceRecord(id) {
@@ -13333,7 +13351,7 @@ function editProspect(id) {
   syncProspectFollowupField();
   submitButton.textContent = "Actualizar prospecto";
   setActiveModule("crm-prospectos");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 async function deleteProspect(id) {
@@ -13368,7 +13386,7 @@ async function deleteStudentRecord(id) {
     fechaInicio: startDate,
     estado: "Eliminada",
     deletedAt: new Date().toISOString(),
-    deletedBy: getCurrentInternalUser()?.id || "",
+    deletedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
   });
 
   if (!saveResult.synced) {
@@ -13580,7 +13598,7 @@ function loadProspectIntoAlta(id) {
     })
   );
   setActiveModule("altas");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  scrollWindowToTopCompat();
 }
 
 function setActiveModule(module) {
@@ -13588,8 +13606,8 @@ function setActiveModule(module) {
   const currentUser = getCurrentInternalUser();
   if (currentAccessMode !== "student" && shouldForceTeacherPortalAccess(currentUser) && currentAccessMode !== "teacher") {
     console.info("[Portal Maestras] Forzando modo teacher al activar módulo", {
-      username: currentUser?.username || "",
-      role: currentUser?.role || "",
+      username: __veneziaGet(currentUser, "username") || "",
+      role: __veneziaGet(currentUser, "role") || "",
       requestedModule: module,
       previousMode: currentAccessMode,
     });
@@ -13659,7 +13677,7 @@ function setActiveModule(module) {
       requestedModule: module,
       allowedModule,
       currentAccessMode,
-      sectionActive: moduleSections["portal-maestras"]?.classList.contains("active") || false,
+      sectionActive: __veneziaGet(moduleSections["portal-maestras"], "classList").contains("active") || false,
     });
   }
 }
@@ -13829,8 +13847,8 @@ internalLoginForm.addEventListener("submit", async (event) => {
     username: user.username,
     role: user.role,
     teacherMode,
-    linkedStaffId: getLinkedTeacherStaffRecordForUser(user)?.id || "",
-    linkedConfigId: getLinkedTeacherConfigForUser(user)?.id || "",
+    linkedStaffId: __veneziaGet(getLinkedTeacherStaffRecordForUser(user), "id") || "",
+    linkedConfigId: __veneziaGet(getLinkedTeacherConfigForUser(user), "id") || "",
   });
 
   activeModule = "web-venezia";
@@ -13847,7 +13865,7 @@ internalLoginForm.addEventListener("submit", async (event) => {
   console.debug("[Permisos] Login aplicado", {
     id: user.id,
     username: user.username,
-    permissionsAfterSession: getCurrentInternalUser()?.permissions || [],
+    permissionsAfterSession: __veneziaGet(getCurrentInternalUser(), "permissions") || [],
   });
   const targetModule = getDefaultModuleForCurrentContext();
   console.info("[Portal Maestras] Redirección post-login", {
@@ -13862,7 +13880,7 @@ internalLoginForm.addEventListener("submit", async (event) => {
 
 internalUserForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (getCurrentInternalUser()?.role !== "Director General") {
+  if (__veneziaGet(getCurrentInternalUser(), "role") !== "Director General") {
     alert("Sólo Director General puede gestionar usuarios.");
     return;
   }
@@ -14612,13 +14630,13 @@ paymentsTableBody.addEventListener("click", async (event) => {
     const studentId = actionButton.dataset.id;
     const currentPaymentRecord = getPaymentDisplayRecord(studentId);
     console.log("Guardar pago clic detectado", {
-      paymentId: currentPaymentRecord?.id || "",
+      paymentId: __veneziaGet(currentPaymentRecord, "id") || "",
       studentId,
       currentUser: {
-        id: getCurrentInternalUser()?.id || "",
-        username: getCurrentInternalUser()?.username || "",
-        role: getCurrentInternalUser()?.role || "",
-        branch: getCurrentInternalUser()?.branch || "",
+        id: __veneziaGet(getCurrentInternalUser(), "id") || "",
+        username: __veneziaGet(getCurrentInternalUser(), "username") || "",
+        role: __veneziaGet(getCurrentInternalUser(), "role") || "",
+        branch: __veneziaGet(getCurrentInternalUser(), "branch") || "",
         allowedBranch: getAllowedBranch(),
       },
     });
@@ -14643,10 +14661,10 @@ studentFileOverlay.addEventListener("click", (event) => {
   const actionButton = event.target.closest("[data-student-file-action]");
   if (actionButton) {
     if (actionButton.dataset.studentFileAction === "copy-user") {
-      copyStudentFileValue(getStudentById(activeStudentFileId)?.portalUser || "", actionButton);
+      copyStudentFileValue(__veneziaGet(getStudentById(activeStudentFileId), "portalUser") || "", actionButton);
     }
     if (actionButton.dataset.studentFileAction === "copy-password") {
-      copyStudentFileValue(getStudentById(activeStudentFileId)?.portalPassword || "", actionButton);
+      copyStudentFileValue(__veneziaGet(getStudentById(activeStudentFileId), "portalPassword") || "", actionButton);
     }
     return;
   }
@@ -14793,11 +14811,11 @@ function handleMiVeneziaGlobalRuntimeError(event) {
     return;
   }
 
-  if (event?.target && event.target !== window && !event.message && !event.reason) {
+  if (__veneziaGet(event, "target") && event.target !== window && !event.message && !event.reason) {
     return;
   }
 
-  const error = event?.error || event?.reason || event?.message || event;
+  const error = __veneziaGet(event, "error") || __veneziaGet(event, "reason") || __veneziaGet(event, "message") || event;
   if (miVeneziaDashboard) {
     miVeneziaDashboard.hidden = false;
     miVeneziaDashboard.setAttribute("aria-busy", "false");
@@ -14847,7 +14865,7 @@ async function initApp() {
   updateWebAppointmentFields();
   currentInternalUserId = dataService.sessions.getInternal();
   currentPortalStudentId = dataService.sessions.getStudent();
-  if (currentInternalUserId && getCurrentInternalUser()?.status !== "Activo") {
+  if (currentInternalUserId && __veneziaGet(getCurrentInternalUser(), "status") !== "Activo") {
     currentInternalUserId = "";
     dataService.sessions.clearInternal();
   }
@@ -14861,7 +14879,11 @@ async function initApp() {
   updateSessionUI();
   renderAll();
   setActiveModule(currentPortalStudentId ? "mi-venezia" : "web-venezia");
+  window.__veneziaAppReady = true;
   window.__VENEZIA_APP_READY = true;
+  if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.markReady === "function") {
+    window.__veneziaBootDebug.markReady();
+  }
 }
 
 initHeroSlider();
