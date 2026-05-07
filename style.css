@@ -7041,6 +7041,54 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
   opacity: 0;
 }
 
+.mi-venezia-runtime-alert {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 71, 71, 0.18);
+  background: #fff6f3;
+  color: #5d2b24;
+}
+
+.mi-venezia-runtime-alert[hidden] {
+  display: none !important;
+}
+
+.mi-venezia-runtime-alert strong {
+  color: #7b3129;
+  font-size: 0.96rem;
+}
+
+.mi-venezia-runtime-alert span,
+.mi-venezia-runtime-alert small {
+  color: #6f433c;
+  line-height: 1.45;
+}
+
+.mi-venezia-runtime-alert small {
+  overflow-wrap: anywhere;
+}
+
+.mi-venezia-block-fallback {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(196, 154, 74, 0.14);
+  background: #fffaf2;
+}
+
+.mi-venezia-block-fallback strong {
+  color: #241d18;
+}
+
+.mi-venezia-block-fallback p {
+  margin: 0;
+  color: #6f6458;
+}
+
 .student-sidebar,
 .student-topbar,
 .student-card,
@@ -9115,5 +9163,43 @@ body.student-portal-mode.student-portal-active .student-shell.theme-neutral .mi-
   .student-week-group {
     padding: 0.85rem;
     border-radius: 18px;
+  }
+}
+
+@supports not (font-size: clamp(1rem, 2vw, 2rem)) {
+  body.student-portal-mode.student-portal-active #miVeneziaHeroName {
+    font-size: 1.45rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body.student-portal-mode.student-portal-active .student-sidebar,
+  body.student-portal-mode.student-portal-active .student-topbar {
+    position: relative !important;
+    top: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-sidebar {
+    overflow: visible !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-mobile-nav {
+    overscroll-behavior-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.student-portal-mode.student-portal-active .student-mobile-nav .student-sidebar-link,
+  body.student-portal-mode.student-portal-active .student-sidebar-link[data-student-view="attendance"] {
+    min-width: 8.5rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-mobile-nav .student-sidebar-link {
+    max-width: 11.5rem !important;
+  }
+
+  body.student-portal-mode.student-portal-active .student-mobile-nav .student-sidebar-link::before {
+    flex: 0 0 auto;
   }
 }

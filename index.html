@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260503-web-hero-promo" />
+    <link rel="stylesheet" href="style.css?v=20260507-mi-venezia-android" />
   </head>
   <body>
     <section class="login-shell" id="loginShell" hidden>
@@ -2101,12 +2101,32 @@
             <form id="miVeneziaLoginForm" class="prospect-form">
               <label>
                 <span>Usuario Mi Venezia</span>
-                <input id="miVeneziaTelefono" name="telefono" type="text" required />
+                <input
+                  id="miVeneziaTelefono"
+                  name="telefono"
+                  type="text"
+                  autocomplete="username"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  enterkeyhint="go"
+                  required
+                />
               </label>
 
               <label>
                 <span>Contraseña</span>
-                <input id="miVeneziaPassword" name="password" type="password" required />
+                <input
+                  id="miVeneziaPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  enterkeyhint="go"
+                  required
+                />
               </label>
 
               <div class="form-actions full-width">
@@ -3193,9 +3213,62 @@
       </main>
     </div>
 
+    <script>
+      (function () {
+        function showMiVeneziaCompatMessage(message) {
+          if (!document.body) {
+            window.setTimeout(function () {
+              showMiVeneziaCompatMessage(message);
+            }, 50);
+            return;
+          }
+
+          var existing = document.getElementById("miVeneziaCompatBootAlert");
+          if (existing) {
+            existing.innerHTML = message;
+            existing.hidden = false;
+            return;
+          }
+
+          var alert = document.createElement("div");
+          alert.id = "miVeneziaCompatBootAlert";
+          alert.setAttribute("role", "alert");
+          alert.style.cssText = "position:fixed;left:12px;right:12px;top:12px;z-index:9999;padding:14px 16px;border:1px solid rgba(168,71,71,.22);border-radius:14px;background:#fff6f3;color:#5d2b24;font-family:Arial,sans-serif;font-size:14px;line-height:1.4;box-shadow:0 12px 30px rgba(0,0,0,.12);";
+          alert.innerHTML = message;
+          document.body.insertBefore(alert, document.body.firstChild);
+        }
+
+        window.VeneziaMiCompat = {
+          show: showMiVeneziaCompatMessage,
+        };
+
+        try {
+          new Function("var item = { value: 1 }; return item?.value ?? 0;");
+        } catch (error) {
+          showMiVeneziaCompatMessage("Mi Venezia detectó que este navegador interno de Android es antiguo. Abre el enlace desde Chrome actualizado para evitar pantalla blanca.");
+        }
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            var source = event && (event.filename || (event.target && event.target.src) || "");
+            if (!window.__VENEZIA_APP_READY && /app\.js|dataService\.js/.test(source)) {
+              showMiVeneziaCompatMessage("Mi Venezia no pudo iniciar correctamente en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
+            }
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", function (event) {
+          if (!window.__VENEZIA_APP_READY) {
+            showMiVeneziaCompatMessage("Mi Venezia no pudo terminar la carga inicial en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
+          }
+        });
+      })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20260414-teacher-real-payments"></script>
-    <script src="app.js?v=20260414-teacher-real-payments"></script>
+    <script src="app.js?v=20260507-mi-venezia-android"></script>
   </body>
 </html>
