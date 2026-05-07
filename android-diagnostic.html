@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diagnóstico Android - Mi Venezia</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: Arial, sans-serif;
+        color: #2f211b;
+        background: #fffaf3;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+
+      .card {
+        margin: 0 0 12px;
+        padding: 12px;
+        border: 1px solid #ead9c7;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .row {
+        padding: 8px 0;
+        border-bottom: 1px solid #f0e5da;
+        word-break: break-word;
+      }
+
+      .row:last-child {
+        border-bottom: 0;
+      }
+
+      .ok {
+        color: #176c3a;
+        font-weight: bold;
+      }
+
+      .bad {
+        color: #a13a28;
+        font-weight: bold;
+      }
+
+      .pending {
+        color: #805b20;
+        font-weight: bold;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 8px 0 0;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f6efe7;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Diagnóstico Android - Mi Venezia</h1>
+    <div class="card" id="diagnosticResults"></div>
+    <div class="card">
+      <strong>Prueba de app.js</strong>
+      <div id="appJsStatus" class="row"><span class="pending">Probando...</span></div>
+      <pre id="appJsDetails"></pre>
+    </div>
+
+    <script>
+      (function () {
+        var results = document.getElementById("diagnosticResults");
+        var appJsStatus = document.getElementById("appJsStatus");
+        var appJsDetails = document.getElementById("appJsDetails");
+
+        function escapeText(value) {
+          return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;"
+            }[character];
+          });
+        }
+
+        function yesNo(value) {
+          return value ? '<span class="ok">Sí</span>' : '<span class="bad">No</span>';
+        }
+
+        function testStorage(name) {
+          try {
+            var storage = window[name];
+            var key = "__venezia_android_diag__";
+            if (!storage) {
+              return false;
+            }
+            storage.setItem(key, "1");
+            storage.removeItem(key);
+            return true;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        function testOptionalChainingSyntax() {
+          try {
+            new Function("var item = { value: 1 }; return item?.value;");
+            return true;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        function testNullishSyntax() {
+          try {
+            new Function("var item = null; return item ?? 1;");
+            return true;
+          } catch (error) {
+            return false;
+          }
+        }
+
+        function renderBaseResults() {
+          var html = "";
+          html += '<div class="row"><strong>User agent:</strong><br>' + escapeText(navigator.userAgent) + "</div>";
+          html += '<div class="row"><strong>localStorage:</strong> ' + yesNo(testStorage("localStorage")) + "</div>";
+          html += '<div class="row"><strong>sessionStorage:</strong> ' + yesNo(testStorage("sessionStorage")) + "</div>";
+          html += '<div class="row"><strong>Promise:</strong> ' + yesNo(typeof window.Promise === "function") + "</div>";
+          html += '<div class="row"><strong>fetch:</strong> ' + yesNo(typeof window.fetch === "function") + "</div>";
+          html += '<div class="row"><strong>optional chaining:</strong> ' + yesNo(testOptionalChainingSyntax()) + "</div>";
+          html += '<div class="row"><strong>nullish coalescing:</strong> ' + yesNo(testNullishSyntax()) + "</div>";
+          html += '<div class="row"><strong>Array.from:</strong> ' + yesNo(typeof Array.from === "function") + "</div>";
+          html += '<div class="row"><strong>String.padStart:</strong> ' + yesNo(typeof String.prototype.padStart === "function") + "</div>";
+          html += '<div class="row"><strong>crypto.randomUUID:</strong> ' + yesNo(!!(window.crypto && typeof window.crypto.randomUUID === "function")) + "</div>";
+          results.innerHTML = html;
+        }
+
+        function setAppJsResult(ok, message, details) {
+          appJsStatus.innerHTML = ok
+            ? '<span class="ok">app.js puede parsearse en este navegador.</span>'
+            : '<span class="bad">' + escapeText(message) + "</span>";
+          appJsDetails.textContent = details || "";
+        }
+
+        function testAppJsSource(source) {
+          try {
+            new Function(source);
+            setAppJsResult(true, "", "El archivo se descargó y el motor JavaScript pudo parsearlo sin ejecutarlo.");
+          } catch (error) {
+            setAppJsResult(false, "app.js no puede parsearse en este navegador.", String(error && (error.stack || error.message) || error));
+          }
+        }
+
+        function loadAppJsForParseTest() {
+          var xhr;
+          try {
+            xhr = new XMLHttpRequest();
+          } catch (error) {
+            setAppJsResult(false, "Este navegador no soporta XMLHttpRequest.", String(error && error.message || error));
+            return;
+          }
+
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) {
+              return;
+            }
+
+            if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 0) {
+              testAppJsSource(xhr.responseText || "");
+            } else {
+              setAppJsResult(false, "No se pudo descargar app.js.", "HTTP status: " + xhr.status);
+            }
+          };
+
+          try {
+            xhr.open("GET", "app.js?v=android-diagnostic-" + new Date().getTime(), true);
+            xhr.send(null);
+          } catch (error) {
+            setAppJsResult(false, "No se pudo iniciar la prueba de app.js.", String(error && error.message || error));
+          }
+        }
+
+        renderBaseResults();
+        loadAppJsForParseTest();
+      })();
+    </script>
+  </body>
+</html>

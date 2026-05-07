@@ -3215,60 +3215,366 @@
 
     <script>
       (function () {
-        function showMiVeneziaCompatMessage(message) {
-          if (!document.body) {
+        var bootStartedAt = new Date();
+        var bootEvents = [];
+        var oldOnError = window.onerror;
+        var oldUnhandledRejection = window.onunhandledrejection;
+        var bootTimer = null;
+
+        function supportsDebugDetails() {
+          return /(?:^|[?&])miVeneziaDebug=(1|true|yes)(?:&|$)/i.test(window.location.search || "");
+        }
+
+        function escapeBootText(value) {
+          return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;"
+            }[character];
+          });
+        }
+
+        function getHostElement() {
+          return document.body || document.documentElement;
+        }
+
+        function ensureBootPanel() {
+          var host = getHostElement();
+          var panel = document.getElementById("veneziaBootDebugPanel");
+
+          if (!host) {
+            window.setTimeout(ensureBootPanel, 50);
+            return null;
+          }
+
+          if (panel) {
+            panel.style.display = "block";
+            panel.hidden = false;
+            return panel;
+          }
+
+          panel = document.createElement("div");
+          panel.id = "veneziaBootDebugPanel";
+          panel.setAttribute("role", "alert");
+          panel.style.cssText = "position:fixed;left:10px;right:10px;top:10px;z-index:2147483647;display:block;padding:14px 15px;border:1px solid #c65f47;border-radius:10px;background:#fff7f2;color:#4c241c;font-family:Arial,sans-serif;font-size:14px;line-height:1.38;box-shadow:0 12px 34px rgba(0,0,0,.22);text-align:left;white-space:normal;max-height:72vh;overflow:auto;";
+          host.insertBefore(panel, host.firstChild);
+          return panel;
+        }
+
+        function showBootPanel(title, lines) {
+          var panel = ensureBootPanel();
+          var index;
+          var html = "";
+
+          if (!panel) {
             window.setTimeout(function () {
-              showMiVeneziaCompatMessage(message);
+              showBootPanel(title, lines);
             }, 50);
             return;
           }
 
-          var existing = document.getElementById("miVeneziaCompatBootAlert");
-          if (existing) {
-            existing.innerHTML = message;
-            existing.hidden = false;
+          html += '<strong style="display:block;margin:0 0 6px;font-size:15px;">' + escapeBootText(title) + "</strong>";
+          html += '<div style="margin:0 0 8px;">' + escapeBootText((lines && lines[0]) || "No se pudo iniciar la app en este navegador.") + "</div>";
+
+          if (lines && lines.length > 1) {
+            html += '<ul style="margin:0 0 8px 18px;padding:0;">';
+            for (index = 1; index < lines.length; index += 1) {
+              html += "<li>" + escapeBootText(lines[index]) + "</li>";
+            }
+            html += "</ul>";
+          }
+
+          if (supportsDebugDetails()) {
+            html += '<details open style="margin-top:8px;"><summary>Datos técnicos</summary>';
+            html += '<pre style="white-space:pre-wrap;margin:8px 0 0;font-size:12px;">';
+            html += escapeBootText(JSON.stringify({
+              startedAt: bootStartedAt.toISOString ? bootStartedAt.toISOString() : String(bootStartedAt),
+              appScriptLoaded: !!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED),
+              appReady: !!(window.__veneziaAppReady || window.__VENEZIA_APP_READY),
+              userAgent: navigator.userAgent,
+              events: bootEvents.slice(-8)
+            }, null, 2));
+            html += "</pre></details>";
+          }
+
+          panel.innerHTML = html;
+        }
+
+        function hideBootPanel() {
+          var panel = document.getElementById("veneziaBootDebugPanel");
+          if (panel) {
+            panel.style.display = "none";
+            panel.hidden = true;
+          }
+        }
+
+        function addBootEvent(type, detail) {
+          bootEvents.push({
+            type: type,
+            detail: detail || "",
+            time: new Date().getTime()
+          });
+        }
+
+        function getEventSource(event) {
+          var target = event && (event.target || event.srcElement);
+          return (event && (event.filename || event.sourceURL)) ||
+            (target && (target.src || target.href)) ||
+            "";
+        }
+
+        function isBootCriticalResource(event, source) {
+          var target = event && (event.target || event.srcElement);
+          var tagName = target && target.tagName ? String(target.tagName).toLowerCase() : "";
+          return tagName === "script" || tagName === "link" || /(?:app|dataService|supabase)\.js|style\.css/i.test(source || "");
+        }
+
+        function installLegacyPolyfills() {
+          if (!Array.from) {
+            Array.from = function (source, mapFn, thisArg) {
+              var result = [];
+              var index = 0;
+              var length;
+              if (source == null) {
+                throw new TypeError("Array.from requiere un valor");
+              }
+              if (typeof source.length === "number") {
+                length = Math.max(0, Math.min(Number(source.length) || 0, 9007199254740991));
+                for (index = 0; index < length; index += 1) {
+                  result.push(typeof mapFn === "function" ? mapFn.call(thisArg, source[index], index) : source[index]);
+                }
+                return result;
+              }
+              if (typeof Symbol !== "undefined" && source[Symbol.iterator]) {
+                var iterator = source[Symbol.iterator]();
+                var step = iterator.next();
+                while (!step.done) {
+                  result.push(typeof mapFn === "function" ? mapFn.call(thisArg, step.value, index) : step.value);
+                  index += 1;
+                  step = iterator.next();
+                }
+                return result;
+              }
+              if (typeof source.forEach === "function") {
+                source.forEach(function (value) {
+                  result.push(typeof mapFn === "function" ? mapFn.call(thisArg, value, index) : value);
+                  index += 1;
+                });
+              }
+              return result;
+            };
+          }
+
+          if (!Array.prototype.find) {
+            Array.prototype.find = function (predicate, thisArg) {
+              var index;
+              if (this == null || typeof predicate !== "function") {
+                throw new TypeError("Array.find no disponible");
+              }
+              for (index = 0; index < this.length; index += 1) {
+                if (predicate.call(thisArg, this[index], index, this)) {
+                  return this[index];
+                }
+              }
+              return undefined;
+            };
+          }
+
+          if (!Array.prototype.includes) {
+            Array.prototype.includes = function (searchElement, fromIndex) {
+              var index = fromIndex || 0;
+              for (; index < this.length; index += 1) {
+                if (this[index] === searchElement || (this[index] !== this[index] && searchElement !== searchElement)) {
+                  return true;
+                }
+              }
+              return false;
+            };
+          }
+
+          if (!String.prototype.includes) {
+            String.prototype.includes = function (search, start) {
+              return this.indexOf(search, start || 0) !== -1;
+            };
+          }
+
+          if (!String.prototype.startsWith) {
+            String.prototype.startsWith = function (search, position) {
+              var pos = position || 0;
+              return this.substr(pos, String(search).length) === String(search);
+            };
+          }
+
+          if (!String.prototype.padStart) {
+            String.prototype.padStart = function (targetLength, padString) {
+              var target = targetLength >> 0;
+              var padding = String(padString == null ? " " : padString);
+              var value = String(this);
+              if (value.length >= target) {
+                return value;
+              }
+              while (padding.length < target - value.length) {
+                padding += padding;
+              }
+              return padding.slice(0, target - value.length) + value;
+            };
+          }
+
+          if (!Number.isFinite) {
+            Number.isFinite = function (value) {
+              return typeof value === "number" && isFinite(value);
+            };
+          }
+
+          if (!Number.parseInt) {
+            Number.parseInt = parseInt;
+          }
+
+          if (!Math.trunc) {
+            Math.trunc = function (value) {
+              value = Number(value);
+              if (!isFinite(value)) {
+                return value;
+              }
+              return value < 0 ? Math.ceil(value) : Math.floor(value);
+            };
+          }
+
+          if (!Object.fromEntries) {
+            Object.fromEntries = function (entries) {
+              var object = {};
+              var index;
+              for (index = 0; index < entries.length; index += 1) {
+                object[entries[index][0]] = entries[index][1];
+              }
+              return object;
+            };
+          }
+
+          if (!Object.entries) {
+            Object.entries = function (object) {
+              var entries = [];
+              var key;
+              for (key in object) {
+                if (Object.prototype.hasOwnProperty.call(object, key)) {
+                  entries.push([key, object[key]]);
+                }
+              }
+              return entries;
+            };
+          }
+
+          try {
+            if (!window.crypto) {
+              window.crypto = {};
+            }
+            if (window.crypto && typeof window.crypto.randomUUID !== "function") {
+              window.crypto.randomUUID = function () {
+                return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (character) {
+                  var random = Math.random() * 16 | 0;
+                  var value = character === "x" ? random : (random & 3 | 8);
+                  return value.toString(16);
+                });
+              };
+            }
+          } catch (error) {
+            addBootEvent("polyfill.crypto", error && error.message ? error.message : String(error));
+          }
+        }
+
+        window.__veneziaBootDebug = {
+          events: bootEvents,
+          show: showBootPanel,
+          hide: hideBootPanel,
+          markReady: function () {
+            window.__veneziaAppReady = true;
+            window.__VENEZIA_APP_READY = true;
+            if (bootTimer) {
+              window.clearTimeout(bootTimer);
+            }
+            hideBootPanel();
+          }
+        };
+
+        window.VeneziaMiCompat = {
+          show: function (message) {
+            showBootPanel("Mi Venezia no pudo iniciar", [message]);
+          }
+        };
+
+        installLegacyPolyfills();
+
+        window.onerror = function (message, source, line, column, error) {
+          addBootEvent("error", String(message || "Error") + " " + String(source || "") + ":" + String(line || ""));
+          if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+            showBootPanel("Mi Venezia no pudo iniciar", [
+              "Ocurrió un error antes de que la app terminara de arrancar.",
+              source ? "Archivo: " + source : "Archivo no reportado por el navegador.",
+              line ? "Línea: " + line : "Línea no reportada.",
+              error && error.message ? "Error: " + error.message : "Error: " + String(message || "desconocido")
+            ]);
+          }
+          if (typeof oldOnError === "function") {
+            return oldOnError.apply(window, arguments);
+          }
+          return false;
+        };
+
+        if (window.addEventListener) {
+          window.addEventListener("error", function (event) {
+            var source = getEventSource(event);
+            if (source && isBootCriticalResource(event, source) && !(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+              addBootEvent("resource-error", source);
+              showBootPanel("Mi Venezia no pudo cargar un archivo", [
+                "El navegador no pudo cargar o interpretar un archivo necesario.",
+                "Archivo: " + source,
+                "Prueba abrir android-diagnostic.html en el mismo celular."
+              ]);
+            }
+          }, true);
+
+          window.addEventListener("unhandledrejection", function (event) {
+            var reason = event && event.reason;
+            addBootEvent("unhandledrejection", reason && reason.message ? reason.message : String(reason || "Promise rechazada"));
+            if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+              showBootPanel("Mi Venezia no terminó de iniciar", [
+                "app.js cargó, pero una tarea inicial falló antes de terminar.",
+                reason && reason.message ? "Error: " + reason.message : "Error no detallado por este navegador."
+              ]);
+            }
+          });
+        }
+
+        window.onunhandledrejection = function (event) {
+          if (typeof oldUnhandledRejection === "function") {
+            oldUnhandledRejection.call(window, event);
+          }
+        };
+
+        bootTimer = window.setTimeout(function () {
+          if (!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED)) {
+            showBootPanel("app.js no cargó", [
+              "El navegador no ejecutó app.js. Puede ser un error de parseo, caché, bloqueo de script o WebView incompatible.",
+              "Abre android-diagnostic.html para ver qué soporte tiene este Android."
+            ]);
             return;
           }
 
-          var alert = document.createElement("div");
-          alert.id = "miVeneziaCompatBootAlert";
-          alert.setAttribute("role", "alert");
-          alert.style.cssText = "position:fixed;left:12px;right:12px;top:12px;z-index:9999;padding:14px 16px;border:1px solid rgba(168,71,71,.22);border-radius:14px;background:#fff6f3;color:#5d2b24;font-family:Arial,sans-serif;font-size:14px;line-height:1.4;box-shadow:0 12px 30px rgba(0,0,0,.12);";
-          alert.innerHTML = message;
-          document.body.insertBefore(alert, document.body.firstChild);
-        }
-
-        window.VeneziaMiCompat = {
-          show: showMiVeneziaCompatMessage,
-        };
-
-        try {
-          new Function("var item = { value: 1 }; return item?.value ?? 0;");
-        } catch (error) {
-          showMiVeneziaCompatMessage("Mi Venezia detectó que este navegador interno de Android es antiguo. Abre el enlace desde Chrome actualizado para evitar pantalla blanca.");
-        }
-
-        window.addEventListener(
-          "error",
-          function (event) {
-            var source = event && (event.filename || (event.target && event.target.src) || "");
-            if (!window.__VENEZIA_APP_READY && /app\.js|dataService\.js/.test(source)) {
-              showMiVeneziaCompatMessage("Mi Venezia no pudo iniciar correctamente en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
-            }
-          },
-          true
-        );
-
-        window.addEventListener("unhandledrejection", function (event) {
-          if (!window.__VENEZIA_APP_READY) {
-            showMiVeneziaCompatMessage("Mi Venezia no pudo terminar la carga inicial en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
+          if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+            showBootPanel("app.js cargó, pero initApp no terminó", [
+              "El archivo principal sí empezó a ejecutarse, pero la inicialización quedó detenida o falló.",
+              "Prueba con ?miVeneziaDebug=1 para ver datos técnicos."
+            ]);
           }
-        });
+        }, 5000);
       })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
-    <script src="dataService.js?v=20260414-teacher-real-payments"></script>
-    <script src="app.js?v=20260507-mi-venezia-android"></script>
+    <script src="dataService.js?v=20260507-android-boot"></script>
+    <script src="app.js?v=20260507-android-boot"></script>
   </body>
 </html>

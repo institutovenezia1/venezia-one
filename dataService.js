@@ -3,6 +3,14 @@
 // - localStorage remains as cache/fallback for graceful offline behavior.
 // - all other entities still use localStorage until later migrations.
 (function initDataService(globalScope) {
+  function __veneziaGet(value, key) {
+    return value == null ? undefined : value[key];
+  }
+
+  function __veneziaCoalesce(value, fallback) {
+    return value == null ? fallback : value;
+  }
+
   const STORAGE_KEYS = {
     prospects: "venezia-one-v2-prospectos",
     students: "venezia-one-v2-altas",
@@ -24,6 +32,85 @@
 
   function getStorage() {
     return globalScope.localStorage;
+  }
+
+  const studentSessionMemoryStore = new Map();
+
+  function getAvailableStorage(storageName) {
+    try {
+      const storage = globalScope[storageName];
+      if (!storage) {
+        return null;
+      }
+
+      const probeKey = `__venezia_probe__${storageName}`;
+      storage.setItem(probeKey, "1");
+      storage.removeItem(probeKey);
+      return storage;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getStudentSessionStorage() {
+    return getAvailableStorage("sessionStorage") || getAvailableStorage("localStorage");
+  }
+
+  function readStudentSessionValue() {
+    const storages = [
+      getAvailableStorage("sessionStorage"),
+      getAvailableStorage("localStorage"),
+    ].filter(Boolean);
+
+    for (const storage of storages) {
+      try {
+        const storedValue = storage.getItem(STORAGE_KEYS.studentSession) || "";
+        if (storedValue) {
+          return storedValue;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return studentSessionMemoryStore.get(STORAGE_KEYS.studentSession) || "";
+  }
+
+  function writeStudentSessionValue(value) {
+    const storage = getStudentSessionStorage();
+    if (storage) {
+      try {
+        storage.setItem(STORAGE_KEYS.studentSession, value);
+        studentSessionMemoryStore.delete(STORAGE_KEYS.studentSession);
+        return;
+      } catch (error) {
+        // Fall through to in-memory storage.
+      }
+    }
+
+    studentSessionMemoryStore.set(STORAGE_KEYS.studentSession, value);
+  }
+
+  function clearStudentSessionValue() {
+    const sessionStorage = getAvailableStorage("sessionStorage");
+    const localStorage = getAvailableStorage("localStorage");
+
+    if (sessionStorage) {
+      try {
+        sessionStorage.removeItem(STORAGE_KEYS.studentSession);
+      } catch (error) {
+        // Ignore storage cleanup errors.
+      }
+    }
+    if (localStorage) {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.studentSession);
+      } catch (error) {
+        // Ignore storage cleanup errors.
+      }
+    }
+
+    studentSessionMemoryStore.delete(STORAGE_KEYS.studentSession);
   }
 
   function readCollection(key, fallbackFactory) {
@@ -105,7 +192,7 @@
     }
 
     async function selectAllFromSupabase() {
-      const client = globalScope.VeneziaSupabase?.client;
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
       if (!client) {
         throw new Error(`Supabase client unavailable for ${table}`);
       }
@@ -124,7 +211,7 @@
     }
 
     async function upsertManyToSupabase(records) {
-      const client = globalScope.VeneziaSupabase?.client;
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
       if (!client) {
         throw new Error(`Supabase client unavailable for ${table}`);
       }
@@ -215,11 +302,11 @@
         if (table === "student_payments") {
           const targetMonth = String(record.mesPago || "").trim();
           const getPaymentMonthKey = (item) => {
-            if (item?.mesPago) {
+            if (__veneziaGet(item, "mesPago")) {
               return String(item.mesPago).trim();
             }
 
-            const timestamp = String(item?.updatedAt || item?.createdAt || "").slice(0, 7);
+            const timestamp = String(__veneziaGet(item, "updatedAt") || __veneziaGet(item, "createdAt") || "").slice(0, 7);
             return timestamp || "";
           };
           const existingRecordByStudentAndMonth = existingRecords.find(
@@ -229,7 +316,7 @@
               getPaymentMonthKey(item) &&
               getPaymentMonthKey(item) === targetMonth
           );
-          if (existingRecordByStudentAndMonth?.id) {
+          if (__veneziaGet(existingRecordByStudentAndMonth, "id")) {
             normalizedRecord = {
               ...record,
               id: existingRecordByStudentAndMonth.id,
@@ -308,7 +395,7 @@
         const nextRecords = existingRecords.filter((record) => record.id !== id);
 
         try {
-          const client = globalScope.VeneziaSupabase?.client;
+          const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
           if (!client) {
             throw new Error(`Supabase client unavailable for ${table}`);
           }
@@ -366,7 +453,7 @@
   }
 
   function toNullableNumberValue(value) {
-    const normalized = String(value ?? "").trim();
+    const normalized = String(__veneziaCoalesce(value, "")).trim();
     if (!normalized) {
       return null;
     }
@@ -850,7 +937,7 @@
   globalScope.VeneziaDataService = {
     keys: STORAGE_KEYS,
     provider: "supabase+localStorage",
-    supabaseReady: Boolean(globalScope.VeneziaSupabase?.client),
+    supabaseReady: Boolean(__veneziaGet(globalScope.VeneziaSupabase, "client")),
     entities: {
       // Supabase-based modules:
       internalUsers: createSupabaseEntityService({
@@ -994,13 +1081,13 @@
         globalScope.localStorage.removeItem(STORAGE_KEYS.internalSession);
       },
       getStudent() {
-        return globalScope.sessionStorage.getItem(STORAGE_KEYS.studentSession) || "";
+        return readStudentSessionValue();
       },
       setStudent(value) {
-        globalScope.sessionStorage.setItem(STORAGE_KEYS.studentSession, value);
+        writeStudentSessionValue(value);
       },
       clearStudent() {
-        globalScope.sessionStorage.removeItem(STORAGE_KEYS.studentSession);
+        clearStudentSessionValue();
       },
     },
   };
