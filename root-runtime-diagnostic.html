@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diagnóstico runtime raíz - Mi Venezia</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 14px;
+        font-family: Arial, sans-serif;
+        color: #2f211b;
+        background: #fffaf3;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+
+      .card {
+        margin: 0 0 12px;
+        padding: 12px;
+        border: 1px solid #ead9c7;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .ok {
+        color: #176c3a;
+        font-weight: bold;
+      }
+
+      .bad {
+        color: #a13a28;
+        font-weight: bold;
+      }
+
+      .pending {
+        color: #805b20;
+        font-weight: bold;
+      }
+
+      iframe {
+        width: 100%;
+        height: 360px;
+        border: 1px solid #d9c4af;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 8px 0 0;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f6efe7;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Diagnóstico runtime raíz</h1>
+    <div class="card">
+      <strong>Estado</strong>
+      <div id="runtimeStatus"><span class="pending">Cargando raíz...</span></div>
+      <pre id="runtimeDetails"></pre>
+    </div>
+    <div class="card">
+      <strong>Vista cargada en iframe</strong>
+      <iframe id="rootFrame" title="Prueba runtime raíz"></iframe>
+    </div>
+
+    <script>
+      (function () {
+        var frame = document.getElementById("rootFrame");
+        var statusElement = document.getElementById("runtimeStatus");
+        var detailsElement = document.getElementById("runtimeDetails");
+        var pollCount = 0;
+        var maxPolls = 20;
+        var startedAt = new Date().getTime();
+
+        function getParam(name) {
+          var match = new RegExp("(?:^|[?&])" + name + "=([^&]*)").exec(window.location.search || "");
+          return match ? decodeURIComponent(match[1].replace(/\+/g, " ")) : "";
+        }
+
+        function setStatus(kind, text) {
+          var className = kind === "ok" ? "ok" : kind === "bad" ? "bad" : "pending";
+          statusElement.innerHTML = '<span class="' + className + '">' + text + "</span>";
+        }
+
+        function getStyleValue(win, element, property) {
+          try {
+            return win.getComputedStyle(element).getPropertyValue(property);
+          } catch (error) {
+            return "";
+          }
+        }
+
+        function snapshot(win, id) {
+          var doc = win.document;
+          var element = doc.getElementById(id);
+          var rect = null;
+          if (!element) {
+            return id + ": no existe";
+          }
+          try {
+            rect = element.getBoundingClientRect();
+          } catch (error) {
+            rect = null;
+          }
+          return id +
+            ": hidden=" + String(!!element.hidden) +
+            ", display=" + getStyleValue(win, element, "display") +
+            ", visibility=" + getStyleValue(win, element, "visibility") +
+            ", opacity=" + getStyleValue(win, element, "opacity") +
+            ", rect=" + (rect ? Math.round(rect.width) + "x" + Math.round(rect.height) : "sin rect") +
+            ", class=" + String(element.className || "");
+        }
+
+        function collectFrameDetails() {
+          var win;
+          var doc;
+          var lines = [];
+          var ids = [
+            "veneziaBootDebugPanel",
+            "loginShell",
+            "teacherPortalShell",
+            "appShell",
+            "accessSelectorSection",
+            "webVeneziaSection",
+            "miVeneziaSection",
+            "miVeneziaLoginPanel",
+            "miVeneziaDashboard"
+          ];
+          var index;
+
+          try {
+            win = frame.contentWindow;
+            doc = win.document;
+          } catch (error) {
+            return "No se pudo leer el iframe: " + String(error && error.message || error);
+          }
+
+          lines.push("elapsedMs: " + (new Date().getTime() - startedAt));
+          lines.push("readyState: " + String(doc.readyState));
+          lines.push("body children count: " + (doc.body && doc.body.children ? doc.body.children.length : 0));
+          lines.push("body class: " + String(doc.body && doc.body.className || ""));
+          lines.push("markers:");
+          lines.push("  appScriptLoaded=" + !!(win.__veneziaAppScriptLoaded || win.__VENEZIA_APP_SCRIPT_LOADED));
+          lines.push("  initStarted=" + !!win.__veneziaInitStarted);
+          lines.push("  initFinished=" + !!win.__veneziaInitFinished);
+          lines.push("  visibleUiReady=" + !!win.__veneziaVisibleUiReady);
+          if (win.__veneziaBootDebug && win.__veneziaBootDebug.status) {
+            lines.push("boot status: " + JSON.stringify(win.__veneziaBootDebug.status, null, 2));
+          }
+          for (index = 0; index < ids.length; index += 1) {
+            lines.push(snapshot(win, ids[index]));
+          }
+          return lines.join("\n");
+        }
+
+        function pollFrame() {
+          var win;
+          var details = collectFrameDetails();
+          detailsElement.textContent = details;
+          pollCount += 1;
+
+          try {
+            win = frame.contentWindow;
+            if (win.__veneziaVisibleUiReady) {
+              setStatus("ok", "La raíz cargó y reportó UI visible.");
+              return;
+            }
+            if (win.__veneziaInitFinished && !win.__veneziaVisibleUiReady) {
+              setStatus("bad", "initApp terminó, pero la UI sigue invisible.");
+            } else if (win.__veneziaInitStarted && !win.__veneziaInitFinished) {
+              setStatus("pending", "initApp inició y todavía no termina.");
+            } else if (win.__veneziaAppScriptLoaded && !win.__veneziaInitStarted) {
+              setStatus("bad", "app.js cargó, pero initApp no inició.");
+            }
+          } catch (error) {
+            setStatus("bad", "No se pudo inspeccionar el iframe.");
+          }
+
+          if (pollCount < maxPolls) {
+            window.setTimeout(pollFrame, 500);
+          } else {
+            setStatus("bad", "No se detectó UI visible después de 10 segundos.");
+          }
+        }
+
+        frame.onload = function () {
+          setStatus("pending", "iframe cargó; inspeccionando runtime...");
+          pollFrame();
+        };
+
+        frame.onerror = function () {
+          setStatus("bad", "El iframe no pudo cargar la raíz.");
+          detailsElement.textContent = collectFrameDetails();
+        };
+
+        frame.src = "./?bootdebug=1&miVeneziaDebug=1&rootRuntimeDiagnostic=1&v=" + encodeURIComponent(getParam("v") || String(new Date().getTime()));
+      })();
+    </script>
+  </body>
+</html>
