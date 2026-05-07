@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260414-teacher-real-payments" />
+    <link rel="stylesheet" href="style.css?v=20260507-mi-venezia-android" />
   </head>
   <body>
     <section class="login-shell" id="loginShell" hidden>
@@ -194,6 +194,21 @@
               <p class="eyebrow">Dashboard</p>
               <h3>Utilidad anual</h3>
               <strong id="statAnnualUtilityDashboard">$0</strong>
+            </article>
+            <article class="panel executive-kpi-card executive-kpi-expense dashboard-kpi-card">
+              <p class="eyebrow">Continuidad</p>
+              <h3>Pendientes de seguimiento</h3>
+              <strong id="statPendingFollowupDashboard">0</strong>
+            </article>
+            <article class="panel executive-kpi-card executive-kpi-utility dashboard-kpi-card">
+              <p class="eyebrow">Continuidad</p>
+              <h3>Continuarán</h3>
+              <strong id="statWillContinueDashboard">0</strong>
+            </article>
+            <article class="panel executive-kpi-card executive-kpi-expense dashboard-kpi-card">
+              <p class="eyebrow">Histórico</p>
+              <h3>No continuarán</h3>
+              <strong id="statNoContinueDashboard">0</strong>
             </article>
           </section>
 
@@ -794,32 +809,41 @@
             <div class="altas-history-header">
               <div class="section-heading">
                 <p class="eyebrow">Registro</p>
-                <h3>Altas de la semana en curso</h3>
+                <h3>Altas pendientes por iniciar</h3>
               </div>
             </div>
 
-            <div class="altas-history-stats altas-history-stats-compact" aria-label="Resumen de altas diarias, semanales y mensuales">
-              <article class="altas-history-stat">
+            <section class="altas-history-ops-bar" aria-label="Resumen y filtros de altas pendientes por iniciar">
+              <article class="altas-history-stat altas-history-stat-compact">
                 <span>Altas del día</span>
                 <strong id="altaDayCount">0</strong>
               </article>
-              <article class="altas-history-stat">
+              <article class="altas-history-stat altas-history-stat-compact">
                 <span>Altas de la semana</span>
                 <strong id="altaWeekCount">0</strong>
               </article>
-              <article class="altas-history-stat">
+              <article class="altas-history-stat altas-history-stat-compact">
                 <span>Altas del mes</span>
                 <strong id="altaMonthCount">0</strong>
               </article>
-            </div>
+              <article class="altas-history-stat altas-history-stat-compact alta-pending-kpi-card">
+                <span class="alta-pending-kpi-label">Altas pendientes por iniciar</span>
+                <strong id="altaPendingStartCount">0</strong>
+                <small id="altaPendingStartMeta">-</small>
+              </article>
 
-            <div class="altas-history-filter-row">
-              <label class="altas-history-date-filter">
-                <span>Consultar día</span>
-                <input id="altaDateFilter" type="date" />
-              </label>
-              <button class="secondary-btn" type="button" id="altaDateFilterClearButton">Quitar filtro</button>
-            </div>
+              <div class="alta-pending-filter-chips altas-history-filter-chips" role="tablist" aria-label="Filtrar altas pendientes por iniciar">
+                <button class="alta-pending-filter-chip is-active" type="button" data-alta-pending-filter="all" aria-pressed="true">
+                  Todas
+                </button>
+                <button class="alta-pending-filter-chip" type="button" data-alta-pending-filter="weekday" aria-pressed="false">
+                  Entre semana
+                </button>
+                <button class="alta-pending-filter-chip" type="button" data-alta-pending-filter="weekend" aria-pressed="false">
+                  Fin de semana
+                </button>
+              </div>
+            </section>
 
             <div class="table-wrapper altas-history-table-wrapper">
               <table>
@@ -1275,6 +1299,14 @@
               <p>Total de pagos del dia</p>
               <strong id="paymentsTodayTotal">$0</strong>
             </article>
+            <article class="stat-card">
+              <p>Alumnas activas</p>
+              <strong id="paymentsActiveStudentsCount">0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Alumnas con curso terminado</p>
+              <strong id="paymentsCompletedCourseCount">0</strong>
+            </article>
           </section>
 
           <section class="panel table-panel payments-panel">
@@ -1357,6 +1389,9 @@
                     <th>Cantidad Pag.</th>
                     <th>Reportes</th>
                     <th>Observaciones</th>
+                    <th>Última M</th>
+                    <th>Continuidad</th>
+                    <th>Sig. curso</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -1371,6 +1406,59 @@
             <div class="form-actions">
               <button class="secondary-btn" type="button" id="paymentsToggleButton" hidden>Ver mas</button>
             </div>
+          </section>
+
+          <section class="panel table-panel payments-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Seguimiento comercial</p>
+              <h3>Alumnas fuera de cobro con continuidad en seguimiento</h3>
+            </div>
+
+            <div class="table-wrapper payments-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Alumna</th>
+                    <th>Curso actual</th>
+                    <th>Última mensualidad</th>
+                    <th>Continuidad</th>
+                    <th>Curso siguiente</th>
+                    <th>Último hito mensual</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsContinuityTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsContinuityEmptyState" class="empty-state">
+              No hay alumnas fuera de cobro con continuidad en seguimiento en este momento.
+            </p>
+          </section>
+
+          <section class="panel table-panel payments-panel">
+            <div class="section-heading">
+              <p class="eyebrow">Histórico</p>
+              <h3>No continuaron</h3>
+            </div>
+
+            <div class="table-wrapper payments-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Alumna</th>
+                    <th>Curso actual</th>
+                    <th>Continuidad</th>
+                    <th>Última mensualidad</th>
+                    <th>Curso siguiente</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsArchivedTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsArchivedEmptyState" class="empty-state">
+              No hay alumnas archivadas en no continuaron.
+            </p>
           </section>
         </section>
 
@@ -1402,6 +1490,29 @@
             <article class="stat-card">
               <p>Ingresos</p>
               <strong id="balanceIncomeTotal">$0</strong>
+            </article>
+            <article class="stat-card">
+              <p>Inscripciones</p>
+              <div class="balance-inscription-toggle" role="tablist" aria-label="Cambiar vista de inscripciones">
+                <button
+                  class="balance-inscription-toggle-btn is-active"
+                  type="button"
+                  data-balance-inscription-view="day"
+                  aria-pressed="true"
+                >
+                  Diario
+                </button>
+                <button
+                  class="balance-inscription-toggle-btn"
+                  type="button"
+                  data-balance-inscription-view="week"
+                  aria-pressed="false"
+                >
+                  Semanal
+                </button>
+              </div>
+              <strong id="balanceInscriptionTotal">$0</strong>
+              <small id="balanceInscriptionMeta">Fecha actual</small>
             </article>
             <article class="stat-card">
               <p>Egresos</p>
@@ -1914,6 +2025,16 @@
                 </label>
 
                 <label>
+                  <span>Cobertura Mi Venezia</span>
+                  <select id="staffContactScheduleScope" name="contactScheduleScope">
+                    <option value="">Sin definir / único responsable</option>
+                    <option value="all">Toda la sucursal</option>
+                    <option value="weekday">Entre semana</option>
+                    <option value="weekend">Fin de semana</option>
+                  </select>
+                </label>
+
+                <label>
                   <span>Usuario de acceso</span>
                   <input id="staffAccessUsername" name="usernamePreview" type="text" readonly />
                 </label>
@@ -1952,6 +2073,7 @@
                       <th>Puesto</th>
                       <th>Área</th>
                       <th>Sucursal</th>
+                      <th>Cobertura Mi Venezia</th>
                       <th>Fecha de ingreso</th>
                       <th>Estado</th>
                       <th>Usuario de acceso</th>
@@ -1979,12 +2101,32 @@
             <form id="miVeneziaLoginForm" class="prospect-form">
               <label>
                 <span>Usuario Mi Venezia</span>
-                <input id="miVeneziaTelefono" name="telefono" type="text" required />
+                <input
+                  id="miVeneziaTelefono"
+                  name="telefono"
+                  type="text"
+                  autocomplete="username"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  enterkeyhint="go"
+                  required
+                />
               </label>
 
               <label>
                 <span>Contraseña</span>
-                <input id="miVeneziaPassword" name="password" type="password" required />
+                <input
+                  id="miVeneziaPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  enterkeyhint="go"
+                  required
+                />
               </label>
 
               <div class="form-actions full-width">
@@ -2538,6 +2680,7 @@
               </div>
             </div>
           </section>
+
         </section>
 
         <section class="module-section" id="teacherPortalSection">
@@ -2564,7 +2707,7 @@
               <div class="info-list mi-venezia-hero-summary" id="teacherPortalHeroSummary"></div>
 
               <div class="form-actions">
-                <a class="primary-btn whatsapp-director-btn" id="teacherPortalContactButton" href="https://wa.me/522461379504" target="_blank" rel="noopener">Dudas con Dirección</a>
+                <a class="primary-btn whatsapp-director-btn" id="teacherPortalContactButton" href="#" target="_blank" rel="noopener">Dudas con Dirección</a>
               </div>
 
               <section class="stats-grid mi-venezia-stats-grid teacher-portal-stats-grid" aria-label="Resumen de maestra">
@@ -2735,19 +2878,12 @@
                     <button class="web-utility-link" type="button" id="publicInternalAccessButton">Acceso interno</button>
                   </div>
                 </div>
-                <p class="eyebrow">Web Venezia</p>
-                <h2 class="web-display-title">
-                  <span>¿Cansada de trabajar y que el</span>
-                  <span>dinero no te alcance?</span>
-                </h2>
-                <p class="web-hero-emotional">💔 Si sientes que trabajas y no avanzas… esto es para ti.</p>
-                <p class="web-lead">
-                  Aquí no vienes solo a estudiar belleza… vienes a aprender una habilidad que te puede generar ingresos desde cero, incluso si hoy no tienes experiencia.
-                </p>
-                <p class="web-hero-trust"><strong>Cientos de alumnas ya lo lograron…</strong> ahora te toca a ti.</p>
-                <div class="form-actions web-hero-actions">
-                  <a class="primary-btn web-link-btn web-whatsapp-link" href="https://wa.me/522463831375" target="_blank" rel="noopener">Quiero empezar a generar ingresos</a>
-                  <button class="secondary-btn" type="button" data-web-scroll="leadForm">Quiero una beca antes de que se acaben</button>
+                <div class="web-hero-promo-card" aria-label="Promoción principal de Instituto Venezia">
+                  <img
+                    src="images/hero-sin-tiempo.png"
+                    alt="Promoción Instituto Venezia: Sin tiempo para estudiar"
+                    class="web-hero-promo-image"
+                  />
                 </div>
               </div>
 
@@ -3077,9 +3213,62 @@
       </main>
     </div>
 
+    <script>
+      (function () {
+        function showMiVeneziaCompatMessage(message) {
+          if (!document.body) {
+            window.setTimeout(function () {
+              showMiVeneziaCompatMessage(message);
+            }, 50);
+            return;
+          }
+
+          var existing = document.getElementById("miVeneziaCompatBootAlert");
+          if (existing) {
+            existing.innerHTML = message;
+            existing.hidden = false;
+            return;
+          }
+
+          var alert = document.createElement("div");
+          alert.id = "miVeneziaCompatBootAlert";
+          alert.setAttribute("role", "alert");
+          alert.style.cssText = "position:fixed;left:12px;right:12px;top:12px;z-index:9999;padding:14px 16px;border:1px solid rgba(168,71,71,.22);border-radius:14px;background:#fff6f3;color:#5d2b24;font-family:Arial,sans-serif;font-size:14px;line-height:1.4;box-shadow:0 12px 30px rgba(0,0,0,.12);";
+          alert.innerHTML = message;
+          document.body.insertBefore(alert, document.body.firstChild);
+        }
+
+        window.VeneziaMiCompat = {
+          show: showMiVeneziaCompatMessage,
+        };
+
+        try {
+          new Function("var item = { value: 1 }; return item?.value ?? 0;");
+        } catch (error) {
+          showMiVeneziaCompatMessage("Mi Venezia detectó que este navegador interno de Android es antiguo. Abre el enlace desde Chrome actualizado para evitar pantalla blanca.");
+        }
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            var source = event && (event.filename || (event.target && event.target.src) || "");
+            if (!window.__VENEZIA_APP_READY && /app\.js|dataService\.js/.test(source)) {
+              showMiVeneziaCompatMessage("Mi Venezia no pudo iniciar correctamente en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
+            }
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", function (event) {
+          if (!window.__VENEZIA_APP_READY) {
+            showMiVeneziaCompatMessage("Mi Venezia no pudo terminar la carga inicial en este navegador. Abre el enlace desde Chrome actualizado o intenta recargar.");
+          }
+        });
+      })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20260414-teacher-real-payments"></script>
-    <script src="app.js?v=20260414-teacher-real-payments"></script>
+    <script src="app.js?v=20260507-mi-venezia-android"></script>
   </body>
 </html>

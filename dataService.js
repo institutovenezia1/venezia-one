@@ -26,6 +26,85 @@
     return globalScope.localStorage;
   }
 
+  const studentSessionMemoryStore = new Map();
+
+  function getAvailableStorage(storageName) {
+    try {
+      const storage = globalScope[storageName];
+      if (!storage) {
+        return null;
+      }
+
+      const probeKey = `__venezia_probe__${storageName}`;
+      storage.setItem(probeKey, "1");
+      storage.removeItem(probeKey);
+      return storage;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getStudentSessionStorage() {
+    return getAvailableStorage("sessionStorage") || getAvailableStorage("localStorage");
+  }
+
+  function readStudentSessionValue() {
+    const storages = [
+      getAvailableStorage("sessionStorage"),
+      getAvailableStorage("localStorage"),
+    ].filter(Boolean);
+
+    for (const storage of storages) {
+      try {
+        const storedValue = storage.getItem(STORAGE_KEYS.studentSession) || "";
+        if (storedValue) {
+          return storedValue;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return studentSessionMemoryStore.get(STORAGE_KEYS.studentSession) || "";
+  }
+
+  function writeStudentSessionValue(value) {
+    const storage = getStudentSessionStorage();
+    if (storage) {
+      try {
+        storage.setItem(STORAGE_KEYS.studentSession, value);
+        studentSessionMemoryStore.delete(STORAGE_KEYS.studentSession);
+        return;
+      } catch (error) {
+        // Fall through to in-memory storage.
+      }
+    }
+
+    studentSessionMemoryStore.set(STORAGE_KEYS.studentSession, value);
+  }
+
+  function clearStudentSessionValue() {
+    const sessionStorage = getAvailableStorage("sessionStorage");
+    const localStorage = getAvailableStorage("localStorage");
+
+    if (sessionStorage) {
+      try {
+        sessionStorage.removeItem(STORAGE_KEYS.studentSession);
+      } catch (error) {
+        // Ignore storage cleanup errors.
+      }
+    }
+    if (localStorage) {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.studentSession);
+      } catch (error) {
+        // Ignore storage cleanup errors.
+      }
+    }
+
+    studentSessionMemoryStore.delete(STORAGE_KEYS.studentSession);
+  }
+
   function readCollection(key, fallbackFactory) {
     try {
       const stored = getStorage().getItem(key);
@@ -213,19 +292,33 @@
         const existingRecords = localService.getAll(fallbackFactory);
         let normalizedRecord = record;
         if (table === "student_payments") {
-          const existingRecordByStudentId = existingRecords.find(
-            (item) => item.studentId === record.studentId && item.id !== record.id
+          const targetMonth = String(record.mesPago || "").trim();
+          const getPaymentMonthKey = (item) => {
+            if (item?.mesPago) {
+              return String(item.mesPago).trim();
+            }
+
+            const timestamp = String(item?.updatedAt || item?.createdAt || "").slice(0, 7);
+            return timestamp || "";
+          };
+          const existingRecordByStudentAndMonth = existingRecords.find(
+            (item) =>
+              item.studentId === record.studentId &&
+              item.id !== record.id &&
+              getPaymentMonthKey(item) &&
+              getPaymentMonthKey(item) === targetMonth
           );
-          if (existingRecordByStudentId?.id) {
+          if (existingRecordByStudentAndMonth?.id) {
             normalizedRecord = {
               ...record,
-              id: existingRecordByStudentId.id,
-              createdAt: record.createdAt || existingRecordByStudentId.createdAt || null,
+              id: existingRecordByStudentAndMonth.id,
+              createdAt: record.createdAt || existingRecordByStudentAndMonth.createdAt || null,
             };
-            console.log('Supabase payment existing row reused before upsert:', {
+            console.log('Supabase payment existing month row reused before upsert:', {
               studentId: record.studentId || "",
+              targetMonth,
               previousId: record.id || "",
-              reusedId: existingRecordByStudentId.id,
+              reusedId: existingRecordByStudentAndMonth.id,
             });
           }
         }
@@ -403,6 +496,10 @@
       "Usuario alta",
       "Usuario Mi Venezia",
       "Password Mi Venezia",
+      "Estado operativo ciclo",
+      "Seguimiento continuidad",
+      "Curso siguiente",
+      "Última mensualidad del ciclo",
       "Lectura reglamento",
       "Fecha lectura reglamento",
       "Lectura contrato",
@@ -451,6 +548,10 @@
       `Usuario alta: ${normalizeValue(record.usuarioAlta)}`,
       `Usuario Mi Venezia: ${normalizeValue(record.portalUser || record.telefono)}`,
       `Password Mi Venezia: ${normalizeValue(record.portalPassword)}`,
+      `Estado operativo ciclo: ${normalizeValue(record.lifecycleStatus)}`,
+      `Seguimiento continuidad: ${normalizeValue(record.continuityStatus)}`,
+      `Curso siguiente: ${normalizeValue(record.nextCourse)}`,
+      `Última mensualidad del ciclo: ${normalizeValue(record.lastMonthlyPaymentStatus)}`,
       record.lecturaReglamento ? "Lectura reglamento: Sí" : "",
       record.fechaLecturaReglamento
         ? `Fecha lectura reglamento: ${record.fechaLecturaReglamento}`
@@ -476,6 +577,7 @@
       "Fecha de nacimiento",
       "Usuario de acceso",
       "Contraseña temporal",
+      "Cobertura Mi Venezia",
     ]);
 
     return String(notes || "")
@@ -494,6 +596,7 @@
       record.fechaNacimiento ? `Fecha de nacimiento: ${record.fechaNacimiento}` : "",
       record.username ? `Usuario de acceso: ${record.username}` : "",
       record.password ? `Contraseña temporal: ${record.password}` : "",
+      record.contactScheduleScope ? `Cobertura Mi Venezia: ${record.contactScheduleScope}` : "",
     ]
       .filter(Boolean)
       .join(" | ");
@@ -511,6 +614,10 @@
       `3ra mensualidad: ${record.mensualidad3 || ""}`,
       `4ta mensualidad: ${record.mensualidad4 || ""}`,
       `5ta mensualidad: ${record.mensualidad5 || ""}`,
+      `Última mensualidad del ciclo: ${record.lastMonthlyPaymentStatus || ""}`,
+      `Seguimiento continuidad: ${record.continuityStatus || ""}`,
+      `Curso siguiente: ${record.nextCourse || ""}`,
+      `Estado operativo ciclo: ${record.lifecycleStatus || ""}`,
       `Cantidad pagada: ${record.cantidadPagada || ""}`,
       `Observaciones: ${record.observaciones || ""}`,
     ].join(" | ");
@@ -646,6 +753,10 @@
         ) || Boolean(extractAltaMetadata(record.notes, "Fecha lectura contrato")),
       fechaLecturaContrato: extractAltaMetadata(record.notes, "Fecha lectura contrato"),
       estado: record.status || "Activa",
+      lifecycleStatus: extractAltaMetadata(record.notes, "Estado operativo ciclo"),
+      continuityStatus: extractAltaMetadata(record.notes, "Seguimiento continuidad"),
+      nextCourse: extractAltaMetadata(record.notes, "Curso siguiente"),
+      lastMonthlyPaymentStatus: extractAltaMetadata(record.notes, "Última mensualidad del ciclo"),
       prospectId: record.source_prospect_id || "",
       observaciones: stripAltaMetadata(record.notes),
       usuarioAlta: extractAltaMetadata(record.notes, "Usuario alta"),
@@ -717,6 +828,10 @@
       mensualidad3: extractAltaMetadata(record.notes, "3ra mensualidad") || record.third_month_amount || "",
       mensualidad4: extractAltaMetadata(record.notes, "4ta mensualidad") || record.fourth_month_amount || "",
       mensualidad5: extractAltaMetadata(record.notes, "5ta mensualidad") || record.fifth_month_amount || "",
+      lastMonthlyPaymentStatus: extractAltaMetadata(record.notes, "Última mensualidad del ciclo"),
+      continuityStatus: extractAltaMetadata(record.notes, "Seguimiento continuidad"),
+      nextCourse: extractAltaMetadata(record.notes, "Curso siguiente"),
+      lifecycleStatus: extractAltaMetadata(record.notes, "Estado operativo ciclo"),
       pagosPendientes: record.pending_payments || "",
       metodoPago: record.payment_method || "",
       cantidadPagada: extractAltaMetadata(record.notes, "Cantidad pagada"),
@@ -747,6 +862,13 @@
       notes: [
         `Concepto: ${record.concepto || ""}`,
         `Concepto real pago: ${record.paymentConcept || record.concepto || ""}`,
+        `Origen: ${record.source || ""}`,
+        `Clave de concepto: ${record.conceptKey || ""}`,
+        `Alta ID: ${record.relatedAltaId || ""}`,
+        `Cancelado: ${record.cancelled ? "Sí" : "No"}`,
+        `Fecha cancelación: ${record.cancelledAt || ""}`,
+        `Usuario cancelación: ${record.cancelledBy || ""}`,
+        `Motivo cancelación: ${record.cancelledReason || ""}`,
         `Alumna: ${record.alumna || ""}`,
         `Observaciones: ${record.observaciones || ""}`,
       ].join(" | "),
@@ -766,6 +888,13 @@
       relatedStudentId: record.related_student_id || "",
       relatedPaymentId: record.related_payment_id || "",
       paymentConcept: extractAltaMetadata(record.notes, "Concepto real pago"),
+      source: extractAltaMetadata(record.notes, "Origen"),
+      conceptKey: extractAltaMetadata(record.notes, "Clave de concepto"),
+      relatedAltaId: extractAltaMetadata(record.notes, "Alta ID"),
+      cancelled: ["si", "sí", "true"].includes(extractAltaMetadata(record.notes, "Cancelado").trim().toLowerCase()),
+      cancelledAt: extractAltaMetadata(record.notes, "Fecha cancelación"),
+      cancelledBy: extractAltaMetadata(record.notes, "Usuario cancelación"),
+      cancelledReason: extractAltaMetadata(record.notes, "Motivo cancelación"),
       alumna: extractAltaMetadata(record.notes, "Alumna"),
       observaciones: extractAltaMetadata(record.notes, "Observaciones"),
       usuario: record.recorded_by || "",
@@ -865,6 +994,7 @@
           fechaNacimiento: extractStaffMetadata(record.notes, "Fecha de nacimiento"),
           username: extractStaffMetadata(record.notes, "Usuario de acceso"),
           password: extractStaffMetadata(record.notes, "Contraseña temporal"),
+          contactScheduleScope: extractStaffMetadata(record.notes, "Cobertura Mi Venezia"),
           observaciones: stripStaffMetadata(record.notes || ""),
           createdAt: record.created_at || null,
         }),
@@ -943,13 +1073,13 @@
         globalScope.localStorage.removeItem(STORAGE_KEYS.internalSession);
       },
       getStudent() {
-        return globalScope.sessionStorage.getItem(STORAGE_KEYS.studentSession) || "";
+        return readStudentSessionValue();
       },
       setStudent(value) {
-        globalScope.sessionStorage.setItem(STORAGE_KEYS.studentSession, value);
+        writeStudentSessionValue(value);
       },
       clearStudent() {
-        globalScope.sessionStorage.removeItem(STORAGE_KEYS.studentSession);
+        clearStudentSessionValue();
       },
     },
   };
