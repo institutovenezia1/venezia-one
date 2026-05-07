@@ -1,5 +1,10 @@
 window.__veneziaAppScriptLoaded = true;
 window.__VENEZIA_APP_SCRIPT_LOADED = true;
+if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.mark === "function") {
+  window.__veneziaBootDebug.mark("app.js script ejecutado", "ok", "inicio de app.js");
+  window.__veneziaBootDebug.mark("app.js script tag encontrado", "ok", "app.js en ejecución");
+  window.__veneziaBootDebug.mark("app.js load event", "ok", "app.js empezó a ejecutarse");
+}
 
 function __veneziaGet(value, key) {
   return value == null ? undefined : value[key];
@@ -15,6 +20,63 @@ function scrollWindowToTopCompat() {
   } catch (error) {
     window.scrollTo(0, 0);
   }
+}
+
+function isVeneziaElementVisible(element) {
+  let rect = null;
+  let styles = null;
+  if (!element || element.hidden) {
+    return false;
+  }
+  try {
+    styles = window.getComputedStyle ? window.getComputedStyle(element) : null;
+  } catch (error) {
+    styles = null;
+  }
+  if (styles && (styles.display === "none" || styles.visibility === "hidden" || styles.opacity === "0")) {
+    return false;
+  }
+  try {
+    rect = typeof element.getBoundingClientRect === "function" ? element.getBoundingClientRect() : null;
+  } catch (error) {
+    rect = null;
+  }
+  return Boolean(rect && rect.width > 0 && rect.height > 0);
+}
+
+function getVeneziaVisibleUiLabel() {
+  const candidateIds = [
+    "miVeneziaLoginPanel",
+    "miVeneziaDashboard",
+    "loginShell",
+    "teacherPortalDashboard",
+    "teacherPortalShell",
+    "accessSelectorSection",
+    "webVeneziaSection",
+  ];
+  for (const id of candidateIds) {
+    const element = document.getElementById(id);
+    if (isVeneziaElementVisible(element)) {
+      return id;
+    }
+  }
+  const activeSection = document.querySelector(".module-section.active");
+  return isVeneziaElementVisible(activeSection)
+    ? activeSection.id || "module-section.active"
+    : "";
+}
+
+function markVeneziaVisibleUiReady(reason = "app") {
+  const visibleUiLabel = getVeneziaVisibleUiLabel();
+  if (!visibleUiLabel) {
+    return false;
+  }
+  window.__veneziaVisibleUiReady = true;
+  window.__VENEZIA_VISIBLE_UI_READY = true;
+  if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.markVisibleUiReady === "function") {
+    window.__veneziaBootDebug.markVisibleUiReady(`${reason}: ${visibleUiLabel}`);
+  }
+  return true;
 }
 
 const PROSPECTS_STORAGE_KEY = "venezia-one-v2-prospectos";
@@ -13680,6 +13742,8 @@ function setActiveModule(module) {
       sectionActive: __veneziaGet(moduleSections["portal-maestras"], "classList").contains("active") || false,
     });
   }
+
+  markVeneziaVisibleUiReady(`setActiveModule:${allowedModule}`);
 }
 
 function renderAll() {
@@ -14845,6 +14909,11 @@ window.setInterval(() => {
 }, SHARED_DATA_REFRESH_INTERVAL_MS);
 
 async function initApp() {
+  window.__veneziaInitStarted = true;
+  window.__VENEZIA_INIT_STARTED = true;
+  if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.markInitStarted === "function") {
+    window.__veneziaBootDebug.markInitStarted("initApp()");
+  }
   await refreshSharedSupabaseState({ force: true, render: false });
   teacherRecords = dataService.entities.teachers.getAll(() => []);
   teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
@@ -14879,10 +14948,16 @@ async function initApp() {
   updateSessionUI();
   renderAll();
   setActiveModule(currentPortalStudentId ? "mi-venezia" : "web-venezia");
+  window.__veneziaInitFinished = true;
+  window.__VENEZIA_INIT_FINISHED = true;
   window.__veneziaAppReady = true;
   window.__VENEZIA_APP_READY = true;
-  if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.markReady === "function") {
-    window.__veneziaBootDebug.markReady();
+  markVeneziaVisibleUiReady("initApp finish");
+  window.setTimeout(() => {
+    markVeneziaVisibleUiReady("initApp post-layout");
+  }, 0);
+  if (window.__veneziaBootDebug && typeof window.__veneziaBootDebug.markInitFinished === "function") {
+    window.__veneziaBootDebug.markInitFinished("initApp()");
   }
 }
 

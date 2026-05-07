@@ -13,6 +13,15 @@
     <link rel="stylesheet" href="style.css?v=20260507-mi-venezia-android" />
   </head>
   <body>
+    <div
+      id="veneziaBootDebugPanel"
+      role="status"
+      aria-live="polite"
+      style="display:none;position:fixed;left:10px;right:10px;top:10px;z-index:2147483647;padding:14px 15px;border:1px solid #c65f47;border-radius:10px;background:#fff7f2;color:#4c241c;font-family:Arial,sans-serif;font-size:14px;line-height:1.38;box-shadow:0 12px 34px rgba(0,0,0,.22);text-align:left;white-space:normal;max-height:72vh;overflow:auto;"
+    >
+      <strong style="display:block;margin:0 0 6px;font-size:15px;">Diagnóstico de arranque</strong>
+      <div>index.html cargado. Esperando scripts...</div>
+    </div>
     <section class="login-shell" id="loginShell" hidden>
       <div class="login-panel">
         <div class="login-panel-header">
@@ -3217,12 +3226,14 @@
       (function () {
         var bootStartedAt = new Date();
         var bootEvents = [];
+        var bootStatus = {};
         var oldOnError = window.onerror;
         var oldUnhandledRejection = window.onunhandledrejection;
         var bootTimer = null;
+        var bootDebugEnabled = /(?:^|[?&])bootdebug=(1|true|yes)(?:&|$)/i.test(window.location.search || "");
 
         function supportsDebugDetails() {
-          return /(?:^|[?&])miVeneziaDebug=(1|true|yes)(?:&|$)/i.test(window.location.search || "");
+          return bootDebugEnabled || /(?:^|[?&])miVeneziaDebug=(1|true|yes)(?:&|$)/i.test(window.location.search || "");
         }
 
         function escapeBootText(value) {
@@ -3251,33 +3262,244 @@
           }
 
           if (panel) {
-            panel.style.display = "block";
-            panel.hidden = false;
             return panel;
           }
 
           panel = document.createElement("div");
           panel.id = "veneziaBootDebugPanel";
-          panel.setAttribute("role", "alert");
-          panel.style.cssText = "position:fixed;left:10px;right:10px;top:10px;z-index:2147483647;display:block;padding:14px 15px;border:1px solid #c65f47;border-radius:10px;background:#fff7f2;color:#4c241c;font-family:Arial,sans-serif;font-size:14px;line-height:1.38;box-shadow:0 12px 34px rgba(0,0,0,.22);text-align:left;white-space:normal;max-height:72vh;overflow:auto;";
+          panel.setAttribute("role", "status");
+          panel.setAttribute("aria-live", "polite");
+          panel.style.cssText = "display:none;position:fixed;left:10px;right:10px;top:10px;z-index:2147483647;padding:14px 15px;border:1px solid #c65f47;border-radius:10px;background:#fff7f2;color:#4c241c;font-family:Arial,sans-serif;font-size:14px;line-height:1.38;box-shadow:0 12px 34px rgba(0,0,0,.22);text-align:left;white-space:normal;max-height:72vh;overflow:auto;";
           host.insertBefore(panel, host.firstChild);
           return panel;
         }
 
-        function showBootPanel(title, lines) {
+        function setBootPanelVisible(isVisible) {
+          var panel = ensureBootPanel();
+          if (!panel) {
+            return;
+          }
+          panel.style.display = isVisible ? "block" : "none";
+          panel.hidden = false;
+        }
+
+        function getElapsedMs() {
+          return new Date().getTime() - bootStartedAt.getTime();
+        }
+
+        function recordBootStatus(name, status, detail) {
+          bootStatus[name] = {
+            status: status || "info",
+            detail: detail || "",
+            elapsed: getElapsedMs()
+          };
+          bootEvents.push({
+            name: name,
+            status: status || "info",
+            detail: detail || "",
+            elapsed: getElapsedMs()
+          });
+          if (bootDebugEnabled) {
+            showBootPanel("Diagnóstico de arranque", ["bootdebug activo"], false);
+          }
+        }
+
+        function getStatusSymbol(status) {
+          if (status === "ok") return "OK";
+          if (status === "error") return "ERROR";
+          if (status === "warn") return "ALERTA";
+          return "PENDIENTE";
+        }
+
+        function renderBootStatusList() {
+          var ordered = [
+            "index.html cargado",
+            "bootdebug activo",
+            "DOMContentLoaded",
+            "app.js script tag encontrado",
+            "app.js load event",
+            "app.js error event",
+            "initApp start",
+            "initApp finish",
+            "primera UI visible detectada"
+          ];
+          var html = '<div style="display:grid;gap:5px;margin:8px 0;">';
+          var index;
+          for (index = 0; index < ordered.length; index += 1) {
+            var name = ordered[index];
+            var item = bootStatus[name];
+            var status = item ? item.status : "pending";
+            var color = status === "ok" ? "#176c3a" : status === "error" ? "#a13a28" : status === "warn" ? "#8a5b08" : "#725b45";
+            html += '<div style="border-top:1px solid #f0dfd4;padding-top:5px;">';
+            html += '<strong style="color:' + color + ';">' + escapeBootText(getStatusSymbol(status)) + "</strong> ";
+            html += escapeBootText(name);
+            if (item && item.detail) {
+              html += '<br><span style="font-size:12px;color:#6b5546;">' + escapeBootText(item.detail) + "</span>";
+            }
+            if (item) {
+              html += '<br><span style="font-size:11px;color:#8a7567;">+' + escapeBootText(item.elapsed) + "ms</span>";
+            }
+            html += "</div>";
+          }
+          html += "</div>";
+          return html;
+        }
+
+        function getStyleValue(element, property) {
+          try {
+            if (!element || !window.getComputedStyle) {
+              return "";
+            }
+            return window.getComputedStyle(element).getPropertyValue(property);
+          } catch (error) {
+            return "";
+          }
+        }
+
+        function getElementSnapshot(id) {
+          var element = document.getElementById(id);
+          var rect = null;
+          try {
+            rect = element && element.getBoundingClientRect ? element.getBoundingClientRect() : null;
+          } catch (error) {
+            rect = null;
+          }
+          if (!element) {
+            return id + ": no existe";
+          }
+          return id +
+            ": hidden=" + String(!!element.hidden) +
+            ", display=" + (getStyleValue(element, "display") || element.style.display || "") +
+            ", visibility=" + (getStyleValue(element, "visibility") || "") +
+            ", opacity=" + (getStyleValue(element, "opacity") || "") +
+            ", rect=" + (rect ? Math.round(rect.width) + "x" + Math.round(rect.height) : "sin rect") +
+            ", class=" + String(element.className || "");
+        }
+
+        function collectWhiteScreenDiagnostics() {
+          var ids = [
+            "loginShell",
+            "teacherPortalShell",
+            "appShell",
+            "accessSelectorSection",
+            "webVeneziaSection",
+            "miVeneziaSection",
+            "miVeneziaLoginPanel",
+            "miVeneziaDashboard",
+            "teacherPortalDashboard"
+          ];
+          var lines = [];
+          var activeModule = null;
+          var index;
+          try {
+            activeModule = document.querySelector(".module-section.active");
+          } catch (error) {
+            activeModule = null;
+          }
+          lines.push("body children count: " + (document.body && document.body.children ? document.body.children.length : 0));
+          lines.push("body class: " + String(document.body && document.body.className || ""));
+          lines.push("active module: " + (activeModule ? activeModule.id || activeModule.className : "ninguno"));
+          lines.push("markers: scriptLoaded=" + !!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED) +
+            ", initStarted=" + !!window.__veneziaInitStarted +
+            ", initFinished=" + !!window.__veneziaInitFinished +
+            ", visibleUiReady=" + !!window.__veneziaVisibleUiReady);
+          for (index = 0; index < ids.length; index += 1) {
+            lines.push(getElementSnapshot(ids[index]));
+          }
+          return lines;
+        }
+
+        function isElementVisible(element) {
+          var rect;
+          var display;
+          var visibility;
+          var opacity;
+          if (!element || element.hidden) {
+            return false;
+          }
+          display = getStyleValue(element, "display");
+          visibility = getStyleValue(element, "visibility");
+          opacity = getStyleValue(element, "opacity");
+          if (display === "none" || visibility === "hidden" || opacity === "0") {
+            return false;
+          }
+          try {
+            rect = element.getBoundingClientRect ? element.getBoundingClientRect() : null;
+          } catch (error) {
+            rect = null;
+          }
+          return !!(rect && rect.width > 0 && rect.height > 0);
+        }
+
+        function detectVisibleUi() {
+          var ids = [
+            "miVeneziaLoginPanel",
+            "miVeneziaDashboard",
+            "loginShell",
+            "teacherPortalDashboard",
+            "teacherPortalShell",
+            "accessSelectorSection",
+            "webVeneziaSection"
+          ];
+          var index;
+          var element;
+          var activeModule;
+          for (index = 0; index < ids.length; index += 1) {
+            element = document.getElementById(ids[index]);
+            if (isElementVisible(element)) {
+              return { ready: true, label: ids[index] };
+            }
+          }
+          try {
+            activeModule = document.querySelector(".module-section.active");
+          } catch (error) {
+            activeModule = null;
+          }
+          if (isElementVisible(activeModule)) {
+            return { ready: true, label: activeModule.id || "module-section.active" };
+          }
+          return { ready: false, label: "" };
+        }
+
+        function updateVisibleUiStatus(reason) {
+          var visible = detectVisibleUi();
+          if (visible.ready) {
+            window.__veneziaVisibleUiReady = true;
+            window.__VENEZIA_VISIBLE_UI_READY = true;
+            recordBootStatus("primera UI visible detectada", "ok", (reason || "detección") + ": " + visible.label);
+            if (!bootDebugEnabled) {
+              setBootPanelVisible(false);
+            }
+            return true;
+          }
+          return false;
+        }
+
+        function showBootPanel(title, lines, forceVisible) {
           var panel = ensureBootPanel();
           var index;
           var html = "";
 
+          if (typeof lines === "string") {
+            lines = [lines];
+          }
+
           if (!panel) {
             window.setTimeout(function () {
-              showBootPanel(title, lines);
+              showBootPanel(title, lines, forceVisible);
             }, 50);
             return;
           }
 
+          if (!bootDebugEnabled && !forceVisible) {
+            return;
+          }
+
+          setBootPanelVisible(true);
+
           html += '<strong style="display:block;margin:0 0 6px;font-size:15px;">' + escapeBootText(title) + "</strong>";
-          html += '<div style="margin:0 0 8px;">' + escapeBootText((lines && lines[0]) || "No se pudo iniciar la app en este navegador.") + "</div>";
+          html += '<div style="margin:0 0 8px;">' + escapeBootText((lines && lines[0]) || "Diagnóstico activo.") + "</div>";
+          html += renderBootStatusList();
 
           if (lines && lines.length > 1) {
             html += '<ul style="margin:0 0 8px 18px;padding:0;">';
@@ -3287,15 +3509,19 @@
             html += "</ul>";
           }
 
-          if (supportsDebugDetails()) {
+          if (supportsDebugDetails() || forceVisible) {
             html += '<details open style="margin-top:8px;"><summary>Datos técnicos</summary>';
             html += '<pre style="white-space:pre-wrap;margin:8px 0 0;font-size:12px;">';
             html += escapeBootText(JSON.stringify({
               startedAt: bootStartedAt.toISOString ? bootStartedAt.toISOString() : String(bootStartedAt),
               appScriptLoaded: !!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED),
               appReady: !!(window.__veneziaAppReady || window.__VENEZIA_APP_READY),
+              initStarted: !!window.__veneziaInitStarted,
+              initFinished: !!window.__veneziaInitFinished,
+              visibleUiReady: !!window.__veneziaVisibleUiReady,
               userAgent: navigator.userAgent,
-              events: bootEvents.slice(-8)
+              diagnostics: collectWhiteScreenDiagnostics(),
+              events: bootEvents.slice(-12)
             }, null, 2));
             html += "</pre></details>";
           }
@@ -3312,11 +3538,7 @@
         }
 
         function addBootEvent(type, detail) {
-          bootEvents.push({
-            type: type,
-            detail: detail || "",
-            time: new Date().getTime()
-          });
+          recordBootStatus(type, "info", detail || "");
         }
 
         function getEventSource(event) {
@@ -3330,6 +3552,22 @@
           var target = event && (event.target || event.srcElement);
           var tagName = target && target.tagName ? String(target.tagName).toLowerCase() : "";
           return tagName === "script" || tagName === "link" || /(?:app|dataService|supabase)\.js|style\.css/i.test(source || "");
+        }
+
+        function isAppScriptSource(source) {
+          return /(?:^|\/)app\.js(?:\?|$)/i.test(String(source || ""));
+        }
+
+        function findAppScriptTag() {
+          var scripts = document.getElementsByTagName("script");
+          var index;
+          for (index = 0; index < scripts.length; index += 1) {
+            if (isAppScriptSource(scripts[index].src || "")) {
+              recordBootStatus("app.js script tag encontrado", "ok", scripts[index].src || "app.js");
+              return scripts[index];
+            }
+          }
+          return null;
         }
 
         function installLegacyPolyfills() {
@@ -3487,35 +3725,67 @@
 
         window.__veneziaBootDebug = {
           events: bootEvents,
+          status: bootStatus,
           show: showBootPanel,
           hide: hideBootPanel,
+          mark: function (name, status, detail) {
+            recordBootStatus(name, status || "ok", detail || "");
+          },
+          markInitStarted: function (detail) {
+            window.__veneziaInitStarted = true;
+            recordBootStatus("initApp start", "ok", detail || "");
+            showBootPanel("Diagnóstico de arranque", "initApp inició", false);
+          },
+          markInitFinished: function (detail) {
+            window.__veneziaInitFinished = true;
+            recordBootStatus("initApp finish", "ok", detail || "");
+            updateVisibleUiStatus("initApp finish");
+            showBootPanel("Diagnóstico de arranque", "initApp terminó", false);
+          },
+          markVisibleUiReady: function (detail) {
+            window.__veneziaVisibleUiReady = true;
+            window.__VENEZIA_VISIBLE_UI_READY = true;
+            recordBootStatus("primera UI visible detectada", "ok", detail || "");
+            if (!bootDebugEnabled) {
+              setBootPanelVisible(false);
+            } else {
+              showBootPanel("Diagnóstico de arranque", "UI visible detectada", false);
+            }
+          },
+          detectVisibleUi: detectVisibleUi,
+          getDiagnostics: collectWhiteScreenDiagnostics,
           markReady: function () {
             window.__veneziaAppReady = true;
             window.__VENEZIA_APP_READY = true;
-            if (bootTimer) {
-              window.clearTimeout(bootTimer);
-            }
-            hideBootPanel();
+            recordBootStatus("initApp finish", "ok", "markReady");
+            updateVisibleUiStatus("markReady");
+            showBootPanel("Diagnóstico de arranque", "app lista; verificando UI visible", false);
           }
         };
 
         window.VeneziaMiCompat = {
           show: function (message) {
-            showBootPanel("Mi Venezia no pudo iniciar", [message]);
+            showBootPanel("Mi Venezia no pudo iniciar", [message], true);
           }
         };
 
         installLegacyPolyfills();
+        recordBootStatus("index.html cargado", "ok", "script de arranque ejecutado");
+        recordBootStatus("bootdebug activo", bootDebugEnabled ? "ok" : "pending", bootDebugEnabled ? "query param detectado" : "sin ?bootdebug=1");
+        if (bootDebugEnabled) {
+          setBootPanelVisible(true);
+          showBootPanel("Diagnóstico de arranque", ["bootdebug activo"], false);
+        }
 
         window.onerror = function (message, source, line, column, error) {
-          addBootEvent("error", String(message || "Error") + " " + String(source || "") + ":" + String(line || ""));
-          if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+          recordBootStatus("runtime error", "error", String(message || "Error") + " " + String(source || "") + ":" + String(line || ""));
+          if (!(window.__veneziaVisibleUiReady || window.__VENEZIA_VISIBLE_UI_READY)) {
             showBootPanel("Mi Venezia no pudo iniciar", [
               "Ocurrió un error antes de que la app terminara de arrancar.",
               source ? "Archivo: " + source : "Archivo no reportado por el navegador.",
               line ? "Línea: " + line : "Línea no reportada.",
               error && error.message ? "Error: " + error.message : "Error: " + String(message || "desconocido")
-            ]);
+            ], true);
           }
           if (typeof oldOnError === "function") {
             return oldOnError.apply(window, arguments);
@@ -3526,27 +3796,59 @@
         if (window.addEventListener) {
           window.addEventListener("error", function (event) {
             var source = getEventSource(event);
-            if (source && isBootCriticalResource(event, source) && !(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
-              addBootEvent("resource-error", source);
+            if (source && isAppScriptSource(source)) {
+              recordBootStatus("app.js error event", "error", source);
+            }
+            if (source && isBootCriticalResource(event, source) && !(window.__veneziaVisibleUiReady || window.__VENEZIA_VISIBLE_UI_READY)) {
+              recordBootStatus("resource error", "error", source);
               showBootPanel("Mi Venezia no pudo cargar un archivo", [
                 "El navegador no pudo cargar o interpretar un archivo necesario.",
                 "Archivo: " + source,
                 "Prueba abrir android-diagnostic.html en el mismo celular."
-              ]);
+              ], true);
+            }
+          }, true);
+
+          window.addEventListener("load", function (event) {
+            var source = getEventSource(event);
+            if (source && isAppScriptSource(source)) {
+              recordBootStatus("app.js load event", "ok", source);
+            }
+            if (event && event.target === window) {
+              recordBootStatus("window load", "ok", "");
+              updateVisibleUiStatus("window load");
             }
           }, true);
 
           window.addEventListener("unhandledrejection", function (event) {
             var reason = event && event.reason;
-            addBootEvent("unhandledrejection", reason && reason.message ? reason.message : String(reason || "Promise rechazada"));
-            if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
+            recordBootStatus("unhandledrejection", "error", reason && reason.message ? reason.message : String(reason || "Promise rechazada"));
+            if (!(window.__veneziaVisibleUiReady || window.__VENEZIA_VISIBLE_UI_READY)) {
               showBootPanel("Mi Venezia no terminó de iniciar", [
                 "app.js cargó, pero una tarea inicial falló antes de terminar.",
                 reason && reason.message ? "Error: " + reason.message : "Error no detallado por este navegador."
-              ]);
+              ], true);
             }
           });
         }
+
+        if (document.addEventListener) {
+          document.addEventListener("DOMContentLoaded", function () {
+            recordBootStatus("DOMContentLoaded", "ok", "");
+            findAppScriptTag();
+            updateVisibleUiStatus("DOMContentLoaded");
+          });
+        }
+
+        window.setTimeout(findAppScriptTag, 0);
+        window.setTimeout(findAppScriptTag, 100);
+        window.setTimeout(findAppScriptTag, 500);
+        window.setTimeout(function () {
+          updateVisibleUiStatus("1000ms");
+        }, 1000);
+        window.setTimeout(function () {
+          updateVisibleUiStatus("3000ms");
+        }, 3000);
 
         window.onunhandledrejection = function (event) {
           if (typeof oldUnhandledRejection === "function") {
@@ -3555,20 +3857,42 @@
         };
 
         bootTimer = window.setTimeout(function () {
-          if (!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED)) {
-            showBootPanel("app.js no cargó", [
-              "El navegador no ejecutó app.js. Puede ser un error de parseo, caché, bloqueo de script o WebView incompatible.",
-              "Abre android-diagnostic.html para ver qué soporte tiene este Android."
-            ]);
+          var title = "";
+          var lines = [];
+          findAppScriptTag();
+          if (updateVisibleUiStatus("5000ms")) {
+            if (bootDebugEnabled) {
+              showBootPanel("Diagnóstico de arranque", ["UI visible detectada."], false);
+            }
             return;
           }
 
-          if (!(window.__veneziaAppReady || window.__VENEZIA_APP_READY)) {
-            showBootPanel("app.js cargó, pero initApp no terminó", [
+          if (!(window.__veneziaAppScriptLoaded || window.__VENEZIA_APP_SCRIPT_LOADED)) {
+            title = "app.js no cargó";
+            lines = [
+              "El navegador no ejecutó app.js. Puede ser un error de parseo, caché, bloqueo de script o WebView incompatible.",
+              "Abre android-diagnostic.html para ver qué soporte tiene este Android."
+            ];
+          } else if (!window.__veneziaInitStarted) {
+            title = "app.js cargó, pero initApp no inició";
+            lines = [
+              "El archivo principal empezó a ejecutarse, pero no llegó al inicio de initApp."
+            ];
+          } else if (!window.__veneziaInitFinished) {
+            title = "initApp no terminó";
+            lines = [
               "El archivo principal sí empezó a ejecutarse, pero la inicialización quedó detenida o falló.",
               "Prueba con ?miVeneziaDebug=1 para ver datos técnicos."
-            ]);
+            ];
+          } else {
+            title = "App cargó pero no hay UI visible";
+            lines = [
+              "La app terminó initApp, pero no se detectó login, portal, dashboard ni módulo visible."
+            ];
           }
+
+          lines = lines.concat(collectWhiteScreenDiagnostics());
+          showBootPanel(title, lines, true);
         }, 5000);
       })();
     </script>
