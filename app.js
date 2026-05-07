@@ -14279,12 +14279,44 @@ bindMiVeneziaOpenButton(openStudentPortalButton, "access-panel");
 bindMiVeneziaOpenButton(publicStudentAccessButton, "public-header");
 bindMiVeneziaOpenButton(footerStudentAccessButton, "public-footer");
 
+function getMiVeneziaLoginSubmitTrigger(target) {
+  if (!target || !miVeneziaLoginForm || typeof target.closest !== "function") {
+    return null;
+  }
+
+  const button = target.closest('button[type="submit"]');
+  return button && miVeneziaLoginForm.contains(button) ? button : null;
+}
+
+function getMiVeneziaLoginEventLabel(event, source) {
+  const type = event && event.type ? event.type : "";
+  if (type === "click") {
+    return "evento click recibido";
+  }
+  if (type === "touchend") {
+    return "evento touchend recibido";
+  }
+  if (type === "submit") {
+    return "submit recibido";
+  }
+  return "evento recibido";
+}
+
+function applyMiVeneziaLoginImmediateFeedback(trigger = null) {
+  if (trigger && !trigger.dataset.defaultLabel) {
+    trigger.dataset.defaultLabel = trigger.textContent || "Ingresar";
+  }
+  setMiVeneziaLoginSubmitState(true, "Validando...");
+  setMiVeneziaLoginFeedback("Validando acceso...", "info");
+}
+
 function handleMiVeneziaLoginAttempt(event, source = "submit") {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
 
+  const trigger = getMiVeneziaLoginSubmitTrigger(__veneziaGet(event, "target")) || miVeneziaLoginSubmitButton;
   const now = Date.now();
   if (now - miVeneziaLastLoginAttemptAt < 650) {
     appendMiVeneziaLoginDebug("envío ignorado", `evento duplicado (${source})`);
@@ -14297,12 +14329,16 @@ function handleMiVeneziaLoginAttempt(event, source = "submit") {
     return;
   }
 
+  applyMiVeneziaLoginImmediateFeedback(trigger);
   miVeneziaLoginAttemptInProgress = true;
   setMiVeneziaLoginSubmitState(true, "Validando...");
   setMiVeneziaLoginFeedback("Validando acceso...", "info");
   clearMiVeneziaRuntimeError();
   resetMiVeneziaLoginDebug();
-  appendMiVeneziaLoginDebug("submit recibido", source);
+  appendMiVeneziaLoginDebug(getMiVeneziaLoginEventLabel(event, source), source);
+  appendMiVeneziaLoginDebug("handler iniciado", "handleMiVeneziaLoginAttempt");
+  appendMiVeneziaLoginDebug("botón encontrado", trigger ? "sí" : "no");
+  appendMiVeneziaLoginDebug("feedback aplicado", "Validando acceso...");
 
   let accessWasValidated = false;
 
@@ -14373,6 +14409,21 @@ function handleMiVeneziaLoginAttempt(event, source = "submit") {
 miVeneziaLoginForm.addEventListener("submit", (event) => {
   handleMiVeneziaLoginAttempt(event, "form submit");
 });
+
+function handleMiVeneziaLoginCaptureEvent(event) {
+  if (!getMiVeneziaLoginSubmitTrigger(__veneziaGet(event, "target"))) {
+    return;
+  }
+
+  handleMiVeneziaLoginAttempt(event, `document capture ${event.type || "event"}`);
+}
+
+document.addEventListener("click", handleMiVeneziaLoginCaptureEvent, true);
+document.addEventListener(
+  "touchend",
+  handleMiVeneziaLoginCaptureEvent,
+  { capture: true, passive: false }
+);
 
 if (miVeneziaLoginSubmitButton) {
   miVeneziaLoginSubmitButton.addEventListener("click", (event) => {
