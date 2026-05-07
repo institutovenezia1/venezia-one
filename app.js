@@ -594,6 +594,8 @@ const miVeneziaPasswordForm = document.getElementById("miVeneziaPasswordForm");
 const miVeneziaPasswordFeedback = document.getElementById("miVeneziaPasswordFeedback");
 const miVeneziaPasswordSubmitButton = document.getElementById("miVeneziaPasswordSubmitButton");
 const miVeneziaLoginSubmitButton = miVeneziaLoginForm ? miVeneziaLoginForm.querySelector('button[type="submit"]') : null;
+const miVeneziaLoginFeedback = document.getElementById("miVeneziaLoginFeedback");
+const miVeneziaLoginDebugPanel = document.getElementById("miVeneziaLoginDebugPanel");
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
@@ -850,6 +852,8 @@ let sharedDataRefreshRequestSeq = 0;
 let balanceDateWasManuallySelected = false;
 let activeBalanceInscriptionView = "day";
 let miVeneziaRenderCycleId = 0;
+let miVeneziaLoginAttemptInProgress = false;
+let miVeneziaLastLoginAttemptAt = 0;
 
 monthFilter.value = selectedMonth;
 paymentsMonthFilter.value = selectedPaymentsMonth;
@@ -4913,6 +4917,8 @@ function openMiVeneziaPortal(source = "manual") {
   if (internalLoginError) {
     internalLoginError.hidden = true;
   }
+  setMiVeneziaLoginFeedback("");
+  resetMiVeneziaLoginDebug();
   dataService.sessions.clearInternal();
   updateSessionUI();
   renderMiVeneziaDashboard();
@@ -10971,6 +10977,7 @@ function openStudentFile(studentId) {
 
 function normalizeStudentPortalLoginIdentifier(identifier) {
   const normalized = stripDiacritics(String(identifier || ""))
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .trim()
     .toLowerCase();
 
@@ -10983,9 +10990,41 @@ function normalizeStudentPortalLoginIdentifier(identifier) {
   return numeric.length >= 7 ? numeric : compact;
 }
 
-function getStudentPortalLoginMatch(identifier, password) {
+function normalizeStudentPortalLoginPassword(password) {
+  return String(password || "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+}
+
+function studentPortalLoginIdentifiersMatch(inputIdentifier, candidateIdentifier) {
+  if (!inputIdentifier || !candidateIdentifier) {
+    return false;
+  }
+
+  if (inputIdentifier === candidateIdentifier) {
+    return true;
+  }
+
+  const inputDigits = String(inputIdentifier).replace(/\D/g, "");
+  const candidateDigits = String(candidateIdentifier).replace(/\D/g, "");
+  if (inputDigits.length >= 10 && candidateDigits.length >= 10) {
+    return inputDigits.slice(-10) === candidateDigits.slice(-10);
+  }
+
+  return false;
+}
+
+function getStudentPortalLoginMatch(identifier, password, debugContext = null) {
   const normalizedIdentifier = normalizeStudentPortalLoginIdentifier(identifier);
-  const normalizedPassword = String(password || "");
+  const normalizedPassword = normalizeStudentPortalLoginPassword(password);
+  if (debugContext) {
+    debugContext.normalizedIdentifier = normalizedIdentifier;
+    debugContext.passwordLength = normalizedPassword.length;
+    debugContext.totalStudents = students.length;
+    debugContext.reviewedStudents = 0;
+    debugContext.identifierMatches = 0;
+    debugContext.matchFound = false;
+    debugContext.matchedStudentId = "";
+    debugContext.matchedStudentName = "";
+  }
   if (!normalizedIdentifier || !normalizedPassword) {
     return null;
   }
@@ -10994,13 +11033,26 @@ function getStudentPortalLoginMatch(identifier, password) {
     if (isStudentDeleted(student)) {
       return false;
     }
+    if (debugContext) {
+      debugContext.reviewedStudents += 1;
+    }
     const portalUser = normalizeStudentPortalLoginIdentifier(student.portalUser || "");
     const portalPhone = normalizeStudentPortalLoginIdentifier(student.telefono || "");
     const hasMatchingIdentifier =
-      (portalUser && portalUser === normalizedIdentifier) ||
-      (portalPhone && portalPhone === normalizedIdentifier);
+      studentPortalLoginIdentifiersMatch(normalizedIdentifier, portalUser) ||
+      studentPortalLoginIdentifiersMatch(normalizedIdentifier, portalPhone);
+    if (hasMatchingIdentifier && debugContext) {
+      debugContext.identifierMatches += 1;
+    }
+    const hasMatchingPassword = normalizeStudentPortalLoginPassword(student.portalPassword || "") === normalizedPassword;
+    const isMatch = hasMatchingIdentifier && hasMatchingPassword;
+    if (isMatch && debugContext) {
+      debugContext.matchFound = true;
+      debugContext.matchedStudentId = student.id || "";
+      debugContext.matchedStudentName = student.nombre || student.fullName || "";
+    }
 
-    return hasMatchingIdentifier && String(student.portalPassword || "") === normalizedPassword;
+    return isMatch;
   }) || null;
 }
 
@@ -11881,6 +11933,48 @@ function setMiVeneziaLoginSubmitState(isBusy, busyLabel = "Abriendo portal...") 
   miVeneziaLoginSubmitButton.textContent = isBusy
     ? busyLabel
     : miVeneziaLoginSubmitButton.dataset.defaultLabel || "Ingresar";
+}
+
+function isMiVeneziaLoginDebugEnabled() {
+  const value = normalizePortalRouteValue(getUrlParameterValue("miVeneziaLoginDebug"));
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function setMiVeneziaLoginFeedback(message = "", tone = "info") {
+  if (!miVeneziaLoginFeedback) {
+    return;
+  }
+
+  const normalizedMessage = String(message || "").trim();
+  miVeneziaLoginFeedback.hidden = !normalizedMessage;
+  miVeneziaLoginFeedback.textContent = normalizedMessage;
+  miVeneziaLoginFeedback.dataset.tone = tone || "info";
+}
+
+function resetMiVeneziaLoginDebug() {
+  if (!miVeneziaLoginDebugPanel) {
+    return;
+  }
+
+  miVeneziaLoginDebugPanel.textContent = "";
+  miVeneziaLoginDebugPanel.hidden = !isMiVeneziaLoginDebugEnabled();
+}
+
+function appendMiVeneziaLoginDebug(label, detail = "") {
+  if (!isMiVeneziaLoginDebugEnabled() || !miVeneziaLoginDebugPanel) {
+    return;
+  }
+
+  miVeneziaLoginDebugPanel.hidden = false;
+  const line = detail ? `${label}: ${detail}` : label;
+  miVeneziaLoginDebugPanel.textContent = `${miVeneziaLoginDebugPanel.textContent || ""}${line}\n`;
+}
+
+function getMiVeneziaLoginFormValues() {
+  const formData = new FormData(miVeneziaLoginForm);
+  const login = String(formData.get("telefono") || "").trim();
+  const password = normalizeStudentPortalLoginPassword(formData.get("password") || "");
+  return { login, password };
 }
 
 function scheduleMiVeneziaPortalTask(callback, stepName = "una tarea del portal") {
@@ -12965,6 +13059,7 @@ function logoutMiVenezia() {
   miVeneziaDashboard.setAttribute("aria-busy", "false");
   setMiVeneziaLoginSubmitState(false);
   clearMiVeneziaRuntimeError();
+  setMiVeneziaLoginFeedback("");
   dataService.sessions.clearStudent();
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
   revealMiVeneziaLoginPanel();
@@ -14184,21 +14279,60 @@ bindMiVeneziaOpenButton(openStudentPortalButton, "access-panel");
 bindMiVeneziaOpenButton(publicStudentAccessButton, "public-header");
 bindMiVeneziaOpenButton(footerStudentAccessButton, "public-footer");
 
-miVeneziaLoginForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  setMiVeneziaLoginSubmitState(true);
+function handleMiVeneziaLoginAttempt(event, source = "submit") {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const now = Date.now();
+  if (now - miVeneziaLastLoginAttemptAt < 650) {
+    appendMiVeneziaLoginDebug("envío ignorado", `evento duplicado (${source})`);
+    return;
+  }
+  miVeneziaLastLoginAttemptAt = now;
+
+  if (miVeneziaLoginAttemptInProgress) {
+    appendMiVeneziaLoginDebug("envío ignorado", "ya hay una validación en curso");
+    return;
+  }
+
+  miVeneziaLoginAttemptInProgress = true;
+  setMiVeneziaLoginSubmitState(true, "Validando...");
+  setMiVeneziaLoginFeedback("Validando acceso...", "info");
   clearMiVeneziaRuntimeError();
+  resetMiVeneziaLoginDebug();
+  appendMiVeneziaLoginDebug("submit recibido", source);
+
+  let accessWasValidated = false;
 
   try {
-    const formData = new FormData(miVeneziaLoginForm);
-    const login = String(formData.get("telefono") || "").trim();
-    const password = String(formData.get("password") || "");
-    const student = getStudentPortalLoginMatch(login, password);
+    const { login, password } = getMiVeneziaLoginFormValues();
+    const loginDebug = {};
+    appendMiVeneziaLoginDebug("usuario capturado", login || "(vacío)");
+    appendMiVeneziaLoginDebug("usuario normalizado", normalizeStudentPortalLoginIdentifier(login) || "(vacío)");
+    appendMiVeneziaLoginDebug("contraseña capturada", `longitud ${password.length}`);
 
-    if (!student) {
-      alert("Usuario o contraseña incorrectos.");
+    if (!login || !password) {
+      setMiVeneziaLoginFeedback("Ingresa tu usuario y contraseña de Mi Venezia.", "error");
+      appendMiVeneziaLoginDebug("validación detenida", "faltan credenciales");
       return;
     }
+
+    const student = getStudentPortalLoginMatch(login, password, loginDebug);
+    appendMiVeneziaLoginDebug("alumnos totales", String(loginDebug.totalStudents || 0));
+    appendMiVeneziaLoginDebug("alumnos revisados", String(loginDebug.reviewedStudents || 0));
+    appendMiVeneziaLoginDebug("coincidencias de usuario", String(loginDebug.identifierMatches || 0));
+    appendMiVeneziaLoginDebug("match encontrado", student ? "sí" : "no");
+
+    if (!student) {
+      setMiVeneziaLoginFeedback("Usuario o contraseña incorrectos.", "error");
+      return;
+    }
+
+    accessWasValidated = true;
+    appendMiVeneziaLoginDebug("alumno encontrado", `${student.id || "-"} | ${student.nombre || student.fullName || "-"}`);
+    setMiVeneziaLoginFeedback("Acceso validado. Abriendo portal...", "success");
 
     currentPortalStudentId = student.id;
     miVeneziaAttendanceExpanded = false;
@@ -14206,7 +14340,12 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
     currentAccessMode = "student";
     dataService.sessions.setStudent(student.id);
     resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+    appendMiVeneziaLoginDebug("renderMiVeneziaDashboard llamado");
     renderMiVeneziaDashboard();
+    appendMiVeneziaLoginDebug(
+      "dashboard terminó de abrir",
+      miVeneziaDashboard && !miVeneziaDashboard.hidden ? "sí" : "no"
+    );
     miVeneziaLoginForm.reset();
   } catch (error) {
     console.error("[Mi Venezia] No se pudo abrir el portal del alumno.", error);
@@ -14217,12 +14356,36 @@ miVeneziaLoginForm.addEventListener("submit", (event) => {
     miVeneziaLoginPanel.hidden = false;
     miVeneziaDashboard.hidden = true;
     miVeneziaDashboard.setAttribute("aria-busy", "false");
+    setMiVeneziaLoginFeedback(
+      accessWasValidated
+        ? "Tu acceso fue validado, pero hubo un problema abriendo el portal."
+        : "No se pudo validar tu acceso. Intenta de nuevo.",
+      "error"
+    );
+    appendMiVeneziaLoginDebug("error", error && error.message ? error.message : String(error));
     showMiVeneziaRuntimeError("No se pudo abrir Mi Venezia en este navegador.", error);
-    alert("No se pudo abrir Mi Venezia. Intenta de nuevo.");
   } finally {
+    miVeneziaLoginAttemptInProgress = false;
     setMiVeneziaLoginSubmitState(false);
   }
+}
+
+miVeneziaLoginForm.addEventListener("submit", (event) => {
+  handleMiVeneziaLoginAttempt(event, "form submit");
 });
+
+if (miVeneziaLoginSubmitButton) {
+  miVeneziaLoginSubmitButton.addEventListener("click", (event) => {
+    handleMiVeneziaLoginAttempt(event, "button click");
+  });
+  miVeneziaLoginSubmitButton.addEventListener(
+    "touchend",
+    (event) => {
+      handleMiVeneziaLoginAttempt(event, "button touchend");
+    },
+    { passive: false }
+  );
+}
 
 function handleMiVeneziaViewNavigation(event) {
   if (!miVeneziaRoot) {

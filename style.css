@@ -7017,6 +7017,42 @@ body.student-portal-mode.student-portal-active #miVeneziaLoginPanel .primary-btn
   width: 100%;
 }
 
+.mi-venezia-login-feedback {
+  margin: 0.85rem 0 0;
+  padding: 0.72rem 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  background: #fffaf0;
+  color: #5f4b16;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.mi-venezia-login-feedback[data-tone="error"] {
+  border-color: rgba(168, 71, 71, 0.2);
+  background: #fff6f3;
+  color: #7b3129;
+}
+
+.mi-venezia-login-feedback[data-tone="success"] {
+  border-color: rgba(36, 149, 81, 0.22);
+  background: #f0fbf4;
+  color: #23633f;
+}
+
+.mi-venezia-login-debug {
+  margin: 0.75rem 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.72rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(38, 27, 57, 0.14);
+  background: #17131f;
+  color: #f8f3ff;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
 .student-shell {
   --student-purple: #7b52e4;
   --student-purple-deep: #5f31c8;
