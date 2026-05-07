@@ -6667,8 +6667,12 @@ function getDashboardCollectionLifecycleSummary() {
       if (lifecycle.activeForCollection) {
         summary.activeForCollection += 1;
       }
-      if (lifecycle.lastMonthlyPaid) {
-        summary.lastMonthlyPaid += 1;
+      if (
+        !lifecycle.archivedNoContinuation &&
+        !lifecycle.activeForCollection &&
+        lifecycle.lastMonthlyPaid
+      ) {
+        summary.completedCourse += 1;
       }
       if (lifecycle.pendingFollowup) {
         summary.pendingFollowup += 1;
@@ -6683,7 +6687,7 @@ function getDashboardCollectionLifecycleSummary() {
     },
     {
       activeForCollection: 0,
-      lastMonthlyPaid: 0,
+      completedCourse: 0,
       pendingFollowup: 0,
       willContinue: 0,
       noContinue: 0,
@@ -6788,7 +6792,7 @@ function renderDashboard() {
     statActiveForCollectionDashboard.textContent = String(collectionSummary.activeForCollection);
   }
   if (statFinalMonthlyPaidDashboard) {
-    statFinalMonthlyPaidDashboard.textContent = String(collectionSummary.lastMonthlyPaid);
+    statFinalMonthlyPaidDashboard.textContent = String(collectionSummary.completedCourse);
   }
   if (statPendingFollowupDashboard) {
     statPendingFollowupDashboard.textContent = String(collectionSummary.pendingFollowup);
