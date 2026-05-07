@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Mi Venezia V2 | Portal de estudiantes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="mi-venezia-v2.css?v=20260507-mv2-1" />
+  </head>
+  <body>
+    <div class="mv2-app" id="mv2App">
+      <section class="mv2-login-view" id="loginView" aria-label="Acceso Mi Venezia V2">
+        <div class="mv2-login-brand">
+          <img src="/images/logo-principal-sinfondo.png" alt="Instituto Venezia" class="mv2-logo" />
+          <p>Portal independiente</p>
+          <h1>Mi Venezia V2</h1>
+          <span>Consulta tu avance, pagos, clases y documentos.</span>
+        </div>
+
+        <form class="mv2-login-card" id="loginForm" novalidate>
+          <div class="mv2-card-heading">
+            <p>Acceso alumnas/os</p>
+            <h2>Ingresa a tu portal</h2>
+          </div>
+
+          <label class="mv2-field">
+            <span>Usuario Mi Venezia</span>
+            <input id="loginUser" name="usuario" type="text" autocomplete="username" inputmode="text" required />
+          </label>
+
+          <label class="mv2-field">
+            <span>Contraseña</span>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
+          </label>
+
+          <button class="mv2-primary-btn" id="loginButton" type="submit">Ingresar</button>
+          <p class="mv2-feedback" id="loginFeedback" role="status" aria-live="polite">Preparando acceso seguro...</p>
+
+          <div class="mv2-error-box" id="runtimeErrorBox" role="alert" hidden></div>
+        </form>
+      </section>
+
+      <section class="mv2-dashboard-view" id="dashboardView" hidden aria-label="Dashboard Mi Venezia V2">
+        <header class="mv2-dashboard-header">
+          <div>
+            <p class="mv2-eyebrow">Mi Venezia V2</p>
+            <h1 id="studentName">Estudiante</h1>
+            <span id="studentMeta">Cargando tu información...</span>
+          </div>
+          <button class="mv2-ghost-btn" id="logoutButton" type="button">Salir</button>
+        </header>
+
+        <section class="mv2-hero-card" id="heroSummary" aria-live="polite">
+          <div class="mv2-hero-copy">
+            <p id="heroGreeting">Hola</p>
+            <h2 id="heroCourse">Tu curso Venezia</h2>
+            <span id="heroDetails">Estamos preparando tu dashboard.</span>
+          </div>
+          <div class="mv2-doc-badge" id="heroDocStatus">Documentación por confirmar</div>
+        </section>
+
+        <section class="mv2-stats-grid" id="quickStats"></section>
+
+        <nav class="mv2-tabs" id="tabsNav" aria-label="Secciones de Mi Venezia V2">
+          <button class="mv2-tab is-active" type="button" data-tab="inicio">Inicio</button>
+          <button class="mv2-tab" type="button" data-tab="perfil">Perfil</button>
+          <button class="mv2-tab" type="button" data-tab="pagos">Pagos</button>
+          <button class="mv2-tab" type="button" data-tab="asistencias">Clases</button>
+          <button class="mv2-tab" type="button" data-tab="documentos">Documentos</button>
+          <button class="mv2-tab" type="button" data-tab="contacto">Contacto</button>
+        </nav>
+
+        <main class="mv2-panels">
+          <section class="mv2-panel is-active" data-panel="inicio" id="panelInicio"></section>
+          <section class="mv2-panel" data-panel="perfil" id="panelPerfil"></section>
+          <section class="mv2-panel" data-panel="pagos" id="panelPagos"></section>
+          <section class="mv2-panel" data-panel="asistencias" id="panelAsistencias"></section>
+          <section class="mv2-panel" data-panel="documentos" id="panelDocumentos"></section>
+          <section class="mv2-panel" data-panel="contacto" id="panelContacto"></section>
+        </main>
+      </section>
+
+      <aside class="mv2-debug-panel" id="debugPanel" hidden>
+        <strong>Debug Mi Venezia V2</strong>
+        <pre id="debugLog">Iniciando debug...</pre>
+      </aside>
+    </div>
+
+    <noscript>
+      <div class="mv2-noscript">
+        Mi Venezia V2 necesita JavaScript para validar tu acceso. Intenta abrirlo en Chrome, Safari o el navegador principal de tu celular.
+      </div>
+    </noscript>
+
+    <script src="mi-venezia-v2.js?v=20260507-mv2-1"></script>
+  </body>
+</html>

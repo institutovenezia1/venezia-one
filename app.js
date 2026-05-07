@@ -4931,13 +4931,14 @@ function openMiVeneziaPortal(source = "manual") {
 function applyRoleToSidebar() {
   navItems.forEach((navItem) => {
     const module = navItem.dataset.module;
+    const isDirectLink = !module && Boolean(navItem.getAttribute("href"));
     const visible =
       currentAccessMode === "teacher"
         ? false
         : currentAccessMode === "student"
         ? module === "mi-venezia"
         : currentAccessMode === "internal"
-          ? hasInternalAccess(module)
+          ? isDirectLink || hasInternalAccess(module)
           : false;
     navItem.hidden = !visible;
   });
@@ -15126,6 +15127,10 @@ if (teacherPaymentsTableBody) {
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const module = item.dataset.module;
+
+    if (!module) {
+      return;
+    }
 
     if (currentAccessMode === "access-selector") {
       return;
