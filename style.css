@@ -6993,6 +6993,28 @@ body.student-portal-mode.student-portal-active .main-content {
 
 body.student-portal-mode.student-portal-active #miVeneziaSection {
   max-width: 1420px;
+  position: relative;
+  z-index: 1;
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaLoginPanel {
+  position: relative;
+  z-index: 8;
+  width: min(100%, 680px);
+  margin: clamp(0.75rem, 7vh, 4rem) auto 1rem;
+  scroll-margin-top: 0.75rem;
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaLoginPanel .prospect-form {
+  grid-template-columns: 1fr;
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaLoginPanel .form-actions {
+  align-items: stretch;
+}
+
+body.student-portal-mode.student-portal-active #miVeneziaLoginPanel .primary-btn {
+  width: 100%;
 }
 
 .student-shell {
@@ -8309,6 +8331,12 @@ body.student-portal-mode.student-portal-active #miVeneziaSection {
 @media (max-width: 480px) {
   body.student-portal-mode.student-portal-active .main-content {
     padding: 0.55rem;
+  }
+
+  body.student-portal-mode.student-portal-active #miVeneziaLoginPanel {
+    margin: 0 auto 0.75rem;
+    padding: 1rem;
+    border-radius: 20px;
   }
 
   .student-sidebar {

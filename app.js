@@ -4884,6 +4884,28 @@ function focusMiVeneziaLoginField() {
   }, 0);
 }
 
+function revealMiVeneziaLoginPanel() {
+  window.setTimeout(() => {
+    if (!miVeneziaLoginPanel || miVeneziaLoginPanel.hidden || currentPortalStudentId) {
+      return;
+    }
+
+    try {
+      miVeneziaLoginPanel.scrollIntoView({ block: "start", inline: "nearest" });
+    } catch (error) {
+      try {
+        miVeneziaLoginPanel.scrollIntoView(true);
+      } catch (fallbackError) {
+        try {
+          window.scrollTo(0, 0);
+        } catch (scrollError) {
+          // Nothing else to do if this WebView blocks scrolling APIs.
+        }
+      }
+    }
+  }, 0);
+}
+
 function openMiVeneziaPortal(source = "manual") {
   currentInternalUserId = "";
   currentAccessMode = "student";
@@ -4895,6 +4917,7 @@ function openMiVeneziaPortal(source = "manual") {
   updateSessionUI();
   renderMiVeneziaDashboard();
   setActiveModule("mi-venezia");
+  revealMiVeneziaLoginPanel();
   focusMiVeneziaLoginField();
   markVeneziaVisibleUiReady(`openMiVeneziaPortal:${source}`);
 }
@@ -12944,6 +12967,8 @@ function logoutMiVenezia() {
   clearMiVeneziaRuntimeError();
   dataService.sessions.clearStudent();
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
+  revealMiVeneziaLoginPanel();
+  focusMiVeneziaLoginField();
 }
 
 async function handleMiVeneziaPasswordChange(event) {
@@ -15021,6 +15046,7 @@ async function initApp() {
   renderAll();
   setActiveModule(currentAccessMode === "student" ? "mi-venezia" : "web-venezia");
   if (currentAccessMode === "student") {
+    revealMiVeneziaLoginPanel();
     focusMiVeneziaLoginField();
   }
   window.__veneziaInitFinished = true;
