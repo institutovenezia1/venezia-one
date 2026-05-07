@@ -390,6 +390,8 @@ const studentFileNotes = document.getElementById("studentFileNotes");
 const paymentsTableBody = document.getElementById("paymentsTableBody");
 const paymentsEmptyState = document.getElementById("paymentsEmptyState");
 const paymentsTodayTotal = document.getElementById("paymentsTodayTotal");
+const paymentsActiveStudentsCount = document.getElementById("paymentsActiveStudentsCount");
+const paymentsCompletedCourseCount = document.getElementById("paymentsCompletedCourseCount");
 const paymentsToggleButton = document.getElementById("paymentsToggleButton");
 const paymentsRegisteredCount = document.getElementById("paymentsRegisteredCount");
 const paymentsPendingCount = document.getElementById("paymentsPendingCount");
@@ -6659,9 +6661,8 @@ function getDashboardScopedStudents() {
   return students.filter((student) => !isStudentDeleted(student) && matchesDashboardBranch(student.sucursal));
 }
 
-function getDashboardCollectionLifecycleSummary() {
-  const scopedStudents = getDashboardScopedStudents();
-  return scopedStudents.reduce(
+function summarizeStudentCollectionLifecycle(studentsList = []) {
+  return studentsList.reduce(
     (summary, student) => {
       const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
       if (lifecycle.activeForCollection) {
@@ -6693,6 +6694,14 @@ function getDashboardCollectionLifecycleSummary() {
       noContinue: 0,
     }
   );
+}
+
+function getDashboardCollectionLifecycleSummary() {
+  return summarizeStudentCollectionLifecycle(getDashboardScopedStudents());
+}
+
+function getPaymentsCollectionLifecycleSummary() {
+  return summarizeStudentCollectionLifecycle(getCanonicalStudentsForPayments());
 }
 
 function getDashboardPaymentRecords() {
@@ -9664,6 +9673,7 @@ async function savePaymentForStudent(studentId) {
 
 function updatePaymentsSummary() {
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
+  const collectionSummary = getPaymentsCollectionLifecycleSummary();
   const today = getCurrentMexicoDateValue();
   const todaySummaryCandidates = paymentRecords
     .filter((record) => activeStudentIds.has(record.studentId))
@@ -9700,6 +9710,12 @@ function updatePaymentsSummary() {
 
   if (paymentsTodayTotal) {
     paymentsTodayTotal.textContent = formatCurrency(todayTotal);
+  }
+  if (paymentsActiveStudentsCount) {
+    paymentsActiveStudentsCount.textContent = String(collectionSummary.activeForCollection);
+  }
+  if (paymentsCompletedCourseCount) {
+    paymentsCompletedCourseCount.textContent = String(collectionSummary.completedCourse);
   }
   if (paymentsRegisteredCount) {
     paymentsRegisteredCount.textContent = "0";
