@@ -4836,6 +4836,69 @@ function getDefaultModuleForCurrentContext() {
   return ALL_MODULE_PERMISSIONS.find((module) => hasInternalAccess(module)) || "crm-prospectos";
 }
 
+function getUrlParameterValue(name) {
+  try {
+    const escapedName = String(name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = new RegExp("(?:^|[?&])" + escapedName + "=([^&]*)", "i").exec(window.location.search || "");
+    return match ? decodeURIComponent(match[1].replace(/\+/g, " ")) : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function normalizePortalRouteValue(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-");
+}
+
+function isMiVeneziaDirectOpenRequested() {
+  const portalValue = normalizePortalRouteValue(getUrlParameterValue("portal"));
+  const sectionValue = normalizePortalRouteValue(getUrlParameterValue("section"));
+  const hashValue = normalizePortalRouteValue(String(window.location.hash || "").replace(/^#/, ""));
+  return (
+    portalValue === "mi-venezia" ||
+    portalValue === "mivenezia" ||
+    sectionValue === "mi-venezia" ||
+    sectionValue === "mivenezia" ||
+    hashValue === "mi-venezia" ||
+    hashValue === "mivenezia"
+  );
+}
+
+function focusMiVeneziaLoginField() {
+  window.setTimeout(() => {
+    if (!miVeneziaLoginPanel || miVeneziaLoginPanel.hidden || currentPortalStudentId) {
+      return;
+    }
+
+    const firstField = miVeneziaLoginPanel.querySelector("input");
+    if (firstField && typeof firstField.focus === "function") {
+      try {
+        firstField.focus({ preventScroll: true });
+      } catch (error) {
+        firstField.focus();
+      }
+    }
+  }, 0);
+}
+
+function openMiVeneziaPortal(source = "manual") {
+  currentInternalUserId = "";
+  currentAccessMode = "student";
+  publicAccessPanelOpen = false;
+  if (internalLoginError) {
+    internalLoginError.hidden = true;
+  }
+  dataService.sessions.clearInternal();
+  updateSessionUI();
+  renderMiVeneziaDashboard();
+  setActiveModule("mi-venezia");
+  focusMiVeneziaLoginField();
+  markVeneziaVisibleUiReady(`openMiVeneziaPortal:${source}`);
+}
+
 function applyRoleToSidebar() {
   navItems.forEach((navItem) => {
     const module = navItem.dataset.module;
@@ -14069,16 +14132,32 @@ if (teacherPaymentForm) {
   });
 }
 
-openStudentPortalButton.addEventListener("click", () => {
-  currentInternalUserId = "";
-  currentAccessMode = "student";
-  publicAccessPanelOpen = false;
-  internalLoginError.hidden = true;
-  dataService.sessions.clearInternal();
-  updateSessionUI();
-  renderAll();
-  setActiveModule("mi-venezia");
-});
+function bindMiVeneziaOpenButton(button, source) {
+  if (!button) {
+    return;
+  }
+
+  const openPortal = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    openMiVeneziaPortal(source);
+  };
+
+  button.addEventListener("click", openPortal);
+  button.addEventListener(
+    "touchend",
+    (event) => {
+      openPortal(event);
+    },
+    { passive: false }
+  );
+}
+
+bindMiVeneziaOpenButton(openStudentPortalButton, "access-panel");
+bindMiVeneziaOpenButton(publicStudentAccessButton, "public-header");
+bindMiVeneziaOpenButton(footerStudentAccessButton, "public-footer");
 
 miVeneziaLoginForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -14237,14 +14316,6 @@ if (webLeadSubmitButton) {
       if (await restoreInternalAccessFromSavedSession()) {
         return;
       }
-      openPublicAccessPanel();
-    });
-  });
-
-[publicStudentAccessButton, footerStudentAccessButton]
-  .filter(Boolean)
-  .forEach((button) => {
-    button.addEventListener("click", () => {
       openPublicAccessPanel();
     });
   });
@@ -14943,11 +15014,15 @@ async function initApp() {
     currentPortalStudentId = "";
     dataService.sessions.clearStudent();
   }
-  currentAccessMode = currentPortalStudentId ? "student" : "logged-out";
+  const shouldOpenMiVeneziaDirectly = isMiVeneziaDirectOpenRequested();
+  currentAccessMode = currentPortalStudentId || shouldOpenMiVeneziaDirectly ? "student" : "logged-out";
   publicAccessPanelOpen = false;
   updateSessionUI();
   renderAll();
-  setActiveModule(currentPortalStudentId ? "mi-venezia" : "web-venezia");
+  setActiveModule(currentAccessMode === "student" ? "mi-venezia" : "web-venezia");
+  if (currentAccessMode === "student") {
+    focusMiVeneziaLoginField();
+  }
   window.__veneziaInitFinished = true;
   window.__VENEZIA_INIT_FINISHED = true;
   window.__veneziaAppReady = true;
