@@ -2432,6 +2432,10 @@ td select {
   min-width: 1680px;
 }
 
+.payments-upcoming-table-wrapper table {
+  min-width: 980px;
+}
+
 .payments-table-wrapper th,
 .payments-table-wrapper td {
   white-space: nowrap;
@@ -2504,6 +2508,20 @@ td select {
 
 .payments-table-wrapper tr {
   height: auto;
+}
+
+.payments-upcoming-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 161, 74, 0.26);
+  background: rgba(201, 161, 74, 0.12);
+  color: #6f541e;
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 
 .module-helper-copy {

@@ -1419,6 +1419,37 @@
           </section>
 
           <section class="panel table-panel payments-panel">
+            <div class="payments-panel-header">
+              <div class="section-heading">
+                <p class="eyebrow">Seguimiento de cobro</p>
+                <h3 id="paymentsUpcomingTitle">Próximas alumnas a pagar</h3>
+                <p id="paymentsUpcomingSubtitle" class="module-helper-copy">Seguimiento de próximas mensualidades</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper payments-table-wrapper payments-upcoming-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Alumna</th>
+                    <th>Curso</th>
+                    <th>Modalidad / horario</th>
+                    <th>Próxima mensualidad</th>
+                    <th>Fecha estimada de pago</th>
+                    <th>Monto</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsUpcomingTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsUpcomingEmptyState" class="empty-state">
+              No hay alumnas próximas a pagar en esta ventana.
+            </p>
+          </section>
+
+          <section class="panel table-panel payments-panel">
             <div class="section-heading">
               <p class="eyebrow">Seguimiento comercial</p>
               <h3>Alumnas fuera de cobro con continuidad en seguimiento</h3>

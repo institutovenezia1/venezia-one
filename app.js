@@ -482,6 +482,10 @@ const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
 const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
+const paymentsUpcomingTitle = document.getElementById("paymentsUpcomingTitle");
+const paymentsUpcomingSubtitle = document.getElementById("paymentsUpcomingSubtitle");
+const paymentsUpcomingTableBody = document.getElementById("paymentsUpcomingTableBody");
+const paymentsUpcomingEmptyState = document.getElementById("paymentsUpcomingEmptyState");
 const paymentsContinuityTableBody = document.getElementById("paymentsContinuityTableBody");
 const paymentsContinuityEmptyState = document.getElementById("paymentsContinuityEmptyState");
 const paymentsArchivedTableBody = document.getElementById("paymentsArchivedTableBody");
@@ -9707,6 +9711,226 @@ function buildStudentLifecyclePatch(student, paymentRecord) {
   };
 }
 
+function addLocalDaysToDateKey(dateValue, days) {
+  const baseDate = parseLocalDateKey(normalizeLocalDateKey(dateValue));
+  if (!baseDate) {
+    return "";
+  }
+
+  const nextDate = new Date(baseDate);
+  nextDate.setDate(baseDate.getDate() + days);
+  return formatDateForInput(nextDate);
+}
+
+function getLocalWeekdayIndex(dateValue) {
+  const date = parseLocalDateKey(normalizeLocalDateKey(dateValue));
+  return date ? date.getDay() : null;
+}
+
+function getNextMondayDateKey(anchorDate) {
+  const day = getLocalWeekdayIndex(anchorDate);
+  if (day === null) {
+    return "";
+  }
+
+  const daysUntilNextMonday = day === 0 ? 1 : 8 - day;
+  return addLocalDaysToDateKey(anchorDate, daysUntilNextMonday);
+}
+
+function getFridayForOperationalWeekend(anchorDate) {
+  const day = getLocalWeekdayIndex(anchorDate);
+  if (day === null) {
+    return "";
+  }
+
+  if (day === 0) {
+    return addLocalDaysToDateKey(anchorDate, -2);
+  }
+  return addLocalDaysToDateKey(anchorDate, 5 - day);
+}
+
+function getUpcomingPaymentDateWindows(scope, anchorDate = getCurrentMexicoDateValue()) {
+  const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
+  const day = getLocalWeekdayIndex(today);
+  if (day === null) {
+    return [];
+  }
+
+  if (scope === "weekday") {
+    const windows = [];
+    if (day >= 1 && day <= 5) {
+      windows.push({ from: today, to: today, type: "today", scope });
+    }
+
+    const nextMonday = getNextMondayDateKey(today);
+    if (nextMonday) {
+      windows.push({ from: nextMonday, to: addLocalDaysToDateKey(nextMonday, 4), type: "next-week", scope });
+    }
+    return windows;
+  }
+
+  if (scope === "weekend") {
+    const windows = [];
+    const currentFriday = getFridayForOperationalWeekend(today);
+    if (currentFriday && (day === 5 || day === 6 || day === 0)) {
+      windows.push({ from: currentFriday, to: addLocalDaysToDateKey(currentFriday, 2), type: "current-weekend", scope });
+    }
+
+    const nextFriday = currentFriday
+      ? addLocalDaysToDateKey(currentFriday, day === 5 || day === 6 || day === 0 ? 7 : 0)
+      : "";
+    if (nextFriday) {
+      windows.push({ from: nextFriday, to: addLocalDaysToDateKey(nextFriday, 2), type: "next-weekend", scope });
+    }
+    return windows;
+  }
+
+  return [];
+}
+
+function findDateWindowForUpcomingPayment(dateValue, scope, anchorDate = getCurrentMexicoDateValue()) {
+  const normalizedDate = normalizeLocalDateKey(dateValue);
+  if (!normalizedDate) {
+    return null;
+  }
+
+  return getUpcomingPaymentDateWindows(scope, anchorDate).find(
+    (windowRange) => normalizedDate >= windowRange.from && normalizedDate <= windowRange.to
+  ) || null;
+}
+
+function getUpcomingPaymentStatusLabel(dateValue, windowRange, anchorDate = getCurrentMexicoDateValue()) {
+  const normalizedDate = normalizeLocalDateKey(dateValue);
+  const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
+  if (!normalizedDate) {
+    return "Pendiente";
+  }
+  if (normalizedDate === today) {
+    return "Vence hoy";
+  }
+  if (normalizedDate < today) {
+    return "Pendiente";
+  }
+  if (__veneziaGet(windowRange, "type") === "next-week") {
+    return "Próxima semana";
+  }
+  if (__veneziaGet(windowRange, "scope") === "weekend") {
+    return "Próxima fin de semana";
+  }
+  return "Próxima esta semana";
+}
+
+function getUpcomingPaymentScheduleScope() {
+  const currentUser = getCurrentInternalUser();
+  const linkedStaff = getLinkedStaffRecordForInternalUser(currentUser);
+  const staffScope = normalizeDirectorContactScope(__veneziaGet(linkedStaff, "contactScheduleScope"));
+
+  if (staffScope === "weekday" || staffScope === "weekend") {
+    return staffScope;
+  }
+
+  return "all";
+}
+
+function getUpcomingPaymentScopeLabel(scope) {
+  if (scope === "weekday") {
+    return "Entre semana";
+  }
+  if (scope === "weekend") {
+    return "Fin de semana";
+  }
+  return "General";
+}
+
+function getUpcomingMonthlyPaymentLabel(field) {
+  const concept = BALANCE_PAYMENT_CONCEPT_FIELDS.find((item) => item.key === field);
+  return __veneziaGet(concept, "movementLabel") || __veneziaGet(concept, "label") || field;
+}
+
+function getUpcomingPaymentAmount(student, paymentRecord) {
+  return String(
+    __veneziaGet(paymentRecord, "mensualidadPactada") ||
+      __veneziaGet(student, "mensualidad") ||
+      __veneziaGet(student, "colegiatura") ||
+      ""
+  ).trim();
+}
+
+function getNextPendingMonthlyPayment(student, paymentRecord) {
+  const field = getCourseMonthlyPaymentFields(student).find(
+    (monthlyField) => !isMonthlyPaymentCovered(__veneziaGet(paymentRecord, monthlyField))
+  );
+  if (!field) {
+    return null;
+  }
+
+  return {
+    field,
+    label: getUpcomingMonthlyPaymentLabel(field),
+    date: getStudentPaymentReferenceDateByField(field, student),
+    amount: getUpcomingPaymentAmount(student, paymentRecord),
+  };
+}
+
+function buildUpcomingPaymentEntry(student, { scope = getUpcomingPaymentScheduleScope(), anchorDate = getCurrentMexicoDateValue() } = {}) {
+  const scheduleType = classifyAltaScheduleType(student);
+  if (scheduleType !== "weekday" && scheduleType !== "weekend") {
+    return null;
+  }
+
+  if ((scope === "weekday" || scope === "weekend") && scheduleType !== scope) {
+    return null;
+  }
+
+  const paymentRecord = getPersistentPaymentRecord(student.id);
+  const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, anchorDate);
+  if (!lifecycle.activeForCollection || lifecycle.archivedNoContinuation || lifecycle.lastMonthlyPaid) {
+    return null;
+  }
+
+  const nextPayment = getNextPendingMonthlyPayment(student, paymentRecord);
+  if (!nextPayment || !nextPayment.date) {
+    return null;
+  }
+
+  const windowRange = findDateWindowForUpcomingPayment(nextPayment.date, scheduleType, anchorDate);
+  if (!windowRange) {
+    return null;
+  }
+
+  return {
+    student,
+    scheduleType,
+    scheduleLabel: getUpcomingPaymentScopeLabel(scheduleType),
+    nextPayment,
+    date: normalizeLocalDateKey(nextPayment.date),
+    amount: nextPayment.amount,
+    status: getUpcomingPaymentStatusLabel(nextPayment.date, windowRange, anchorDate),
+  };
+}
+
+function getUpcomingPaymentEntries({
+  studentsList = getCanonicalStudentsForPayments(getActiveStudents()),
+  scope = getUpcomingPaymentScheduleScope(),
+  anchorDate = getCurrentMexicoDateValue(),
+} = {}) {
+  return studentsList
+    .map((student) => buildUpcomingPaymentEntry(student, { scope, anchorDate }))
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (left.date !== right.date) {
+        return left.date.localeCompare(right.date);
+      }
+      if (left.scheduleType !== right.scheduleType) {
+        return left.scheduleType.localeCompare(right.scheduleType);
+      }
+      return String(__veneziaGet(left.student, "nombre") || "").localeCompare(
+        String(__veneziaGet(right.student, "nombre") || ""),
+        "es-MX"
+      );
+    });
+}
+
 async function syncStudentLifecycleFromPaymentRecord(student, paymentRecord) {
   if (!__veneziaGet(student, "id")) {
     return {
@@ -9838,10 +10062,54 @@ function renderPaymentsTable() {
 }
 
 function renderPaymentsLifecyclePanels() {
+  const upcomingScope = getUpcomingPaymentScheduleScope();
+  const upcomingEntries = getUpcomingPaymentEntries({ scope: upcomingScope });
   const followupStudents = getStudentsPendingContinuityFollowup()
     .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
   const archivedStudents = getArchivedNoContinuationStudents()
     .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
+
+  if (paymentsUpcomingTitle) {
+    const scopeLabel = getUpcomingPaymentScopeLabel(upcomingScope);
+    paymentsUpcomingTitle.textContent =
+      upcomingScope === "all" ? "Próximas alumnas a pagar" : `Próximas alumnas a pagar · ${scopeLabel}`;
+  }
+
+  if (paymentsUpcomingSubtitle) {
+    paymentsUpcomingSubtitle.textContent =
+      upcomingScope === "all"
+        ? "Seguimiento de próximas mensualidades · vista combinada"
+        : "Seguimiento de próximas mensualidades";
+  }
+
+  if (paymentsUpcomingTableBody) {
+    paymentsUpcomingTableBody.innerHTML = upcomingEntries
+      .map((entry) => {
+        const student = entry.student;
+        const amount = parsePaymentAmount(entry.amount);
+        return `
+          <tr>
+            <td>
+              <div class="payment-student-cell">
+                <strong>${escapeHtml(student.nombre || "-")}</strong>
+                <small>${escapeHtml(student.studentCode || student.telefono || "-")}</small>
+              </div>
+            </td>
+            <td>${escapeHtml(student.curso || "-")}</td>
+            <td>${escapeHtml(`${entry.scheduleLabel} · ${student.horario || "-"}`)}</td>
+            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
+            <td>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
+            <td>${escapeHtml(amount > 0 ? formatCurrency(amount) : entry.amount || "-")}</td>
+            <td><span class="payments-upcoming-status">${escapeHtml(entry.status || "Pendiente")}</span></td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  if (paymentsUpcomingEmptyState) {
+    paymentsUpcomingEmptyState.hidden = upcomingEntries.length > 0;
+  }
 
   if (paymentsContinuityTableBody) {
     paymentsContinuityTableBody.innerHTML = followupStudents
