@@ -9202,6 +9202,17 @@ function getContinuityStatusLabel(status) {
   return __veneziaGet(CONTINUITY_STATUS_OPTIONS.find((option) => option.value === normalizeContinuityStatus(status)), "label") || "Activa para cobro";
 }
 
+function getPaymentContinuityFollowupDisplay(lifecycle) {
+  const status = normalizeContinuityStatus(__veneziaGet(lifecycle, "continuityStatus"));
+  if (status === "will_continue") {
+    return __veneziaGet(lifecycle, "nextCourse") || "Pendiente de seguimiento";
+  }
+  if (status === "will_not_continue" || __veneziaGet(lifecycle, "archivedNoContinuation")) {
+    return "No continuará";
+  }
+  return "Pendiente de seguimiento";
+}
+
 function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
   return {
     id: "",
@@ -10086,21 +10097,12 @@ function renderPaymentsLifecyclePanels() {
     paymentsUpcomingTableBody.innerHTML = upcomingEntries
       .map((entry) => {
         const student = entry.student;
-        const amount = parsePaymentAmount(entry.amount);
         return `
           <tr>
-            <td>
-              <div class="payment-student-cell">
-                <strong>${escapeHtml(student.nombre || "-")}</strong>
-                <small>${escapeHtml(student.studentCode || student.telefono || "-")}</small>
-              </div>
-            </td>
+            <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
             <td>${escapeHtml(student.curso || "-")}</td>
-            <td>${escapeHtml(`${entry.scheduleLabel} · ${student.horario || "-"}`)}</td>
             <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
-            <td>${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
-            <td>${escapeHtml(amount > 0 ? formatCurrency(amount) : entry.amount || "-")}</td>
-            <td><span class="payments-upcoming-status">${escapeHtml(entry.status || "Pendiente")}</span></td>
+            <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
           </tr>
         `;
       })
@@ -10115,14 +10117,13 @@ function renderPaymentsLifecyclePanels() {
     paymentsContinuityTableBody.innerHTML = followupStudents
       .map((student) => {
         const lifecycle = getStudentCollectionLifecycle(student, getPaymentDisplayRecord(student.id));
+        const continuityDisplay = getPaymentContinuityFollowupDisplay(lifecycle);
         return `
           <tr>
-            <td>${escapeHtml(student.nombre || "-")}</td>
+            <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
             <td>${escapeHtml(student.curso || "-")}</td>
             <td>${escapeHtml(lifecycle.lastMonthlyPaymentStatus || "-")}</td>
-            <td>${escapeHtml(getContinuityStatusLabel(lifecycle.continuityStatus))}</td>
-            <td>${escapeHtml(lifecycle.nextCourse || "-")}</td>
-            <td>${escapeHtml(lifecycle.finalMonthlyReferenceDate || "-")}</td>
+            <td class="payments-continuity-next-cell">${escapeHtml(continuityDisplay)}</td>
           </tr>
         `;
       })

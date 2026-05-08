@@ -2433,7 +2433,15 @@ td select {
 }
 
 .payments-upcoming-table-wrapper table {
-  min-width: 980px;
+  min-width: 680px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.payments-continuity-table-wrapper table {
+  min-width: 720px;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .payments-table-wrapper th,
@@ -2446,6 +2454,64 @@ td select {
 .payments-table-wrapper td:first-child {
   white-space: normal;
   min-width: 205px;
+}
+
+.payments-upcoming-table-wrapper th,
+.payments-upcoming-table-wrapper td,
+.payments-continuity-table-wrapper th,
+.payments-continuity-table-wrapper td {
+  padding: 0.46rem 0.52rem;
+}
+
+.payments-upcoming-table-wrapper th:nth-child(1),
+.payments-upcoming-table-wrapper td:nth-child(1) {
+  width: 34%;
+}
+
+.payments-upcoming-table-wrapper th:nth-child(2),
+.payments-upcoming-table-wrapper td:nth-child(2) {
+  width: 25%;
+}
+
+.payments-upcoming-table-wrapper th:nth-child(3),
+.payments-upcoming-table-wrapper td:nth-child(3) {
+  width: 21%;
+}
+
+.payments-upcoming-table-wrapper th:nth-child(4),
+.payments-upcoming-table-wrapper td:nth-child(4) {
+  width: 20%;
+}
+
+.payments-continuity-table-wrapper th:nth-child(1),
+.payments-continuity-table-wrapper td:nth-child(1) {
+  width: 30%;
+}
+
+.payments-continuity-table-wrapper th:nth-child(2),
+.payments-continuity-table-wrapper td:nth-child(2) {
+  width: 24%;
+}
+
+.payments-continuity-table-wrapper th:nth-child(3),
+.payments-continuity-table-wrapper td:nth-child(3) {
+  width: 22%;
+}
+
+.payments-continuity-table-wrapper th:nth-child(4),
+.payments-continuity-table-wrapper td:nth-child(4) {
+  width: 24%;
+}
+
+.payments-student-name-cell {
+  white-space: normal;
+}
+
+.payments-student-name-cell strong,
+.payments-date-cell,
+.payments-continuity-next-cell {
+  color: #2f261c;
+  font-weight: 800;
 }
 
 .payments-column-heading {
@@ -2508,20 +2574,6 @@ td select {
 
 .payments-table-wrapper tr {
   height: auto;
-}
-
-.payments-upcoming-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 0.32rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid rgba(201, 161, 74, 0.26);
-  background: rgba(201, 161, 74, 0.12);
-  color: #6f541e;
-  font-size: 0.74rem;
-  font-weight: 800;
 }
 
 .module-helper-copy {
