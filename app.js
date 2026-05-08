@@ -5661,6 +5661,26 @@ function getPaidPaymentConcepts(record) {
   return BALANCE_PAYMENT_CONCEPT_FIELDS.filter(({ key }) => isEligiblePaymentStatus(record[key]));
 }
 
+function getInferredSingleMonthlyPaymentAmount(record, student) {
+  const paidConcepts = getPaidPaymentConcepts(record);
+  const [paidConcept] = paidConcepts;
+  const isSinglePaidMonthlyConcept =
+    paidConcepts.length === 1 &&
+    String(__veneziaGet(record, paidConcept.key) || "").trim() === "Pagado" &&
+    /^mensualidad\d+$/.test(paidConcept.key);
+
+  if (!isSinglePaidMonthlyConcept) {
+    return "";
+  }
+
+  return String(
+    record.mensualidadPactada ||
+      __veneziaGet(student, "mensualidad") ||
+      __veneziaGet(student, "colegiatura") ||
+      ""
+  ).trim();
+}
+
 function isRealPaidPaymentRecord(record) {
   return Boolean(__veneziaGet(record, "id")) && parsePaymentAmount(__veneziaGet(record, "cantidadPagada")) > 0 && getPaidPaymentConcepts(record).length > 0;
 }
@@ -8793,7 +8813,8 @@ async function saveAttendanceForStudent(studentId) {
   const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
   const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
   const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
-  const firstSelectedSessionDate = __veneziaGet(sessionFields.find((field) => field.value), "dataset").sessionDate || date;
+  const selectedSessionDataset = __veneziaGet(sessionFields.find((field) => field.value), "dataset");
+  const firstSelectedSessionDate = __veneziaGet(selectedSessionDataset, "sessionDate") || date;
   const recordsToSave = sessionFields
     .filter((field) => field.value)
     .map((field) => {
@@ -8808,8 +8829,8 @@ async function saveAttendanceForStudent(studentId) {
           sessionDate === date || sessionDate === firstSelectedSessionDate
             ? buildAttendanceNotes({
                 reglamento: automaticReglamentoStatus,
-                reportes: __veneziaGet(reportesField, "value").trim() || "",
-                observaciones: __veneziaGet(observacionesField, "value").trim() || "",
+                reportes: String(__veneziaGet(reportesField, "value") || "").trim(),
+                observaciones: String(__veneziaGet(observacionesField, "value") || "").trim(),
               })
             : __veneziaGet(attendanceRecords[existingIndex], "observaciones") || "",
         recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
@@ -9877,6 +9898,22 @@ async function savePaymentForStudent(studentId) {
   if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
     alert("Selecciona el siguiente curso si la alumna continuará.");
     return;
+  }
+
+  const paidConceptsForCapture = getPaidPaymentConcepts(newRecord);
+  if (paidConceptsForCapture.length > 0 && parsePaymentAmount(newRecord.cantidadPagada) <= 0) {
+    const inferredAmount = getInferredSingleMonthlyPaymentAmount(newRecord, student);
+    if (parsePaymentAmount(inferredAmount) > 0) {
+      newRecord.cantidadPagada = inferredAmount;
+      formPayload.cantidadPagada = inferredAmount;
+      const amountInput = paymentsTableBody.querySelector(`[data-payment-field="cantidadPagada"][data-student-id="${studentId}"]`);
+      if (amountInput) {
+        amountInput.value = inferredAmount;
+      }
+    } else {
+      alert("Captura la cantidad pagada para guardar el pago y reflejarlo en los ingresos del día.");
+      return;
+    }
   }
 
   console.log("PAGO payload que sale del formulario", {
