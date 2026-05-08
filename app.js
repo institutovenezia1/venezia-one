@@ -181,17 +181,6 @@ const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
 const ALTA_FINANCE_SOURCE = "altas";
 const ALTA_INSCRIPTION_CONCEPT_KEY = "inscription_payment";
 const ALTA_INSCRIPTION_CONCEPT_LABEL = "Pago de inscripción";
-const PAYMENT_CAPTURE_MUTATION_FIELDS = new Set([
-  "certificadoP1",
-  "certificadoP2",
-  "mensualidad1",
-  "mensualidad2",
-  "mensualidad3",
-  "mensualidad4",
-  "mensualidad5",
-  "cantidadPagada",
-  "metodoPago",
-]);
 const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "SELENE ABREGON GUILLEN",
   "ADRIANA PRIETO ZAMORANO",
@@ -1367,17 +1356,16 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
     }));
 }
 
-function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {}, detectedChanges = []) {
+function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {}) {
   if (!isRealPaidPaymentRecord(nextRecord)) {
     return false;
   }
 
-  const hasCaptureMutation = detectedChanges.some((change) => PAYMENT_CAPTURE_MUTATION_FIELDS.has(change.field));
-  if (hasCaptureMutation) {
-    return true;
+  if (getStoredPaymentRealDate(currentRecord)) {
+    return false;
   }
 
-  return !getStoredPaymentRealDate(currentRecord) && !isRealPaidPaymentRecord(currentRecord);
+  return !isRealPaidPaymentRecord(currentRecord);
 }
 
 async function savePaymentRecord(record) {
@@ -5720,28 +5708,31 @@ function getStoredPaymentRealDate(record) {
   return normalizeLocalDateKey(__veneziaGet(record, "paymentRealDate")) || "";
 }
 
-function getLegacyPaymentRealDateFallback(record) {
-  const updatedDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "updatedAt"));
-  if (updatedDate) {
-    return updatedDate;
-  }
+function getLinkedPaymentFinanceRecordDate(linkedFinanceRecords = []) {
+  return linkedFinanceRecords
+    .map((financeRecord) => normalizeLocalDateKey(__veneziaGet(financeRecord, "fecha")))
+    .filter(Boolean)
+    .sort((left, right) => left.localeCompare(right))[0] || "";
+}
 
+function getLegacyPaymentRealDateFallback(record, linkedFinanceRecords = []) {
   const createdDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "createdAt"));
   if (createdDate) {
     return createdDate;
   }
-  return normalizeLocalDateKey(__veneziaGet(record, "mesPago") ? `${record.mesPago}-01` : "");
+
+  const linkedFinanceDate = getLinkedPaymentFinanceRecordDate(linkedFinanceRecords);
+  if (linkedFinanceDate) {
+    return linkedFinanceDate;
+  }
+
+  return "";
 }
 
 function getPaymentReconciliationDateForToday(record, today = getCurrentMexicoDateValue()) {
   const storedPaymentRealDate = getStoredPaymentRealDate(record);
   if (storedPaymentRealDate) {
     return storedPaymentRealDate === today ? storedPaymentRealDate : "";
-  }
-
-  const updatedDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "updatedAt"));
-  if (updatedDate === today) {
-    return updatedDate;
   }
 
   const createdDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "createdAt"));
@@ -6138,48 +6129,22 @@ function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
     });
 }
 
-function getIsoDateValue(value) {
-  return getMexicoDateValueFromStoredDateTime(value);
-}
-
-function getLatestDateValue(values = []) {
-  return values
-    .map((value) => getIsoDateValue(value))
-    .filter(Boolean)
-    .sort((left, right) => left.localeCompare(right))
-    .pop() || "";
-}
-
 function getReconciledPaymentRealDate(record, linkedFinanceRecords = []) {
   if (!isRealPaidPaymentRecord(record)) {
     return "";
   }
 
   const storedDate = getStoredPaymentRealDate(record);
-  const latestKnownDate = getLatestDateValue([
-    record.updatedAt,
-    record.createdAt,
-    ...linkedFinanceRecords.map((financeRecord) => financeRecord.createdAt),
-  ]);
-
-  if (!latestKnownDate) {
-    return "";
-  }
-
-  if (!storedDate) {
-    return latestKnownDate;
-  }
-
-  return "";
+  return storedDate ? "" : getLegacyPaymentRealDateFallback(record, linkedFinanceRecords);
 }
 
-function getPaymentEffectiveDate(record) {
+function getPaymentEffectiveDate(record, linkedFinanceRecords = []) {
   const storedRealDate = getStoredPaymentRealDate(record);
   if (storedRealDate) {
     return storedRealDate;
   }
 
-  return getLegacyPaymentRealDateFallback(record);
+  return getLegacyPaymentRealDateFallback(record, linkedFinanceRecords);
 }
 
 function getPaymentFinanceCategory(record) {
@@ -6209,7 +6174,7 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
 
   return {
     id: __veneziaGet(existingFinanceRecord, "id") || paymentRecord.id || createMiVeneziaCompatibleId(),
-    fecha: getPaymentEffectiveDate(paymentRecord),
+    fecha: getPaymentEffectiveDate(paymentRecord, existingFinanceRecord ? [existingFinanceRecord] : []),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
     categoria: getPaymentFinanceCategory(paymentRecord),
