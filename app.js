@@ -4631,6 +4631,10 @@ function isStudentDeleted(student) {
   return String(__veneziaGet(student, "estado") || "").trim().toLowerCase() === "eliminada";
 }
 
+function isStudentCourseCompleted(student) {
+  return normalizeLifecycleStatus(__veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+}
+
 function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
   const normalizedBranch = String(branch || "").trim();
   const prefix = normalizedBranch === "Tlaxcala" ? "TLX" : normalizedBranch === "Puebla" ? "PUE" : "ALT";
@@ -8247,7 +8251,7 @@ function getActiveStudents() {
     return (
       matchesCurrentBranch(student.sucursal) &&
       !isStudentDeleted(student) &&
-      normalizeLifecycleStatus(student.lifecycleStatus) !== STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION &&
+      !isStudentCourseCompleted(student) &&
       (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita")
     );
   });
@@ -8910,6 +8914,7 @@ function renderAttendanceTable() {
               <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
+              <button class="table-action secondary-btn" type="button" data-action="complete-course" data-id="${student.id}">Curso finalizado</button>
               <button class="table-action action-delete" type="button" data-action="delete-attendance" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
@@ -8993,6 +8998,34 @@ async function saveAttendanceForStudent(studentId) {
   if (selectedAttendanceStudentId === studentId) {
     renderAttendanceHistory(studentId);
   }
+}
+
+async function completeStudentCourseFromAttendance(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    alert("No se encontró la alumna para marcar el curso como finalizado.");
+    return;
+  }
+
+  const confirmed = confirm(`Marcar el curso de ${student.nombre || "esta alumna"} como finalizado? Ya no aparecerá en Asistencias.`);
+  if (!confirmed) {
+    return;
+  }
+
+  const saveResult = await saveStudentRecord({
+    ...student,
+    lifecycleStatus: STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION,
+  });
+
+  if (!saveResult.synced) {
+    alert("No se pudo marcar el curso como finalizado en Supabase.");
+    return;
+  }
+
+  await refreshSharedSupabaseState({ force: true, render: false });
+  renderAttendanceTable();
+  renderPaymentsTable();
+  renderDashboard();
 }
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
@@ -9161,8 +9194,7 @@ function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDispla
   const finalMonthlyReferencePassed = Boolean(finalMonthlyReferenceDate && finalMonthlyReferenceDate < anchorDate);
   const lastMonthlyPaid = lastMonthlyPaymentStatus === "Pagada" || isLastMonthlyPaymentSettled(student, paymentRecord);
   const hasPendingMonthlyPayments = hasStudentPendingMonthlyPayments(student, paymentRecord);
-  const archivedNoContinuation = continuityStatus === "will_not_continue" ||
-    normalizeLifecycleStatus(__veneziaGet(paymentRecord, "lifecycleStatus") || __veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+  const archivedNoContinuation = isStudentCourseCompleted(student);
 
   let lifecycleStatus = STUDENT_LIFECYCLE_STATUS.ACTIVE;
   if (archivedNoContinuation) {
@@ -15471,6 +15503,9 @@ attendanceTableBody.addEventListener("click", async (event) => {
   if (action === "edit-student") loadStudentIntoAlta(id);
   if (action === "view-student-file") openStudentFile(id);
   if (action === "view-history") renderAttendanceHistory(id);
+  if (action === "complete-course") {
+    await completeStudentCourseFromAttendance(id);
+  }
   if (action === "delete-attendance") {
     await deleteAttendanceForStudent(id);
   }
