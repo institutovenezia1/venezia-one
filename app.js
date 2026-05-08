@@ -9076,6 +9076,15 @@ function normalizeContinuityStatus(value) {
   return "active_payment_pending";
 }
 
+function normalizeContinuitySelection(value) {
+  const normalizedValue = String(value || "").trim();
+  if (!normalizedValue || normalizedValue === "active_payment_pending") {
+    return "";
+  }
+  const normalizedStatus = normalizeContinuityStatus(normalizedValue);
+  return normalizedStatus === "active_payment_pending" ? "" : normalizedStatus;
+}
+
 function normalizeLifecycleStatus(value) {
   const normalizedValue = String(value || "").trim().toLowerCase();
   if (normalizedValue === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION) {
@@ -9231,7 +9240,7 @@ function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
     reportes: "",
     observaciones: "",
     lastMonthlyPaymentStatus: "",
-    continuityStatus: "active_payment_pending",
+    continuityStatus: "",
     nextCourse: "",
     lifecycleStatus: STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentMovementConcept: "",
@@ -9306,7 +9315,7 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
       reportes: "",
       observaciones: "",
       lastMonthlyPaymentStatus: historyRecord.lastMonthlyPaymentStatus || "",
-      continuityStatus: historyRecord.continuityStatus || "active_payment_pending",
+      continuityStatus: historyRecord.continuityStatus || "",
       nextCourse: historyRecord.nextCourse || "",
       lifecycleStatus: historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
       paymentRealDate: "",
@@ -9326,7 +9335,7 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
     reportes: monthRecord.reportes || "",
     observaciones: monthRecord.observaciones || "",
     lastMonthlyPaymentStatus: monthRecord.lastMonthlyPaymentStatus || historyRecord.lastMonthlyPaymentStatus || "",
-    continuityStatus: monthRecord.continuityStatus || historyRecord.continuityStatus || "active_payment_pending",
+    continuityStatus: monthRecord.continuityStatus || historyRecord.continuityStatus || "",
     nextCourse: monthRecord.nextCourse || historyRecord.nextCourse || "",
     lifecycleStatus: monthRecord.lifecycleStatus || historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentRealDate: monthRecord.paymentRealDate || "",
@@ -9532,22 +9541,42 @@ function courseUsesFifthMonth(course) {
   return String(course || "").trim().toLowerCase() === "barbería" || String(course || "").trim().toLowerCase() === "barberia";
 }
 
-function renderPaymentSelectOptions(selectedValue, options) {
+function renderPaymentSelectOptions(selectedValue, options, placeholderLabel = "Selecciona") {
   return options
     .map((option) => {
-      const label = option || "Selecciona";
+      const label = option || placeholderLabel;
       return `<option value="${escapeHtml(option)}" ${option === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
     })
     .join("");
 }
 
 function renderContinuityStatusOptions(selectedValue) {
-  return CONTINUITY_STATUS_OPTIONS
+  const options = [
+    { value: "", label: "Seleccionar" },
+    ...CONTINUITY_STATUS_OPTIONS.filter((option) => option.value !== "active_payment_pending"),
+  ];
+
+  return options
     .map(
       (option) =>
         `<option value="${escapeHtml(option.value)}" ${option.value === selectedValue ? "selected" : ""}>${escapeHtml(option.label)}</option>`
     )
     .join("");
+}
+
+function getPaymentLastMonthlySelection(paymentRecord, student) {
+  return normalizeLastMonthlyPaymentStatus(
+    __veneziaGet(paymentRecord, "lastMonthlyPaymentStatus") || __veneziaGet(student, "lastMonthlyPaymentStatus")
+  );
+}
+
+function getPaymentContinuitySelection(paymentRecord, student) {
+  const paymentSelection = normalizeContinuitySelection(__veneziaGet(paymentRecord, "continuityStatus"));
+  return paymentSelection || normalizeContinuitySelection(__veneziaGet(student, "continuityStatus"));
+}
+
+function getPaymentNextCourseSelection(paymentRecord, student) {
+  return normalizeNextCourse(__veneziaGet(paymentRecord, "nextCourse") || __veneziaGet(student, "nextCourse"));
 }
 
 function getStudentPaymentReferenceRule(field) {
@@ -9716,9 +9745,9 @@ function buildStudentLifecyclePatch(student, paymentRecord) {
 
   return {
     lifecycleStatus: lifecycle.lifecycleStatus,
-    continuityStatus: lifecycle.continuityStatus,
-    nextCourse: lifecycle.nextCourse,
-    lastMonthlyPaymentStatus: lifecycle.lastMonthlyPaymentStatus,
+    continuityStatus: normalizeContinuitySelection(__veneziaGet(paymentRecord, "continuityStatus")),
+    nextCourse: normalizeNextCourse(__veneziaGet(paymentRecord, "nextCourse")),
+    lastMonthlyPaymentStatus: normalizeLastMonthlyPaymentStatus(__veneziaGet(paymentRecord, "lastMonthlyPaymentStatus")),
   };
 }
 
@@ -9992,7 +10021,9 @@ function renderPaymentsTable() {
       const payment = getPaymentDisplayRecord(student.id);
       const studentSessions = getStudentAttendanceReferenceSessions(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
-      const lifecycle = getStudentCollectionLifecycle(student, payment);
+      const lastMonthlySelection = getPaymentLastMonthlySelection(payment, student);
+      const continuitySelection = getPaymentContinuitySelection(payment, student);
+      const nextCourseSelection = getPaymentNextCourseSelection(payment, student);
       return `
         <tr>
           <td>
@@ -10016,9 +10047,9 @@ function renderPaymentsTable() {
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
-          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lifecycle.lastMonthlyPaymentStatus, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS)}</select></td>
-          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}">${renderContinuityStatusOptions(lifecycle.continuityStatus)}</select></td>
-          <td><select data-payment-field="nextCourse" data-student-id="${student.id}">${renderPaymentSelectOptions(lifecycle.nextCourse, NEXT_COURSE_OPTIONS)}</select></td>
+          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
+          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
+          <td><select data-payment-field="nextCourse" data-student-id="${student.id}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
@@ -10284,9 +10315,8 @@ async function savePaymentForStudent(studentId) {
   });
 
   newRecord.lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(newRecord.lastMonthlyPaymentStatus);
-  newRecord.continuityStatus = normalizeContinuityStatus(newRecord.continuityStatus);
-  newRecord.nextCourse =
-    newRecord.continuityStatus === "will_continue" ? normalizeNextCourse(newRecord.nextCourse) : "";
+  newRecord.continuityStatus = normalizeContinuitySelection(newRecord.continuityStatus);
+  newRecord.nextCourse = normalizeNextCourse(newRecord.nextCourse);
 
   if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
     alert("Selecciona el siguiente curso si la alumna continuará.");
@@ -10343,9 +10373,6 @@ async function savePaymentForStudent(studentId) {
 
   const lifecycleAfterSave = getStudentCollectionLifecycle(student, finalRecord);
   finalRecord.lifecycleStatus = lifecycleAfterSave.lifecycleStatus;
-  finalRecord.lastMonthlyPaymentStatus = lifecycleAfterSave.lastMonthlyPaymentStatus;
-  finalRecord.continuityStatus = lifecycleAfterSave.continuityStatus;
-  finalRecord.nextCourse = lifecycleAfterSave.nextCourse;
 
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
