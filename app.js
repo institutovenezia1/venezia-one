@@ -6162,26 +6162,7 @@ function getReconciledPaymentRealDate(record, linkedFinanceRecords = []) {
     return latestKnownDate;
   }
 
-  if (latestKnownDate <= storedDate) {
-    return "";
-  }
-
-  const linkedFinanceDates = linkedFinanceRecords.map((financeRecord) => getIsoDateValue(financeRecord.fecha)).filter(Boolean);
-  const allLinkedFinanceMatchStored =
-    linkedFinanceDates.length === 0 || linkedFinanceDates.every((financeDate) => financeDate === storedDate);
-  const hasFreshLinkedFinanceWrite = linkedFinanceRecords.some(
-    (financeRecord) => getIsoDateValue(financeRecord.createdAt) >= latestKnownDate
-  );
-
-  if (!allLinkedFinanceMatchStored) {
-    return "";
-  }
-
-  if (linkedFinanceRecords.length === 0) {
-    return latestKnownDate;
-  }
-
-  return hasFreshLinkedFinanceWrite ? latestKnownDate : "";
+  return "";
 }
 
 function getPaymentEffectiveDate(record) {
