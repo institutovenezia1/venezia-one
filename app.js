@@ -3736,6 +3736,39 @@ function formatDateForInput(date) {
   return `${year}-${month}-${day}`;
 }
 
+function parseLocalDateKey(dateKey) {
+  const match = String(dateKey || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function normalizeLocalDateKey(value) {
+  const normalizedValue = String(value || "").trim();
+  const localDate = parseLocalDateKey(normalizedValue);
+  if (localDate) {
+    return formatDateForInput(localDate);
+  }
+
+  const slicedLocalDate = parseLocalDateKey(normalizedValue.slice(0, 10));
+  return slicedLocalDate ? formatDateForInput(slicedLocalDate) : "";
+}
+
 function getCurrentMexicoDateValue(date = new Date()) {
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -3875,8 +3908,9 @@ function formatDisplayDate(dateValue) {
     return "";
   }
 
-  const date = new Date(`${dateValue}T12:00:00`);
-  if (Number.isNaN(date.getTime())) {
+  const normalizedDateKey = normalizeLocalDateKey(dateValue);
+  const date = parseLocalDateKey(normalizedDateKey);
+  if (!date) {
     return dateValue;
   }
 
@@ -3893,9 +3927,9 @@ function formatDisplayDate(dateValue) {
 }
 
 function getWeekRangeForDate(dateValue) {
-  const normalizedDate = dateValue || getCurrentMexicoDateValue();
-  const baseDate = new Date(`${normalizedDate}T12:00:00`);
-  if (Number.isNaN(baseDate.getTime())) {
+  const normalizedDate = normalizeLocalDateKey(dateValue) || dateValue || getCurrentMexicoDateValue();
+  const baseDate = parseLocalDateKey(normalizedDate);
+  if (!baseDate) {
     return {
       from: normalizedDate,
       to: normalizedDate,
@@ -4064,8 +4098,8 @@ function isDateInMonth(dateValue, monthValue) {
   }
 
   const { start, end } = getMonthStartEnd(monthValue);
-  const date = new Date(`${dateValue}T12:00:00`);
-  return date >= start && date <= end;
+  const date = parseLocalDateKey(normalizeLocalDateKey(dateValue));
+  return Boolean(date) && date >= start && date <= end;
 }
 
 function isDateInSelectedMonth(dateValue) {
@@ -6485,11 +6519,11 @@ function getFinanceRecordsForScope({
   branch = "",
   respectCurrentBranch = true,
 } = {}) {
-  const anchorDate = date || formatDateForInput(new Date());
+  const anchorDate = normalizeLocalDateKey(date) || formatDateForInput(new Date());
   const getWeekRange = (dateValue) => {
-    const value = dateValue || formatDateForInput(new Date());
-    const baseDate = new Date(`${value}T12:00:00`);
-    if (Number.isNaN(baseDate.getTime())) {
+    const value = normalizeLocalDateKey(dateValue) || dateValue || formatDateForInput(new Date());
+    const baseDate = parseLocalDateKey(value);
+    if (!baseDate) {
       return {
         from: value,
         to: value,
@@ -6510,7 +6544,7 @@ function getFinanceRecordsForScope({
   const weekRange = getWeekRange(anchorDate);
 
   return records.filter((record) => {
-    const recordDate = String(__veneziaGet(record, "fecha") || "").slice(0, 10);
+    const recordDate = normalizeLocalDateKey(__veneziaGet(record, "fecha"));
     if (!recordDate) {
       return false;
     }
@@ -6660,7 +6694,7 @@ function buildFinanceSummary(
     branchOrder = DASHBOARD_BRANCHES,
   } = {}
 ) {
-  const anchorDate = date || formatDateForInput(new Date());
+  const anchorDate = normalizeLocalDateKey(date) || formatDateForInput(new Date());
   const sourceRecords = Array.isArray(allRecords) ? allRecords : [];
   const monthRecords = Array.isArray(records)
     ? records
@@ -6700,13 +6734,14 @@ function buildFinanceSummary(
     });
   };
   const getWeekRange = (dateValue) => {
-    const baseDate = new Date(`${dateValue}T12:00:00`);
-    if (Number.isNaN(baseDate.getTime())) {
+    const value = normalizeLocalDateKey(dateValue) || dateValue;
+    const baseDate = parseLocalDateKey(value);
+    if (!baseDate) {
       return {
-        key: dateValue,
-        from: dateValue,
-        to: dateValue,
-        label: dateValue,
+        key: value,
+        from: value,
+        to: value,
+        label: value,
       };
     }
 
@@ -10086,7 +10121,7 @@ function getBalancePaymentDate(record) {
 }
 
 function matchesBalanceDate(value) {
-  return !balanceDateFilter.value || String(value || "").slice(0, 10) === balanceDateFilter.value;
+  return !balanceDateFilter.value || normalizeLocalDateKey(value) === balanceDateFilter.value;
 }
 
 function getBalanceIncomeConcept(record) {
@@ -10264,23 +10299,10 @@ function syncBalanceDailyView() {
   }
 
   const todayInMexico = getCurrentMexicoDateValue();
-  const selectedBranch = __veneziaGet(balanceBranchFilter, "value") || "";
-  const availableIncomeDates = getCentralFinanceRecords()
-    .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
-    .concat(getOperationalInscriptionRecords())
-    .filter((record) => matchesCurrentBranch(record.sucursal))
-    .filter((record) => !selectedBranch || record.sucursal === selectedBranch)
-    .map((record) => String(record.fecha || "").slice(0, 10))
-    .filter(Boolean)
-    .sort();
-
-  const preferredDate = availableIncomeDates.includes(todayInMexico)
-    ? todayInMexico
-    : availableIncomeDates[availableIncomeDates.length - 1] || todayInMexico;
   const nextDate =
     balanceDateWasManuallySelected && balanceDateFilter.value
       ? balanceDateFilter.value
-      : preferredDate;
+      : todayInMexico;
 
   balanceDateFilter.value = nextDate;
   balanceDateFilter.disabled = false;
