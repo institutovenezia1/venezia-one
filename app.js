@@ -5685,26 +5685,110 @@ function isRealPaidPaymentRecord(record) {
   return Boolean(__veneziaGet(record, "id")) && parsePaymentAmount(__veneziaGet(record, "cantidadPagada")) > 0 && getPaidPaymentConcepts(record).length > 0;
 }
 
+function getMexicoDateValueFromStoredDateTime(value) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  const dateOnlyValue = normalizeLocalDateKey(rawValue);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue) && dateOnlyValue) {
+    return dateOnlyValue;
+  }
+
+  const parsedDate = new Date(rawValue);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return getCurrentMexicoDateValue(parsedDate);
+  }
+
+  return normalizeLocalDateKey(rawValue.slice(0, 10));
+}
+
 function getPaymentMovementConceptLabels(record) {
   return getPaidPaymentConcepts(record).map(({ movementLabel, label }) => movementLabel || label);
 }
 
 function getStoredPaymentRealDate(record) {
-  const value = String(__veneziaGet(record, "paymentRealDate") || "").slice(0, 10);
-  return value || "";
+  return normalizeLocalDateKey(__veneziaGet(record, "paymentRealDate")) || "";
 }
 
 function getLegacyPaymentRealDateFallback(record) {
-  const updatedDate = String(__veneziaGet(record, "updatedAt") || "").slice(0, 10);
+  const updatedDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "updatedAt"));
   if (updatedDate) {
     return updatedDate;
   }
 
-  const createdDate = String(__veneziaGet(record, "createdAt") || "").slice(0, 10);
+  const createdDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "createdAt"));
   if (createdDate) {
     return createdDate;
   }
-  return __veneziaGet(record, "mesPago") ? `${record.mesPago}-01` : "";
+  return normalizeLocalDateKey(__veneziaGet(record, "mesPago") ? `${record.mesPago}-01` : "");
+}
+
+function getPaymentReconciliationDateForToday(record, today = getCurrentMexicoDateValue()) {
+  const storedPaymentRealDate = getStoredPaymentRealDate(record);
+  if (storedPaymentRealDate) {
+    return storedPaymentRealDate === today ? storedPaymentRealDate : "";
+  }
+
+  const updatedDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "updatedAt"));
+  if (updatedDate === today) {
+    return updatedDate;
+  }
+
+  const createdDate = getMexicoDateValueFromStoredDateTime(__veneziaGet(record, "createdAt"));
+  return createdDate === today ? createdDate : "";
+}
+
+function buildTodayIncompletePaymentReconciliation(record, student, today = getCurrentMexicoDateValue()) {
+  if (!__veneziaGet(record, "id") || !student || getPaidPaymentConcepts(record).length === 0) {
+    return null;
+  }
+
+  const reconciledPaymentRealDate = getPaymentReconciliationDateForToday(record, today);
+  if (!reconciledPaymentRealDate) {
+    return null;
+  }
+
+  const currentAmount = parsePaymentAmount(__veneziaGet(record, "cantidadPagada"));
+  const inferredAmount = currentAmount > 0 ? "" : getInferredSingleMonthlyPaymentAmount(record, student);
+  if (currentAmount <= 0 && parsePaymentAmount(inferredAmount) <= 0) {
+    return null;
+  }
+
+  const patch = {};
+  if (currentAmount <= 0) {
+    patch.cantidadPagada = inferredAmount;
+  }
+  if (!getStoredPaymentRealDate(record)) {
+    patch.paymentRealDate = reconciledPaymentRealDate;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return null;
+  }
+
+  return {
+    paymentRecord: record,
+    patchedPaymentRecord: {
+      ...record,
+      ...patch,
+    },
+    inferredAmount: patch.cantidadPagada || "",
+    reconciledPaymentRealDate,
+  };
+}
+
+function getTodayIncompletePaymentReconciliations({
+  payments = paymentRecords,
+  studentsList = students,
+  today = getCurrentMexicoDateValue(),
+} = {}) {
+  const studentsById = new Map(studentsList.map((student) => [student.id, student]));
+
+  return payments
+    .map((record) => buildTodayIncompletePaymentReconciliation(record, studentsById.get(record.studentId), today))
+    .filter(Boolean);
 }
 
 function resolvePaymentRealDate(currentRecord, nextRecord) {
@@ -6047,7 +6131,7 @@ function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
 }
 
 function getIsoDateValue(value) {
-  return String(value || "").slice(0, 10);
+  return getMexicoDateValueFromStoredDateTime(value);
 }
 
 function getLatestDateValue(values = []) {
@@ -6463,8 +6547,48 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
 }
 
 async function reconcilePaymentFinanceRecords() {
-  const findings = auditPaymentFinanceLinks();
   const studentsById = new Map(students.map((student) => [student.id, student]));
+  const todayIncompletePaymentReconciliations = getTodayIncompletePaymentReconciliations({
+    today: getCurrentMexicoDateValue(),
+  });
+
+  for (const finding of todayIncompletePaymentReconciliations) {
+    const paymentSaveResult = await savePaymentRecord(finding.patchedPaymentRecord);
+    if (!paymentSaveResult.synced) {
+      console.error("No se pudo reconciliar el pago real incompleto del dia.", {
+        paymentId: finding.paymentRecord.id,
+        studentId: finding.paymentRecord.studentId,
+        inferredAmount: finding.inferredAmount,
+        reconciledPaymentRealDate: finding.reconciledPaymentRealDate,
+        error: paymentSaveResult.error,
+      });
+      break;
+    }
+
+    const financeSyncResult = await syncPaymentFinanceRecord(paymentSaveResult.record, {
+      student: studentsById.get(paymentSaveResult.record.studentId) || null,
+    });
+    if (!financeSyncResult.synced) {
+      console.error("No se pudo crear el ingreso financiero del pago real reconciliado.", {
+        paymentId: paymentSaveResult.record.id,
+        studentId: paymentSaveResult.record.studentId,
+        inferredAmount: finding.inferredAmount,
+        reconciledPaymentRealDate: finding.reconciledPaymentRealDate,
+        error: financeSyncResult.error,
+      });
+      break;
+    }
+
+    console.info("Pago real incompleto reconciliado para el resumen diario.", {
+      paymentId: paymentSaveResult.record.id,
+      studentId: paymentSaveResult.record.studentId,
+      inferredAmount: finding.inferredAmount,
+      paymentRealDate: finding.reconciledPaymentRealDate,
+      financeRecordId: __veneziaGet(financeSyncResult.record, "id") || "",
+    });
+  }
+
+  const findings = auditPaymentFinanceLinks();
 
   for (const finding of findings.stalePaymentRealDate) {
     const patchedPaymentRecord = {
