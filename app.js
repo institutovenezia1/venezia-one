@@ -6219,7 +6219,7 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
   const paymentConcept = resolvePaymentMovementConcept(paymentRecord, paymentRecord, existingFinanceRecord);
 
   return {
-    id: __veneziaGet(existingFinanceRecord, "id") || createMiVeneziaCompatibleId(),
+    id: __veneziaGet(existingFinanceRecord, "id") || paymentRecord.id || createMiVeneziaCompatibleId(),
     fecha: getPaymentEffectiveDate(paymentRecord),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
@@ -6627,6 +6627,25 @@ async function reconcilePaymentFinanceRecords() {
     if (!syncResult.synced) {
       console.error("No se pudo reconciliar el pago con finanzas.", {
         paymentId: record.id,
+        error: syncResult.error,
+      });
+      break;
+    }
+  }
+
+  for (const finding of findings.duplicateLinkedFinance) {
+    const paymentRecord = paymentRecords.find((record) => record.id === finding.paymentId);
+    if (!paymentRecord) {
+      continue;
+    }
+
+    const syncResult = await syncPaymentFinanceRecord(paymentRecord, {
+      student: studentsById.get(paymentRecord.studentId) || null,
+    });
+    if (!syncResult.synced) {
+      console.error("No se pudieron limpiar movimientos financieros duplicados del pago.", {
+        paymentId: finding.paymentId,
+        financeRecordIds: finding.records.map((record) => record.id),
         error: syncResult.error,
       });
       break;
