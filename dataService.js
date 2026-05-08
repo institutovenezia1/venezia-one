@@ -313,6 +313,7 @@
             (item) =>
               item.studentId === record.studentId &&
               item.id !== record.id &&
+              isUuidValue(item.id) &&
               getPaymentMonthKey(item) &&
               getPaymentMonthKey(item) === targetMonth
           );
@@ -460,6 +461,12 @@
 
     const numericValue = Number(normalized.replace(/,/g, ""));
     return Number.isFinite(numericValue) ? numericValue : null;
+  }
+
+  function isUuidValue(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
+      String(value || "").trim()
+    );
   }
 
   function extractAltaMetadata(notes, label) {
