@@ -1370,18 +1370,6 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
     }));
 }
 
-function shouldRefreshLegacyPaymentRealDate(currentRecord = {}, nextRecord = {}) {
-  if (!isRealPaidPaymentRecord(nextRecord)) {
-    return false;
-  }
-
-  if (getStoredPaymentRealDate(currentRecord)) {
-    return false;
-  }
-
-  return !isRealPaidPaymentRecord(currentRecord);
-}
-
 async function savePaymentRecord(record) {
   const student = getStudentById(record.studentId);
   const studentName = __veneziaGet(student, "nombre") || "";
@@ -5812,23 +5800,6 @@ function getTodayIncompletePaymentReconciliations({
     .filter(Boolean);
 }
 
-function resolvePaymentRealDate(currentRecord, nextRecord) {
-  const currentRealDate = getStoredPaymentRealDate(currentRecord);
-  if (!isRealPaidPaymentRecord(nextRecord)) {
-    return currentRealDate;
-  }
-
-  if (currentRealDate) {
-    return currentRealDate;
-  }
-
-  if (!isRealPaidPaymentRecord(currentRecord)) {
-    return getCurrentMexicoDateValue();
-  }
-
-  return getLegacyPaymentRealDateFallback(currentRecord || nextRecord);
-}
-
 function normalizePaymentMovementConcept(value) {
   return String(value || "").trim();
 }
@@ -9982,6 +9953,15 @@ function getPaymentReferenceShortLabel(reference) {
   return String(__veneziaGet(reference, "label") || "").trim().toUpperCase();
 }
 
+function getPaymentRealDateInputValue(paymentRecord) {
+  const storedDate = getStoredPaymentRealDate(paymentRecord);
+  if (storedDate) {
+    return storedDate;
+  }
+
+  return __veneziaGet(paymentRecord, "id") ? "" : getCurrentMexicoDateValue();
+}
+
 function getAttendancePaymentReferenceToneClass(reference) {
   const shortLabel = getPaymentReferenceShortLabel(reference);
 
@@ -10416,6 +10396,7 @@ function renderPaymentsTable() {
       const lastMonthlySelection = getPaymentLastMonthlySelection(payment, student);
       const continuitySelection = getPaymentContinuitySelection(payment, student);
       const nextCourseSelection = getPaymentNextCourseSelection(payment, student);
+      const paymentRealDateValue = getPaymentRealDateInputValue(payment);
       return `
         <tr data-payment-student-row="${escapeHtml(student.id)}">
           <td>
@@ -10437,6 +10418,7 @@ function renderPaymentsTable() {
           <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
+          <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
           <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
@@ -10553,7 +10535,7 @@ function buildOverduePaymentReviewEntries(student, anchorDate = getCurrentMexico
       return {
         student,
         concept: getPaymentReviewConceptLabel(rule),
-        focusField: rule.field,
+        focusField: "paymentRealDate",
         expectedDate,
         currentStatus: currentStatus || "Sin marcar",
         problem: laterMarked ? "Concepto posterior pagado; revisar recibo" : "Vencido no marcado / revisar recibo",
@@ -10665,11 +10647,13 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   return {
     student,
     concept,
-    focusField: amount <= 0
-      ? "cantidadPagada"
-      : !method
-        ? "metodoPago"
-        : __veneziaGet(paidConcepts[0], "key") || "cantidadPagada",
+    focusField: !paymentRealDate
+      ? "paymentRealDate"
+      : amount <= 0
+        ? "cantidadPagada"
+        : !method
+          ? "metodoPago"
+          : __veneziaGet(paidConcepts[0], "key") || "paymentRealDate",
     expectedDate: paymentRealDate || getPaymentEffectiveDate(record, linkedFinanceRecords) || getPaymentRecordMonth(record) || "",
     currentStatus: getPaymentReviewPaidStatusDisplay(record),
     problem: issues.map((issue) => issue.label).join("; "),
@@ -10814,11 +10798,17 @@ function focusPaymentReviewStudent(studentId, preferredField = "") {
     row.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
     highlightPaymentsTableRow(row);
 
+    const realDateControl = row.querySelector(`[data-payment-field="paymentRealDate"][data-student-id="${student.id}"]`);
+    if (realDateControl && !getStoredPaymentRealDate(getPaymentDisplayRecord(student.id))) {
+      realDateControl.value = "";
+    }
+
     const preferredControl = preferredField
       ? row.querySelector(`[data-payment-field="${preferredField}"][data-student-id="${student.id}"]`)
       : null;
     const fallbackControl =
       preferredControl ||
+      realDateControl ||
       row.querySelector(`[data-payment-field="cantidadPagada"][data-student-id="${student.id}"]`) ||
       row.querySelector(`[data-payment-field][data-student-id="${student.id}"]`);
 
@@ -10916,7 +10906,6 @@ function renderPaymentsLifecyclePanels() {
 
 async function savePaymentForStudent(studentId) {
   const targetPaymentMonth = resolvePaymentSaveMonth();
-  const todayInMexico = getCurrentMexicoDateValue();
   const student = getStudentById(studentId);
   const studentName = __veneziaGet(student, "nombre") || "";
   console.log("=== PAGO SAVE START ===", {
@@ -10968,6 +10957,7 @@ async function savePaymentForStudent(studentId) {
     "mensualidad5",
     "metodoPago",
     "cantidadPagada",
+    "paymentRealDate",
     "reportes",
     "observaciones",
     "lastMonthlyPaymentStatus",
@@ -11044,6 +11034,7 @@ async function savePaymentForStudent(studentId) {
   newRecord.lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(newRecord.lastMonthlyPaymentStatus);
   newRecord.continuityStatus = normalizeContinuitySelection(newRecord.continuityStatus);
   newRecord.nextCourse = normalizeNextCourse(newRecord.nextCourse);
+  newRecord.paymentRealDate = normalizeLocalDateKey(newRecord.paymentRealDate);
 
   if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
     alert("Selecciona el siguiente curso si la alumna continuará.");
@@ -11079,24 +11070,22 @@ async function savePaymentForStudent(studentId) {
   const existingFinanceRecord = getLinkedPaymentFinanceRecords(resolvedPaymentId)[0] || null;
   const nextRecord = { ...baseRecord, ...newRecord };
   const comparisonRecord = recordToUpdate || editingMonthRecord;
+  if (isRealPaidPaymentRecord(nextRecord) && !getStoredPaymentRealDate(nextRecord)) {
+    alert("Captura la Fecha real de pago antes de guardar para registrar el ingreso en el día correcto.");
+    return;
+  }
+
+  if (!isRealPaidPaymentRecord(nextRecord)) {
+    newRecord.paymentRealDate = "";
+  }
+
   newRecord.paymentMovementConcept = resolvePaymentMovementConcept(
     comparisonRecord,
     nextRecord,
     existingFinanceRecord
   );
-  newRecord.paymentRealDate = shouldCreateNewPaymentRow
-    ? (isRealPaidPaymentRecord(nextRecord) ? todayInMexico : "")
-    : resolvePaymentRealDate(comparisonRecord, nextRecord);
   const finalRecord = { ...baseRecord, ...newRecord };
-  let detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
-  const shouldNormalizeLegacyRealDate =
-    !shouldCreateNewPaymentRow &&
-    shouldRefreshLegacyPaymentRealDate(comparisonRecord, finalRecord, detectedChanges);
-
-  if (shouldNormalizeLegacyRealDate) {
-    finalRecord.paymentRealDate = todayInMexico;
-    detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
-  }
+  const detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
 
   const lifecycleAfterSave = getStudentCollectionLifecycle(student, finalRecord);
   finalRecord.lifecycleStatus = lifecycleAfterSave.lifecycleStatus;
@@ -11107,7 +11096,6 @@ async function savePaymentForStudent(studentId) {
     paymentId: resolvedPaymentId,
     targetPaymentMonth,
     shouldCreateNewPaymentRow,
-    shouldNormalizeLegacyRealDate,
     historyRecord: summarizePaymentRecordForTrace(historyRecord),
     editingMonthRecord: summarizePaymentRecordForTrace(editingMonthRecord),
     recordToUpdate: summarizePaymentRecordForTrace(recordToUpdate || {}),
