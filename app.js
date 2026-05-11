@@ -486,6 +486,8 @@ const paymentsUpcomingTitle = document.getElementById("paymentsUpcomingTitle");
 const paymentsUpcomingSubtitle = document.getElementById("paymentsUpcomingSubtitle");
 const paymentsUpcomingTableBody = document.getElementById("paymentsUpcomingTableBody");
 const paymentsUpcomingEmptyState = document.getElementById("paymentsUpcomingEmptyState");
+const paymentsReviewTableBody = document.getElementById("paymentsReviewTableBody");
+const paymentsReviewEmptyState = document.getElementById("paymentsReviewEmptyState");
 const paymentsContinuityTableBody = document.getElementById("paymentsContinuityTableBody");
 const paymentsContinuityEmptyState = document.getElementById("paymentsContinuityEmptyState");
 const paymentsArchivedTableBody = document.getElementById("paymentsArchivedTableBody");
@@ -10491,6 +10493,254 @@ function renderPaymentsTable() {
   renderPaymentsLifecyclePanels();
 }
 
+function getPaymentReviewConceptRules(student) {
+  return STUDENT_PAYMENT_REFERENCE_RULES.filter(
+    (rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso"))
+  );
+}
+
+function getPaymentReviewConceptLabel(reference) {
+  return (
+    getPaymentReferenceShortLabel(reference) ||
+    String(__veneziaGet(reference, "label") || reference.field || "").trim().toUpperCase()
+  );
+}
+
+function isNoApplyPaymentStatus(status) {
+  return String(status || "").trim() === "No aplica";
+}
+
+function hasLaterMarkedPaymentConcept(rule, rules, paymentRecord) {
+  return rules.some(
+    (candidate) =>
+      Number(__veneziaGet(candidate, "sessionIndex")) > Number(__veneziaGet(rule, "sessionIndex")) &&
+      isEligiblePaymentStatus(__veneziaGet(paymentRecord, candidate.field))
+  );
+}
+
+function buildOverduePaymentReviewEntries(student, anchorDate = getCurrentMexicoDateValue()) {
+  if (!student || isStudentDeleted(student) || isStudentCourseCompleted(student) || !matchesCurrentBranch(student.sucursal)) {
+    return [];
+  }
+
+  const paymentRecord = getPersistentPaymentRecord(student.id);
+  const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, anchorDate);
+  if (lifecycle.archivedNoContinuation) {
+    return [];
+  }
+
+  const sessions = getStudentAttendanceReferenceSessions(student);
+  const rules = getPaymentReviewConceptRules(student);
+
+  return rules
+    .map((rule) => {
+      const expectedDate = getStudentPaymentReferenceDateByField(rule.field, student, sessions);
+      const currentStatus = String(__veneziaGet(paymentRecord, rule.field) || "").trim();
+
+      if (
+        !expectedDate ||
+        expectedDate >= anchorDate ||
+        isNoApplyPaymentStatus(currentStatus) ||
+        isEligiblePaymentStatus(currentStatus)
+      ) {
+        return null;
+      }
+
+      const laterMarked = hasLaterMarkedPaymentConcept(rule, rules, paymentRecord);
+
+      return {
+        student,
+        concept: getPaymentReviewConceptLabel(rule),
+        expectedDate,
+        currentStatus: currentStatus || "Sin marcar",
+        problem: laterMarked ? "Concepto posterior pagado; revisar recibo" : "Vencido no marcado / revisar recibo",
+        risk: laterMarked ? "ALTO" : "MEDIO",
+      };
+    })
+    .filter(Boolean);
+}
+
+function getPaymentReviewRecordConcept(record) {
+  const storedConcept =
+    getSafeStoredPaymentConcept(record) ||
+    normalizePaymentMovementConcept(__veneziaGet(record, "paymentMovementConcept"));
+  if (storedConcept) {
+    return storedConcept;
+  }
+
+  const conceptLabels = getPaymentMovementConceptLabels(record);
+  return conceptLabels.length > 0 ? conceptLabels.join(" + ") : "Pago registrado";
+}
+
+function getPaymentReviewPaidStatusDisplay(record) {
+  const statuses = getPaidPaymentConcepts(record)
+    .map(({ key, label }) => {
+      const status = String(__veneziaGet(record, key) || "").trim();
+      const conceptLabel = getPaymentReviewConceptLabel({ label });
+      return `${conceptLabel}: ${status || "-"}`;
+    })
+    .join(", ");
+
+  return statuses || "Pagado";
+}
+
+function buildIncompletePaymentReviewEntry(record, studentsById) {
+  if (!__veneziaGet(record, "id") || getPaidPaymentConcepts(record).length === 0) {
+    return null;
+  }
+
+  const student = studentsById.get(record.studentId);
+  if (!student || isStudentDeleted(student) || isStudentCourseCompleted(student) || !matchesCurrentBranch(student.sucursal)) {
+    return null;
+  }
+
+  const amount = parsePaymentAmount(__veneziaGet(record, "cantidadPagada"));
+  const method = String(__veneziaGet(record, "metodoPago") || "").trim();
+  const paymentRealDate = getStoredPaymentRealDate(record);
+  const linkedFinanceRecords = getLinkedPaymentFinanceRecords(record.id);
+  const concept = getPaymentReviewRecordConcept(record);
+  const expectedCategory = getPaymentFinanceCategoryFromConcept(concept) || getPaymentFinanceCategory(record);
+  const issues = [];
+
+  if (amount <= 0) {
+    issues.push({ label: "Pagado sin cantidad", risk: "ALTO" });
+  }
+
+  if (!paymentRealDate) {
+    issues.push({ label: "Pagado sin fecha real", risk: "ALTO" });
+  }
+
+  if (amount > 0 && linkedFinanceRecords.length === 0) {
+    issues.push({ label: "Pagado sin finance_record", risk: "ALTO" });
+  }
+
+  if (amount > 0 && !method) {
+    const hasFinanceRecord = linkedFinanceRecords.length > 0;
+    issues.push({ label: "Pagado sin método", risk: hasFinanceRecord ? "BAJO" : "ALTO" });
+  }
+
+  if (
+    amount > 0 &&
+    paymentRealDate &&
+    linkedFinanceRecords.some((financeRecord) => {
+      const financeDate = normalizeLocalDateKey(__veneziaGet(financeRecord, "fecha"));
+      return financeDate && financeDate !== paymentRealDate;
+    })
+  ) {
+    issues.push({ label: "Fecha distinta en finance_record", risk: "ALTO" });
+  }
+
+  if (
+    amount > 0 &&
+    expectedCategory &&
+    linkedFinanceRecords.some((financeRecord) => {
+      const financeCategory = String(__veneziaGet(financeRecord, "categoria") || "").trim();
+      return financeCategory && financeCategory !== expectedCategory;
+    })
+  ) {
+    issues.push({ label: "Categoría financiera por revisar", risk: "ALTO" });
+  }
+
+  if (
+    amount > 0 &&
+    linkedFinanceRecords.some((financeRecord) => parsePaymentAmount(__veneziaGet(financeRecord, "monto")) !== amount)
+  ) {
+    issues.push({ label: "Monto distinto en finance_record", risk: "ALTO" });
+  }
+
+  if (issues.length === 0) {
+    return null;
+  }
+
+  const risk = issues.some((issue) => issue.risk === "ALTO")
+    ? "ALTO"
+    : issues.some((issue) => issue.risk === "MEDIO")
+      ? "MEDIO"
+      : "BAJO";
+
+  return {
+    student,
+    concept,
+    expectedDate: paymentRealDate || getPaymentEffectiveDate(record, linkedFinanceRecords) || getPaymentRecordMonth(record) || "",
+    currentStatus: getPaymentReviewPaidStatusDisplay(record),
+    problem: issues.map((issue) => issue.label).join("; "),
+    risk,
+  };
+}
+
+function getPaymentsReviewEntries({
+  studentsList = getCanonicalStudentsForPayments(getActiveStudents()),
+  payments = paymentRecords,
+  anchorDate = getCurrentMexicoDateValue(),
+} = {}) {
+  const studentsByPaymentAliasId = new Map();
+  studentsList.forEach((student) => {
+    getPaymentStudentAliasIds(student.id).forEach((aliasId) => {
+      studentsByPaymentAliasId.set(aliasId, student);
+    });
+  });
+  const canonicalStudentIds = new Set(studentsList.map((student) => student.id));
+  const overdueEntries = studentsList.flatMap((student) => buildOverduePaymentReviewEntries(student, anchorDate));
+  const incompleteEntries = payments
+    .filter((record) => {
+      const aliasIds = getPaymentStudentAliasIds(record.studentId);
+      return Array.from(aliasIds).some((studentId) => canonicalStudentIds.has(studentId));
+    })
+    .map((record) => buildIncompletePaymentReviewEntry(record, studentsByPaymentAliasId))
+    .filter(Boolean);
+  const riskOrder = { ALTO: 0, MEDIO: 1, BAJO: 2 };
+
+  return [...overdueEntries, ...incompleteEntries].sort((left, right) => {
+    const riskComparison = (riskOrder[left.risk] ?? 9) - (riskOrder[right.risk] ?? 9);
+    if (riskComparison !== 0) {
+      return riskComparison;
+    }
+
+    const dateComparison = String(left.expectedDate || "").localeCompare(String(right.expectedDate || ""));
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    return String(__veneziaGet(left.student, "nombre") || "").localeCompare(String(__veneziaGet(right.student, "nombre") || ""), "es-MX");
+  });
+}
+
+function renderPaymentReviewRiskBadge(risk) {
+  const tone = risk === "ALTO" ? "red" : risk === "MEDIO" ? "gold" : "greige";
+  return renderStudentFileBadge(risk, tone);
+}
+
+function renderPaymentsReviewPanel() {
+  if (!paymentsReviewTableBody) {
+    return;
+  }
+
+  const reviewEntries = getPaymentsReviewEntries();
+  paymentsReviewTableBody.innerHTML = reviewEntries
+    .map((entry) => {
+      const student = entry.student;
+      const displayDate = formatDisplayDate(entry.expectedDate) || entry.expectedDate || "-";
+
+      return `
+        <tr>
+          <td class="payments-student-name-cell"><strong>${escapeHtml(__veneziaGet(student, "nombre") || "-")}</strong></td>
+          <td>${escapeHtml(__veneziaGet(student, "curso") || "-")}</td>
+          <td>${escapeHtml(__veneziaGet(student, "modalidad") || __veneziaGet(student, "horario") || "-")}</td>
+          <td>${escapeHtml(entry.concept || "-")}</td>
+          <td class="payments-date-cell">${escapeHtml(displayDate)}</td>
+          <td>${escapeHtml(entry.currentStatus || "-")}</td>
+          <td>${escapeHtml(entry.problem || "Revisar recibo")}</td>
+          <td>${renderPaymentReviewRiskBadge(entry.risk)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  if (paymentsReviewEmptyState) {
+    paymentsReviewEmptyState.hidden = reviewEntries.length > 0;
+  }
+}
+
 function renderPaymentsLifecyclePanels() {
   const upcomingScope = getUpcomingPaymentScheduleScope();
   const upcomingEntries = getUpcomingPaymentEntries({ scope: upcomingScope });
@@ -10531,6 +10781,8 @@ function renderPaymentsLifecyclePanels() {
   if (paymentsUpcomingEmptyState) {
     paymentsUpcomingEmptyState.hidden = upcomingEntries.length > 0;
   }
+
+  renderPaymentsReviewPanel();
 
   if (paymentsContinuityTableBody) {
     paymentsContinuityTableBody.innerHTML = followupStudents

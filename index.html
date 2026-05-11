@@ -1452,6 +1452,38 @@
           </section>
 
           <section class="panel table-panel payments-panel">
+            <div class="payments-panel-header">
+              <div class="section-heading">
+                <p class="eyebrow">Auditoría de pagos</p>
+                <h3>Pagos vencidos por revisar</h3>
+                <p class="module-helper-copy">Mensualidades o conceptos que requieren validación antes de registrar ingresos.</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper payments-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Alumna/o</th>
+                    <th>Curso</th>
+                    <th>Modalidad</th>
+                    <th>Concepto</th>
+                    <th>Fecha esperada</th>
+                    <th>Estado actual</th>
+                    <th>Problema</th>
+                    <th>Riesgo</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsReviewTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsReviewEmptyState" class="empty-state">
+              No hay pagos vencidos o incompletos por revisar.
+            </p>
+          </section>
+
+          <section class="panel table-panel payments-panel">
             <div class="section-heading">
               <p class="eyebrow">Seguimiento comercial</p>
               <h3>Alumnas fuera de cobro con continuidad en seguimiento</h3>
