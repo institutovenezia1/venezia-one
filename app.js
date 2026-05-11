@@ -6481,7 +6481,86 @@ function prepareLocalPaymentFallbackForSync(record) {
   return nextRecord;
 }
 
+function getPaymentAutoSyncStudentName(record) {
+  return __veneziaGet(getStudentById(__veneziaGet(record, "studentId")), "nombre") || "Alumna/o sin identificar";
+}
+
+function getPaymentAutoSyncErrorText(error, fallback = "Error desconocido") {
+  if (!error) {
+    return fallback;
+  }
+
+  const parts = [
+    __veneziaGet(error, "code"),
+    __veneziaGet(error, "message"),
+    __veneziaGet(error, "details"),
+    __veneziaGet(error, "hint"),
+    __veneziaGet(error, "status") ? `status ${__veneziaGet(error, "status")}` : "",
+  ]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join(" | ") : String(error);
+}
+
+function getPaymentAutoSyncRecordSummary(record, payload = null) {
+  return {
+    alumna: getPaymentAutoSyncStudentName(record),
+    studentId: __veneziaGet(record, "studentId") || "",
+    paymentId: __veneziaGet(record, "id") || "",
+    paymentIdIsUuid: isUuidValue(__veneziaGet(record, "id")),
+    concepto:
+      getSafeStoredPaymentConcept(record) ||
+      resolvePaymentMovementConcept(record, record, null) ||
+      getPaymentMovementConceptLabels(record).join(" + ") ||
+      "",
+    cantidad: __veneziaGet(record, "cantidadPagada") || "",
+    metodo: __veneziaGet(record, "metodoPago") || "",
+    paymentRealDate: getStoredPaymentRealDate(record),
+    payload,
+  };
+}
+
+function buildPaymentAutoSyncFailureRecord(record, { stage, message = "", error = null, payload = null } = {}) {
+  const errorText = message || getPaymentAutoSyncErrorText(error);
+  return {
+    ...record,
+    localSyncStatus: "pending",
+    localSyncStage: stage || "unknown",
+    localSyncError: errorText,
+    localSyncErrorCode: __veneziaGet(error, "code") || "",
+    localSyncAttemptedAt: new Date().toISOString(),
+    localSyncPayloadSummary: payload || __veneziaGet(record, "localSyncPayloadSummary") || null,
+  };
+}
+
+function getPaymentAutoSyncFailureLine(failureRecord) {
+  const summary = getPaymentAutoSyncRecordSummary(failureRecord, __veneziaGet(failureRecord, "localSyncPayloadSummary") || null);
+  const stage = __veneziaGet(failureRecord, "localSyncStage") || "auto-sync";
+  const error = __veneziaGet(failureRecord, "localSyncError") || "Error desconocido";
+  return `${summary.alumna}: ${stage} - ${error}`;
+}
+
+function showPaymentAutoSyncFailureMessage(failedLocalRecords = [], financeFailures = []) {
+  const lines = failedLocalRecords.map(getPaymentAutoSyncFailureLine).concat(financeFailures.map((failure) => failure.message));
+  if (lines.length === 0) {
+    return;
+  }
+
+  const visibleLines = lines.slice(0, 4);
+  const remainingCount = lines.length - visibleLines.length;
+  const suffix = remainingCount > 0 ? `\n- ${remainingCount} pago(s) más con error en consola.` : "";
+  showPaymentAutoSyncMessage(
+    `Pagos no sincronizados:\n- ${visibleLines.join("\n- ")}${suffix}`,
+    "error"
+  );
+}
+
 function rewritePaymentLocalCacheAfterAutoSync(remoteRecords, failedLocalRecords = []) {
+  if (typeof dataService.entities.payments.setLocalCache === "function") {
+    dataService.entities.payments.setLocalCache([...failedLocalRecords, ...remoteRecords]);
+    return;
+  }
+
   dataService.entities.payments.setAll([...failedLocalRecords, ...remoteRecords]);
 }
 
@@ -6515,6 +6594,7 @@ function showPaymentAutoSyncMessage(message, tone = "success") {
     boxShadow: "0 10px 30px rgba(36, 24, 10, 0.16)",
     fontSize: "13px",
     lineHeight: "1.35",
+    whiteSpace: "pre-line",
   });
   notice.hidden = false;
 
@@ -6556,7 +6636,7 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
     const failedLocalRecords = [];
     let syncedCount = 0;
     let skippedCount = 0;
-    let financeFailedCount = 0;
+    const financeFailures = [];
 
     console.info("Auto-sync de pagos locales pendiente iniciado.", {
       pendingCount: candidates.length,
@@ -6564,26 +6644,45 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
     });
 
     for (const localRecord of candidates) {
+      console.info("Auto-sync pago local pendiente detectado.", getPaymentAutoSyncRecordSummary(localRecord));
+
       const existingRemoteRecord = findRemotePaymentMatchForLocalFallback(localRecord, paymentRecords);
       if (existingRemoteRecord) {
+        console.info("Auto-sync pago local ya existia remoto; se limpiara respaldo local.", {
+          local: getPaymentAutoSyncRecordSummary(localRecord),
+          remote: getPaymentAutoSyncRecordSummary(existingRemoteRecord),
+        });
         skippedCount += 1;
         continue;
       }
 
       if (isRealPaidPaymentRecord(localRecord) && !getStoredPaymentRealDate(localRecord)) {
-        failedLocalRecords.push({
-          ...localRecord,
-          localSyncStatus: "pending",
-          localSyncError: "Falta Fecha real de pago; no se sincronizó automáticamente para evitar moverlo a una fecha incorrecta.",
-          localSyncAttemptedAt: new Date().toISOString(),
+        const failureRecord = buildPaymentAutoSyncFailureRecord(localRecord, {
+          stage: "validacion",
+          message: "Falta Fecha real de pago; no se sincronizó automáticamente para evitar moverlo a una fecha incorrecta.",
+          payload: buildPaymentSupabasePayload(localRecord),
         });
+        console.warn("Auto-sync pago local detenido por datos incompletos.", getPaymentAutoSyncRecordSummary(failureRecord, failureRecord.localSyncPayloadSummary));
+        failedLocalRecords.push(failureRecord);
         continue;
       }
 
       const syncRecord = prepareLocalPaymentFallbackForSync(localRecord);
+      const paymentPayload = buildPaymentSupabasePayload(syncRecord);
+      console.info("Auto-sync intentando student_payments.", getPaymentAutoSyncRecordSummary(syncRecord, paymentPayload));
       const paymentSaveResult = await savePaymentRecord(syncRecord);
       if (!paymentSaveResult.synced) {
-        failedLocalRecords.push(paymentSaveResult.record || syncRecord);
+        const failureRecord = buildPaymentAutoSyncFailureRecord(paymentSaveResult.record || syncRecord, {
+          stage: "student_payments",
+          error: paymentSaveResult.error,
+          payload: __veneziaGet(__veneziaGet(__veneziaGet(paymentSaveResult, "response"), "payload"), 0) || paymentPayload,
+        });
+        console.error("Auto-sync fallo en student_payments.", {
+          summary: getPaymentAutoSyncRecordSummary(failureRecord, failureRecord.localSyncPayloadSummary),
+          error: paymentSaveResult.error,
+          response: paymentSaveResult.response || null,
+        });
+        failedLocalRecords.push(failureRecord);
         continue;
       }
 
@@ -6600,7 +6699,14 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
           student: getStudentById(savedPaymentRecord.studentId),
         });
         if (!financeSyncResult.synced) {
-          financeFailedCount += 1;
+          const financeMessage = `${getPaymentAutoSyncStudentName(savedPaymentRecord)}: finance_record - ${getPaymentAutoSyncErrorText(
+            financeSyncResult.error
+          )}`;
+          financeFailures.push({
+            paymentId: savedPaymentRecord.id,
+            studentId: savedPaymentRecord.studentId,
+            message: financeMessage,
+          });
           console.error("Pago local sincronizado, pero falló su reflejo financiero.", {
             paymentId: savedPaymentRecord.id,
             studentId: savedPaymentRecord.studentId,
@@ -6629,11 +6735,8 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
           "success"
         );
       }
-      if (failedLocalRecords.length > 0 || financeFailedCount > 0) {
-        showPaymentAutoSyncMessage(
-          `${failedLocalRecords.length + financeFailedCount} pagos no pudieron sincronizarse. Intenta nuevamente o revisa el error.`,
-          "error"
-        );
+      if (failedLocalRecords.length > 0 || financeFailures.length > 0) {
+        showPaymentAutoSyncFailureMessage(failedLocalRecords, financeFailures);
       }
     }
 
@@ -6641,7 +6744,7 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
       changed: syncedCount > 0 || skippedCount > 0 || failedLocalRecords.length > 0,
       syncedCount,
       skippedCount,
-      failedCount: failedLocalRecords.length + financeFailedCount,
+      failedCount: failedLocalRecords.length + financeFailures.length,
     };
   })().finally(() => {
     paymentLocalAutoSyncPromise = null;

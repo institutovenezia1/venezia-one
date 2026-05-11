@@ -427,6 +427,10 @@
       getAll(fallbackFactoryOverride) {
         return localService.getAll(fallbackFactoryOverride || fallbackFactory);
       },
+      setLocalCache(records) {
+        localService.setAll(records);
+        return records;
+      },
       async setAll(records) {
         localService.setAll(records);
         try {
