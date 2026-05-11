@@ -30,6 +30,17 @@
     studentSession: "venezia-one-v2-mi-venezia-session",
   };
 
+  const STUDENT_DOCUMENT_REQUIREMENTS = [
+    "INE / identificación oficial",
+    "CURP",
+    "Acta de nacimiento",
+    "Comprobante de domicilio",
+    "Comprobante de estudios",
+    "Fotografías",
+    "Reglamento / contrato firmado",
+    "Comprobante de inscripción",
+  ];
+
   function getStorage() {
     return globalScope.localStorage;
   }
@@ -480,6 +491,79 @@
     return labels.map((label) => extractAltaMetadata(notes, label)).find(Boolean) || "";
   }
 
+  function normalizeAltaDocumentKey(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function parseAltaDocumentList(value) {
+    const rawItems = Array.isArray(value)
+      ? value
+      : String(value || "")
+          .split(",")
+          .map((item) => item.trim());
+    const canonicalByKey = new Map(
+      STUDENT_DOCUMENT_REQUIREMENTS.map((documentName) => [normalizeAltaDocumentKey(documentName), documentName])
+    );
+    const seen = new Set();
+
+    return rawItems
+      .map((item) => String(item || "").trim())
+      .filter((item) => item && item !== "-")
+      .map((item) => canonicalByKey.get(normalizeAltaDocumentKey(item)) || item)
+      .filter((item) => {
+        const key = normalizeAltaDocumentKey(item);
+        if (!key || seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function normalizeAltaDocumentationStatus(value) {
+    const normalized = normalizeAltaDocumentKey(value);
+    if (!normalized || normalized === "-") {
+      return "";
+    }
+    if (normalized === "completa" || normalized === "completo") {
+      return "Completa";
+    }
+    if (normalized === "parcial") {
+      return "Parcial";
+    }
+    if (normalized === "incompleta" || normalized === "incompleto") {
+      return "Incompleta";
+    }
+    return String(value || "").trim();
+  }
+
+  function getAltaDocumentationSaveState(record) {
+    let status = normalizeAltaDocumentationStatus(record.documentos);
+    let delivered = parseAltaDocumentList(record.documentosEntregados);
+    const requiredKeys = STUDENT_DOCUMENT_REQUIREMENTS.map(normalizeAltaDocumentKey);
+
+    if (status === "Completa" && delivered.length === 0) {
+      delivered = [...STUDENT_DOCUMENT_REQUIREMENTS];
+    }
+
+    const deliveredKeys = new Set(delivered.map(normalizeAltaDocumentKey));
+    const missingRequiredCount = requiredKeys.filter((key) => !deliveredKeys.has(key)).length;
+
+    if (missingRequiredCount === 0) {
+      status = "Completa";
+    } else if (status === "Completa") {
+      status = "Parcial";
+    } else if (!status && delivered.length > 0) {
+      status = "Parcial";
+    }
+
+    return { status, delivered };
+  }
+
   function stripAltaMetadata(notes) {
     const metadataLabels = new Set([
       "ID Alumna",
@@ -505,6 +589,7 @@
       "Promoción",
       "Apoyo gobierno",
       "Documentación",
+      "Documentos entregados",
       "Tiene hijos",
       "Trabaja actualmente",
       "Notas médicas",
@@ -534,6 +619,7 @@
   function buildStudentNotes(record) {
     const normalizeValue = (value) => String(value || "").trim() || "-";
     const startDate = normalizeValue(record.fechaInicio || record.fechaInscripcion);
+    const documentation = getAltaDocumentationSaveState(record);
 
     return [
       stripAltaMetadata(record.observaciones || ""),
@@ -556,7 +642,8 @@
       `Colegiatura: ${normalizeValue(record.colegiatura)}`,
       `Promoción: ${normalizeValue(record.promocion)}`,
       `Apoyo gobierno: ${normalizeValue(record.apoyoGobierno)}`,
-      `Documentación: ${normalizeValue(record.documentos)}`,
+      `Documentación: ${normalizeValue(documentation.status || record.documentos)}`,
+      `Documentos entregados: ${normalizeValue(documentation.delivered.join(", "))}`,
       `Tiene hijos: ${normalizeValue(record.tieneHijos)}`,
       `Trabaja actualmente: ${normalizeValue(record.trabajaActualmente)}`,
       `Notas médicas: ${normalizeValue(record.notasMedicas)}`,
@@ -752,6 +839,7 @@
       promocion: extractAltaMetadata(record.notes, "Promoción"),
       apoyoGobierno: extractAltaMetadata(record.notes, "Apoyo gobierno"),
       documentos: extractAltaMetadata(record.notes, "Documentación"),
+      documentosEntregados: parseAltaDocumentList(extractAltaMetadata(record.notes, "Documentos entregados")),
       tieneHijos: extractAltaMetadata(record.notes, "Tiene hijos"),
       trabajaActualmente: extractAltaMetadata(record.notes, "Trabaja actualmente"),
       notasMedicas: extractAltaMetadata(record.notes, "Notas médicas"),

@@ -503,6 +503,11 @@
                     </label>
 
                     <label>
+                      <span>Fecha de alta</span>
+                      <input id="altaFechaAltaDisplay" type="date" readonly />
+                    </label>
+
+                    <label>
                       <span>Nombre completo</span>
                       <input id="altaNombre" name="nombre" type="text" required />
                     </label>
@@ -518,13 +523,13 @@
                     </label>
 
                     <label>
-                      <span>Dirección del alumno o tutor</span>
-                      <input id="altaDireccion" name="direccion" type="text" />
+                      <span>Fecha de nacimiento</span>
+                      <input id="altaFechaNacimiento" name="fechaNacimiento" type="date" required />
                     </label>
 
                     <label>
-                      <span>Fecha de nacimiento</span>
-                      <input id="altaFechaNacimiento" name="fechaNacimiento" type="date" required />
+                      <span>Dirección del alumno o tutor</span>
+                      <input id="altaDireccion" name="direccion" type="text" />
                     </label>
 
                     <label>
@@ -575,11 +580,6 @@
                     <strong>Configuración del arranque</strong>
                   </div>
                   <div class="alta-form-block-grid">
-                    <label>
-                      <span>Fecha de alta</span>
-                      <input id="altaFechaAltaDisplay" type="date" readonly />
-                    </label>
-
                     <label>
                       <span>Fecha de inicio de clases</span>
                       <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" />
@@ -687,6 +687,11 @@
                         <option>Parcial</option>
                       </select>
                     </label>
+
+                    <fieldset class="alta-document-checklist full-width">
+                      <legend>Documentos entregados</legend>
+                      <div id="altaDocumentChecklist" class="alta-document-checklist-grid"></div>
+                    </fieldset>
 
                   </div>
                 </section>

@@ -9,6 +9,16 @@
   var LEGACY_STAFF_KEY = "venezia-one-v2-staff";
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
   var SUPPORT_WHATSAPP = "522463831375";
+  var STUDENT_DOCUMENT_REQUIREMENTS = [
+    "INE / identificación oficial",
+    "CURP",
+    "Acta de nacimiento",
+    "Comprobante de domicilio",
+    "Comprobante de estudios",
+    "Fotografías",
+    "Reglamento / contrato firmado",
+    "Comprobante de inscripción"
+  ];
   var BOOTSTRAP_DIRECTORS = [
     { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" }
   ];
@@ -373,6 +383,58 @@
     return "";
   }
 
+  function getDocumentKey(value) {
+    return normalizeLoose(value);
+  }
+
+  function parseDocumentList(value) {
+    var rawItems = Array.isArray(value) ? value : String(value || "").split(",");
+    var canonical = {};
+    var seen = {};
+    var items = [];
+    var index;
+    var item;
+    var key;
+
+    for (index = 0; index < STUDENT_DOCUMENT_REQUIREMENTS.length; index += 1) {
+      canonical[getDocumentKey(STUDENT_DOCUMENT_REQUIREMENTS[index])] = STUDENT_DOCUMENT_REQUIREMENTS[index];
+    }
+
+    for (index = 0; index < rawItems.length; index += 1) {
+      item = text(rawItems[index]);
+      if (!item || item === "-") {
+        continue;
+      }
+      key = getDocumentKey(item);
+      item = canonical[key] || item;
+      key = getDocumentKey(item);
+      if (!key || seen[key]) {
+        continue;
+      }
+      seen[key] = true;
+      items.push(item);
+    }
+
+    return items;
+  }
+
+  function normalizeDocumentationStatus(value) {
+    var normalized = normalizeLoose(value);
+    if (!normalized || normalized === "-") {
+      return "";
+    }
+    if (normalized === "completa" || normalized === "completo") {
+      return "Completa";
+    }
+    if (normalized === "parcial") {
+      return "Parcial";
+    }
+    if (normalized === "incompleta" || normalized === "incompleto") {
+      return "Incompleta";
+    }
+    return text(value);
+  }
+
   function isConfirmed(value) {
     var normalized = normalizeLoose(value);
     return normalized === "si" || normalized === "true" || normalized === "confirmada" || normalized === "confirmado";
@@ -398,6 +460,7 @@
       direccion: text(row.direccion || extractMetadata(notes, "Dirección")),
       tutor: text(row.tutor || extractMetadata(notes, "Tutor")),
       documentos: text(row.documentos || extractMetadata(notes, "Documentación")),
+      documentosEntregados: parseDocumentList(row.documentosEntregados || extractMetadata(notes, "Documentos entregados")),
       metodoPago: text(row.metodoPago || extractMetadata(notes, "Método de pago")),
       mensualidad: text(row.mensualidad || extractMetadata(notes, "Mensualidad asignada")),
       colegiatura: text(row.colegiatura || extractMetadata(notes, "Colegiatura")),
@@ -778,22 +841,39 @@
 
   function getDocumentsState(student) {
     var raw = safe(student.documentos, "Por confirmar");
-    var normalized = normalizeLoose(raw);
-    var complete = normalized.indexOf("completa") !== -1 || normalized.indexOf("completo") !== -1 || normalized.indexOf("entregada") !== -1;
-    var pending = normalized.indexOf("pendiente") !== -1 || normalized.indexOf("falta") !== -1 || normalized.indexOf("incompleta") !== -1 || !student.documentos;
-    var count = 0;
-    if (pending && !complete) {
-      count += 1;
+    var status = normalizeDocumentationStatus(student.documentos);
+    var delivered = parseDocumentList(student.documentosEntregados);
+    var deliveredKeys;
+    var missing;
+    var count;
+
+    if (status === "Completa" && delivered.length === 0) {
+      delivered = STUDENT_DOCUMENT_REQUIREMENTS.slice();
     }
-    if (!student.lecturaReglamento) {
-      count += 1;
+
+    deliveredKeys = {};
+    delivered.forEach(function (documentName) {
+      deliveredKeys[getDocumentKey(documentName)] = true;
+    });
+    missing = STUDENT_DOCUMENT_REQUIREMENTS.filter(function (documentName) {
+      return !deliveredKeys[getDocumentKey(documentName)];
+    });
+    count = missing.length;
+
+    if (count === 0) {
+      status = "Completa";
+    } else if (status === "Completa") {
+      status = "Parcial";
+    } else if (!status) {
+      status = delivered.length > 0 ? "Parcial" : "Incompleta";
     }
-    if (!student.lecturaContrato) {
-      count += 1;
-    }
+
     return {
       raw: raw,
-      complete: complete && count === 0,
+      status: status,
+      delivered: delivered,
+      missing: missing,
+      complete: count === 0,
       pendingCount: count,
       label: count === 0 ? "Documentación completa" : (count === 1 ? "1 pendiente" : count + " pendientes")
     };
@@ -1072,18 +1152,31 @@
     byId("panelAsistencias").innerHTML = html;
   }
 
+  function renderDocumentItemList(items, emptyText) {
+    if (!items.length) {
+      return '<div class="mv2-empty">' + escapeHtml(emptyText) + '</div>';
+    }
+
+    return '<div class="mv2-doc-list">' + items.map(function (item) {
+      return '<article class="mv2-doc-item"><span>Documento</span><strong>' + escapeHtml(item) + '</strong></article>';
+    }).join("") + '</div>';
+  }
+
   function renderDocumentos(student) {
     var docState = getDocumentsState(student);
     byId("panelDocumentos").innerHTML =
-      '<div class="mv2-panel-header"><h2>Documentos</h2><p>Estado básico de tu documentación.</p></div>' +
+      '<div class="mv2-panel-header"><h2>Documentos</h2><p>Documentos registrados en tu expediente.</p></div>' +
       '<div class="mv2-doc-list">' +
-      '<article class="mv2-doc-item"><span>Documentación general</span><strong>' + escapeHtml(docState.raw) + '</strong><small>' + escapeHtml(docState.complete ? "Completa" : "Pendiente o por confirmar") + '</small></article>' +
+      '<article class="mv2-doc-item"><span>Documentación general</span><strong>' + escapeHtml(docState.status || docState.raw) + '</strong><small>' + escapeHtml(docState.complete ? "Tu documentación está completa." : "Documentos pendientes por entregar") + '</small></article>' +
       '<article class="mv2-doc-item"><span>Reglamento</span><strong>' + escapeHtml(student.lecturaReglamento ? "Lectura confirmada" : "Lectura pendiente") + '</strong><small>' + escapeHtml(student.fechaLecturaReglamento || "Sin fecha registrada") + '</small></article>' +
       '<article class="mv2-doc-item"><span>Contrato</span><strong>' + escapeHtml(student.lecturaContrato ? "Lectura confirmada" : "Lectura pendiente") + '</strong><small>' + escapeHtml(student.fechaLecturaContrato || "Sin fecha registrada") + '</small></article>' +
       '</div>' +
-      '<div class="mv2-section-block"><h3>Documentos pendientes</h3><div class="mv2-empty">' +
-      escapeHtml(docState.pendingCount === 0 ? "No se detectan pendientes visibles." : docState.label + ". Si ya entregaste algo, contacta a soporte para validarlo.") +
-      '</div></div>';
+      '<div class="mv2-section-block"><h3>Documentos entregados</h3>' +
+      renderDocumentItemList(docState.delivered, "Aún no hay documentos entregados registrados.") +
+      '</div>' +
+      '<div class="mv2-section-block"><h3>Documentos pendientes por entregar</h3>' +
+      renderDocumentItemList(docState.missing, "Tu documentación está completa.") +
+      '</div>';
   }
 
   function normalizeScope(value) {

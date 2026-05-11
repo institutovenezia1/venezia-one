@@ -135,6 +135,16 @@ const STUDENT_LIFECYCLE_STATUS = {
   ENROLLED_TO_NEXT_COURSE: "enrolled_to_next_course",
 };
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
+const STUDENT_DOCUMENT_REQUIREMENTS = [
+  "INE / identificación oficial",
+  "CURP",
+  "Acta de nacimiento",
+  "Comprobante de domicilio",
+  "Comprobante de estudios",
+  "Fotografías",
+  "Reglamento / contrato firmado",
+  "Comprobante de inscripción",
+];
 const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería", "COORD de maestras"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
 const DIRECTOR_CONTACT_SCOPE_OPTIONS = [
@@ -307,6 +317,8 @@ const altaSummaryCantidadPago = document.getElementById("altaSummaryCantidadPago
 const altaSummaryPortalUser = document.getElementById("altaSummaryPortalUser");
 const altaSummaryPortalPassword = document.getElementById("altaSummaryPortalPassword");
 const altaFechaAltaDisplay = document.getElementById("altaFechaAltaDisplay");
+const altaDocumentosField = document.getElementById("altaDocumentos");
+const altaDocumentChecklist = document.getElementById("altaDocumentChecklist");
 const altaClaveElector = document.getElementById("altaClaveElector");
 const altaClaveElectorLabel = document.getElementById("altaClaveElectorLabel");
 const altaConfirmCard = document.getElementById("altaConfirmCard");
@@ -4305,6 +4317,11 @@ function getAltaFormData() {
   const portalPassword = buildStudentPortalPassword(fechaNacimiento);
   const asesorInscribio = normalizeAdvisorName(formData.get("asesoraInscribio"));
   const rawObservaciones = String(formData.get("observaciones") || "").trim();
+  const documentation = getStudentDocumentationSaveState(
+    formData.get("documentos"),
+    getCheckedDocumentNames(altaDocumentChecklist),
+    existingStudent
+  );
   const metadataSegments = [
     `ID Alumna: ${studentCode}`,
     `Fecha de inicio: ${fechaInicio}`,
@@ -4322,7 +4339,8 @@ function getAltaFormData() {
     `Cantidad de pago de inscripción: ${String(formData.get("cantidadPago") || "").trim() || "-"}`,
     `Mensualidad asignada: ${String(formData.get("mensualidad") || "").trim() || "-"}`,
     `Apoyo gobierno: ${String(formData.get("apoyoGobierno") || "").trim() || "-"}`,
-    `Documentación: ${String(formData.get("documentos") || "").trim() || "-"}`,
+    `Documentación: ${documentation.status || "-"}`,
+    `Documentos entregados: ${documentation.delivered.join(", ") || "-"}`,
     `Tiene hijos: ${String(formData.get("tieneHijos") || "").trim() || "-"}`,
     `Trabaja actualmente: ${String(formData.get("trabajaActualmente") || "").trim() || "-"}`,
     `Notas médicas: ${String(formData.get("notasMedicas") || "").trim() || "-"}`,
@@ -4357,7 +4375,8 @@ function getAltaFormData() {
     cantidadPago: String(formData.get("cantidadPago") || "").trim(),
     mensualidad: String(formData.get("mensualidad") || "").trim(),
     apoyoGobierno: String(formData.get("apoyoGobierno") || "").trim(),
-    documentos: String(formData.get("documentos") || "").trim(),
+    documentos: documentation.status,
+    documentosEntregados: documentation.delivered,
     tieneHijos: String(formData.get("tieneHijos") || "").trim(),
     trabajaActualmente: String(formData.get("trabajaActualmente") || "").trim(),
     notasMedicas: String(formData.get("notasMedicas") || "").trim(),
@@ -5614,6 +5633,7 @@ function resetAltaForm() {
   document.getElementById("altaStudentCode").value = generateStudentCode();
   document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
   syncAltaDateDisplay(getCurrentMexicoDateValue());
+  renderAltaDocumentChecklist();
   altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
   syncAltaAutoFields();
   clearAltaValidation();
@@ -8242,23 +8262,212 @@ function getStudentContratoStatus(student) {
   };
 }
 
+function getStudentDocumentKey(value) {
+  return normalizeLooseText(value);
+}
+
+function getStudentDocumentCanonicalMap() {
+  return new Map(
+    STUDENT_DOCUMENT_REQUIREMENTS.map((documentName) => [getStudentDocumentKey(documentName), documentName])
+  );
+}
+
+function parseStudentDocumentList(value) {
+  const rawItems = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(",")
+        .map((item) => item.trim());
+  const canonicalByKey = getStudentDocumentCanonicalMap();
+  const seen = new Set();
+
+  return rawItems
+    .map((item) => String(item || "").trim())
+    .filter((item) => item && item !== "-")
+    .map((item) => canonicalByKey.get(getStudentDocumentKey(item)) || item)
+    .filter((item) => {
+      const key = getStudentDocumentKey(item);
+      if (!key || seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+}
+
+function normalizeStudentDocumentationStatus(value) {
+  const normalized = normalizeLooseText(value);
+  if (!normalized || normalized === "-") {
+    return "";
+  }
+  if (normalized === "completa" || normalized === "completo") {
+    return "Completa";
+  }
+  if (normalized === "parcial") {
+    return "Parcial";
+  }
+  if (normalized === "incompleta" || normalized === "incompleto") {
+    return "Incompleta";
+  }
+  return String(value || "").trim();
+}
+
+function getStudentDeliveredDocuments(student) {
+  const delivered = parseStudentDocumentList(__veneziaGet(student, "documentosEntregados"));
+  const status = normalizeStudentDocumentationStatus(__veneziaGet(student, "documentos"));
+
+  if (status === "Completa" && delivered.length === 0) {
+    return [...STUDENT_DOCUMENT_REQUIREMENTS];
+  }
+
+  return delivered;
+}
+
+function getStudentDocumentationState(student) {
+  const status = normalizeStudentDocumentationStatus(__veneziaGet(student, "documentos"));
+  const delivered = getStudentDeliveredDocuments(student || {});
+  const deliveredKeys = new Set(delivered.map(getStudentDocumentKey));
+  const missing = STUDENT_DOCUMENT_REQUIREMENTS.filter((documentName) => !deliveredKeys.has(getStudentDocumentKey(documentName)));
+  let safeStatus = status;
+
+  if (missing.length === 0) {
+    safeStatus = "Completa";
+  } else if (safeStatus === "Completa") {
+    safeStatus = "Parcial";
+  } else if (!safeStatus) {
+    safeStatus = delivered.length > 0 ? "Parcial" : "Incompleta";
+  }
+
+  return {
+    status: safeStatus,
+    delivered,
+    missing,
+    complete: missing.length === 0,
+  };
+}
+
+function getStudentDocumentationSaveState(statusValue, deliveredValue, previousStudent = null) {
+  const previousDelivered = getStudentDeliveredDocuments(previousStudent || {});
+  const previousUnknownDelivered = previousDelivered.filter(
+    (documentName) =>
+      !STUDENT_DOCUMENT_REQUIREMENTS.some((requiredName) => getStudentDocumentKey(requiredName) === getStudentDocumentKey(documentName))
+  );
+  let status = normalizeStudentDocumentationStatus(statusValue);
+  const baseDelivered = parseStudentDocumentList(deliveredValue);
+  const delivered = (status === "Completa" && baseDelivered.length === 0 ? [...STUDENT_DOCUMENT_REQUIREMENTS] : baseDelivered).concat(previousUnknownDelivered);
+  const uniqueDelivered = parseStudentDocumentList(delivered);
+  const deliveredKeys = new Set(uniqueDelivered.map(getStudentDocumentKey));
+  const missing = STUDENT_DOCUMENT_REQUIREMENTS.filter((documentName) => !deliveredKeys.has(getStudentDocumentKey(documentName)));
+
+  if (missing.length === 0) {
+    status = "Completa";
+  } else if (status === "Completa") {
+    status = "Parcial";
+  } else if (!status && uniqueDelivered.length > 0) {
+    status = "Parcial";
+  }
+
+  return {
+    status,
+    delivered: uniqueDelivered,
+    missing,
+  };
+}
+
+function renderStudentDocumentCheckboxList(deliveredDocuments = [], datasetAttributes = "") {
+  const deliveredKeys = new Set(parseStudentDocumentList(deliveredDocuments).map(getStudentDocumentKey));
+  return STUDENT_DOCUMENT_REQUIREMENTS.map((documentName) => {
+    const checked = deliveredKeys.has(getStudentDocumentKey(documentName)) ? "checked" : "";
+    return `
+      <label>
+        <input type="checkbox" name="documentosEntregados" value="${escapeHtml(documentName)}" ${datasetAttributes} ${checked} />
+        <span>${escapeHtml(documentName)}</span>
+      </label>
+    `;
+  }).join("");
+}
+
+function getCheckedDocumentNames(container) {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll('input[name="documentosEntregados"]:checked')).map((field) => field.value);
+}
+
+function areStudentDocumentListsEqual(left = [], right = []) {
+  const leftKeys = parseStudentDocumentList(left).map(getStudentDocumentKey).sort();
+  const rightKeys = parseStudentDocumentList(right).map(getStudentDocumentKey).sort();
+
+  return leftKeys.length === rightKeys.length && leftKeys.every((key, index) => key === rightKeys[index]);
+}
+
+function renderAltaDocumentChecklist(student = null) {
+  if (!altaDocumentChecklist) {
+    return;
+  }
+
+  const state = getStudentDocumentationState(student || { documentos: __veneziaGet(altaDocumentosField, "value") || "" });
+  altaDocumentChecklist.innerHTML = renderStudentDocumentCheckboxList(state.delivered);
+}
+
+function syncAltaDocumentStatusFromChecklist() {
+  if (!altaDocumentosField || !altaDocumentChecklist) {
+    return;
+  }
+
+  const currentStatus = normalizeStudentDocumentationStatus(altaDocumentosField.value);
+  const checkedDocuments = getCheckedDocumentNames(altaDocumentChecklist);
+  const saveState = getStudentDocumentationSaveState(currentStatus, checkedDocuments);
+
+  if (saveState.missing.length === 0 && checkedDocuments.length > 0) {
+    altaDocumentosField.value = "Completa";
+  } else if (currentStatus === "Completa") {
+    altaDocumentosField.value = "Parcial";
+  }
+}
+
+function syncAltaChecklistFromDocumentationStatus() {
+  if (!altaDocumentosField || !altaDocumentChecklist) {
+    return;
+  }
+
+  if (normalizeStudentDocumentationStatus(altaDocumentosField.value) === "Completa") {
+    Array.from(altaDocumentChecklist.querySelectorAll('input[name="documentosEntregados"]')).forEach((field) => {
+      field.checked = true;
+    });
+  }
+}
+
+function renderAttendanceDocumentEditor(student) {
+  const state = getStudentDocumentationState(student);
+  const badge = state.complete
+    ? "Completa"
+    : state.missing.length === STUDENT_DOCUMENT_REQUIREMENTS.length
+      ? "Sin docs"
+      : `${state.missing.length} falt.`;
+  return `
+    <details class="attendance-doc-editor">
+      <summary><span class="status-pill attendance-doc-pill">${escapeHtml(badge)}</span></summary>
+      <div class="attendance-doc-checklist">
+        ${renderStudentDocumentCheckboxList(
+          state.delivered,
+          `data-attendance-field="documento" data-student-id="${escapeHtml(student.id)}"`
+        )}
+      </div>
+    </details>
+  `;
+}
+
 function getStudentDocumentBadge(student) {
-  const reglamento = getStudentReglamentoStatus(student);
-  const contrato = getStudentContratoStatus(student);
-
-  if (reglamento.confirmado && contrato.confirmado) {
-    return "Ambos";
+  const state = getStudentDocumentationState(student);
+  if (state.complete) {
+    return "Completa";
   }
-
-  if (reglamento.confirmado) {
-    return "Reg";
+  if (state.missing.length === STUDENT_DOCUMENT_REQUIREMENTS.length) {
+    return "Sin docs";
   }
-
-  if (contrato.confirmado) {
-    return "Cont";
-  }
-
-  return "—";
+  return `${state.missing.length} falt.`;
 }
 
 function getStudentAttendanceBaseDate(student, history = []) {
@@ -8367,6 +8576,7 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaMensualidad").value = student.mensualidad || "";
   document.getElementById("altaApoyoGobierno").value = student.apoyoGobierno || "";
   document.getElementById("altaDocumentos").value = student.documentos || "";
+  renderAltaDocumentChecklist(student);
   document.getElementById("altaTieneHijos").value = student.tieneHijos || "";
   document.getElementById("altaTrabajaActualmente").value = student.trabajaActualmente || "";
   document.getElementById("altaNotasMedicas").value = student.notasMedicas || "";
@@ -8799,11 +9009,10 @@ function renderAttendanceTable() {
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
-      const documentBadge = getStudentDocumentBadge(student);
       return `
         <tr>
           <td>${index + 1}</td>
-          <td><span class="status-pill attendance-doc-pill">${escapeHtml(documentBadge)}</span></td>
+          <td>${renderAttendanceDocumentEditor(student)}</td>
           <td>
             <div class="attendance-student-cell">
               <strong>${escapeHtml(student.nombre)}</strong>
@@ -8910,6 +9119,16 @@ async function saveAttendanceForStudent(studentId) {
   );
   const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
   const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
+  const documentFields = Array.from(
+    attendanceTableBody.querySelectorAll(`[data-attendance-field="documento"][data-student-id="${studentId}"]`)
+  );
+  const checkedDocuments = documentFields.filter((field) => field.checked).map((field) => field.value);
+  const currentDocumentationState = getStudentDocumentationState(student);
+  const nextDocumentationState = getStudentDocumentationSaveState(student.documentos, checkedDocuments, student);
+  const documentsChanged =
+    documentFields.length > 0 &&
+    (nextDocumentationState.status !== currentDocumentationState.status ||
+      !areStudentDocumentListsEqual(nextDocumentationState.delivered, currentDocumentationState.delivered));
   const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
   const selectedSessionDataset = __veneziaGet(sessionFields.find((field) => field.value), "dataset");
   const firstSelectedSessionDate = __veneziaGet(selectedSessionDataset, "sessionDate") || date;
@@ -8939,8 +9158,24 @@ async function saveAttendanceForStudent(studentId) {
       };
     });
 
-  if (recordsToSave.length === 0) {
-    alert("Selecciona al menos una asistencia A, P o F antes de guardar.");
+  if (recordsToSave.length === 0 && !documentsChanged) {
+    alert("Selecciona al menos una asistencia A, P o F o actualiza documentos antes de guardar.");
+    return;
+  }
+
+  let documentSaveResult = { synced: true };
+  if (documentsChanged) {
+    documentSaveResult = await saveStudentRecord({
+      ...student,
+      documentos: nextDocumentationState.status,
+      documentosEntregados: nextDocumentationState.delivered,
+    });
+  }
+
+  if (!documentSaveResult.synced) {
+    renderAttendanceTable();
+    updateAttendanceSummary();
+    alert("No se pudo actualizar la documentación en Supabase.");
     return;
   }
 
@@ -8962,6 +9197,14 @@ async function saveAttendanceForStudent(studentId) {
   updateAttendanceSummary();
   if (selectedAttendanceStudentId === studentId) {
     renderAttendanceHistory(studentId);
+  }
+
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
+
+  if (documentsChanged && recordsToSave.length === 0) {
+    alert("La documentación entregada se actualizó correctamente.");
   }
 }
 
@@ -11295,6 +11538,7 @@ function renderStudentFile(studentId) {
     .filter((record) => record.studentId === studentId)
     .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
   const attendanceMetaRecord = getLatestAttendanceMetadataRecord(studentId);
+  const documentationState = getStudentDocumentationState(student);
   const faltas = attendanceHistory.filter((record) => record.estado === "Falta").length;
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
@@ -11377,7 +11621,9 @@ function renderStudentFile(studentId) {
     { label: "¿Recibe apoyo gobierno?", value: student.apoyoGobierno || "-", badge: true, tone: student.apoyoGobierno === "Sí" ? "gold" : "greige" },
     { label: "¿Tiene hijos?", value: student.tieneHijos || "-", badge: true, tone: student.tieneHijos === "Sí" ? "purple" : "greige" },
     { label: "¿Trabaja actualmente?", value: student.trabajaActualmente || "-", badge: true, tone: student.trabajaActualmente === "Sí" ? "blue" : "greige" },
-    { label: "Documentación", value: student.documentos || "-", badge: true, tone: student.documentos === "Completa" ? "green" : student.documentos === "Parcial" ? "gold" : "red" },
+    { label: "Documentación", value: documentationState.status || "-", badge: true, tone: documentationState.complete ? "green" : documentationState.status === "Parcial" ? "gold" : "red" },
+    { label: "Documentos entregados", value: documentationState.delivered.join(", ") || "-" },
+    { label: "Documentos faltantes", value: documentationState.missing.join(", ") || "Sin faltantes" },
     { label: "Notas médicas / alergias", value: student.notasMedicas || "-" },
   ]);
 
@@ -14298,6 +14544,8 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaClaveElector").value = "";
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
   document.getElementById("altaDiaClases").value = "";
+  document.getElementById("altaDocumentos").value = "";
+  renderAltaDocumentChecklist();
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
   altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
   syncAltaAutoFields();
@@ -15125,6 +15373,28 @@ altaConfirmProceedButton.addEventListener("click", async () => {
     altaConfirmProceedButton.disabled = false;
   }
 });
+
+if (altaDocumentosField) {
+  altaDocumentosField.addEventListener("change", () => {
+    syncAltaChecklistFromDocumentationStatus();
+    syncAltaDocumentStatusFromChecklist();
+    clearAltaValidation();
+    closeAltaConfirmation();
+    renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+  });
+}
+
+if (altaDocumentChecklist) {
+  altaDocumentChecklist.addEventListener("change", (event) => {
+    if (!event.target.matches('input[name="documentosEntregados"]')) {
+      return;
+    }
+    syncAltaDocumentStatusFromChecklist();
+    clearAltaValidation();
+    closeAltaConfirmation();
+    renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+  });
+}
 
 altaForm.addEventListener("input", () => {
   syncAltaAutoFields();

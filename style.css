@@ -953,6 +953,35 @@ textarea {
   font-size: 0.72rem;
 }
 
+.attendance-doc-editor {
+  min-width: 150px;
+}
+
+.attendance-doc-editor summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.attendance-doc-editor summary::-webkit-details-marker {
+  display: none;
+}
+
+.attendance-doc-checklist {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.55rem;
+  padding: 0.55rem;
+  border: 1px solid rgba(123, 92, 60, 0.18);
+  border-radius: 12px;
+  background: #fffdf9;
+  box-shadow: 0 8px 18px rgba(112, 90, 64, 0.08);
+}
+
+.attendance-doc-checklist label {
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
 .attendance-session-select {
   min-width: 64px;
   padding: 0.3rem 0.38rem;
@@ -1544,6 +1573,47 @@ td select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem 1rem;
+}
+
+.alta-document-checklist {
+  margin: 0;
+  border: 1px solid rgba(123, 92, 60, 0.18);
+  border-radius: 18px;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.alta-document-checklist legend {
+  padding: 0 0.35rem;
+  color: #4f463e;
+  font-weight: 900;
+  font-size: 0.82rem;
+}
+
+.alta-document-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 0.75rem;
+}
+
+.alta-document-checklist-grid label,
+.attendance-doc-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  color: #4f463e;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.alta-document-checklist-grid input,
+.attendance-doc-checklist input {
+  width: 16px;
+  height: 16px;
+  accent-color: #7f5a18;
+  flex: 0 0 auto;
 }
 
 .alta-access-block {
@@ -5456,6 +5526,7 @@ body.access-selector-mode .module-section.active {
 
   .alta-summary-card,
   .alta-form-block-grid,
+  .alta-document-checklist-grid,
   .altas-history-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5573,6 +5644,7 @@ body.access-selector-mode .module-section.active {
 
   .alta-summary-card,
   .alta-form-block-grid,
+  .alta-document-checklist-grid,
   .altas-history-stats {
     grid-template-columns: 1fr;
   }
