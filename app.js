@@ -842,6 +842,8 @@ let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
 let paymentsMonthWasManuallySelected = false;
 let paymentsReviewHighlightTimer = null;
+let paymentLocalAutoSyncPromise = null;
+let paymentAutoSyncNoticeTimer = null;
 let activeStudentFileId = "";
 let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
@@ -973,7 +975,7 @@ async function saveStudentRecord(record) {
   return result;
 }
 
-async function refreshSharedSupabaseState({ force = false, render = true } = {}) {
+async function refreshSharedSupabaseState({ force = false, render = true, syncLocalPayments = true } = {}) {
   if (!dataService.supabaseReady) {
     return false;
   }
@@ -1040,6 +1042,19 @@ async function refreshSharedSupabaseState({ force = false, render = true } = {})
     prospects = nextProspects;
 
     await normalizeInternalUsers();
+    if (syncLocalPayments) {
+      const autoSyncResult = await autoSyncLocalPaymentFallbacks({
+        showMessage: activeModule === "pagos",
+      });
+      if (autoSyncResult.changed) {
+        const [syncedPaymentRecords, syncedFinanceRecords] = await Promise.all([
+          dataService.entities.payments.getAllPrimary(() => []),
+          dataService.entities.financialMovements.getAllPrimary(() => []),
+        ]);
+        paymentRecords = syncedPaymentRecords;
+        financeRecords = syncedFinanceRecords;
+      }
+    }
     await reconcilePaymentFinanceRecords();
     await reconcileAltaInscriptionRecords();
     lastSharedDataRefreshAt = Date.now();
@@ -6372,6 +6387,269 @@ async function syncPaymentFinanceRecord(paymentRecord, { student: providedStuden
   };
 }
 
+function getPaymentAutoSyncConceptKey(record) {
+  return normalizePaymentConceptText(
+    getSafeStoredPaymentConcept(record) ||
+      resolvePaymentMovementConcept(record, record, null) ||
+      getPaymentMovementConceptLabels(record).join(" + ")
+  );
+}
+
+function getPaymentAutoSyncSignature(record) {
+  return {
+    studentId: String(__veneziaGet(record, "studentId") || "").trim(),
+    concept: getPaymentAutoSyncConceptKey(record),
+    amount: parsePaymentAmount(__veneziaGet(record, "cantidadPagada")),
+    paymentRealDate: getStoredPaymentRealDate(record),
+  };
+}
+
+function findRemotePaymentMatchForLocalFallback(localRecord, remoteRecords = paymentRecords) {
+  const localId = String(__veneziaGet(localRecord, "id") || "").trim();
+  if (localId) {
+    const exactMatch = findExactRemotePaymentMatchById(localId, remoteRecords);
+    if (exactMatch) {
+      return exactMatch;
+    }
+  }
+
+  const localSignature = getPaymentAutoSyncSignature(localRecord);
+  if (
+    !localSignature.studentId ||
+    !localSignature.concept ||
+    !(localSignature.amount > 0) ||
+    !localSignature.paymentRealDate
+  ) {
+    return null;
+  }
+
+  return (
+    remoteRecords.find((remoteRecord) => {
+      const remoteSignature = getPaymentAutoSyncSignature(remoteRecord);
+      return (
+        remoteSignature.studentId === localSignature.studentId &&
+        remoteSignature.concept === localSignature.concept &&
+        remoteSignature.amount === localSignature.amount &&
+        remoteSignature.paymentRealDate === localSignature.paymentRealDate
+      );
+    }) || null
+  );
+}
+
+function findExactRemotePaymentMatchById(paymentId, remoteRecords = paymentRecords) {
+  const normalizedPaymentId = String(paymentId || "").trim();
+  if (!normalizedPaymentId) {
+    return null;
+  }
+
+  return (
+    remoteRecords.find((remoteRecord) => String(__veneziaGet(remoteRecord, "id") || "").trim() === normalizedPaymentId) ||
+    null
+  );
+}
+
+function isLocalPaymentFallbackCandidate(localRecord, remoteRecords = paymentRecords) {
+  if (!__veneziaGet(localRecord, "studentId")) {
+    return false;
+  }
+
+  return !findExactRemotePaymentMatchById(__veneziaGet(localRecord, "id"), remoteRecords);
+}
+
+function getLocalPaymentFallbackCandidates(remoteRecords = paymentRecords) {
+  const localRecords = dataService.entities.payments.getAll(() => []);
+  return localRecords.filter((record) => isLocalPaymentFallbackCandidate(record, remoteRecords));
+}
+
+function prepareLocalPaymentFallbackForSync(record) {
+  const nextRecord = {
+    ...record,
+    id: isUuidValue(__veneziaGet(record, "id")) ? record.id : createPaymentUuid(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!nextRecord.createdAt) {
+    nextRecord.createdAt = nextRecord.updatedAt;
+  }
+
+  delete nextRecord.localSyncStatus;
+  delete nextRecord.localSyncError;
+  delete nextRecord.localSyncErrorCode;
+  delete nextRecord.localSyncAttemptedAt;
+  delete nextRecord.localSyncPayloadSummary;
+
+  return nextRecord;
+}
+
+function rewritePaymentLocalCacheAfterAutoSync(remoteRecords, failedLocalRecords = []) {
+  dataService.entities.payments.setAll([...failedLocalRecords, ...remoteRecords]);
+}
+
+function showPaymentAutoSyncMessage(message, tone = "success") {
+  if (!message || typeof document === "undefined") {
+    return;
+  }
+
+  let notice = document.getElementById("paymentsAutoSyncNotice");
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.id = "paymentsAutoSyncNotice";
+    notice.setAttribute("role", "status");
+    notice.setAttribute("aria-live", "polite");
+    document.body.appendChild(notice);
+  }
+
+  const isError = tone === "error";
+  notice.textContent = message;
+  Object.assign(notice.style, {
+    position: "fixed",
+    right: "18px",
+    bottom: "18px",
+    zIndex: "9999",
+    maxWidth: "360px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: `1px solid ${isError ? "#b45309" : "#2f7d55"}`,
+    background: isError ? "#fff7ed" : "#f0fdf4",
+    color: isError ? "#7c2d12" : "#14532d",
+    boxShadow: "0 10px 30px rgba(36, 24, 10, 0.16)",
+    fontSize: "13px",
+    lineHeight: "1.35",
+  });
+  notice.hidden = false;
+
+  if (paymentAutoSyncNoticeTimer) {
+    window.clearTimeout(paymentAutoSyncNoticeTimer);
+  }
+  paymentAutoSyncNoticeTimer = window.setTimeout(() => {
+    notice.hidden = true;
+    paymentAutoSyncNoticeTimer = null;
+  }, 5200);
+}
+
+async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
+  if (!dataService.supabaseReady) {
+    return {
+      changed: false,
+      syncedCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+    };
+  }
+
+  if (paymentLocalAutoSyncPromise) {
+    return paymentLocalAutoSyncPromise;
+  }
+
+  paymentLocalAutoSyncPromise = (async () => {
+    const remoteRecords = paymentRecords.filter((record) => isUuidValue(__veneziaGet(record, "id")));
+    const candidates = getLocalPaymentFallbackCandidates(remoteRecords);
+    if (candidates.length === 0) {
+      return {
+        changed: false,
+        syncedCount: 0,
+        skippedCount: 0,
+        failedCount: 0,
+      };
+    }
+
+    const failedLocalRecords = [];
+    let syncedCount = 0;
+    let skippedCount = 0;
+    let financeFailedCount = 0;
+
+    console.info("Auto-sync de pagos locales pendiente iniciado.", {
+      pendingCount: candidates.length,
+      localKey: __veneziaGet(dataService, "keys.payments") || "venezia-one-v2-pagos",
+    });
+
+    for (const localRecord of candidates) {
+      const existingRemoteRecord = findRemotePaymentMatchForLocalFallback(localRecord, paymentRecords);
+      if (existingRemoteRecord) {
+        skippedCount += 1;
+        continue;
+      }
+
+      if (isRealPaidPaymentRecord(localRecord) && !getStoredPaymentRealDate(localRecord)) {
+        failedLocalRecords.push({
+          ...localRecord,
+          localSyncStatus: "pending",
+          localSyncError: "Falta Fecha real de pago; no se sincronizó automáticamente para evitar moverlo a una fecha incorrecta.",
+          localSyncAttemptedAt: new Date().toISOString(),
+        });
+        continue;
+      }
+
+      const syncRecord = prepareLocalPaymentFallbackForSync(localRecord);
+      const paymentSaveResult = await savePaymentRecord(syncRecord);
+      if (!paymentSaveResult.synced) {
+        failedLocalRecords.push(paymentSaveResult.record || syncRecord);
+        continue;
+      }
+
+      const savedPaymentRecord = paymentSaveResult.record;
+      const savedPaymentIndex = paymentRecords.findIndex((record) => record.id === savedPaymentRecord.id);
+      if (savedPaymentIndex >= 0) {
+        paymentRecords[savedPaymentIndex] = savedPaymentRecord;
+      } else {
+        paymentRecords.unshift(savedPaymentRecord);
+      }
+
+      if (isRealPaidPaymentRecord(savedPaymentRecord)) {
+        const financeSyncResult = await syncPaymentFinanceRecord(savedPaymentRecord, {
+          student: getStudentById(savedPaymentRecord.studentId),
+        });
+        if (!financeSyncResult.synced) {
+          financeFailedCount += 1;
+          console.error("Pago local sincronizado, pero falló su reflejo financiero.", {
+            paymentId: savedPaymentRecord.id,
+            studentId: savedPaymentRecord.studentId,
+            error: financeSyncResult.error,
+          });
+        }
+      }
+
+      syncedCount += 1;
+    }
+
+    let latestRemotePaymentRecords = paymentRecords.filter((record) => isUuidValue(__veneziaGet(record, "id")));
+    try {
+      latestRemotePaymentRecords = await dataService.entities.payments.getRemoteRecords();
+      paymentRecords = latestRemotePaymentRecords;
+    } catch (error) {
+      console.error("No se pudo confirmar pagos remotos tras auto-sync.", error);
+    }
+
+    rewritePaymentLocalCacheAfterAutoSync(latestRemotePaymentRecords, failedLocalRecords);
+
+    if (showMessage) {
+      if (syncedCount > 0 || skippedCount > 0) {
+        showPaymentAutoSyncMessage(
+          `Se sincronizaron ${syncedCount + skippedCount} pagos pendientes.`,
+          "success"
+        );
+      }
+      if (failedLocalRecords.length > 0 || financeFailedCount > 0) {
+        showPaymentAutoSyncMessage(
+          `${failedLocalRecords.length + financeFailedCount} pagos no pudieron sincronizarse. Intenta nuevamente o revisa el error.`,
+          "error"
+        );
+      }
+    }
+
+    return {
+      changed: syncedCount > 0 || skippedCount > 0 || failedLocalRecords.length > 0,
+      syncedCount,
+      skippedCount,
+      failedCount: failedLocalRecords.length + financeFailedCount,
+    };
+  })().finally(() => {
+    paymentLocalAutoSyncPromise = null;
+  });
+
+  return paymentLocalAutoSyncPromise;
+}
+
 function mapLinkedPaymentFinanceRecord(record) {
   return {
     ...record,
@@ -11220,7 +11498,7 @@ async function savePaymentForStudent(studentId) {
       studentId,
       paymentId: resolvedPaymentId,
     });
-    const fallbackMessage = "No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.";
+    const fallbackMessage = "El pago no se sincronizó con Supabase. Se reintentará automáticamente al abrir Pagos.";
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "local_fallback_only",
       messageText: fallbackMessage,
@@ -15207,6 +15485,16 @@ function setActiveModule(module) {
   if (allowedModule === "pagos" && previousModule !== "pagos") {
     paymentsTableExpanded = false;
     renderPaymentsTable();
+    void refreshSharedSupabaseState({ force: true, render: false }).then(() => {
+      if (activeModule !== "pagos") {
+        return;
+      }
+      renderPaymentsTable();
+      updatePaymentsSummary();
+      renderBalanceModule();
+      renderFinanceTable();
+      updateFinanceSummary();
+    });
   }
 
   Object.entries(moduleSections).forEach(([key, section]) => {

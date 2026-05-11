@@ -341,9 +341,43 @@
       );
     }
 
+    function summarizeLocalPaymentFallbackPayload(payload) {
+      if (!payload) {
+        return null;
+      }
+
+      return {
+        id: payload.id || "",
+        student_id: payload.student_id || "",
+        payment_method: payload.payment_method || "",
+        amount: extractAltaMetadata(payload.notes, "Cantidad pagada"),
+        payment_real_date: extractAltaMetadata(payload.notes, "Fecha real pago"),
+        payment_concept: extractAltaMetadata(payload.notes, "Concepto real pago"),
+        payment_month: extractAltaMetadata(payload.notes, "Mes pago"),
+      };
+    }
+
+    function buildLocalPaymentFallbackRecord(record, error, payload) {
+      if (table !== "student_payments") {
+        return record;
+      }
+
+      return {
+        ...record,
+        localSyncStatus: "pending",
+        localSyncError: getSupabaseErrorMessage(error),
+        localSyncErrorCode: __veneziaGet(error, "code") || "",
+        localSyncAttemptedAt: new Date().toISOString(),
+        localSyncPayloadSummary: summarizeLocalPaymentFallbackPayload(payload),
+      };
+    }
+
     return {
       key,
       table,
+      async getRemoteRecords() {
+        return selectAllFromSupabase();
+      },
       // Supabase-first read with localStorage cache fallback.
       async getAllPrimary(fallbackFactoryOverride) {
         const activeFallbackFactory = fallbackFactoryOverride || fallbackFactory;
@@ -351,6 +385,12 @@
           const remoteRecords = await selectAllFromSupabase();
 
           if (remoteRecords.length === 0) {
+            if (table === "student_payments") {
+              const fallbackRecords = localService.getAll(activeFallbackFactory);
+              localService.setAll(fallbackRecords);
+              return [];
+            }
+
             if (!useLocalFallbackWhenRemoteEmpty) {
               localService.setAll([]);
               return [];
@@ -366,15 +406,21 @@
 
           if (table === "student_payments") {
             const localRecordsBeforeRefresh = localService.getAll(activeFallbackFactory);
-            const mergedPaymentRecords = mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecordsBeforeRefresh);
-            localService.setAll(mergedPaymentRecords);
-            return mergedPaymentRecords;
+            const mergedPaymentRecords = mergeRemotePaymentsWithLocalFallbacks(
+              remoteRecords,
+              localRecordsBeforeRefresh
+            );
+            localService.setAll(mergedPaymentRecords.cacheRecords);
+            return mergedPaymentRecords.primaryRecords;
           }
 
           localService.setAll(remoteRecords);
           return remoteRecords;
         } catch (error) {
           console.error(`Fallo Supabase en ${table}, usando cache local.`, error);
+          if (table === "student_payments") {
+            return [];
+          }
           return localService.getAll(activeFallbackFactory);
         }
       },
@@ -524,8 +570,9 @@
               console.error(`No se pudo verificar si ${table} quedó guardado tras el error.`, verificationError);
             }
           }
+          const fallbackRecord = buildLocalPaymentFallbackRecord(normalizedRecord, error, payload[0]);
           if (persistLocalOnMutationFailure) {
-            localService.setAll(mergeRecord(existingRecords, record));
+            localService.setAll(mergeRecord(existingRecords, fallbackRecord));
           } else {
             localService.setAll(existingRecords);
           }
@@ -533,7 +580,7 @@
             globalScope.alert(`No se pudo guardar ${uiLabel} en Supabase.`);
           }
           return {
-            record: normalizedRecord,
+            record: fallbackRecord,
             synced: false,
             error,
             response: {
@@ -669,18 +716,26 @@
     return getPaymentRecordSortDate(localRecord) > getPaymentRecordSortDate(remoteSameIdentity);
   }
 
-  function mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecords) {
-    const recoverableLocalRecords = localRecords.filter((record) => isRecoverableLocalPaymentRecord(record, remoteRecords));
-    if (recoverableLocalRecords.length === 0) {
-      return remoteRecords;
-    }
+    function mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecords) {
+      const recoverableLocalRecords = localRecords.filter((record) => isRecoverableLocalPaymentRecord(record, remoteRecords));
+      if (recoverableLocalRecords.length === 0) {
+        return {
+          primaryRecords: remoteRecords,
+          cacheRecords: remoteRecords,
+          pendingLocalRecords: [],
+        };
+      }
 
-    console.warn("Pagos locales pendientes conservados para recuperación:", {
-      count: recoverableLocalRecords.length,
-      ids: recoverableLocalRecords.map((record) => __veneziaGet(record, "id") || ""),
-    });
-    return [...recoverableLocalRecords, ...remoteRecords];
-  }
+      console.warn("Pagos locales pendientes conservados para recuperación:", {
+        count: recoverableLocalRecords.length,
+        ids: recoverableLocalRecords.map((record) => __veneziaGet(record, "id") || ""),
+      });
+      return {
+        primaryRecords: remoteRecords,
+        cacheRecords: [...recoverableLocalRecords, ...remoteRecords],
+        pendingLocalRecords: recoverableLocalRecords,
+      };
+    }
 
   function mergeSyncedPaymentRecord(records, syncedRecord) {
     const syncedIdentityKey = getPaymentRecordIdentityKey(syncedRecord);
