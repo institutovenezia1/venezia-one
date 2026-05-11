@@ -274,6 +274,13 @@
             return fallbackRecords;
           }
 
+          if (table === "student_payments") {
+            const localRecordsBeforeRefresh = localService.getAll(activeFallbackFactory);
+            const mergedPaymentRecords = mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecordsBeforeRefresh);
+            localService.setAll(mergedPaymentRecords);
+            return mergedPaymentRecords;
+          }
+
           localService.setAll(remoteRecords);
           return remoteRecords;
         } catch (error) {
@@ -361,7 +368,9 @@
 
           const syncedRecord = response.records[0] || normalizedRecord;
           localService.setAll(
-            mergeRecord(localService.getAll(fallbackFactory), syncedRecord)
+            table === "student_payments"
+              ? mergeSyncedPaymentRecord(localService.getAll(fallbackFactory), syncedRecord)
+              : mergeRecord(localService.getAll(fallbackFactory), syncedRecord)
           );
           return {
             record: syncedRecord,
@@ -477,6 +486,79 @@
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
       String(value || "").trim()
     );
+  }
+
+  function getPaymentMonthKey(record) {
+    if (__veneziaGet(record, "mesPago")) {
+      return String(record.mesPago).trim();
+    }
+
+    const timestamp = String(__veneziaGet(record, "updatedAt") || __veneziaGet(record, "createdAt") || "").slice(0, 7);
+    return timestamp || "";
+  }
+
+  function getPaymentRecordIdentityKey(record) {
+    const studentId = String(__veneziaGet(record, "studentId") || "").trim();
+    const month = getPaymentMonthKey(record);
+    return studentId && month ? `${studentId}::${month}` : "";
+  }
+
+  function getPaymentRecordSortDate(record) {
+    return String(__veneziaGet(record, "updatedAt") || __veneziaGet(record, "createdAt") || "");
+  }
+
+  function isRecoverableLocalPaymentRecord(localRecord, remoteRecords = []) {
+    const localId = String(__veneziaGet(localRecord, "id") || "").trim();
+    const localIdentityKey = getPaymentRecordIdentityKey(localRecord);
+    if (!localId || !__veneziaGet(localRecord, "studentId")) {
+      return false;
+    }
+
+    const remoteIds = new Set(remoteRecords.map((record) => String(__veneziaGet(record, "id") || "").trim()));
+    if (remoteIds.has(localId)) {
+      return false;
+    }
+
+    const remoteSameIdentity = remoteRecords.find((record) => getPaymentRecordIdentityKey(record) === localIdentityKey);
+    if (!remoteSameIdentity) {
+      return true;
+    }
+
+    if (!isUuidValue(localId)) {
+      return true;
+    }
+
+    return getPaymentRecordSortDate(localRecord) > getPaymentRecordSortDate(remoteSameIdentity);
+  }
+
+  function mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecords) {
+    const recoverableLocalRecords = localRecords.filter((record) => isRecoverableLocalPaymentRecord(record, remoteRecords));
+    if (recoverableLocalRecords.length === 0) {
+      return remoteRecords;
+    }
+
+    console.warn("Pagos locales pendientes conservados para recuperación:", {
+      count: recoverableLocalRecords.length,
+      ids: recoverableLocalRecords.map((record) => __veneziaGet(record, "id") || ""),
+    });
+    return [...recoverableLocalRecords, ...remoteRecords];
+  }
+
+  function mergeSyncedPaymentRecord(records, syncedRecord) {
+    const syncedIdentityKey = getPaymentRecordIdentityKey(syncedRecord);
+    const merged = records.filter((record) => {
+      if (record.id === syncedRecord.id) {
+        return false;
+      }
+
+      if (syncedIdentityKey && getPaymentRecordIdentityKey(record) === syncedIdentityKey && !isUuidValue(record.id)) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return [syncedRecord, ...merged];
   }
 
   function extractAltaMetadata(notes, label) {

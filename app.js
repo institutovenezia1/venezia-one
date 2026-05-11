@@ -1145,6 +1145,40 @@ function isUuidValue(value) {
   );
 }
 
+function createPaymentUuid() {
+  const cryptoObject = window.crypto || window.msCrypto;
+  if (cryptoObject && typeof cryptoObject.randomUUID === "function") {
+    try {
+      const id = cryptoObject.randomUUID();
+      if (isUuidValue(id)) {
+        return id;
+      }
+    } catch (error) {
+      console.warn("[Pagos] crypto.randomUUID no disponible.", error);
+    }
+  }
+
+  const bytes = new Uint8Array(16);
+  if (cryptoObject && typeof cryptoObject.getRandomValues === "function") {
+    try {
+      cryptoObject.getRandomValues(bytes);
+    } catch (error) {
+      console.warn("[Pagos] crypto.getRandomValues no disponible.", error);
+    }
+  }
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    if (!bytes[index]) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
+}
+
 function buildPaymentNotes(record = {}) {
   const directNotes = [record.observaciones, record.notes].find(
     (value) => value !== null && value !== undefined && String(value).trim()
@@ -1267,6 +1301,16 @@ function getCanonicalPaymentRecord(studentId, month = selectedPaymentsMonth) {
   return (
     getPaymentRecordsForStudentIdentity(studentId)
       .filter((record) => getPaymentRecordMonth(record) === month && isUuidValue(record.id))
+      .sort((left, right) =>
+        String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
+      )[0] || null
+  );
+}
+
+function getPaymentRecordForDisplay(studentId, month = selectedPaymentsMonth) {
+  return (
+    getPaymentRecordsForStudentIdentity(studentId)
+      .filter((record) => getPaymentRecordMonth(record) === month)
       .sort((left, right) =>
         String(right.updatedAt || right.createdAt || "").localeCompare(String(left.updatedAt || left.createdAt || ""))
       )[0] || null
@@ -9710,7 +9754,7 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
 function getPaymentDisplayRecord(studentId) {
   const historyRecord = getPersistentPaymentRecord(studentId);
   const editingMonth = resolvePaymentSaveMonth();
-  const editingMonthRecord = getCanonicalPaymentRecord(studentId, editingMonth);
+  const editingMonthRecord = getPaymentRecordForDisplay(studentId, editingMonth);
 
   return buildPaymentEditableRecord(historyRecord, editingMonthRecord, editingMonth, studentId);
 }
@@ -10978,7 +11022,7 @@ async function savePaymentForStudent(studentId) {
   const shouldCreateNewPaymentRow = !__veneziaGet(recordToUpdate, "id");
   const resolvedPaymentId = isUuidValue(__veneziaGet(recordToUpdate, "id"))
     ? recordToUpdate.id
-    : createMiVeneziaCompatibleId();
+    : createPaymentUuid();
   console.log("=== PAGO EXISTING ROW CHECK ===", {
     studentName,
     studentId,
