@@ -251,6 +251,74 @@
       };
     }
 
+    async function selectOneByIdFromSupabase(id) {
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
+      if (!client || !id) {
+        return null;
+      }
+
+      const { data, error } = await client.from(table).select("*").eq("id", id).limit(1);
+      if (error) {
+        throw error;
+      }
+
+      return __veneziaGet(data, 0) || null;
+    }
+
+    function normalizeComparableDbValue(value) {
+      if (value === undefined || value === null) {
+        return "";
+      }
+
+      return String(value).trim();
+    }
+
+    function numbersMatch(left, right) {
+      const normalizedLeft = normalizeComparableDbValue(left);
+      const normalizedRight = normalizeComparableDbValue(right);
+      if (!normalizedLeft && !normalizedRight) {
+        return true;
+      }
+
+      const leftNumber = Number(normalizedLeft);
+      const rightNumber = Number(normalizedRight);
+      return Number.isFinite(leftNumber) && Number.isFinite(rightNumber)
+        ? leftNumber === rightNumber
+        : normalizedLeft === normalizedRight;
+    }
+
+    function doesRemotePaymentMatchPayload(remoteRecord, expectedPayload) {
+      if (!remoteRecord || !expectedPayload) {
+        return false;
+      }
+
+      const textFields = [
+        "id",
+        "student_id",
+        "pending_payments",
+        "payment_method",
+        "reports",
+        "notes",
+      ];
+      const numberFields = [
+        "tuition_amount",
+        "certificate_p1_amount",
+        "certificate_p2_amount",
+        "first_month_amount",
+        "second_month_amount",
+        "third_month_amount",
+        "fourth_month_amount",
+        "fifth_month_amount",
+      ];
+
+      return (
+        textFields.every(
+          (field) => normalizeComparableDbValue(remoteRecord[field]) === normalizeComparableDbValue(expectedPayload[field])
+        ) &&
+        numberFields.every((field) => numbersMatch(remoteRecord[field], expectedPayload[field]))
+      );
+    }
+
     return {
       key,
       table,
@@ -388,6 +456,34 @@
           console.error(`Supabase ${operationLabel} message for ${table}:`, getSupabaseErrorMessage(error));
           if (table === "student_payments") {
             console.error(`Supabase ${operationLabel} response for ${table}:`, error.supabaseResponse || null);
+            try {
+              const remoteRecord = await selectOneByIdFromSupabase(normalizedRecord.id);
+              if (doesRemotePaymentMatchPayload(remoteRecord, payload[0])) {
+                const syncedRecord = fromDb(remoteRecord);
+                localService.setAll(mergeSyncedPaymentRecord(localService.getAll(fallbackFactory), syncedRecord));
+                console.warn("Supabase payment upsert reported an error, but the payment is already persisted remotely.", {
+                  paymentId: normalizedRecord.id || "",
+                  studentId: normalizedRecord.studentId || "",
+                  targetMonth: normalizedRecord.mesPago || "",
+                  originalError: getSupabaseErrorMessage(error),
+                });
+                return {
+                  record: syncedRecord,
+                  synced: true,
+                  recoveredFromSupabase: true,
+                  error: null,
+                  originalError: error,
+                  response: {
+                    data: [remoteRecord],
+                    payload,
+                    status: 200,
+                    statusText: "Recovered from Supabase after upsert response error",
+                  },
+                };
+              }
+            } catch (verificationError) {
+              console.error(`No se pudo verificar si ${table} quedó guardado tras el error.`, verificationError);
+            }
           }
           if (persistLocalOnMutationFailure) {
             localService.setAll(mergeRecord(existingRecords, record));

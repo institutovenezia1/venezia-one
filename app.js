@@ -11163,6 +11163,7 @@ async function savePaymentForStudent(studentId) {
     reusedExistingPaymentId: Boolean(__veneziaGet(recordToUpdate, "id")),
     existingPaymentRowSource: existingPaymentRow.source,
     synced: saveResult.synced,
+    recoveredFromSupabase: Boolean(saveResult.recoveredFromSupabase),
     record: summarizePaymentRecordForTrace(saveResult.record),
     error: saveResult.error
       ? {
@@ -11248,11 +11249,11 @@ async function savePaymentForStudent(studentId) {
       studentId,
       paymentId: resolvedPaymentId,
     });
-    alert("El pago se guardó, pero no se pudo sincronizar su ingreso financiero en Supabase.");
+    alert("Pago guardado. Revisa el reflejo en Balance/Finanzas.");
     return;
   }
 
-  await refreshSharedSupabaseState({ force: true, render: false });
+  const refreshSucceeded = await refreshSharedSupabaseState({ force: true, render: false });
   renderPaymentsTable();
   renderBalanceModule();
   renderFinanceTable();
@@ -11264,6 +11265,17 @@ async function savePaymentForStudent(studentId) {
     paymentId: resolvedPaymentId,
     refreshedModules: ["paymentsTable", "balanceModule", "financeTable", "financeSummary", "paymentsSummary", "dashboard"],
   });
+  if (saveResult.recoveredFromSupabase) {
+    alert("Pago ya sincronizado en Supabase.");
+    return;
+  }
+
+  if (!refreshSucceeded) {
+    alert("Pago guardado. Actualiza la página si no ves el cambio.");
+    return;
+  }
+
+  alert("Pago guardado correctamente.");
 }
 
 function updatePaymentsSummary() {
