@@ -5830,6 +5830,13 @@ function normalizePaymentMovementConcept(value) {
   return String(value || "").trim();
 }
 
+function normalizePaymentConceptText(value) {
+  return stripDiacritics(normalizePaymentMovementConcept(value))
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function isAccumulatedPaymentConcept(value) {
   return normalizePaymentMovementConcept(value).includes(",");
 }
@@ -6166,7 +6173,51 @@ function getPaymentEffectiveDate(record, linkedFinanceRecords = []) {
   return getLegacyPaymentRealDateFallback(record, linkedFinanceRecords);
 }
 
+function getPaymentFinanceCategoryFromConcept(concept) {
+  const normalizedConcept = normalizePaymentConceptText(concept);
+  if (!normalizedConcept) {
+    return "";
+  }
+
+  const hasMonthlyConcept =
+    /\bmensualidad\b/.test(normalizedConcept) ||
+    /\bmen\s*[1-5]\b/.test(normalizedConcept);
+  if (hasMonthlyConcept) {
+    return "Colegiatura";
+  }
+
+  if (/\binscripcion\b/.test(normalizedConcept)) {
+    return "Inscripción";
+  }
+
+  const hasCertificateP1 =
+    /\bc1\b/.test(normalizedConcept) ||
+    /\bcertificado\s*p1\b/.test(normalizedConcept) ||
+    /\bpago\s*c1\b/.test(normalizedConcept);
+  const hasCertificateP2 =
+    /\bc2\b/.test(normalizedConcept) ||
+    /\bcertificado\s*p2\b/.test(normalizedConcept) ||
+    /\bpago\s*c2\b/.test(normalizedConcept);
+
+  if (hasCertificateP2 && !hasCertificateP1) {
+    return "Certificado P2";
+  }
+
+  if (hasCertificateP1) {
+    return "Certificado P1";
+  }
+
+  return "";
+}
+
 function getPaymentFinanceCategory(record) {
+  const conceptCategory = getPaymentFinanceCategoryFromConcept(
+    getSafeStoredPaymentConcept(record) || __veneziaGet(record, "paymentMovementConcept")
+  );
+  if (conceptCategory) {
+    return conceptCategory;
+  }
+
   if (isEligiblePaymentStatus(record.certificadoP1)) {
     return "Certificado P1";
   }
@@ -6190,13 +6241,14 @@ function getPaymentFinanceCategory(record) {
 
 function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord = null) {
   const paymentConcept = resolvePaymentMovementConcept(paymentRecord, paymentRecord, existingFinanceRecord);
+  const paymentCategory = getPaymentFinanceCategoryFromConcept(paymentConcept) || getPaymentFinanceCategory(paymentRecord);
 
   return {
     id: __veneziaGet(existingFinanceRecord, "id") || paymentRecord.id || createMiVeneziaCompatibleId(),
     fecha: getPaymentEffectiveDate(paymentRecord, existingFinanceRecord ? [existingFinanceRecord] : []),
     sucursal: student.sucursal || "",
     tipo: "Ingreso",
-    categoria: getPaymentFinanceCategory(paymentRecord),
+    categoria: paymentCategory,
     concepto: paymentConcept,
     paymentConcept,
     alumna: student.nombre || "",
@@ -6404,8 +6456,10 @@ function getCentralFinanceRecords() {
 function auditPaymentFinanceLinks({
   payments = paymentRecords,
   finance = financeRecords,
+  studentsList = students,
 } = {}) {
   const paymentsById = new Map(payments.map((record) => [record.id, record]));
+  const studentsById = new Map(studentsList.map((student) => [student.id, student]));
   const linkedFinanceByPaymentId = new Map();
 
   finance
@@ -6458,6 +6512,44 @@ function auditPaymentFinanceLinks({
       financeRecord: record,
       paymentRecord: paymentsById.get(record.relatedPaymentId),
     }));
+  const staleLinkedFinanceRecord = payments
+    .map((record) => {
+      const linkedRecords = linkedFinanceByPaymentId.get(record.id) || [];
+      const canonicalFinanceRecord = linkedRecords[0] || null;
+      const student = studentsById.get(record.studentId);
+      if (!canonicalFinanceRecord || !student || !isRealPaidPaymentRecord(record)) {
+        return null;
+      }
+
+      const expectedFinanceRecord = buildPaymentFinanceRecord(record, student, canonicalFinanceRecord);
+      const currentDate = normalizeLocalDateKey(__veneziaGet(canonicalFinanceRecord, "fecha"));
+      const expectedDate = normalizeLocalDateKey(__veneziaGet(expectedFinanceRecord, "fecha"));
+      const currentCategory = String(__veneziaGet(canonicalFinanceRecord, "categoria") || "").trim();
+      const expectedCategory = String(__veneziaGet(expectedFinanceRecord, "categoria") || "").trim();
+      const hasStoredPaymentRealDate = Boolean(getStoredPaymentRealDate(record));
+      const dateMismatch =
+        hasStoredPaymentRealDate &&
+        expectedDate &&
+        currentDate &&
+        currentDate !== expectedDate;
+      const categoryMismatch =
+        expectedCategory &&
+        currentCategory &&
+        currentCategory !== expectedCategory;
+
+      if (!dateMismatch && !categoryMismatch) {
+        return null;
+      }
+
+      return {
+        paymentRecord: record,
+        financeRecord: canonicalFinanceRecord,
+        expectedFinanceRecord,
+        dateMismatch,
+        categoryMismatch,
+      };
+    })
+    .filter(Boolean);
 
   return {
     missingLinkedFinance,
@@ -6466,6 +6558,7 @@ function auditPaymentFinanceLinks({
     missingStoredPaymentDate,
     stalePaymentRealDate,
     ineligibleLinkedFinance,
+    staleLinkedFinanceRecord,
   };
 }
 
@@ -6476,7 +6569,8 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
     findings.orphanLinkedFinance.length === 0 &&
     findings.missingStoredPaymentDate.length === 0 &&
     findings.stalePaymentRealDate.length === 0 &&
-    findings.ineligibleLinkedFinance.length === 0
+    findings.ineligibleLinkedFinance.length === 0 &&
+    findings.staleLinkedFinanceRecord.length === 0
   ) {
     return findings;
   }
@@ -6513,6 +6607,17 @@ function logPaymentFinanceAudit(findings = auditPaymentFinanceLinks()) {
       financeRecordId: financeRecord.id,
       paymentId: financeRecord.relatedPaymentId,
       studentId: __veneziaGet(paymentRecord, "studentId") || "",
+    })),
+    staleLinkedFinanceRecord: findings.staleLinkedFinanceRecord.map(({ paymentRecord, financeRecord, expectedFinanceRecord, dateMismatch, categoryMismatch }) => ({
+      paymentId: paymentRecord.id,
+      studentId: paymentRecord.studentId,
+      financeRecordId: financeRecord.id,
+      currentDate: financeRecord.fecha || "",
+      expectedDate: expectedFinanceRecord.fecha || "",
+      currentCategory: financeRecord.categoria || "",
+      expectedCategory: expectedFinanceRecord.categoria || "",
+      dateMismatch,
+      categoryMismatch,
     })),
   });
 
@@ -6588,6 +6693,21 @@ async function reconcilePaymentFinanceRecords() {
         studentId: paymentSaveResult.record.studentId,
         reconciledPaymentRealDate: finding.reconciledPaymentRealDate,
         error: financeSyncResult.error,
+      });
+      break;
+    }
+  }
+
+  for (const finding of findings.staleLinkedFinanceRecord) {
+    const paymentRecord = finding.paymentRecord;
+    const syncResult = await syncPaymentFinanceRecord(paymentRecord, {
+      student: studentsById.get(paymentRecord.studentId) || null,
+    });
+    if (!syncResult.synced) {
+      console.error("No se pudo reconciliar fecha/categoria del ingreso financiero ligado al pago.", {
+        paymentId: paymentRecord.id,
+        financeRecordId: __veneziaGet(finding.financeRecord, "id") || "",
+        error: syncResult.error,
       });
       break;
     }
