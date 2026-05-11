@@ -841,6 +841,7 @@ let activeAltaPendingFilter = "all";
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
 let paymentsMonthWasManuallySelected = false;
+let paymentsReviewHighlightTimer = null;
 let activeStudentFileId = "";
 let activeAttendanceSessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT;
 let currentPortalStudentId = "";
@@ -10110,6 +10111,7 @@ function getFilteredStudentsForPayments() {
       }
 
       const searchableText = [
+        student.id,
         student.nombre,
         student.portalUser,
         student.telefono,
@@ -10415,7 +10417,7 @@ function renderPaymentsTable() {
       const continuitySelection = getPaymentContinuitySelection(payment, student);
       const nextCourseSelection = getPaymentNextCourseSelection(payment, student);
       return `
-        <tr>
+        <tr data-payment-student-row="${escapeHtml(student.id)}">
           <td>
             <div class="payment-student-cell">
               <strong>${escapeHtml(student.nombre)}</strong>
@@ -10551,6 +10553,7 @@ function buildOverduePaymentReviewEntries(student, anchorDate = getCurrentMexico
       return {
         student,
         concept: getPaymentReviewConceptLabel(rule),
+        focusField: rule.field,
         expectedDate,
         currentStatus: currentStatus || "Sin marcar",
         problem: laterMarked ? "Concepto posterior pagado; revisar recibo" : "Vencido no marcado / revisar recibo",
@@ -10599,6 +10602,7 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   const paymentRealDate = getStoredPaymentRealDate(record);
   const linkedFinanceRecords = getLinkedPaymentFinanceRecords(record.id);
   const concept = getPaymentReviewRecordConcept(record);
+  const paidConcepts = getPaidPaymentConcepts(record);
   const expectedCategory = getPaymentFinanceCategoryFromConcept(concept) || getPaymentFinanceCategory(record);
   const issues = [];
 
@@ -10661,6 +10665,11 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   return {
     student,
     concept,
+    focusField: amount <= 0
+      ? "cantidadPagada"
+      : !method
+        ? "metodoPago"
+        : __veneziaGet(paidConcepts[0], "key") || "cantidadPagada",
     expectedDate: paymentRealDate || getPaymentEffectiveDate(record, linkedFinanceRecords) || getPaymentRecordMonth(record) || "",
     currentStatus: getPaymentReviewPaidStatusDisplay(record),
     problem: issues.map((issue) => issue.label).join("; "),
@@ -10723,6 +10732,15 @@ function renderPaymentsReviewPanel() {
 
       return `
         <tr>
+          <td class="payments-review-action-cell">
+            <button
+              class="table-action secondary-btn"
+              type="button"
+              data-action="focus-review-payment"
+              data-student-id="${escapeHtml(__veneziaGet(student, "id") || "")}"
+              data-payment-field="${escapeHtml(entry.focusField || "")}"
+            >Editar</button>
+          </td>
           <td class="payments-student-name-cell"><strong>${escapeHtml(__veneziaGet(student, "nombre") || "-")}</strong></td>
           <td>${escapeHtml(__veneziaGet(student, "curso") || "-")}</td>
           <td>${escapeHtml(__veneziaGet(student, "modalidad") || __veneziaGet(student, "horario") || "-")}</td>
@@ -10739,6 +10757,75 @@ function renderPaymentsReviewPanel() {
   if (paymentsReviewEmptyState) {
     paymentsReviewEmptyState.hidden = reviewEntries.length > 0;
   }
+}
+
+function getPaymentsTableRowByStudentId(studentId) {
+  if (!paymentsTableBody) {
+    return null;
+  }
+
+  return Array.from(paymentsTableBody.querySelectorAll("[data-payment-student-row]")).find(
+    (row) => row.dataset.paymentStudentRow === studentId
+  ) || null;
+}
+
+function highlightPaymentsTableRow(row) {
+  if (!row) {
+    return;
+  }
+
+  if (paymentsReviewHighlightTimer) {
+    window.clearTimeout(paymentsReviewHighlightTimer);
+  }
+
+  paymentsTableBody
+    .querySelectorAll(".payment-row-focus-highlight")
+    .forEach((highlightedRow) => highlightedRow.classList.remove("payment-row-focus-highlight"));
+  row.classList.add("payment-row-focus-highlight");
+  paymentsReviewHighlightTimer = window.setTimeout(() => {
+    row.classList.remove("payment-row-focus-highlight");
+    paymentsReviewHighlightTimer = null;
+  }, 3600);
+}
+
+function focusPaymentReviewStudent(studentId, preferredField = "") {
+  const student = getStudentById(studentId);
+  if (!student) {
+    alert("No se pudo localizar la alumna/o en Pagos.");
+    return;
+  }
+
+  const searchValue = student.nombre || student.studentCode || student.telefono || student.id;
+  activePaymentsSearch = searchValue;
+  paymentsTableExpanded = true;
+  if (paymentsSearchInput) {
+    paymentsSearchInput.value = searchValue;
+  }
+
+  renderPaymentsTable();
+
+  window.requestAnimationFrame(() => {
+    const row = getPaymentsTableRowByStudentId(student.id);
+    if (!row) {
+      alert("No se pudo mostrar la fila de la alumna/o en Pagos con los filtros actuales.");
+      return;
+    }
+
+    row.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    highlightPaymentsTableRow(row);
+
+    const preferredControl = preferredField
+      ? row.querySelector(`[data-payment-field="${preferredField}"][data-student-id="${student.id}"]`)
+      : null;
+    const fallbackControl =
+      preferredControl ||
+      row.querySelector(`[data-payment-field="cantidadPagada"][data-student-id="${student.id}"]`) ||
+      row.querySelector(`[data-payment-field][data-student-id="${student.id}"]`);
+
+    if (fallbackControl) {
+      window.setTimeout(() => fallbackControl.focus({ preventScroll: true }), 300);
+    }
+  });
 }
 
 function renderPaymentsLifecyclePanels() {
@@ -16179,6 +16266,17 @@ paymentsTableBody.addEventListener("click", async (event) => {
     await deletePaymentForStudent(actionButton.dataset.id);
   }
 });
+
+if (paymentsReviewTableBody) {
+  paymentsReviewTableBody.addEventListener("click", (event) => {
+    const actionButton = event.target.closest('[data-action="focus-review-payment"]');
+    if (!actionButton) {
+      return;
+    }
+
+    focusPaymentReviewStudent(actionButton.dataset.studentId || "", actionButton.dataset.paymentField || "");
+  });
+}
 
 studentFileCloseButton.addEventListener("click", closeStudentFile);
 studentFileOverlay.addEventListener("click", (event) => {
