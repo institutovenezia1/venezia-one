@@ -10,14 +10,13 @@
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
   var SUPPORT_WHATSAPP = "522463831375";
   var STUDENT_DOCUMENT_REQUIREMENTS = [
-    "INE / identificación oficial",
-    "CURP",
+    "Reglamento interno",
+    "Contrato de alumno",
     "Acta de nacimiento",
+    "CURP",
+    "INE",
     "Comprobante de domicilio",
-    "Comprobante de estudios",
-    "Fotografías",
-    "Reglamento / contrato firmado",
-    "Comprobante de inscripción"
+    "Comprobante de último grado de estudios"
   ];
   var BOOTSTRAP_DIRECTORS = [
     { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" }
@@ -390,6 +389,7 @@
   function parseDocumentList(value) {
     var rawItems = Array.isArray(value) ? value : String(value || "").split(",");
     var canonical = {};
+    var aliases = {};
     var seen = {};
     var items = [];
     var index;
@@ -400,19 +400,33 @@
       canonical[getDocumentKey(STUDENT_DOCUMENT_REQUIREMENTS[index])] = STUDENT_DOCUMENT_REQUIREMENTS[index];
     }
 
+    aliases[getDocumentKey("INE / identificación oficial")] = ["INE"];
+    aliases[getDocumentKey("Comprobante de estudios")] = ["Comprobante de último grado de estudios"];
+    aliases[getDocumentKey("Reglamento / contrato firmado")] = ["Reglamento interno", "Contrato de alumno"];
+    aliases[getDocumentKey("Reglamento firmado")] = ["Reglamento interno"];
+    aliases[getDocumentKey("Contrato firmado")] = ["Contrato de alumno"];
+    aliases[getDocumentKey("Contrato de inscripción")] = ["Contrato de alumno"];
+
     for (index = 0; index < rawItems.length; index += 1) {
       item = text(rawItems[index]);
       if (!item || item === "-") {
         continue;
       }
       key = getDocumentKey(item);
-      item = canonical[key] || item;
-      key = getDocumentKey(item);
-      if (!key || seen[key]) {
+      if (canonical[key]) {
+        aliases[key] = [canonical[key]];
+      }
+      if (!aliases[key]) {
         continue;
       }
-      seen[key] = true;
-      items.push(item);
+      aliases[key].forEach(function (documentName) {
+        var documentKey = getDocumentKey(documentName);
+        if (!documentKey || seen[documentKey]) {
+          return;
+        }
+        seen[documentKey] = true;
+        items.push(documentName);
+      });
     }
 
     return items;

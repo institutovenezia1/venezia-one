@@ -31,14 +31,13 @@
   };
 
   const STUDENT_DOCUMENT_REQUIREMENTS = [
-    "INE / identificación oficial",
-    "CURP",
+    "Reglamento interno",
+    "Contrato de alumno",
     "Acta de nacimiento",
+    "CURP",
+    "INE",
     "Comprobante de domicilio",
-    "Comprobante de estudios",
-    "Fotografías",
-    "Reglamento / contrato firmado",
-    "Comprobante de inscripción",
+    "Comprobante de último grado de estudios",
   ];
 
   function getStorage() {
@@ -508,12 +507,33 @@
     const canonicalByKey = new Map(
       STUDENT_DOCUMENT_REQUIREMENTS.map((documentName) => [normalizeAltaDocumentKey(documentName), documentName])
     );
+    const aliasesByKey = new Map([
+      [normalizeAltaDocumentKey("INE / identificación oficial"), ["INE"]],
+      [normalizeAltaDocumentKey("Comprobante de estudios"), ["Comprobante de último grado de estudios"]],
+      [normalizeAltaDocumentKey("Reglamento / contrato firmado"), ["Reglamento interno", "Contrato de alumno"]],
+      [normalizeAltaDocumentKey("Reglamento firmado"), ["Reglamento interno"]],
+      [normalizeAltaDocumentKey("Contrato firmado"), ["Contrato de alumno"]],
+      [normalizeAltaDocumentKey("Contrato de inscripción"), ["Contrato de alumno"]],
+    ]);
     const seen = new Set();
+    const resolveDocumentNames = (item) => {
+      const key = normalizeAltaDocumentKey(item);
+      if (!key) {
+        return [];
+      }
+      if (canonicalByKey.has(key)) {
+        return [canonicalByKey.get(key)];
+      }
+      if (aliasesByKey.has(key)) {
+        return aliasesByKey.get(key);
+      }
+      return [];
+    };
 
     return rawItems
       .map((item) => String(item || "").trim())
       .filter((item) => item && item !== "-")
-      .map((item) => canonicalByKey.get(normalizeAltaDocumentKey(item)) || item)
+      .reduce((items, item) => items.concat(resolveDocumentNames(item)), [])
       .filter((item) => {
         const key = normalizeAltaDocumentKey(item);
         if (!key || seen.has(key)) {

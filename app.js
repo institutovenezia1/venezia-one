@@ -136,14 +136,13 @@ const STUDENT_LIFECYCLE_STATUS = {
 };
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const STUDENT_DOCUMENT_REQUIREMENTS = [
-  "INE / identificación oficial",
-  "CURP",
+  "Reglamento interno",
+  "Contrato de alumno",
   "Acta de nacimiento",
+  "CURP",
+  "INE",
   "Comprobante de domicilio",
-  "Comprobante de estudios",
-  "Fotografías",
-  "Reglamento / contrato firmado",
-  "Comprobante de inscripción",
+  "Comprobante de último grado de estudios",
 ];
 const TEACHER_SPECIALTY_OPTIONS = ["Uñas", "Pestañas", "Maquillaje", "Barbería", "COORD de maestras"];
 const TEACHER_SHIFT_OPTIONS = ["Matutino", "Vespertino", "Ambos"];
@@ -8272,6 +8271,31 @@ function getStudentDocumentCanonicalMap() {
   );
 }
 
+function getStudentDocumentAliasMap() {
+  return new Map([
+    [getStudentDocumentKey("INE / identificación oficial"), ["INE"]],
+    [getStudentDocumentKey("Comprobante de estudios"), ["Comprobante de último grado de estudios"]],
+    [getStudentDocumentKey("Reglamento / contrato firmado"), ["Reglamento interno", "Contrato de alumno"]],
+    [getStudentDocumentKey("Reglamento firmado"), ["Reglamento interno"]],
+    [getStudentDocumentKey("Contrato firmado"), ["Contrato de alumno"]],
+    [getStudentDocumentKey("Contrato de inscripción"), ["Contrato de alumno"]],
+  ]);
+}
+
+function resolveStudentDocumentNames(value, canonicalByKey, aliasesByKey) {
+  const key = getStudentDocumentKey(value);
+  if (!key) {
+    return [];
+  }
+  if (canonicalByKey.has(key)) {
+    return [canonicalByKey.get(key)];
+  }
+  if (aliasesByKey.has(key)) {
+    return aliasesByKey.get(key);
+  }
+  return [];
+}
+
 function parseStudentDocumentList(value) {
   const rawItems = Array.isArray(value)
     ? value
@@ -8279,12 +8303,16 @@ function parseStudentDocumentList(value) {
         .split(",")
         .map((item) => item.trim());
   const canonicalByKey = getStudentDocumentCanonicalMap();
+  const aliasesByKey = getStudentDocumentAliasMap();
   const seen = new Set();
 
   return rawItems
     .map((item) => String(item || "").trim())
     .filter((item) => item && item !== "-")
-    .map((item) => canonicalByKey.get(getStudentDocumentKey(item)) || item)
+    .reduce(
+      (items, item) => items.concat(resolveStudentDocumentNames(item, canonicalByKey, aliasesByKey)),
+      []
+    )
     .filter((item) => {
       const key = getStudentDocumentKey(item);
       if (!key || seen.has(key)) {
