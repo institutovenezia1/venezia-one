@@ -287,6 +287,11 @@
         : normalizedLeft === normalizedRight;
     }
 
+    function metadataValuesMatch(leftNotes, rightNotes, label) {
+      return normalizeComparableDbValue(extractAltaMetadata(leftNotes, label)) ===
+        normalizeComparableDbValue(extractAltaMetadata(rightNotes, label));
+    }
+
     function doesRemotePaymentMatchPayload(remoteRecord, expectedPayload) {
       if (!remoteRecord || !expectedPayload) {
         return false;
@@ -298,7 +303,6 @@
         "pending_payments",
         "payment_method",
         "reports",
-        "notes",
       ];
       const numberFields = [
         "tuition_amount",
@@ -310,12 +314,30 @@
         "fourth_month_amount",
         "fifth_month_amount",
       ];
+      const noteMetadataFields = [
+        "Mes pago",
+        "Fecha real pago",
+        "Concepto real pago",
+        "Certificado P1",
+        "Certificado P2",
+        "1ra mensualidad",
+        "2da mensualidad",
+        "3ra mensualidad",
+        "4ta mensualidad",
+        "5ta mensualidad",
+        "Última mensualidad del ciclo",
+        "Seguimiento continuidad",
+        "Curso siguiente",
+        "Estado operativo ciclo",
+        "Cantidad pagada",
+      ];
 
       return (
         textFields.every(
           (field) => normalizeComparableDbValue(remoteRecord[field]) === normalizeComparableDbValue(expectedPayload[field])
         ) &&
-        numberFields.every((field) => numbersMatch(remoteRecord[field], expectedPayload[field]))
+        numberFields.every((field) => numbersMatch(remoteRecord[field], expectedPayload[field])) &&
+        noteMetadataFields.every((label) => metadataValuesMatch(remoteRecord.notes, expectedPayload.notes, label))
       );
     }
 
@@ -454,11 +476,27 @@
         } catch (error) {
           console.error(`Supabase ${operationLabel} failed for ${table}. Full error:`, error);
           console.error(`Supabase ${operationLabel} message for ${table}:`, getSupabaseErrorMessage(error));
+          let remoteVerification = null;
           if (table === "student_payments") {
             console.error(`Supabase ${operationLabel} response for ${table}:`, error.supabaseResponse || null);
             try {
               const remoteRecord = await selectOneByIdFromSupabase(normalizedRecord.id);
-              if (doesRemotePaymentMatchPayload(remoteRecord, payload[0])) {
+              remoteVerification = {
+                found: Boolean(remoteRecord),
+                matchesPayload: doesRemotePaymentMatchPayload(remoteRecord, payload[0]),
+                remoteId: __veneziaGet(remoteRecord, "id") || "",
+                remoteUpdatedAt: __veneziaGet(remoteRecord, "updated_at") || "",
+              };
+              console.log("=== PAYMENT REMOTE VERIFY ===", {
+                foundRemote: remoteVerification.found ? "yes" : "no",
+                matchesPayload: remoteVerification.matchesPayload ? "yes" : "no",
+                remoteId: remoteVerification.remoteId,
+                remoteUpdatedAt: remoteVerification.remoteUpdatedAt,
+                paymentId: normalizedRecord.id || "",
+                studentId: normalizedRecord.studentId || "",
+                targetMonth: normalizedRecord.mesPago || "",
+              });
+              if (remoteVerification.matchesPayload) {
                 const syncedRecord = fromDb(remoteRecord);
                 localService.setAll(mergeSyncedPaymentRecord(localService.getAll(fallbackFactory), syncedRecord));
                 console.warn("Supabase payment upsert reported an error, but the payment is already persisted remotely.", {
@@ -478,6 +516,7 @@
                     payload,
                     status: 200,
                     statusText: "Recovered from Supabase after upsert response error",
+                    remoteVerification,
                   },
                 };
               }
@@ -497,11 +536,14 @@
             record: normalizedRecord,
             synced: false,
             error,
-            response: error.supabaseResponse || {
-              data: [],
-              payload,
-              status: error.status || null,
-              statusText: error.statusText || "",
+            response: {
+              ...(error.supabaseResponse || {
+                data: [],
+                payload,
+                status: error.status || null,
+                statusText: error.statusText || "",
+              }),
+              remoteVerification,
             },
           };
         }
@@ -647,7 +689,7 @@
         return false;
       }
 
-      if (syncedIdentityKey && getPaymentRecordIdentityKey(record) === syncedIdentityKey && !isUuidValue(record.id)) {
+      if (syncedIdentityKey && getPaymentRecordIdentityKey(record) === syncedIdentityKey) {
         return false;
       }
 

@@ -11156,7 +11156,32 @@ async function savePaymentForStudent(studentId) {
     hasChanges: detectedChanges.length > 0,
   });
 
+  console.log("=== PAYMENT SAVE PHASE START ===", {
+    studentName,
+    studentId,
+    paymentId: resolvedPaymentId,
+    paymentRealDate: finalRecord.paymentRealDate || "",
+    amount: finalRecord.cantidadPagada || "",
+    method: finalRecord.metodoPago || "",
+  });
+
   const saveResult = await savePaymentRecord(finalRecord);
+  const remoteVerification = __veneziaGet(saveResult, "response.remoteVerification") || null;
+  console.log("=== PAYMENT SUPABASE UPSERT RESULT ===", {
+    synced: Boolean(saveResult.synced),
+    errorCode: __veneziaGet(saveResult, "error.code") || "",
+    errorMessage:
+      __veneziaGet(saveResult, "error.message") ||
+      __veneziaGet(saveResult, "error.details") ||
+      (saveResult.error ? String(saveResult.error) : ""),
+    remoteVerificationResult: saveResult.recoveredFromSupabase
+      ? "confirmed_remote"
+      : remoteVerification
+      ? remoteVerification
+      : saveResult.synced
+      ? "synced"
+      : "not_confirmed",
+  });
   console.log("PAGO después de savePaymentRecord", {
     studentId,
     paymentId: resolvedPaymentId,
@@ -11195,7 +11220,12 @@ async function savePaymentForStudent(studentId) {
       studentId,
       paymentId: resolvedPaymentId,
     });
-    alert("No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.");
+    const fallbackMessage = "No se pudo guardar el pago en Supabase. Se conservó sólo en el respaldo local.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "local_fallback_only",
+      messageText: fallbackMessage,
+    });
+    alert(fallbackMessage);
     return;
   }
 
@@ -11208,11 +11238,29 @@ async function savePaymentForStudent(studentId) {
     updateFinanceSummary();
     updatePaymentsSummary();
     renderDashboard();
-    alert("El pago se guardó, pero no se pudo actualizar el estado de continuidad de la alumna.");
+    const lifecycleMessage = "El pago se guardó, pero no se pudo actualizar el estado de continuidad de la alumna.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "lifecycle_sync_failed",
+      messageText: lifecycleMessage,
+    });
+    alert(lifecycleMessage);
     return;
   }
 
   const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
+  console.log("=== PAYMENT FINANCE RESULT ===", {
+    result: financeSyncResult.synced ? "success" : "fail",
+    deleted: Boolean(financeSyncResult.deleted),
+    duplicatesRemoved: financeSyncResult.duplicatesRemoved || 0,
+    error: financeSyncResult.error
+      ? {
+          code: financeSyncResult.error.code || "",
+          message: financeSyncResult.error.message || "",
+          details: financeSyncResult.error.details || "",
+          hint: financeSyncResult.error.hint || "",
+        }
+      : null,
+  });
   console.log("PAGO después de syncPaymentFinanceRecord", {
     studentId,
     paymentId: resolvedPaymentId,
@@ -11249,11 +11297,19 @@ async function savePaymentForStudent(studentId) {
       studentId,
       paymentId: resolvedPaymentId,
     });
-    alert("Pago guardado. Revisa el reflejo en Balance/Finanzas.");
+    const financeMessage = "Pago guardado. Revisa el reflejo en Balance/Finanzas.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "finance_sync_failed",
+      messageText: financeMessage,
+    });
+    alert(financeMessage);
     return;
   }
 
   const refreshSucceeded = await refreshSharedSupabaseState({ force: true, render: false });
+  console.log("=== PAYMENT REFRESH RESULT ===", {
+    result: refreshSucceeded ? "success" : "fail",
+  });
   renderPaymentsTable();
   renderBalanceModule();
   renderFinanceTable();
@@ -11266,16 +11322,31 @@ async function savePaymentForStudent(studentId) {
     refreshedModules: ["paymentsTable", "balanceModule", "financeTable", "financeSummary", "paymentsSummary", "dashboard"],
   });
   if (saveResult.recoveredFromSupabase) {
-    alert("Pago ya sincronizado en Supabase.");
+    const recoveredMessage = "Pago ya sincronizado en Supabase.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "already_synced_remote",
+      messageText: recoveredMessage,
+    });
+    alert(recoveredMessage);
     return;
   }
 
   if (!refreshSucceeded) {
-    alert("Pago guardado. Actualiza la página si no ves el cambio.");
+    const refreshMessage = "Pago guardado. Actualiza la página si no ves el cambio.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "refresh_failed_after_remote_save",
+      messageText: refreshMessage,
+    });
+    alert(refreshMessage);
     return;
   }
 
-  alert("Pago guardado correctamente.");
+  const successMessage = "Pago guardado correctamente.";
+  console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+    messageKey: "remote_save_complete",
+    messageText: successMessage,
+  });
+  alert(successMessage);
 }
 
 function updatePaymentsSummary() {
