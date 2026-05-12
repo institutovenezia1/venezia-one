@@ -393,6 +393,8 @@ const attendanceDayFilter = document.getElementById("attendanceDayFilter");
 const attendanceTableHead = document.getElementById("attendanceTableHead");
 const attendanceTableBody = document.getElementById("attendanceTableBody");
 const attendanceEmptyState = document.getElementById("attendanceEmptyState");
+const attendanceGraduatesTableBody = document.getElementById("attendanceGraduatesTableBody");
+const attendanceGraduatesEmptyState = document.getElementById("attendanceGraduatesEmptyState");
 const attendanceHistoryPanel = document.getElementById("attendanceHistoryPanel");
 const attendanceHistoryTitle = document.getElementById("attendanceHistoryTitle");
 const attendanceHistoryBody = document.getElementById("attendanceHistoryBody");
@@ -4725,6 +4727,10 @@ function isStudentInactiveForAttendance(student) {
     "baja real",
     "baja definitiva",
   ].includes(normalizedStatus);
+}
+
+function hasStudentAttendanceCourseCompletedStatus(student) {
+  return normalizeLooseText(__veneziaGet(student, "estado")) === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS);
 }
 
 function isStudentCourseCompletedForAttendance(student) {
@@ -9518,6 +9524,69 @@ function getAttendanceScopedStudents() {
   });
 }
 
+function getAttendanceGraduateStudents() {
+  return students
+    .filter((student) => matchesCurrentBranch(student.sucursal))
+    .filter((student) => !isStudentDeleted(student))
+    .filter((student) => hasStudentAttendanceCourseCompletedStatus(student))
+    .sort((a, b) => {
+      const startA = getStudentCourseStartDateValue(a) || "0000-00-00";
+      const startB = getStudentCourseStartDateValue(b) || "0000-00-00";
+      if (startA !== startB) {
+        return startB.localeCompare(startA);
+      }
+      return String(a.nombre || "").localeCompare(String(b.nombre || ""));
+    });
+}
+
+function getStudentCourseCompletionDate(student) {
+  return (
+    getAttendanceNotesValue({ observaciones: __veneziaGet(student, "observaciones") || "" }, "Fecha finalización curso") ||
+    getAttendanceNotesValue({ observaciones: __veneziaGet(student, "observaciones") || "" }, "Fecha de finalización") ||
+    ""
+  );
+}
+
+function renderAttendanceGraduatesTable() {
+  if (!attendanceGraduatesTableBody || !attendanceGraduatesEmptyState) {
+    return;
+  }
+
+  const graduateStudents = getAttendanceGraduateStudents();
+  attendanceGraduatesTableBody.innerHTML = graduateStudents
+    .map((student) => {
+      const payment = getLatestPaymentRecordForStudent(student.id);
+      const lifecycle = getStudentCollectionLifecycle(student, payment);
+      const completionDate = getStudentCourseCompletionDate(student);
+      const schedule = [student.diaClases, student.horario].filter(Boolean).join(" / ");
+      return `
+        <tr>
+          <td>
+            <div class="attendance-student-cell">
+              <strong>${escapeHtml(student.nombre || "-")}</strong>
+              <small>${escapeHtml(student.studentCode || student.portalUser || "-")}</small>
+            </div>
+          </td>
+          <td>${escapeHtml(student.curso || "-")}</td>
+          <td>${escapeHtml(student.sucursal || "-")}</td>
+          <td>${escapeHtml(schedule || "-")}</td>
+          <td>${escapeHtml(getStudentCourseStartDateValue(student) || "-")}</td>
+          <td>${escapeHtml(completionDate || "-")}</td>
+          <td>${escapeHtml(getContinuityStatusLabel(lifecycle.continuityStatus) || "-")}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+              <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver asistencias</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  attendanceGraduatesEmptyState.hidden = graduateStudents.length > 0;
+}
+
 function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
   const preferredOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
   const countsByCourse = studentsList.reduce((accumulator, student) => {
@@ -9969,6 +10038,7 @@ function renderAttendanceTable() {
     attendanceToggleButton.textContent = attendanceTableExpanded ? "Ver menos" : "Ver mas";
   }
   updateAttendanceSummary(studentsList);
+  renderAttendanceGraduatesTable();
 }
 
 async function saveAttendanceForStudent(studentId) {
@@ -17070,6 +17140,17 @@ attendanceTableBody.addEventListener("click", async (event) => {
     await deleteAttendanceForStudent(id);
   }
 });
+
+if (attendanceGraduatesTableBody) {
+  attendanceGraduatesTableBody.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-action]");
+    if (!actionButton) return;
+
+    const { action, id } = actionButton.dataset;
+    if (action === "view-student-file") openStudentFile(id);
+    if (action === "view-history") renderAttendanceHistory(id);
+  });
+}
 
 paymentsTableBody.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
