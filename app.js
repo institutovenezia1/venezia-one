@@ -134,6 +134,7 @@ const STUDENT_LIFECYCLE_STATUS = {
   ARCHIVED_NO_CONTINUATION: "archived_no_continuation",
   ENROLLED_TO_NEXT_COURSE: "enrolled_to_next_course",
 };
+const ATTENDANCE_COURSE_COMPLETED_STATUS = "Curso finalizado";
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const STUDENT_DOCUMENT_REQUIREMENTS = [
   "Reglamento interno",
@@ -1101,19 +1102,47 @@ function saveAttendanceRecords() {
   dataService.entities.attendance.setAll(attendanceRecords);
 }
 
-async function saveAttendanceRecord(record) {
-  console.log('Asistencias module target table: "attendance_records"');
-  console.log("ASISTENCIA payload", {
-    id: record.id,
-    student_id: record.studentId || null,
-    attendance_date: record.fecha || null,
-    status: record.estado || "",
-    notes: record.observaciones || "",
-    recorded_by: record.recordedBy || "",
-    created_at: record.createdAt || null,
+async function saveAttendanceRecord(record, options = {}) {
+  const recordDate = normalizeLocalDateKey(record.fecha) || record.fecha;
+  const remoteRecord = options.remoteRecordsByDate instanceof Map
+    ? options.remoteRecordsByDate.get(recordDate)
+    : null;
+  const safeRecord = mergeAttendanceRecordForSync(remoteRecord, {
+    ...record,
+    fecha: recordDate,
   });
 
-  const result = await dataService.entities.attendance.upsertOne(record, { alertOnFailure: false });
+  console.log('Asistencias module target table: "attendance_records"');
+  console.log("ASISTENCIA payload", {
+    id: safeRecord.id,
+    student_id: safeRecord.studentId || null,
+    attendance_date: safeRecord.fecha || null,
+    status: safeRecord.estado || "",
+    notes: safeRecord.observaciones || "",
+    recorded_by: safeRecord.recordedBy || "",
+    created_at: safeRecord.createdAt || null,
+  });
+
+  let result = await dataService.entities.attendance.upsertOne(safeRecord, { alertOnFailure: false });
+
+  if (!result.synced && isDuplicateKeySupabaseError(result.error)) {
+    try {
+      const refreshedRemoteRecords = await fetchRemoteAttendanceRecordsByStudentDates(safeRecord.studentId, [safeRecord.fecha]);
+      const refreshedRemoteRecord = refreshedRemoteRecords.get(safeRecord.fecha);
+      if (refreshedRemoteRecord && refreshedRemoteRecord.id !== safeRecord.id) {
+        const retryRecord = mergeAttendanceRecordForSync(refreshedRemoteRecord, safeRecord);
+        console.warn("ASISTENCIA duplicate key recuperado usando registro remoto por alumna y fecha.", {
+          studentId: retryRecord.studentId,
+          attendanceDate: retryRecord.fecha,
+          previousId: safeRecord.id,
+          reusedId: retryRecord.id,
+        });
+        result = await dataService.entities.attendance.upsertOne(retryRecord, { alertOnFailure: false });
+      }
+    } catch (recoveryError) {
+      console.error("No se pudo recuperar el conflicto de asistencia por alumna y fecha.", recoveryError);
+    }
+  }
 
   if (!result.synced) {
     console.error("ASISTENCIA error", result.error);
@@ -1121,20 +1150,15 @@ async function saveAttendanceRecord(record) {
       "ASISTENCIA error message",
       __veneziaGet(result.error, "message") || __veneziaGet(result.error, "details") || String(result.error)
     );
-    console.warn("Attendance saved only to local fallback cache after Supabase write failure.", {
-      id: record.id,
-      studentId: record.studentId,
+    console.warn("Attendance Supabase write failed; the UI did not confirm this record as persisted.", {
+      id: safeRecord.id,
+      studentId: safeRecord.studentId,
     });
     return result;
   }
 
   const nextRecord = result.record;
-  const existingIndex = attendanceRecords.findIndex((item) => item.id === nextRecord.id);
-  if (existingIndex >= 0) {
-    attendanceRecords[existingIndex] = nextRecord;
-  } else {
-    attendanceRecords.unshift(nextRecord);
-  }
+  mergeAttendanceRecordIntoMemory(nextRecord);
 
   console.log("ASISTENCIA success", result.response || nextRecord);
   return result;
@@ -4689,6 +4713,39 @@ function isStudentDeleted(student) {
 
 function isStudentCourseCompleted(student) {
   return normalizeLifecycleStatus(__veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
+}
+
+function isStudentInactiveForAttendance(student) {
+  const normalizedStatus = normalizeLooseText(__veneziaGet(student, "estado"));
+  return [
+    normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS),
+    "archivada",
+    "archivado",
+    "baja",
+    "baja real",
+    "baja definitiva",
+  ].includes(normalizedStatus);
+}
+
+function isStudentCourseCompletedForAttendance(student) {
+  return isStudentCourseCompleted(student) || isStudentInactiveForAttendance(student);
+}
+
+function isStudentFutureStartForAttendance(student, anchorDate = getCurrentMexicoDateValue()) {
+  const startDate = normalizeLocalDateKey(getStudentCourseStartDateValue(student));
+  const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
+  return Boolean(startDate && today && startDate > today);
+}
+
+function isStudentVisibleInAttendance(student, anchorDate = getCurrentMexicoDateValue()) {
+  const prospect = prospects.find((item) => item.id === student.prospectId);
+  return (
+    matchesCurrentBranch(student.sucursal) &&
+    !isStudentDeleted(student) &&
+    !isStudentCourseCompletedForAttendance(student) &&
+    !isStudentFutureStartForAttendance(student, anchorDate) &&
+    (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita")
+  );
 }
 
 function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
@@ -9349,8 +9406,111 @@ function getAttendanceRecord(studentId, date) {
   return attendanceRecords.find((record) => record.studentId === studentId && record.fecha === date);
 }
 
+function getAttendanceLogicalKey(studentId, date) {
+  return `${String(studentId || "").trim()}::${normalizeLocalDateKey(date) || String(date || "").trim()}`;
+}
+
+function mapRemoteAttendanceRecord(record) {
+  return {
+    id: __veneziaGet(record, "id") || "",
+    studentId: __veneziaGet(record, "student_id") || "",
+    fecha: __veneziaGet(record, "attendance_date") || "",
+    estado: __veneziaGet(record, "status") || "",
+    observaciones: __veneziaGet(record, "notes") || "",
+    recordedBy: __veneziaGet(record, "recorded_by") || "",
+    createdAt: __veneziaGet(record, "created_at") || "",
+  };
+}
+
+function mergeAttendanceRecordForSync(remoteRecord, localRecord) {
+  if (!remoteRecord) {
+    return localRecord;
+  }
+
+  return {
+    ...remoteRecord,
+    ...localRecord,
+    id: remoteRecord.id || localRecord.id,
+    studentId: remoteRecord.studentId || localRecord.studentId,
+    fecha: remoteRecord.fecha || localRecord.fecha,
+    estado: localRecord.estado || remoteRecord.estado || "",
+    observaciones: String(localRecord.observaciones || "").trim()
+      ? localRecord.observaciones
+      : remoteRecord.observaciones || "",
+    recordedBy: localRecord.recordedBy || remoteRecord.recordedBy || "",
+    createdAt: remoteRecord.createdAt || localRecord.createdAt || new Date().toISOString(),
+  };
+}
+
+function mergeAttendanceRecordIntoMemory(nextRecord) {
+  const nextKey = getAttendanceLogicalKey(nextRecord.studentId, nextRecord.fecha);
+  attendanceRecords = attendanceRecords.filter((item) => {
+    const itemKey = getAttendanceLogicalKey(item.studentId, item.fecha);
+    return item.id === nextRecord.id || itemKey !== nextKey;
+  });
+
+  const existingIndex = attendanceRecords.findIndex((item) => item.id === nextRecord.id);
+  if (existingIndex >= 0) {
+    attendanceRecords[existingIndex] = nextRecord;
+  } else {
+    attendanceRecords.unshift(nextRecord);
+  }
+
+  dataService.entities.attendance.setLocalCache(attendanceRecords);
+}
+
+async function fetchRemoteAttendanceRecordsByStudentDates(studentId, dates = []) {
+  const normalizedStudentId = String(studentId || "").trim();
+  const normalizedDates = [...new Set(dates.map((date) => normalizeLocalDateKey(date)).filter(Boolean))];
+  if (!normalizedStudentId || normalizedDates.length === 0) {
+    return new Map();
+  }
+
+  const client = getSupabaseClientOrThrow();
+  const { data, error } = await client
+    .from("attendance_records")
+    .select("id,student_id,attendance_date,status,notes,recorded_by,created_at")
+    .eq("student_id", normalizedStudentId)
+    .in("attendance_date", normalizedDates)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).reduce((recordsByDate, remoteRecord) => {
+    const mappedRecord = mapRemoteAttendanceRecord(remoteRecord);
+    const dateKey = normalizeLocalDateKey(mappedRecord.fecha);
+    if (!dateKey) {
+      return recordsByDate;
+    }
+    if (recordsByDate.has(dateKey)) {
+      console.warn("Se detectaron asistencias remotas duplicadas para la misma alumna y fecha.", {
+        studentId: normalizedStudentId,
+        attendanceDate: dateKey,
+        keptId: recordsByDate.get(dateKey).id,
+        ignoredId: mappedRecord.id,
+      });
+      return recordsByDate;
+    }
+    recordsByDate.set(dateKey, mappedRecord);
+    return recordsByDate;
+  }, new Map());
+}
+
+function isDuplicateKeySupabaseError(error) {
+  const message = String(
+    __veneziaGet(error, "message") ||
+      __veneziaGet(error, "details") ||
+      __veneziaGet(error, "hint") ||
+      ""
+  ).toLowerCase();
+  return String(__veneziaGet(error, "code") || "").trim() === "23505" || message.includes("duplicate key");
+}
+
 function getAttendanceScopedStudents() {
-  return getActiveStudents().filter((student) => {
+  const today = getCurrentMexicoDateValue();
+  return students.filter((student) => isStudentVisibleInAttendance(student, today)).filter((student) => {
     if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
       return false;
     }
@@ -9819,7 +9979,7 @@ async function saveAttendanceForStudent(studentId) {
   }
 
   const studentSessions = getStudentAttendanceSessionDates(student);
-  const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || formatDateForInput(new Date());
+  const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || getCurrentMexicoDateValue();
   const sessionFields = Array.from(
     attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
   );
@@ -9838,13 +9998,30 @@ async function saveAttendanceForStudent(studentId) {
   const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
   const selectedSessionDataset = __veneziaGet(sessionFields.find((field) => field.value), "dataset");
   const firstSelectedSessionDate = __veneziaGet(selectedSessionDataset, "sessionDate") || date;
-  const recordsToSave = sessionFields
-    .filter((field) => field.value)
+  const selectedSessionFields = sessionFields.filter((field) => field.value);
+  const selectedSessionDates = selectedSessionFields
+    .map((field) => normalizeLocalDateKey(field.dataset.sessionDate))
+    .filter(Boolean);
+  let remoteAttendanceRecordsByDate = new Map();
+
+  if (selectedSessionDates.length > 0) {
+    try {
+      remoteAttendanceRecordsByDate = await fetchRemoteAttendanceRecordsByStudentDates(studentId, selectedSessionDates);
+    } catch (error) {
+      console.error("No se pudo verificar la asistencia remota antes de guardar.", error);
+      alert("No se pudo verificar si ya existía asistencia en Supabase. No se guardó para evitar duplicados.");
+      return;
+    }
+  }
+
+  const recordsToSave = selectedSessionFields
     .map((field) => {
-      const sessionDate = field.dataset.sessionDate;
-      const existingIndex = attendanceRecords.findIndex((record) => record.studentId === studentId && record.fecha === sessionDate);
-      return {
-        id: existingIndex >= 0 ? attendanceRecords[existingIndex].id : createMiVeneziaCompatibleId(),
+      const sessionDate = normalizeLocalDateKey(field.dataset.sessionDate) || field.dataset.sessionDate;
+      const remoteRecord = remoteAttendanceRecordsByDate.get(sessionDate) || null;
+      const existingRecord = getAttendanceRecord(studentId, sessionDate) || null;
+      const matchedRecord = remoteRecord || existingRecord;
+      const localRecord = {
+        id: __veneziaGet(matchedRecord, "id") || createMiVeneziaCompatibleId(),
         studentId,
         fecha: sessionDate,
         estado: field.value,
@@ -9855,13 +10032,11 @@ async function saveAttendanceForStudent(studentId) {
                 reportes: String(__veneziaGet(reportesField, "value") || "").trim(),
                 observaciones: String(__veneziaGet(observacionesField, "value") || "").trim(),
               })
-            : __veneziaGet(attendanceRecords[existingIndex], "observaciones") || "",
+            : __veneziaGet(matchedRecord, "observaciones") || "",
         recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
-        createdAt:
-          existingIndex >= 0
-            ? attendanceRecords[existingIndex].createdAt || new Date().toISOString()
-            : new Date().toISOString(),
+        createdAt: __veneziaGet(matchedRecord, "createdAt") || new Date().toISOString(),
       };
+      return mergeAttendanceRecordForSync(remoteRecord, localRecord);
     });
 
   if (recordsToSave.length === 0 && !documentsChanged) {
@@ -9887,7 +10062,7 @@ async function saveAttendanceForStudent(studentId) {
 
   const saveResults = [];
   for (const record of recordsToSave) {
-    saveResults.push(await saveAttendanceRecord(record));
+    saveResults.push(await saveAttendanceRecord(record, { remoteRecordsByDate: remoteAttendanceRecordsByDate }));
   }
 
   if (saveResults.some((result) => !result.synced)) {
@@ -9895,7 +10070,7 @@ async function saveAttendanceForStudent(studentId) {
     if (selectedAttendanceStudentId === studentId) {
       renderAttendanceHistory(studentId);
     }
-    alert("No se pudo guardar toda la asistencia en Supabase. Se conservó sólo en el respaldo local.");
+    alert("No se pudo guardar toda la asistencia en Supabase. Revisa tu conexión e inténtalo de nuevo.");
     return;
   }
 
@@ -9928,7 +10103,7 @@ async function completeStudentCourseFromAttendance(studentId) {
 
   const saveResult = await saveStudentRecord({
     ...student,
-    lifecycleStatus: STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION,
+    estado: ATTENDANCE_COURSE_COMPLETED_STATUS,
   });
 
   if (!saveResult.synced) {
@@ -9938,8 +10113,6 @@ async function completeStudentCourseFromAttendance(studentId) {
 
   await refreshSharedSupabaseState({ force: true, render: false });
   renderAttendanceTable();
-  renderPaymentsTable();
-  renderDashboard();
 }
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
