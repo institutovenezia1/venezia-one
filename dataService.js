@@ -265,6 +265,26 @@
       return __veneziaGet(data, 0) || null;
     }
 
+    async function selectOnePaymentByStudentIdFromSupabase(studentId) {
+      const client = __veneziaGet(globalScope.VeneziaSupabase, "client");
+      const normalizedStudentId = String(studentId || "").trim();
+      if (!client || table !== "student_payments" || !normalizedStudentId) {
+        return null;
+      }
+
+      const { data, error } = await client
+        .from(table)
+        .select("*")
+        .eq("student_id", normalizedStudentId)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (error) {
+        throw error;
+      }
+
+      return __veneziaGet(data, 0) || null;
+    }
+
     function normalizeComparableDbValue(value) {
       if (value === undefined || value === null) {
         return "";
@@ -456,42 +476,46 @@
       async upsertOne(record, options = {}) {
         const existingRecords = localService.getAll(fallbackFactory);
         let normalizedRecord = record;
+        let reusedExistingPaymentRecord = false;
         if (table === "student_payments") {
-          const targetMonth = String(record.mesPago || "").trim();
-          const getPaymentMonthKey = (item) => {
-            if (__veneziaGet(item, "mesPago")) {
-              return String(item.mesPago).trim();
-            }
-
-            const timestamp = String(__veneziaGet(item, "updatedAt") || __veneziaGet(item, "createdAt") || "").slice(0, 7);
-            return timestamp || "";
-          };
-          const existingRecordByStudentAndMonth = existingRecords.find(
-            (item) =>
-              item.studentId === record.studentId &&
-              item.id !== record.id &&
-              isUuidValue(item.id) &&
-              getPaymentMonthKey(item) &&
-              getPaymentMonthKey(item) === targetMonth
+          let existingRecordByStudent = findPaymentRecordByStudentId(
+            existingRecords,
+            __veneziaGet(record, "studentId"),
+            __veneziaGet(record, "id")
           );
-          if (__veneziaGet(existingRecordByStudentAndMonth, "id")) {
-            normalizedRecord = {
-              ...record,
-              id: existingRecordByStudentAndMonth.id,
-              createdAt: record.createdAt || existingRecordByStudentAndMonth.createdAt || null,
-            };
-            console.log('Supabase payment existing month row reused before upsert:', {
+
+          if (!existingRecordByStudent && __veneziaGet(record, "studentId")) {
+            try {
+              const remoteRecordByStudent = await selectOnePaymentByStudentIdFromSupabase(record.studentId);
+              if (
+                remoteRecordByStudent &&
+                String(__veneziaGet(remoteRecordByStudent, "id") || "").trim() !== String(__veneziaGet(record, "id") || "").trim()
+              ) {
+                existingRecordByStudent = fromDb(remoteRecordByStudent);
+              }
+            } catch (lookupError) {
+              console.warn("No se pudo buscar student_payment remoto por student_id antes del upsert.", {
+                studentId: record.studentId || "",
+                paymentId: record.id || "",
+                error: lookupError,
+              });
+            }
+          }
+
+          if (__veneziaGet(existingRecordByStudent, "id")) {
+            normalizedRecord = mergePaymentRecordByStudentId(existingRecordByStudent, record);
+            reusedExistingPaymentRecord = true;
+            console.log("Supabase payment existing student row reused before upsert:", {
               studentId: record.studentId || "",
-              targetMonth,
               previousId: record.id || "",
-              reusedId: existingRecordByStudentAndMonth.id,
+              reusedId: existingRecordByStudent.id,
             });
           }
         }
 
         const hadExistingRecord = existingRecords.some((item) => item.id === normalizedRecord.id);
         const payload = [toDb(normalizedRecord)];
-        const operationLabel = hadExistingRecord ? "update" : "insert";
+        const operationLabel = hadExistingRecord || reusedExistingPaymentRecord ? "update" : "insert";
         const shouldTracePayload =
           table === "prospects" || table === "staff" || table === "students" || table === "student_payments";
 
@@ -572,6 +596,55 @@
               }
             } catch (verificationError) {
               console.error(`No se pudo verificar si ${table} quedó guardado tras el error.`, verificationError);
+            }
+
+            const isDuplicateStudentPaymentError =
+              String(__veneziaGet(error, "code") || "").trim() === "23505" &&
+              String(
+                __veneziaGet(error, "message") ||
+                  __veneziaGet(error, "details") ||
+                  __veneziaGet(error, "hint") ||
+                  ""
+              ).includes("student_payments_student_id_key");
+            if (isDuplicateStudentPaymentError) {
+              try {
+                const remoteRecordByStudent = await selectOnePaymentByStudentIdFromSupabase(normalizedRecord.studentId);
+                if (remoteRecordByStudent) {
+                  const remotePaymentRecord = fromDb(remoteRecordByStudent);
+                  const retryRecord = mergePaymentRecordByStudentId(remotePaymentRecord, normalizedRecord);
+                  const retryPayload = [toDb(retryRecord)];
+                  console.warn("Supabase payment 23505 recuperado usando student_id remoto.", {
+                    studentId: normalizedRecord.studentId || "",
+                    previousId: normalizedRecord.id || "",
+                    reusedId: retryRecord.id || "",
+                    retryPayload: retryPayload[0],
+                  });
+                  const retryResponse = await upsertManyToSupabase([retryRecord]);
+                  const syncedRecord = retryResponse.records[0] || retryRecord;
+                  localService.setAll(mergeSyncedPaymentRecord(localService.getAll(fallbackFactory), syncedRecord));
+                  return {
+                    record: syncedRecord,
+                    synced: true,
+                    recoveredFromStudentConflict: true,
+                    error: null,
+                    originalError: error,
+                    response: {
+                      data: retryResponse.data,
+                      payload: retryResponse.payload,
+                      status: retryResponse.status || null,
+                      statusText: retryResponse.statusText || "Recovered from student_id conflict",
+                      remoteVerification: {
+                        found: true,
+                        matchesPayload: true,
+                        remoteId: retryRecord.id || "",
+                        remoteUpdatedAt: __veneziaGet(remoteRecordByStudent, "updated_at") || "",
+                      },
+                    },
+                  };
+                }
+              } catch (studentConflictRecoveryError) {
+                console.error("No se pudo recuperar student_payments 23505 por student_id.", studentConflictRecoveryError);
+              }
             }
           }
           const fallbackRecord = buildLocalPaymentFallbackRecord(normalizedRecord, error, payload[0]);
@@ -672,8 +745,137 @@
   }
 
   function isUuidValue(value) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
       String(value || "").trim()
+    );
+  }
+
+  const PAYMENT_STATUS_FIELDS = [
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+  ];
+  const PAYMENT_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
+
+  function getNonEmptyPaymentValue(record, field) {
+    return String(__veneziaCoalesce(__veneziaGet(record, field), "")).trim();
+  }
+
+  function isEligiblePaymentStatus(value) {
+    return PAYMENT_ELIGIBLE_STATUSES.has(String(value || "").trim());
+  }
+
+  function normalizePaymentDateValue(value) {
+    const normalizedValue = String(value || "").trim();
+    const match = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      return "";
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return "";
+    }
+
+    return normalizedValue;
+  }
+
+  function mergePaymentStatusValue(remoteRecord, localRecord, field) {
+    const remoteValue = getNonEmptyPaymentValue(remoteRecord, field);
+    const localValue = getNonEmptyPaymentValue(localRecord, field);
+
+    if (remoteValue === "Pagado" && localValue !== "Pagado") {
+      return remoteValue;
+    }
+    if (isEligiblePaymentStatus(localValue)) {
+      return localValue;
+    }
+    if (isEligiblePaymentStatus(remoteValue)) {
+      return remoteValue;
+    }
+    return localValue || remoteValue;
+  }
+
+  function mergePaymentRecordByStudentId(remoteRecord, localRecord) {
+    const now = new Date().toISOString();
+    const mergedRecord = {
+      ...remoteRecord,
+      id: __veneziaGet(remoteRecord, "id") || __veneziaGet(localRecord, "id") || "",
+      studentId: __veneziaGet(remoteRecord, "studentId") || __veneziaGet(localRecord, "studentId") || "",
+      createdAt: __veneziaGet(remoteRecord, "createdAt") || __veneziaGet(localRecord, "createdAt") || now,
+      updatedAt: now,
+    };
+
+    [
+      "mensualidadPactada",
+      "pagosPendientes",
+      "metodoPago",
+      "reportes",
+      "observaciones",
+      "lastMonthlyPaymentStatus",
+      "continuityStatus",
+      "nextCourse",
+      "lifecycleStatus",
+      "mesPago",
+      "paymentMovementConcept",
+    ].forEach((field) => {
+      const localValue = getNonEmptyPaymentValue(localRecord, field);
+      if (localValue) {
+        mergedRecord[field] = localRecord[field];
+      }
+    });
+
+    PAYMENT_STATUS_FIELDS.forEach((field) => {
+      mergedRecord[field] = mergePaymentStatusValue(remoteRecord, localRecord, field);
+    });
+
+    const localPaymentAmount = toNullableNumberValue(__veneziaGet(localRecord, "cantidadPagada"));
+    if (localPaymentAmount !== null && localPaymentAmount > 0) {
+      mergedRecord.cantidadPagada = localRecord.cantidadPagada;
+    }
+
+    const localPaymentRealDate = normalizePaymentDateValue(__veneziaGet(localRecord, "paymentRealDate"));
+    const remotePaymentRealDate = normalizePaymentDateValue(__veneziaGet(remoteRecord, "paymentRealDate"));
+    if (localPaymentRealDate) {
+      mergedRecord.paymentRealDate = localPaymentRealDate;
+    } else if (remotePaymentRealDate) {
+      mergedRecord.paymentRealDate = remotePaymentRealDate;
+    } else {
+      mergedRecord.paymentRealDate = __veneziaGet(remoteRecord, "paymentRealDate") || "";
+    }
+
+    return mergedRecord;
+  }
+
+  function findPaymentRecordByStudentId(records, studentId, excludedId = "") {
+    const normalizedStudentId = String(studentId || "").trim();
+    const normalizedExcludedId = String(excludedId || "").trim();
+    if (!normalizedStudentId) {
+      return null;
+    }
+
+    return (
+      records
+        .filter(
+          (record) =>
+            String(__veneziaGet(record, "studentId") || "").trim() === normalizedStudentId &&
+            String(__veneziaGet(record, "id") || "").trim() !== normalizedExcludedId &&
+            isUuidValue(__veneziaGet(record, "id"))
+        )
+        .sort((left, right) =>
+          getPaymentRecordSortDate(right).localeCompare(getPaymentRecordSortDate(left))
+        )[0] || null
     );
   }
 
@@ -708,6 +910,10 @@
       return false;
     }
 
+    if (String(__veneziaGet(localRecord, "localSyncStatus") || "").trim() === "pending") {
+      return true;
+    }
+
     const remoteSameIdentity = remoteRecords.find((record) => getPaymentRecordIdentityKey(record) === localIdentityKey);
     if (!remoteSameIdentity) {
       return true;
@@ -720,31 +926,36 @@
     return getPaymentRecordSortDate(localRecord) > getPaymentRecordSortDate(remoteSameIdentity);
   }
 
-    function mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecords) {
-      const recoverableLocalRecords = localRecords.filter((record) => isRecoverableLocalPaymentRecord(record, remoteRecords));
-      if (recoverableLocalRecords.length === 0) {
-        return {
-          primaryRecords: remoteRecords,
-          cacheRecords: remoteRecords,
-          pendingLocalRecords: [],
-        };
-      }
-
-      console.warn("Pagos locales pendientes conservados para recuperación:", {
-        count: recoverableLocalRecords.length,
-        ids: recoverableLocalRecords.map((record) => __veneziaGet(record, "id") || ""),
-      });
+  function mergeRemotePaymentsWithLocalFallbacks(remoteRecords, localRecords) {
+    const recoverableLocalRecords = localRecords.filter((record) => isRecoverableLocalPaymentRecord(record, remoteRecords));
+    if (recoverableLocalRecords.length === 0) {
       return {
         primaryRecords: remoteRecords,
-        cacheRecords: [...recoverableLocalRecords, ...remoteRecords],
-        pendingLocalRecords: recoverableLocalRecords,
+        cacheRecords: remoteRecords,
+        pendingLocalRecords: [],
       };
     }
 
+    console.warn("Pagos locales pendientes conservados para recuperación:", {
+      count: recoverableLocalRecords.length,
+      ids: recoverableLocalRecords.map((record) => __veneziaGet(record, "id") || ""),
+    });
+    return {
+      primaryRecords: remoteRecords,
+      cacheRecords: [...recoverableLocalRecords, ...remoteRecords],
+      pendingLocalRecords: recoverableLocalRecords,
+    };
+  }
+
   function mergeSyncedPaymentRecord(records, syncedRecord) {
     const syncedIdentityKey = getPaymentRecordIdentityKey(syncedRecord);
+    const syncedStudentId = String(__veneziaGet(syncedRecord, "studentId") || "").trim();
     const merged = records.filter((record) => {
       if (record.id === syncedRecord.id) {
+        return false;
+      }
+
+      if (syncedStudentId && String(__veneziaGet(record, "studentId") || "").trim() === syncedStudentId) {
         return false;
       }
 

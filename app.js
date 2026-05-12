@@ -6172,13 +6172,18 @@ async function syncAltaInscriptionFinanceDelta(previousStudentRecord, nextStuden
   };
 }
 
-function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords) {
-  if (!paymentId) {
+function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords, paymentIdAliases = []) {
+  const linkedPaymentIds = new Set(
+    [paymentId, ...paymentIdAliases]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  );
+  if (linkedPaymentIds.size === 0) {
     return [];
   }
 
   return records
-    .filter((record) => record.relatedPaymentId === paymentId)
+    .filter((record) => linkedPaymentIds.has(String(__veneziaGet(record, "relatedPaymentId") || "").trim()))
     .sort((left, right) => {
       const dateComparison = String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
       if (dateComparison !== 0) {
@@ -6338,8 +6343,12 @@ async function deleteLinkedPaymentFinanceRecords(paymentId) {
   };
 }
 
-async function syncPaymentFinanceRecord(paymentRecord, { student: providedStudent = null } = {}) {
-  const linkedRecords = getLinkedPaymentFinanceRecords(__veneziaGet(paymentRecord, "id"));
+async function syncPaymentFinanceRecord(paymentRecord, { student: providedStudent = null, paymentIdAliases = [] } = {}) {
+  const linkedRecords = getLinkedPaymentFinanceRecords(
+    __veneziaGet(paymentRecord, "id"),
+    financeRecords,
+    paymentIdAliases
+  );
   const canonicalRecord = linkedRecords[0] || null;
   const student = providedStudent || getStudentById(__veneziaGet(paymentRecord, "studentId"));
   const isEligible = isRealPaidPaymentRecord(paymentRecord) && Boolean(student);
@@ -6404,6 +6413,117 @@ function getPaymentAutoSyncSignature(record) {
   };
 }
 
+function getLatestRemotePaymentByStudentId(studentId, remoteRecords = paymentRecords) {
+  const normalizedStudentId = String(studentId || "").trim();
+  if (!normalizedStudentId) {
+    return null;
+  }
+
+  return (
+    remoteRecords
+      .filter(
+        (remoteRecord) =>
+          isUuidValue(__veneziaGet(remoteRecord, "id")) &&
+          String(__veneziaGet(remoteRecord, "studentId") || "").trim() === normalizedStudentId
+      )
+      .sort((left, right) =>
+        String(__veneziaGet(right, "updatedAt") || __veneziaGet(right, "createdAt") || "").localeCompare(
+          String(__veneziaGet(left, "updatedAt") || __veneziaGet(left, "createdAt") || "")
+        )
+      )[0] || null
+  );
+}
+
+function getNonEmptyPaymentMergeValue(record, field) {
+  const value = __veneziaGet(record, field);
+  return String(__veneziaCoalesce(value, "")).trim();
+}
+
+function mergePaymentStatusForStudentSync(remoteRecord, localRecord, field) {
+  const remoteValue = getNonEmptyPaymentMergeValue(remoteRecord, field);
+  const localValue = getNonEmptyPaymentMergeValue(localRecord, field);
+
+  if (remoteValue === "Pagado" && localValue !== "Pagado") {
+    return remoteValue;
+  }
+  if (isEligiblePaymentStatus(localValue)) {
+    return localValue;
+  }
+  if (isEligiblePaymentStatus(remoteValue)) {
+    return remoteValue;
+  }
+  return localValue || remoteValue;
+}
+
+function getLocalPaymentConceptForStudentSync(localRecord) {
+  const storedConcept = getSafeStoredPaymentConcept(localRecord);
+  if (storedConcept) {
+    return storedConcept;
+  }
+
+  return getPaymentMovementConceptLabels(localRecord).join(" + ");
+}
+
+function mergeRemotePaymentWithLocalFallback(remoteRecord, localRecord) {
+  if (!remoteRecord) {
+    return { ...localRecord };
+  }
+
+  const now = new Date().toISOString();
+  const mergedRecord = {
+    ...remoteRecord,
+    id: remoteRecord.id,
+    studentId: remoteRecord.studentId || localRecord.studentId || "",
+    createdAt: remoteRecord.createdAt || localRecord.createdAt || now,
+    updatedAt: now,
+  };
+
+  [
+    "mensualidadPactada",
+    "pagosPendientes",
+    "metodoPago",
+    "reportes",
+    "observaciones",
+    "lastMonthlyPaymentStatus",
+    "continuityStatus",
+    "nextCourse",
+    "lifecycleStatus",
+    "mesPago",
+  ].forEach((field) => {
+    const localValue = getNonEmptyPaymentMergeValue(localRecord, field);
+    if (localValue) {
+      mergedRecord[field] = localRecord[field];
+    }
+  });
+
+  BALANCE_PAYMENT_CONCEPT_FIELDS.forEach(({ key }) => {
+    mergedRecord[key] = mergePaymentStatusForStudentSync(remoteRecord, localRecord, key);
+  });
+
+  if (parsePaymentAmount(__veneziaGet(localRecord, "cantidadPagada")) > 0) {
+    mergedRecord.cantidadPagada = localRecord.cantidadPagada;
+  }
+
+  const localPaymentRealDate = getStoredPaymentRealDate(localRecord);
+  const remotePaymentRealDate = getStoredPaymentRealDate(remoteRecord);
+  if (localPaymentRealDate) {
+    mergedRecord.paymentRealDate = localPaymentRealDate;
+  } else if (remotePaymentRealDate) {
+    mergedRecord.paymentRealDate = remotePaymentRealDate;
+  } else {
+    mergedRecord.paymentRealDate = remoteRecord.paymentRealDate || "";
+  }
+
+  const localPaymentConcept = getLocalPaymentConceptForStudentSync(localRecord);
+  if (localPaymentConcept) {
+    mergedRecord.paymentMovementConcept = localPaymentConcept;
+  } else if (!mergedRecord.paymentMovementConcept) {
+    mergedRecord.paymentMovementConcept = remoteRecord.paymentMovementConcept || "";
+  }
+
+  return mergedRecord;
+}
+
 function findRemotePaymentMatchForLocalFallback(localRecord, remoteRecords = paymentRecords) {
   const localId = String(__veneziaGet(localRecord, "id") || "").trim();
   if (localId) {
@@ -6411,6 +6531,11 @@ function findRemotePaymentMatchForLocalFallback(localRecord, remoteRecords = pay
     if (exactMatch) {
       return exactMatch;
     }
+  }
+
+  const studentMatch = getLatestRemotePaymentByStudentId(__veneziaGet(localRecord, "studentId"), remoteRecords);
+  if (studentMatch) {
+    return studentMatch;
   }
 
   const localSignature = getPaymentAutoSyncSignature(localRecord);
@@ -6461,10 +6586,18 @@ function getLocalPaymentFallbackCandidates(remoteRecords = paymentRecords) {
   return localRecords.filter((record) => isLocalPaymentFallbackCandidate(record, remoteRecords));
 }
 
-function prepareLocalPaymentFallbackForSync(record) {
+function prepareLocalPaymentFallbackForSync(record, existingRemoteRecord = null) {
+  const baseRecord = existingRemoteRecord
+    ? mergeRemotePaymentWithLocalFallback(existingRemoteRecord, record)
+    : record;
   const nextRecord = {
-    ...record,
-    id: isUuidValue(__veneziaGet(record, "id")) ? record.id : createPaymentUuid(),
+    ...baseRecord,
+    id: existingRemoteRecord
+      ? existingRemoteRecord.id
+      : isUuidValue(__veneziaGet(record, "id"))
+        ? record.id
+        : createPaymentUuid(),
+    studentId: __veneziaGet(existingRemoteRecord, "studentId") || __veneziaGet(record, "studentId") || "",
     updatedAt: new Date().toISOString(),
   };
 
@@ -6643,34 +6776,59 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
       localKey: __veneziaGet(dataService, "keys.payments") || "venezia-one-v2-pagos",
     });
 
+    const isDuplicateStudentPaymentError = (error) =>
+      String(__veneziaGet(error, "code") || "").trim() === "23505" &&
+      String(
+        __veneziaGet(error, "message") ||
+          __veneziaGet(error, "details") ||
+          __veneziaGet(error, "hint") ||
+          ""
+      ).includes("student_payments_student_id_key");
+
     for (const localRecord of candidates) {
       console.info("Auto-sync pago local pendiente detectado.", getPaymentAutoSyncRecordSummary(localRecord));
 
       const existingRemoteRecord = findRemotePaymentMatchForLocalFallback(localRecord, paymentRecords);
       if (existingRemoteRecord) {
-        console.info("Auto-sync pago local ya existia remoto; se limpiara respaldo local.", {
+        console.info("Auto-sync pago local usara registro remoto existente por studentId.", {
           local: getPaymentAutoSyncRecordSummary(localRecord),
           remote: getPaymentAutoSyncRecordSummary(existingRemoteRecord),
         });
-        skippedCount += 1;
-        continue;
       }
 
-      if (isRealPaidPaymentRecord(localRecord) && !getStoredPaymentRealDate(localRecord)) {
+      let syncRecord = prepareLocalPaymentFallbackForSync(localRecord, existingRemoteRecord);
+      if (isRealPaidPaymentRecord(syncRecord) && !getStoredPaymentRealDate(syncRecord)) {
         const failureRecord = buildPaymentAutoSyncFailureRecord(localRecord, {
           stage: "validacion",
           message: "Falta Fecha real de pago; no se sincronizó automáticamente para evitar moverlo a una fecha incorrecta.",
-          payload: buildPaymentSupabasePayload(localRecord),
+          payload: buildPaymentSupabasePayload(syncRecord),
         });
         console.warn("Auto-sync pago local detenido por datos incompletos.", getPaymentAutoSyncRecordSummary(failureRecord, failureRecord.localSyncPayloadSummary));
         failedLocalRecords.push(failureRecord);
         continue;
       }
 
-      const syncRecord = prepareLocalPaymentFallbackForSync(localRecord);
-      const paymentPayload = buildPaymentSupabasePayload(syncRecord);
+      let paymentPayload = buildPaymentSupabasePayload(syncRecord);
       console.info("Auto-sync intentando student_payments.", getPaymentAutoSyncRecordSummary(syncRecord, paymentPayload));
-      const paymentSaveResult = await savePaymentRecord(syncRecord);
+      let paymentSaveResult = await savePaymentRecord(syncRecord);
+      if (!paymentSaveResult.synced && isDuplicateStudentPaymentError(paymentSaveResult.error)) {
+        try {
+          const refreshedRemoteRecords = await dataService.entities.payments.getRemoteRecords();
+          const duplicateRemoteRecord = findRemotePaymentMatchForLocalFallback(localRecord, refreshedRemoteRecords);
+          if (duplicateRemoteRecord) {
+            syncRecord = prepareLocalPaymentFallbackForSync(localRecord, duplicateRemoteRecord);
+            paymentPayload = buildPaymentSupabasePayload(syncRecord);
+            console.warn("Auto-sync recuperando 23505 con registro remoto por studentId.", {
+              local: getPaymentAutoSyncRecordSummary(localRecord),
+              remote: getPaymentAutoSyncRecordSummary(duplicateRemoteRecord),
+              retryPayload: paymentPayload,
+            });
+            paymentSaveResult = await savePaymentRecord(syncRecord);
+          }
+        } catch (retryLookupError) {
+          console.error("No se pudo buscar pago remoto por studentId despues de 23505.", retryLookupError);
+        }
+      }
       if (!paymentSaveResult.synced) {
         const failureRecord = buildPaymentAutoSyncFailureRecord(paymentSaveResult.record || syncRecord, {
           stage: "student_payments",
@@ -6697,6 +6855,7 @@ async function autoSyncLocalPaymentFallbacks({ showMessage = false } = {}) {
       if (isRealPaidPaymentRecord(savedPaymentRecord)) {
         const financeSyncResult = await syncPaymentFinanceRecord(savedPaymentRecord, {
           student: getStudentById(savedPaymentRecord.studentId),
+          paymentIdAliases: [__veneziaGet(localRecord, "id")].filter(Boolean),
         });
         if (!financeSyncResult.synced) {
           const financeMessage = `${getPaymentAutoSyncStudentName(savedPaymentRecord)}: finance_record - ${getPaymentAutoSyncErrorText(
