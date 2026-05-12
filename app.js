@@ -191,6 +191,9 @@ const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
 const ALTA_FINANCE_SOURCE = "altas";
 const ALTA_INSCRIPTION_CONCEPT_KEY = "inscription_payment";
 const ALTA_INSCRIPTION_CONCEPT_LABEL = "Pago de inscripción";
+const BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX = "balance-expense:";
+const BALANCE_FINANCE_SOURCE = "balance";
+const BALANCE_EXPENSE_CONCEPT_KEY = "balance_expense";
 const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "SELENE ABREGON GUILLEN",
   "ADRIANA PRIETO ZAMORANO",
@@ -497,12 +500,14 @@ const paymentsArchivedTableBody = document.getElementById("paymentsArchivedTable
 const paymentsArchivedEmptyState = document.getElementById("paymentsArchivedEmptyState");
 const balanceBranchFilter = document.getElementById("balanceBranchFilter");
 const balanceDateFilter = document.getElementById("balanceDateFilter");
-const balanceIncomeTotal = document.getElementById("balanceIncomeTotal");
+const balanceIncomeCashTotal = document.getElementById("balanceIncomeCashTotal");
+const balanceIncomeTransferTotal = document.getElementById("balanceIncomeTransferTotal");
+const balanceInscriptionCashTotal = document.getElementById("balanceInscriptionCashTotal");
+const balanceInscriptionTransferTotal = document.getElementById("balanceInscriptionTransferTotal");
 const balanceExpenseTotal = document.getElementById("balanceExpenseTotal");
+const balanceCashMethodTotal = document.getElementById("balanceCashMethodTotal");
+const balanceTransferMethodTotal = document.getElementById("balanceTransferMethodTotal");
 const balanceCashTotal = document.getElementById("balanceCashTotal");
-const balanceInscriptionTotal = document.getElementById("balanceInscriptionTotal");
-const balanceInscriptionMeta = document.getElementById("balanceInscriptionMeta");
-const balanceInscriptionToggleButtons = Array.from(document.querySelectorAll("[data-balance-inscription-view]"));
 const balanceSummaryIncome = document.getElementById("balanceSummaryIncome");
 const balanceSummaryExpense = document.getElementById("balanceSummaryExpense");
 const balanceSummaryCash = document.getElementById("balanceSummaryCash");
@@ -862,7 +867,6 @@ let sharedDataRefreshPromise = null;
 let lastSharedDataRefreshAt = 0;
 let sharedDataRefreshRequestSeq = 0;
 let balanceDateWasManuallySelected = false;
-let activeBalanceInscriptionView = "day";
 let miVeneziaRenderCycleId = 0;
 let miVeneziaLoginAttemptInProgress = false;
 let miVeneziaLastLoginAttemptAt = 0;
@@ -6004,6 +6008,17 @@ function buildAltaInscriptionFinanceReference(altaId) {
   return altaId ? `${ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX}${altaId}` : "";
 }
 
+function buildBalanceExpenseFinanceReference(expenseId) {
+  return expenseId ? `${BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX}${expenseId}` : "";
+}
+
+function getBalanceExpenseIdFromFinanceReference(reference) {
+  const normalizedReference = String(reference || "").trim();
+  return normalizedReference.startsWith(BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX)
+    ? normalizedReference.slice(BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX.length)
+    : "";
+}
+
 function isAltaInscriptionFinanceRecord(record) {
   const normalizedSource = String(__veneziaGet(record, "source") || "").trim().toLowerCase();
   const normalizedConceptKey = String(__veneziaGet(record, "conceptKey") || "").trim().toLowerCase();
@@ -6015,6 +6030,17 @@ function isAltaInscriptionFinanceRecord(record) {
   );
 }
 
+function isBalanceExpenseFinanceRecord(record) {
+  const normalizedSource = String(__veneziaGet(record, "source") || "").trim().toLowerCase();
+  const normalizedConceptKey = String(__veneziaGet(record, "conceptKey") || "").trim().toLowerCase();
+  const reference = String(__veneziaGet(record, "reference") || "").trim();
+
+  return (
+    (normalizedSource === BALANCE_FINANCE_SOURCE && normalizedConceptKey === BALANCE_EXPENSE_CONCEPT_KEY) ||
+    reference.startsWith(BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX)
+  );
+}
+
 function mapAltaInscriptionFinanceRecord(record) {
   return {
     ...record,
@@ -6022,6 +6048,74 @@ function mapAltaInscriptionFinanceRecord(record) {
     sourceRecordId: record.id,
     sourceStudentId: record.relatedStudentId || record.relatedAltaId || "",
     sourceAltaId: record.relatedAltaId || record.relatedStudentId || "",
+  };
+}
+
+function parseBalanceExpenseDetails(value) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return {
+      nota: "",
+      cantidad: 0,
+      costoUnitario: 0,
+      responsableGasto: "",
+    };
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+    if (parsedValue && typeof parsedValue === "object") {
+      return {
+        nota: String(__veneziaGet(parsedValue, "nota") || "").trim(),
+        cantidad: Number(__veneziaGet(parsedValue, "cantidad") || 0),
+        costoUnitario: Number(__veneziaGet(parsedValue, "costoUnitario") || 0),
+        responsableGasto: String(__veneziaGet(parsedValue, "responsableGasto") || "").trim(),
+      };
+    }
+  } catch (error) {
+    // Older records may have plain text observations.
+  }
+
+  return {
+    nota: rawValue,
+    cantidad: 0,
+    costoUnitario: 0,
+    responsableGasto: "",
+  };
+}
+
+function buildBalanceExpenseDetails(record) {
+  return JSON.stringify({
+    nota: String(__veneziaGet(record, "nota") || "").trim(),
+    cantidad: Number(__veneziaGet(record, "cantidad") || 0),
+    costoUnitario: Number(__veneziaGet(record, "costoUnitario") || 0),
+    responsableGasto: String(__veneziaGet(record, "responsableGasto") || "").trim(),
+  });
+}
+
+function mapBalanceExpenseFinanceRecord(record) {
+  const details = parseBalanceExpenseDetails(__veneziaGet(record, "observaciones"));
+  const sourceRecordId = getBalanceExpenseIdFromFinanceReference(__veneziaGet(record, "reference")) || record.id;
+  const amount = Number(__veneziaGet(record, "monto") || 0);
+  const cantidad = Number(details.cantidad || 0);
+  const costoUnitario = Number(details.costoUnitario || 0);
+
+  return {
+    ...record,
+    sourceType: "balance-expense",
+    sourceRecordId,
+    fecha: record.fecha || "",
+    tipo: "Egreso",
+    categoria: record.categoria || "Otro egreso",
+    concepto: record.concepto || "Egreso manual",
+    monto: amount,
+    metodoPago: record.metodoPago || "N/A",
+    cantidad: cantidad > 0 ? cantidad : 1,
+    costoUnitario: costoUnitario > 0 ? costoUnitario : amount,
+    nombreGasto: record.concepto || "Egreso manual",
+    responsableGasto: details.responsableGasto || record.usuario || "",
+    observaciones: details.nota || "",
+    createdAt: record.createdAt || "",
   };
 }
 
@@ -7017,11 +7111,196 @@ function getDerivedFinanceIncomeRecords(linkedPaymentIds = new Set()) {
     .filter(Boolean);
 }
 
-function getDerivedFinanceExpenseRecords() {
+function getBalanceExpenseFinanceRecordByExpenseId(expenseId) {
+  const normalizedId = String(expenseId || "").trim();
+  if (!normalizedId) {
+    return null;
+  }
+
+  const expectedReference = buildBalanceExpenseFinanceReference(normalizedId);
+  return (
+    financeRecords.find((record) => {
+      if (!isBalanceExpenseFinanceRecord(record)) {
+        return false;
+      }
+
+      const reference = String(record.reference || "").trim();
+      return (
+        reference === expectedReference ||
+        getBalanceExpenseIdFromFinanceReference(reference) === normalizedId ||
+        String(record.id || "").trim() === normalizedId
+      );
+    }) || null
+  );
+}
+
+function getBalanceExpenseRecordById(expenseId) {
+  const normalizedId = String(expenseId || "").trim();
+  if (!normalizedId) {
+    return null;
+  }
+
+  const record =
+    getCentralFinanceRecords().find((item) => {
+      if (item.sourceType !== "balance-expense" || item.tipo !== "Egreso") {
+        return false;
+      }
+
+      return String(item.sourceRecordId || item.id || "").trim() === normalizedId;
+    }) || null;
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    id: record.sourceRecordId || record.id,
+    fecha: record.fecha,
+    nombreGasto: record.nombreGasto || record.concepto || "",
+    cantidad: Number(record.cantidad || 0),
+    costoUnitario: Number(record.costoUnitario || 0),
+    total: Number(record.monto || 0),
+    responsableGasto: record.responsableGasto || record.usuario || "",
+    nota: record.observaciones || "",
+    sucursal: record.sucursal || "",
+    createdAt: record.createdAt || "",
+  };
+}
+
+function buildBalanceExpenseFinanceRecord(expenseData, existingFinanceRecord = null) {
+  const expenseId = String(expenseData.id || getBalanceExpenseIdFromFinanceReference(__veneziaGet(existingFinanceRecord, "reference")) || "").trim() || createMiVeneziaCompatibleId();
+  const financeRecordId =
+    __veneziaGet(existingFinanceRecord, "id") ||
+    (isUuidValue(expenseId) ? expenseId : createMiVeneziaCompatibleId());
+  const expenseConcept = String(expenseData.nombreGasto || __veneziaGet(existingFinanceRecord, "concepto") || "Egreso manual").trim();
+
+  return {
+    id: financeRecordId,
+    fecha: normalizeLocalDateKey(expenseData.fecha) || String(expenseData.fecha || "").trim(),
+    sucursal: expenseData.sucursal || "",
+    tipo: "Egreso",
+    categoria: "Otro egreso",
+    concepto: expenseConcept,
+    paymentConcept: expenseConcept,
+    source: BALANCE_FINANCE_SOURCE,
+    conceptKey: BALANCE_EXPENSE_CONCEPT_KEY,
+    alumna: "",
+    monto: Number(expenseData.total || 0),
+    metodoPago: "N/A",
+    usuario: expenseData.responsableGasto || __veneziaGet(existingFinanceRecord, "usuario") || "",
+    observaciones: buildBalanceExpenseDetails(expenseData),
+    createdAt: __veneziaGet(existingFinanceRecord, "createdAt") || expenseData.createdAt || new Date().toISOString(),
+    reference: buildBalanceExpenseFinanceReference(expenseId),
+    relatedStudentId: "",
+    relatedPaymentId: "",
+    relatedAltaId: "",
+    cancelled: false,
+    cancelledAt: "",
+    cancelledBy: "",
+    cancelledReason: "",
+  };
+}
+
+async function saveBalanceExpenseRecord(expenseData) {
+  const existingFinanceRecord = getBalanceExpenseFinanceRecordByExpenseId(expenseData.id);
+  const financeRecord = buildBalanceExpenseFinanceRecord(expenseData, existingFinanceRecord);
+  const saveResult = await saveFinanceRecord(financeRecord);
+
+  if (!saveResult.synced) {
+    return saveResult;
+  }
+
+  balanceExpenses = balanceExpenses.filter((record) => record.id !== expenseData.id);
+  saveBalanceExpensesCollection();
+  return saveResult;
+}
+
+async function deleteBalanceExpenseRecord(expenseId) {
+  const existingFinanceRecord = getBalanceExpenseFinanceRecordByExpenseId(expenseId);
+  if (existingFinanceRecord) {
+    const deleteResult = await dataService.entities.financialMovements.deleteOne(existingFinanceRecord.id, {
+      alertOnFailure: false,
+    });
+
+    if (!deleteResult.synced) {
+      return deleteResult;
+    }
+
+    financeRecords = deleteResult.records;
+  }
+
+  balanceExpenses = balanceExpenses.filter((record) => record.id !== expenseId);
+  saveBalanceExpensesCollection();
+
+  return {
+    records: financeRecords,
+    synced: true,
+    error: null,
+  };
+}
+
+async function syncLocalBalanceExpensesToFinanceRecords({ silent = true } = {}) {
+  if (!Array.isArray(balanceExpenses) || balanceExpenses.length === 0) {
+    return {
+      synced: true,
+      migrated: 0,
+      skipped: 0,
+      failed: 0,
+    };
+  }
+
+  let migrated = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const expense of [...balanceExpenses]) {
+    if (getBalanceExpenseFinanceRecordByExpenseId(expense.id)) {
+      balanceExpenses = balanceExpenses.filter((record) => record.id !== expense.id);
+      skipped += 1;
+      continue;
+    }
+
+    const amount = Number(expense.total || 0);
+    if (!expense.fecha || !(amount > 0)) {
+      failed += 1;
+      continue;
+    }
+
+    const saveResult = await saveBalanceExpenseRecord(expense);
+    if (saveResult.synced) {
+      migrated += 1;
+    } else {
+      failed += 1;
+      console.warn("No se pudo migrar egreso local de Balance a Supabase.", {
+        expenseId: expense.id || "",
+        error: saveResult.error,
+      });
+    }
+  }
+
+  saveBalanceExpensesCollection();
+
+  if (!silent && failed > 0) {
+    alert("Algunos egresos locales de Balance no pudieron sincronizarse con Supabase. Revisa la consola para el detalle.");
+  }
+
+  return {
+    synced: failed === 0,
+    migrated,
+    skipped,
+    failed,
+  };
+}
+
+function getDerivedFinanceExpenseRecords(existingExpenseIds = new Set()) {
   return balanceExpenses
     .map((record) => {
       const monto = Number(record.total || 0);
       if (!record.fecha || !(monto > 0)) {
+        return null;
+      }
+
+      if (existingExpenseIds.has(record.id)) {
         return null;
       }
 
@@ -7036,6 +7315,9 @@ function getDerivedFinanceExpenseRecords() {
         concepto: record.nombreGasto || "Egreso manual",
         monto,
         metodoPago: "N/A",
+        reference: buildBalanceExpenseFinanceReference(record.id),
+        source: BALANCE_FINANCE_SOURCE,
+        conceptKey: BALANCE_EXPENSE_CONCEPT_KEY,
         usuario: record.responsableGasto || "",
         observaciones: record.nota || "",
         cantidad: Number(record.cantidad || 0),
@@ -7057,10 +7339,19 @@ function getCentralFinanceRecords() {
       .map((record) => record.sourceRecordId)
       .filter(Boolean)
   );
+  const balanceExpenseFinanceRecords = financeRecords
+    .filter(isBalanceExpenseFinanceRecord)
+    .map(mapBalanceExpenseFinanceRecord);
+  const balanceExpenseIds = new Set(
+    balanceExpenseFinanceRecords
+      .map((record) => record.sourceRecordId)
+      .filter(Boolean)
+  );
   const nativeFinanceRecords = financeRecords.filter(
     (record) =>
       !record.relatedPaymentId &&
       !isAltaInscriptionFinanceRecord(record) &&
+      !isBalanceExpenseFinanceRecord(record) &&
       record.sourceType !== "payment" &&
       record.sourceType !== "balance-expense" &&
       !String(record.id || "").startsWith("payment:") &&
@@ -7070,7 +7361,8 @@ function getCentralFinanceRecords() {
   return nativeFinanceRecords.concat(
     linkedPaymentFinanceRecords,
     getDerivedFinanceIncomeRecords(linkedPaymentIds),
-    getDerivedFinanceExpenseRecords()
+    balanceExpenseFinanceRecords,
+    getDerivedFinanceExpenseRecords(balanceExpenseIds)
   );
 }
 
@@ -12378,6 +12670,77 @@ function getBalanceIncomeRows() {
     });
 }
 
+function getBalanceInscriptionRows() {
+  const anchorDate = __veneziaGet(balanceDateFilter, "value") || getCurrentMexicoDateValue();
+  const branch = __veneziaGet(balanceBranchFilter, "value") || "";
+
+  return getFinanceRecordsForScope({
+    records: getOperationalInscriptionRecords(),
+    scope: "day",
+    date: anchorDate,
+    branch,
+  }).map((record) => ({
+    id: record.sourceRecordId || record.id,
+    fecha: record.fecha,
+    alumna: record.alumna || "-",
+    concepto: record.concepto || ALTA_INSCRIPTION_CONCEPT_LABEL,
+    monto: Number(record.monto || 0),
+    sucursal: record.sucursal || "",
+    metodoPago: record.metodoPago || "-",
+  }));
+}
+
+function getBalanceMethodBucket(method) {
+  const normalizedMethod = normalizeLooseText(method);
+  if (!normalizedMethod || normalizedMethod === "-" || normalizedMethod === "n/a") {
+    return "unknown";
+  }
+
+  if (normalizedMethod.includes("efectivo") || normalizedMethod.includes("cash")) {
+    return "cash";
+  }
+
+  if (
+    normalizedMethod.includes("transfer") ||
+    normalizedMethod.includes("spei") ||
+    normalizedMethod.includes("deposito") ||
+    normalizedMethod.includes("banco")
+  ) {
+    return "transfer";
+  }
+
+  return "unknown";
+}
+
+function summarizeBalanceMethodTotals(records) {
+  return records.reduce(
+    (summary, record) => {
+      const amount = Number(__veneziaGet(record, "monto") || __veneziaGet(record, "total") || 0);
+      if (!(amount > 0)) {
+        return summary;
+      }
+
+      const methodBucket = getBalanceMethodBucket(__veneziaGet(record, "metodoPago"));
+      summary.total += amount;
+      if (methodBucket === "cash") {
+        summary.cash += amount;
+      } else if (methodBucket === "transfer") {
+        summary.transfer += amount;
+      } else {
+        summary.unknown += amount;
+      }
+
+      return summary;
+    },
+    {
+      cash: 0,
+      transfer: 0,
+      unknown: 0,
+      total: 0,
+    }
+  );
+}
+
 function getFilteredBalanceExpenses() {
   return getCentralFinanceRecords()
     .filter((record) => record.sourceType === "balance-expense" && record.tipo === "Egreso")
@@ -12445,7 +12808,7 @@ function resetBalanceExpenseForm() {
 function getBalanceExpenseFormData() {
   const formData = new FormData(balanceExpenseForm);
   const existingId = String(formData.get("id") || "").trim();
-  const existingRecord = balanceExpenses.find((record) => record.id === existingId);
+  const existingRecord = getBalanceExpenseRecordById(existingId);
   const cantidad = Number(formData.get("cantidad") || 0);
   const costoUnitario = Number(formData.get("costoUnitario") || 0);
   const total = Number((cantidad * costoUnitario).toFixed(2));
@@ -12534,59 +12897,38 @@ function renderBalanceExpensesTable() {
   return rows;
 }
 
-function updateBalanceInscriptionToggleUI() {
-  balanceInscriptionToggleButtons.forEach((button) => {
-    const isActive = button.dataset.balanceInscriptionView === activeBalanceInscriptionView;
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", isActive ? "true" : "false");
-  });
-}
-
-function getBalanceInscriptionSummary() {
-  const anchorDate = __veneziaGet(balanceDateFilter, "value") || getCurrentMexicoDateValue();
-  const scope = activeBalanceInscriptionView === "week" ? "week" : "day";
-  const scopedRecords = getFinanceRecordsForScope({
-    records: getOperationalInscriptionRecords(),
-    scope,
-    date: anchorDate,
-    branch: __veneziaGet(balanceBranchFilter, "value") || "",
-  });
-  const total = scopedRecords.reduce((sum, record) => sum + Number(record.monto || 0), 0);
-  const label =
-    scope === "week"
-      ? `Semana ${getWeekRangeForDate(anchorDate).label}`
-      : `Fecha ${formatDisplayDate(anchorDate)}`;
-
-  return {
-    scope,
-    total,
-    label,
-    count: scopedRecords.length,
-  };
-}
-
-function renderBalanceInscriptionMetric() {
-  if (!balanceInscriptionTotal) {
-    return;
-  }
-
-  updateBalanceInscriptionToggleUI();
-  const summary = getBalanceInscriptionSummary();
-  balanceInscriptionTotal.textContent = formatCurrency(summary.total);
-  if (balanceInscriptionMeta) {
-    balanceInscriptionMeta.textContent = summary.label;
-  }
-}
-
 function updateBalanceSummary() {
   const incomes = getBalanceIncomeRows();
+  const inscriptions = getBalanceInscriptionRows();
   const expenses = getFilteredBalanceExpenses();
-  const incomeTotal = incomes.reduce((sum, record) => sum + Number(record.monto || 0), 0);
+  const incomeTotals = summarizeBalanceMethodTotals(incomes);
+  const inscriptionTotals = summarizeBalanceMethodTotals(inscriptions);
   const expenseTotal = expenses.reduce((sum, record) => sum + Number(record.total || 0), 0);
-  const cashTotal = incomeTotal - expenseTotal;
+  const totalCash = incomeTotals.cash + inscriptionTotals.cash;
+  const totalTransfer = incomeTotals.transfer + inscriptionTotals.transfer;
+  const unclassifiedIncome = incomeTotals.unknown + inscriptionTotals.unknown;
+  const cashTotal = totalCash + totalTransfer + unclassifiedIncome - expenseTotal;
 
-  [balanceIncomeTotal, balanceSummaryIncome].filter(Boolean).forEach((element) => {
-    element.textContent = formatCurrency(incomeTotal);
+  [balanceIncomeCashTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(incomeTotals.cash);
+  });
+  [balanceIncomeTransferTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(incomeTotals.transfer);
+  });
+  [balanceInscriptionCashTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(inscriptionTotals.cash);
+  });
+  [balanceInscriptionTransferTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(inscriptionTotals.transfer);
+  });
+  [balanceCashMethodTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(totalCash);
+  });
+  [balanceTransferMethodTotal].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(totalTransfer);
+  });
+  [balanceSummaryIncome].filter(Boolean).forEach((element) => {
+    element.textContent = formatCurrency(incomeTotals.total + inscriptionTotals.total);
   });
   [balanceExpenseTotal, balanceSummaryExpense].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(expenseTotal);
@@ -12594,6 +12936,12 @@ function updateBalanceSummary() {
   [balanceCashTotal, balanceSummaryCash].filter(Boolean).forEach((element) => {
     element.textContent = formatCurrency(cashTotal);
   });
+
+  if (unclassifiedIncome > 0) {
+    console.info("Balance incluye ingresos sin método en Total en caja, fuera del desglose efectivo/transferencia.", {
+      totalSinMetodo: unclassifiedIncome,
+    });
+  }
 }
 
 function renderBalanceModule() {
@@ -12601,7 +12949,6 @@ function renderBalanceModule() {
   syncBalanceExpenseResponsible();
   const incomeRows = renderBalanceIncomeTable();
   const expenseRows = renderBalanceExpensesTable();
-  renderBalanceInscriptionMetric();
   updateBalanceSummary();
   console.log("BALANCE render", {
     activeDate,
@@ -12614,7 +12961,7 @@ function renderBalanceModule() {
 }
 
 function editBalanceExpense(id) {
-  const record = balanceExpenses.find((item) => item.id === id);
+  const record = getBalanceExpenseRecordById(id);
   if (!record) {
     return;
   }
@@ -12633,9 +12980,13 @@ function editBalanceExpense(id) {
   scrollWindowToTopCompat();
 }
 
-function deleteBalanceExpense(id) {
-  balanceExpenses = balanceExpenses.filter((record) => record.id !== id);
-  saveBalanceExpensesCollection();
+async function deleteBalanceExpense(id) {
+  const deleteResult = await deleteBalanceExpenseRecord(id);
+  if (!deleteResult.synced) {
+    alert("No se pudo eliminar el egreso en Supabase. No se modificó el respaldo local.");
+    return;
+  }
+
   renderBalanceModule();
   renderFinanceTable();
   updateFinanceSummary();
@@ -16746,7 +17097,7 @@ financeForm.addEventListener("submit", async (event) => {
   resetFinanceForm();
 });
 
-balanceExpenseForm.addEventListener("submit", (event) => {
+balanceExpenseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const expenseData = getBalanceExpenseFormData();
   if (!expenseData) {
@@ -16759,14 +17110,16 @@ balanceExpenseForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const existingIndex = balanceExpenses.findIndex((record) => record.id === expenseData.id);
-  if (existingIndex >= 0) {
-    balanceExpenses[existingIndex] = expenseData;
-  } else {
-    balanceExpenses.unshift(expenseData);
+  const saveResult = await saveBalanceExpenseRecord(expenseData);
+  if (!saveResult.synced) {
+    renderBalanceModule();
+    renderFinanceTable();
+    updateFinanceSummary();
+    renderDashboard();
+    alert("No se pudo guardar el egreso en Supabase. Revisa tu conexión e intenta de nuevo.");
+    return;
   }
 
-  saveBalanceExpensesCollection();
   renderBalanceModule();
   renderFinanceTable();
   updateFinanceSummary();
@@ -17064,17 +17417,6 @@ balanceBranchFilter.addEventListener("change", () => {
 balanceDateFilter.addEventListener("change", (event) => {
   balanceDateWasManuallySelected = Boolean(String(event.target.value || "").trim());
   renderBalanceModule();
-});
-balanceInscriptionToggleButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const nextView = button.dataset.balanceInscriptionView === "week" ? "week" : "day";
-    if (activeBalanceInscriptionView === nextView) {
-      return;
-    }
-
-    activeBalanceInscriptionView = nextView;
-    renderBalanceInscriptionMetric();
-  });
 });
 balanceExpenseBranchField.addEventListener("change", () => {
   syncBalanceExpenseResponsible();
@@ -17439,6 +17781,7 @@ async function initApp() {
   teacherAttendanceRecords = dataService.entities.teacherAttendance.getAll(() => []);
   teacherPaymentRecords = dataService.entities.teacherPayments.getAll(() => []);
   balanceExpenses = dataService.entities.balanceExpenses.getAll(() => []);
+  await syncLocalBalanceExpensesToFinanceRecords();
 
   await normalizeLegacyProspects();
   mountTeacherPortalShell();
