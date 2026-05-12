@@ -1591,35 +1591,50 @@
           </section>
 
           <section class="stats-grid balance-stats-grid" aria-label="Resumen de balance">
-            <article class="stat-card">
-              <p>Ingresos efectivo</p>
-              <strong id="balanceIncomeCashTotal">$0</strong>
+            <article class="stat-card balance-stat-card balance-stat-card-group">
+              <p class="balance-stat-title">Ingresos</p>
+              <div class="balance-stat-lines">
+                <div class="balance-stat-line">
+                  <span>Ingresos efectivo</span>
+                  <strong id="balanceIncomeCashTotal">$0</strong>
+                </div>
+                <div class="balance-stat-line">
+                  <span>Ingresos transferencia</span>
+                  <strong id="balanceIncomeTransferTotal">$0</strong>
+                </div>
+              </div>
             </article>
-            <article class="stat-card">
-              <p>Ingresos transferencia</p>
-              <strong id="balanceIncomeTransferTotal">$0</strong>
+            <article class="stat-card balance-stat-card balance-stat-card-group">
+              <p class="balance-stat-title">Inscripciones</p>
+              <div class="balance-stat-lines">
+                <div class="balance-stat-line">
+                  <span>Inscripciones efectivo</span>
+                  <strong id="balanceInscriptionCashTotal">$0</strong>
+                </div>
+                <div class="balance-stat-line">
+                  <span>Inscripciones transferencia</span>
+                  <strong id="balanceInscriptionTransferTotal">$0</strong>
+                </div>
+              </div>
             </article>
-            <article class="stat-card">
-              <p>Inscripciones efectivo</p>
-              <strong id="balanceInscriptionCashTotal">$0</strong>
-            </article>
-            <article class="stat-card">
-              <p>Inscripciones transferencia</p>
-              <strong id="balanceInscriptionTransferTotal">$0</strong>
-            </article>
-            <article class="stat-card">
+            <article class="stat-card balance-stat-card balance-stat-card-single">
               <p>Egresos</p>
               <strong id="balanceExpenseTotal">$0</strong>
             </article>
-            <article class="stat-card">
-              <p>Total efectivo</p>
-              <strong id="balanceCashMethodTotal">$0</strong>
+            <article class="stat-card balance-stat-card balance-stat-card-group">
+              <p class="balance-stat-title">Totales</p>
+              <div class="balance-stat-lines">
+                <div class="balance-stat-line">
+                  <span>Total efectivo</span>
+                  <strong id="balanceCashMethodTotal">$0</strong>
+                </div>
+                <div class="balance-stat-line">
+                  <span>Total transferencia</span>
+                  <strong id="balanceTransferMethodTotal">$0</strong>
+                </div>
+              </div>
             </article>
-            <article class="stat-card">
-              <p>Total transferencia</p>
-              <strong id="balanceTransferMethodTotal">$0</strong>
-            </article>
-            <article class="stat-card">
+            <article class="stat-card balance-stat-card balance-stat-card-single balance-cash-total-card">
               <p>Total en caja</p>
               <strong id="balanceCashTotal">$0</strong>
             </article>

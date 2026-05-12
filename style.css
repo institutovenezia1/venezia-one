@@ -1925,6 +1925,72 @@ td select {
   font-size: clamp(1.25rem, 2vw, 1.7rem);
 }
 
+#balanceSection > .balance-stats-grid {
+  gap: 0.65rem;
+}
+
+#balanceSection > .balance-stats-grid .balance-stat-card {
+  flex: 0 1 174px;
+  width: auto;
+  max-width: none;
+  min-width: 150px;
+  min-height: 96px;
+  padding: 0.72rem 0.82rem;
+  border-radius: 16px;
+}
+
+#balanceSection > .balance-stats-grid .balance-stat-card-group {
+  flex-basis: 218px;
+  min-width: 198px;
+}
+
+#balanceSection > .balance-stats-grid .balance-cash-total-card {
+  flex-basis: 178px;
+  min-width: 166px;
+}
+
+#balanceSection > .balance-stats-grid .balance-stat-title {
+  margin-bottom: 0.52rem;
+  color: #463d34;
+  font-weight: 900;
+}
+
+.balance-stat-lines {
+  display: grid;
+  gap: 0.46rem;
+}
+
+.balance-stat-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.balance-stat-line + .balance-stat-line {
+  padding-top: 0.46rem;
+  border-top: 1px solid rgba(128, 112, 91, 0.16);
+}
+
+.balance-stat-line span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#balanceSection > .balance-stats-grid .balance-stat-line strong {
+  font-size: clamp(1rem, 1.45vw, 1.28rem);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  #balanceSection > .balance-stats-grid .balance-stat-card {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
 .balance-filters {
   max-width: 460px;
 }
