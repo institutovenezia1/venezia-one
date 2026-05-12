@@ -9576,7 +9576,7 @@ function renderAttendanceGraduatesTable() {
           <td>
             <div class="actions-cell">
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
-              <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver asistencias</button>
+              <button class="table-action action-edit" type="button" data-action="reactivate-attendance" data-id="${student.id}">Reactivar en asistencias</button>
             </div>
           </td>
         </tr>
@@ -9585,6 +9585,43 @@ function renderAttendanceGraduatesTable() {
     .join("");
 
   attendanceGraduatesEmptyState.hidden = graduateStudents.length > 0;
+}
+
+async function reactivateStudentAttendanceFromGraduates(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    alert("No se encontró la alumna para reactivar en Asistencias.");
+    return;
+  }
+
+  if (!hasStudentAttendanceCourseCompletedStatus(student)) {
+    alert("Esta alumna no está marcada como Curso finalizado.");
+    renderAttendanceTable();
+    return;
+  }
+
+  const confirmed = confirm(
+    "¿Seguro que deseas reactivar a esta alumna en Asistencias? Volverá a aparecer como activa académicamente."
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  const saveResult = await saveStudentRecord({
+    ...student,
+    estado: "Activa",
+  });
+
+  if (!saveResult.synced) {
+    alert("No se pudo reactivar la alumna en Supabase.");
+    return;
+  }
+
+  await refreshSharedSupabaseState({ force: true, render: false });
+  renderAttendanceTable();
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
 }
 
 function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
@@ -17142,13 +17179,15 @@ attendanceTableBody.addEventListener("click", async (event) => {
 });
 
 if (attendanceGraduatesTableBody) {
-  attendanceGraduatesTableBody.addEventListener("click", (event) => {
+  attendanceGraduatesTableBody.addEventListener("click", async (event) => {
     const actionButton = event.target.closest("[data-action]");
     if (!actionButton) return;
 
     const { action, id } = actionButton.dataset;
     if (action === "view-student-file") openStudentFile(id);
-    if (action === "view-history") renderAttendanceHistory(id);
+    if (action === "reactivate-attendance") {
+      await reactivateStudentAttendanceFromGraduates(id);
+    }
   });
 }
 
