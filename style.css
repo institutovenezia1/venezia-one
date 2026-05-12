@@ -2138,6 +2138,43 @@ td select {
   font-size: 0.72rem;
 }
 
+.dashboard-inscription-kpi-card {
+  align-content: start;
+}
+
+.dashboard-inscription-kpi-card small {
+  margin-top: 0;
+}
+
+.dashboard-period-tabs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.2rem;
+}
+
+.dashboard-period-tab {
+  border: 1px solid rgba(122, 107, 84, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #5f554b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.38rem 0.52rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.dashboard-period-tab.is-active {
+  border-color: rgba(88, 126, 94, 0.34);
+  background: rgba(236, 246, 238, 0.92);
+  color: #36583e;
+}
+
 .dashboard-alerts-list {
   display: grid;
   gap: 0.8rem;

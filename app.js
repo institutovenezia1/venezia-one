@@ -718,6 +718,8 @@ const statIngresosDashboard = document.getElementById("statIngresosDashboard");
 const statEgresosDashboard = document.getElementById("statEgresosDashboard");
 const statBalanceDashboard = document.getElementById("statBalanceDashboard");
 const statAnnualUtilityDashboard = document.getElementById("statAnnualUtilityDashboard");
+const statInscriptionIncomeDashboard = document.getElementById("statInscriptionIncomeDashboard");
+const statInscriptionIncomeMeta = document.getElementById("statInscriptionIncomeMeta");
 const statActiveForCollectionDashboard = document.getElementById("statActiveForCollectionDashboard");
 const statFinalMonthlyPaidDashboard = document.getElementById("statFinalMonthlyPaidDashboard");
 const statPendingFollowupDashboard = document.getElementById("statPendingFollowupDashboard");
@@ -729,6 +731,7 @@ const dashboardFinancialAlerts = document.getElementById("dashboardFinancialAler
 const dashboardOpenFinanceButton = document.getElementById("dashboardOpenFinanceButton");
 const dashboardFinanceComparisonMeta = document.getElementById("dashboardFinanceComparisonMeta");
 const dashboardFinanceComparisonChart = document.getElementById("dashboardFinanceComparisonChart");
+const dashboardInscriptionScopeButtons = Array.from(document.querySelectorAll("[data-dashboard-inscription-scope]"));
 
 const attendanceAsistencias = document.getElementById("attendanceAsistencias");
 const attendanceFaltas = document.getElementById("attendanceFaltas");
@@ -841,6 +844,7 @@ let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
 let selectedPaymentsMonth = selectedMonth;
 let dashboardSelectedMonth = selectedMonth;
+let dashboardInscriptionScope = "month";
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let attendanceTableExpanded = false;
@@ -8251,9 +8255,121 @@ function getDashboardPaymentRecords() {
 
 function getDashboardFinanceRecords() {
   return getFinanceRecordsForScope({
-    month: selectedMonth,
+    month: dashboardSelectedMonth || selectedMonth,
     branch: dashboardBranchFilter.value,
   });
+}
+
+function getDashboardFinanceRecordIdentity(record) {
+  return String(__veneziaGet(record, "reference") || __veneziaGet(record, "id") || "").trim();
+}
+
+function getDashboardOperationalInscriptionRecords() {
+  return getOperationalInscriptionRecords().filter((record) => Number(__veneziaGet(record, "monto") || 0) > 0);
+}
+
+function getDashboardFinanceSnapshotRecords() {
+  const baseRecords = getCentralFinanceRecords();
+  const seenKeys = new Set(baseRecords.map(getDashboardFinanceRecordIdentity).filter(Boolean));
+  const inscriptionRecords = getDashboardOperationalInscriptionRecords().filter((record) => {
+    const key = getDashboardFinanceRecordIdentity(record);
+    if (key && seenKeys.has(key)) {
+      return false;
+    }
+    if (key) {
+      seenKeys.add(key);
+    }
+    return true;
+  });
+
+  return baseRecords.concat(inscriptionRecords);
+}
+
+function getDashboardSelectedMonthValue() {
+  return dashboardSelectedMonth || getCurrentMexicoDateValue().slice(0, 7);
+}
+
+function getDashboardInscriptionAnchorDate() {
+  const selectedDashboardMonth = getDashboardSelectedMonthValue();
+  const today = getCurrentMexicoDateValue();
+  return selectedDashboardMonth === today.slice(0, 7) ? today : `${selectedDashboardMonth}-01`;
+}
+
+function getDashboardInscriptionIncomeSummary() {
+  const records = getDashboardOperationalInscriptionRecords();
+  const branch = dashboardBranchFilter.value || "";
+  const selectedDashboardMonth = getDashboardSelectedMonthValue();
+  const anchorDate = getDashboardInscriptionAnchorDate();
+  const scope = ["day", "week", "month", "year"].includes(dashboardInscriptionScope)
+    ? dashboardInscriptionScope
+    : "month";
+  let scopedRecords = [];
+  let label = "";
+
+  if (scope === "day") {
+    scopedRecords = getFinanceRecordsForScope({
+      records,
+      scope: "day",
+      date: anchorDate,
+      branch,
+    });
+    label = `Día ${formatDisplayDate(anchorDate)}`;
+  } else if (scope === "week") {
+    const weekRange = getWeekRangeForDate(anchorDate);
+    scopedRecords = getFinanceRecordsForScope({
+      records,
+      scope: "week",
+      date: anchorDate,
+      branch,
+    });
+    label = `Semana ${weekRange.label}`;
+  } else if (scope === "year") {
+    const today = getCurrentMexicoDateValue();
+    const year = String(selectedDashboardMonth || today).slice(0, 4) || String(today).slice(0, 4);
+    const toDate = year === String(today).slice(0, 4) ? today : `${year}-12-31`;
+    scopedRecords = getFinanceRecordsForScope({
+      records,
+      scope: "range",
+      from: `${year}-01-01`,
+      to: toDate,
+      branch,
+    });
+    label = `Año ${year}`;
+  } else {
+    scopedRecords = getFinanceRecordsForScope({
+      records,
+      scope: "month",
+      month: selectedDashboardMonth,
+      branch,
+    });
+    label = `Mes ${formatMonthLabelEs(selectedDashboardMonth)}`;
+  }
+
+  return {
+    scope,
+    label,
+    count: scopedRecords.length,
+    total: scopedRecords.reduce((sum, record) => sum + Number(__veneziaGet(record, "monto") || 0), 0),
+  };
+}
+
+function syncDashboardInscriptionScopeButtons() {
+  dashboardInscriptionScopeButtons.forEach((button) => {
+    const isActive = button.dataset.dashboardInscriptionScope === dashboardInscriptionScope;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function renderDashboardInscriptionIncome() {
+  const summary = getDashboardInscriptionIncomeSummary();
+  syncDashboardInscriptionScopeButtons();
+  if (statInscriptionIncomeDashboard) {
+    statInscriptionIncomeDashboard.textContent = formatCurrency(summary.total);
+  }
+  if (statInscriptionIncomeMeta) {
+    statInscriptionIncomeMeta.textContent = `${summary.label} · ${summary.count} movimiento(s)`;
+  }
 }
 
 function populateDashboardBranchFilter() {
@@ -8323,10 +8439,19 @@ function getAdvisorNameForProspect(prospect) {
 function renderDashboard() {
   populateDashboardBranchFilter();
   populateDashboardMonthFilter();
-  const financeSnapshot = getExecutiveFinanceSnapshot({
+  const baseFinanceSnapshot = getExecutiveFinanceSnapshot({
     branch: dashboardBranchFilter.value,
     displayMonth: dashboardSelectedMonth,
   });
+  const dashboardFinanceSnapshot = getExecutiveFinanceSnapshot({
+    branch: dashboardBranchFilter.value,
+    displayMonth: dashboardSelectedMonth,
+    records: getDashboardFinanceSnapshotRecords(),
+  });
+  const financeSnapshot = {
+    ...dashboardFinanceSnapshot,
+    year: baseFinanceSnapshot.year,
+  };
   const collectionSummary = getDashboardCollectionLifecycleSummary();
 
   statIngresosDashboard.textContent = formatCurrency(financeSnapshot.windows.month.ingresos);
@@ -8351,6 +8476,7 @@ function renderDashboard() {
     statNoContinueDashboard.textContent = String(collectionSummary.noContinue);
   }
 
+  renderDashboardInscriptionIncome();
   renderDashboardFinanceComparison(financeSnapshot);
 }
 
@@ -17366,10 +17492,21 @@ dashboardBranchFilter.addEventListener("change", renderDashboard);
 
 if (dashboardMonthFilter) {
   dashboardMonthFilter.addEventListener("change", (event) => {
-    dashboardSelectedMonth = event.target.value || getCurrentMonthValue();
+    dashboardSelectedMonth = event.target.value || getCurrentMexicoDateValue().slice(0, 7);
     renderDashboard();
   });
 }
+
+dashboardInscriptionScopeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextScope = button.dataset.dashboardInscriptionScope || "month";
+    if (dashboardInscriptionScope === nextScope) {
+      return;
+    }
+    dashboardInscriptionScope = nextScope;
+    renderDashboard();
+  });
+});
 
 attendanceDate.addEventListener("change", renderAttendanceTable);
 attendanceSearchInput.addEventListener("input", (event) => {
