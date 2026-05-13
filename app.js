@@ -5821,6 +5821,10 @@ function isRealPaidPaymentRecord(record) {
   return Boolean(__veneziaGet(record, "id")) && parsePaymentAmount(__veneziaGet(record, "cantidadPagada")) > 0 && getPaidPaymentConcepts(record).length > 0;
 }
 
+function isPaymentEligibleForFinanceRecord(paymentRecord, student) {
+  return isRealPaidPaymentRecord(paymentRecord) && Boolean(student) && !isStudentDeleted(student);
+}
+
 function getMexicoDateValueFromStoredDateTime(value) {
   const rawValue = String(value || "").trim();
   if (!rawValue) {
@@ -5880,7 +5884,7 @@ function getPaymentReconciliationDateForToday(record, today = getCurrentMexicoDa
 }
 
 function buildTodayIncompletePaymentReconciliation(record, student, today = getCurrentMexicoDateValue()) {
-  if (!__veneziaGet(record, "id") || !student || getPaidPaymentConcepts(record).length === 0) {
+  if (!__veneziaGet(record, "id") || !student || isStudentDeleted(student) || getPaidPaymentConcepts(record).length === 0) {
     return null;
   }
 
@@ -6512,7 +6516,7 @@ async function syncPaymentFinanceRecord(paymentRecord, { student: providedStuden
   );
   const canonicalRecord = linkedRecords[0] || null;
   const student = providedStudent || getStudentById(__veneziaGet(paymentRecord, "studentId"));
-  const isEligible = isRealPaidPaymentRecord(paymentRecord) && Boolean(student);
+  const isEligible = isPaymentEligibleForFinanceRecord(paymentRecord, student);
 
   if (!isEligible) {
     if (linkedRecords.length === 0) {
@@ -7088,7 +7092,7 @@ function getDerivedFinanceIncomeRecords(linkedPaymentIds = new Set()) {
   return paymentRecords
     .map((record) => {
       const student = studentsById.get(record.studentId);
-      if (!student || linkedPaymentIds.has(record.id) || !isRealPaidPaymentRecord(record)) {
+      if (linkedPaymentIds.has(record.id) || !isPaymentEligibleForFinanceRecord(record, student)) {
         return null;
       }
 
@@ -7388,7 +7392,9 @@ function auditPaymentFinanceLinks({
     });
 
   const missingLinkedFinance = payments.filter(
-    (record) => isRealPaidPaymentRecord(record) && (linkedFinanceByPaymentId.get(record.id) || []).length === 0
+    (record) =>
+      isPaymentEligibleForFinanceRecord(record, studentsById.get(record.studentId)) &&
+      (linkedFinanceByPaymentId.get(record.id) || []).length === 0
   );
   const duplicateLinkedFinance = Array.from(linkedFinanceByPaymentId.entries())
     .filter(([, records]) => records.length > 1)
@@ -7400,10 +7406,16 @@ function auditPaymentFinanceLinks({
     (record) => record.relatedPaymentId && !paymentsById.has(record.relatedPaymentId)
   );
   const missingStoredPaymentDate = payments.filter(
-    (record) => isRealPaidPaymentRecord(record) && !getStoredPaymentRealDate(record)
+    (record) =>
+      isPaymentEligibleForFinanceRecord(record, studentsById.get(record.studentId)) &&
+      !getStoredPaymentRealDate(record)
   );
   const stalePaymentRealDate = payments
     .map((record) => {
+      if (!isPaymentEligibleForFinanceRecord(record, studentsById.get(record.studentId))) {
+        return null;
+      }
+
       const linkedRecords = linkedFinanceByPaymentId.get(record.id) || [];
       const reconciledPaymentRealDate = getReconciledPaymentRealDate(record, linkedRecords);
       if (!reconciledPaymentRealDate) {
@@ -7423,7 +7435,7 @@ function auditPaymentFinanceLinks({
         return false;
       }
       const paymentRecord = paymentsById.get(record.relatedPaymentId);
-      return paymentRecord && !isRealPaidPaymentRecord(paymentRecord);
+      return paymentRecord && !isPaymentEligibleForFinanceRecord(paymentRecord, studentsById.get(paymentRecord.studentId));
     })
     .map((record) => ({
       financeRecord: record,
@@ -7434,7 +7446,7 @@ function auditPaymentFinanceLinks({
       const linkedRecords = linkedFinanceByPaymentId.get(record.id) || [];
       const canonicalFinanceRecord = linkedRecords[0] || null;
       const student = studentsById.get(record.studentId);
-      if (!canonicalFinanceRecord || !student || !isRealPaidPaymentRecord(record)) {
+      if (!canonicalFinanceRecord || !isPaymentEligibleForFinanceRecord(record, student)) {
         return null;
       }
 
