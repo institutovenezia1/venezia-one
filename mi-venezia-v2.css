@@ -332,6 +332,94 @@ button {
   line-height: 1.45;
 }
 
+.mv2-referral-slot {
+  margin: 14px 0;
+}
+
+.mv2-referral-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(75, 37, 95, 0.92) 0%, rgba(160, 42, 119, 0.86) 48%, rgba(201, 162, 39, 0.9) 100%);
+  box-shadow: 0 24px 58px rgba(75, 37, 95, 0.22);
+  color: #fff;
+  padding: 18px;
+}
+
+.mv2-referral-card::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 23px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.05));
+  pointer-events: none;
+}
+
+.mv2-referral-card.is-discreet {
+  background:
+    linear-gradient(135deg, rgba(75, 37, 95, 0.84) 0%, rgba(108, 55, 121, 0.78) 55%, rgba(201, 162, 39, 0.72) 100%);
+}
+
+.mv2-referral-copy,
+.mv2-referral-button {
+  position: relative;
+  z-index: 1;
+}
+
+.mv2-referral-badge {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.17);
+  color: #fff8dc;
+  padding: 7px 10px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mv2-referral-card h2 {
+  margin: 12px 0 0;
+  color: #fff;
+  font-size: clamp(1.45rem, 7vw, 2.35rem);
+  line-height: 1;
+}
+
+.mv2-referral-card p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.mv2-referral-card small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.35;
+}
+
+.mv2-referral-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 16px;
+  background: #fffaf4;
+  color: var(--mv2-purple);
+  box-shadow: 0 18px 30px rgba(38, 26, 47, 0.22);
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
+}
+
 .mv2-document-alert,
 .mv2-document-summary-card {
   display: grid;
@@ -682,6 +770,12 @@ button {
 
   .mv2-doc-badge {
     width: auto;
+  }
+
+  .mv2-referral-card {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: center;
+    padding: 22px;
   }
 
   .mv2-stats-grid {

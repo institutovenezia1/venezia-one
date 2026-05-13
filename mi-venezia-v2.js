@@ -1148,6 +1148,7 @@
       : statusInfo.notice + " " + safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar");
     byId("heroDocStatus").className = "mv2-doc-badge mv2-status-badge mv2-status-" + statusInfo.key;
     byId("heroDocStatus").textContent = statusInfo.badge;
+    renderReferralCard(student, details, statusInfo);
     byId("quickStats").innerHTML =
       statCard(statusInfo.courseLabel, safe(student.curso, "-"), statusInfo.label + " | " + safe(student.horario, "Horario pendiente")) +
       statCard("Pagos", paymentSummary ? paymentSummary.status : "Cargando...", "Mensualidad: " + safe(student.mensualidad || student.colegiatura, "-")) +
@@ -1157,6 +1158,54 @@
 
   function statCard(label, value, meta) {
     return '<article class="mv2-stat-card"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong><small>' + escapeHtml(meta || "") + '</small></article>';
+  }
+
+  function shouldShowReferralCard(statusInfo) {
+    return statusInfo && statusInfo.key !== "unavailable";
+  }
+
+  function buildReferralWhatsappMessage(student) {
+    return [
+      "Hola, quiero invitar a un amigo o amiga a estudiar para ganarme el bono o descuento de recomendación.",
+      "",
+      "Soy: " + safe(student.nombre, "-"),
+      "Curso: " + safe(student.curso, "-"),
+      "Plantel: " + safe(student.sucursal, "-"),
+      "Horario: " + safe(student.horario, "-"),
+      "",
+      "Quiero recibir información para recomendar a alguien."
+    ].join("\n");
+  }
+
+  function renderReferralCard(student, details, statusInfo) {
+    var container = byId("referralCard");
+    var contact;
+    var message;
+    var url;
+    var discreetClass;
+    if (!container) {
+      return;
+    }
+    if (!shouldShowReferralCard(statusInfo)) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    contact = resolveContact(student, details || {});
+    message = buildReferralWhatsappMessage(student);
+    url = whatsappUrl(contact.phone, message);
+    discreetClass = statusInfo.key === "withdrawn" ? " is-discreet" : "";
+    container.hidden = false;
+    container.innerHTML =
+      '<article class="mv2-referral-card' + discreetClass + '">' +
+      '<div class="mv2-referral-copy">' +
+      '<span class="mv2-referral-badge">Bono disponible</span>' +
+      '<h2>GANA $200 RECOMENDANDO</h2>' +
+      '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana $200 de bono o descuento cuando se inscriba.</p>' +
+      '<small>Dirección asignada: ' + escapeHtml(contact.name || "Soporte Venezia") + '</small>' +
+      '</div>' +
+      '<a class="mv2-referral-button" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Enviar recomendación por WhatsApp</a>' +
+      '</article>';
   }
 
   function getDocumentationStatusKey(status) {
