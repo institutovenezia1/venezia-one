@@ -9,6 +9,7 @@
   var LEGACY_STAFF_KEY = "venezia-one-v2-staff";
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
   var SUPPORT_WHATSAPP = "522463831375";
+  var TLAXCALA_WEEKEND_REFERRAL_WHATSAPP = "2461379504";
   var STUDENT_DOCUMENT_REQUIREMENTS = [
     "Reglamento interno",
     "Contrato de alumno",
@@ -1166,15 +1167,24 @@
 
   function buildReferralWhatsappMessage(student) {
     return [
-      "Hola, quiero invitar a un amigo o amiga a estudiar para ganarme el bono o descuento de recomendación.",
-      "",
-      "Soy: " + safe(student.nombre, "-"),
-      "Curso: " + safe(student.curso, "-"),
-      "Plantel: " + safe(student.sucursal, "-"),
-      "Horario: " + safe(student.horario, "-"),
-      "",
-      "Quiero recibir información para recomendar a alguien."
+      "Hola quiero invitar a un amigo o amiga a estudiar para ganarme el bono o descuento de recomendacion",
+      "soy: " + safe(student.nombre, "-"),
+      "curso: " + safe(student.curso, "-"),
+      "horario: " + safe(student.horario, "-"),
+      "plantel: " + safe(student.sucursal, "-")
     ].join("\n");
+  }
+
+  function resolveReferralContact(student, details) {
+    var branch = normalizeLoose(student && student.sucursal);
+    if (branch.indexOf("tlaxcala") !== -1 && classifySchedule(student) === "weekend") {
+      return {
+        phone: TLAXCALA_WEEKEND_REFERRAL_WHATSAPP,
+        coverage: "weekend",
+        name: "Dirección fin de semana Tlaxcala"
+      };
+    }
+    return resolveContact(student, details);
   }
 
   function renderReferralCard(student, details, statusInfo) {
@@ -1191,7 +1201,7 @@
       container.innerHTML = "";
       return;
     }
-    contact = resolveContact(student, details || {});
+    contact = resolveReferralContact(student, details || {});
     message = buildReferralWhatsappMessage(student);
     url = whatsappUrl(contact.phone, message);
     discreetClass = statusInfo.key === "withdrawn" ? " is-discreet" : "";
