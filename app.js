@@ -135,6 +135,7 @@ const STUDENT_LIFECYCLE_STATUS = {
   ENROLLED_TO_NEXT_COURSE: "enrolled_to_next_course",
 };
 const ATTENDANCE_COURSE_COMPLETED_STATUS = "Curso finalizado";
+const ATTENDANCE_DROPPED_STATUSES = ["Baja temporal", "Baja definitiva"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const STUDENT_DOCUMENT_REQUIREMENTS = [
   "Reglamento interno",
@@ -4725,20 +4726,34 @@ function isStudentCourseCompleted(student) {
   return normalizeLifecycleStatus(__veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION;
 }
 
+function getStudentStatus(student) {
+  return String(__veneziaGet(student, "estado") || "").trim();
+}
+
+function isStudentDropped(student) {
+  const normalizedStatus = normalizeLooseText(getStudentStatus(student));
+  return ATTENDANCE_DROPPED_STATUSES.some((status) => normalizeLooseText(status) === normalizedStatus);
+}
+
 function isStudentInactiveForAttendance(student) {
-  const normalizedStatus = normalizeLooseText(__veneziaGet(student, "estado"));
+  const normalizedStatus = normalizeLooseText(getStudentStatus(student));
   return [
     normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS),
     "archivada",
     "archivado",
     "baja",
     "baja real",
+    "baja temporal",
     "baja definitiva",
   ].includes(normalizedStatus);
 }
 
 function hasStudentAttendanceCourseCompletedStatus(student) {
-  return normalizeLooseText(__veneziaGet(student, "estado")) === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS);
+  return normalizeLooseText(getStudentStatus(student)) === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS);
+}
+
+function isStudentInAttendanceHistoryStatus(student) {
+  return hasStudentAttendanceCourseCompletedStatus(student) || isStudentDropped(student);
 }
 
 function isStudentCourseCompletedForAttendance(student) {
@@ -9958,7 +9973,7 @@ function getAttendanceGraduateStudents() {
   return students
     .filter((student) => matchesCurrentBranch(student.sucursal))
     .filter((student) => !isStudentDeleted(student))
-    .filter((student) => hasStudentAttendanceCourseCompletedStatus(student))
+    .filter((student) => isStudentInAttendanceHistoryStatus(student))
     .sort((a, b) => {
       const startA = getStudentCourseStartDateValue(a) || "0000-00-00";
       const startB = getStudentCourseStartDateValue(b) || "0000-00-00";
@@ -9967,14 +9982,6 @@ function getAttendanceGraduateStudents() {
       }
       return String(a.nombre || "").localeCompare(String(b.nombre || ""));
     });
-}
-
-function getStudentCourseCompletionDate(student) {
-  return (
-    getAttendanceNotesValue({ observaciones: __veneziaGet(student, "observaciones") || "" }, "Fecha finalización curso") ||
-    getAttendanceNotesValue({ observaciones: __veneziaGet(student, "observaciones") || "" }, "Fecha de finalización") ||
-    ""
-  );
 }
 
 function renderAttendanceGraduatesTable() {
@@ -9987,7 +9994,6 @@ function renderAttendanceGraduatesTable() {
     .map((student) => {
       const payment = getLatestPaymentRecordForStudent(student.id);
       const lifecycle = getStudentCollectionLifecycle(student, payment);
-      const completionDate = getStudentCourseCompletionDate(student);
       const schedule = [student.diaClases, student.horario].filter(Boolean).join(" / ");
       return `
         <tr>
@@ -10001,12 +10007,12 @@ function renderAttendanceGraduatesTable() {
           <td>${escapeHtml(student.sucursal || "-")}</td>
           <td>${escapeHtml(schedule || "-")}</td>
           <td>${escapeHtml(getStudentCourseStartDateValue(student) || "-")}</td>
-          <td>${escapeHtml(completionDate || "-")}</td>
+          <td>${escapeHtml(getStudentStatus(student) || "-")}</td>
           <td>${escapeHtml(getContinuityStatusLabel(lifecycle.continuityStatus) || "-")}</td>
           <td>
             <div class="actions-cell">
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
-              <button class="table-action action-edit" type="button" data-action="reactivate-attendance" data-id="${student.id}">Reactivar en asistencias</button>
+              <button class="table-action action-edit" type="button" data-action="reactivate-attendance" data-id="${student.id}">Reactivar alumna</button>
             </div>
           </td>
         </tr>
@@ -10024,14 +10030,14 @@ async function reactivateStudentAttendanceFromGraduates(studentId) {
     return;
   }
 
-  if (!hasStudentAttendanceCourseCompletedStatus(student)) {
-    alert("Esta alumna no está marcada como Curso finalizado.");
+  if (!isStudentInAttendanceHistoryStatus(student)) {
+    alert("Esta alumna no está marcada como Curso finalizado o baja.");
     renderAttendanceTable();
     return;
   }
 
   const confirmed = confirm(
-    "¿Seguro que deseas reactivar a esta alumna en Asistencias? Volverá a aparecer como activa académicamente."
+    "¿Seguro que deseas reactivar a esta alumna? Volverá a aparecer como activa académicamente."
   );
   if (!confirmed) {
     return;
@@ -10044,6 +10050,73 @@ async function reactivateStudentAttendanceFromGraduates(studentId) {
 
   if (!saveResult.synced) {
     alert("No se pudo reactivar la alumna en Supabase.");
+    return;
+  }
+
+  await refreshSharedSupabaseState({ force: true, render: false });
+  renderAttendanceTable();
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
+}
+
+function resolveAttendanceDropStatus() {
+  const response = window.prompt(
+    "Selecciona el tipo de baja:\n1. Baja temporal\n2. Baja definitiva\n\nEscribe 1 o 2."
+  );
+  const normalizedResponse = normalizeLooseText(response);
+
+  if (!normalizedResponse) {
+    return "";
+  }
+  if (normalizedResponse === "1" || normalizedResponse.includes("temporal")) {
+    return "Baja temporal";
+  }
+  if (normalizedResponse === "2" || normalizedResponse.includes("definitiva")) {
+    return "Baja definitiva";
+  }
+
+  alert("Selecciona una opción válida: 1 para Baja temporal o 2 para Baja definitiva.");
+  return "";
+}
+
+async function dropStudentFromAttendance(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    alert("No se encontró la alumna para dar de baja.");
+    return;
+  }
+
+  if (isStudentDeleted(student)) {
+    alert("Esta alumna está eliminada. La baja no debe usarse como eliminación.");
+    return;
+  }
+
+  if (isStudentInAttendanceHistoryStatus(student)) {
+    alert("Esta alumna ya está fuera de Asistencias activas.");
+    renderAttendanceTable();
+    return;
+  }
+
+  const nextStatus = resolveAttendanceDropStatus();
+  if (!nextStatus) {
+    return;
+  }
+
+  const confirmed = confirm(
+    "¿Seguro que deseas dar de baja a esta alumna? Se conservarán pagos, asistencias, documentos e historial."
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  const saveResult = await saveStudentRecord({
+    ...student,
+    estado: nextStatus,
+  });
+
+  if (!saveResult.synced) {
+    alert("No se pudo guardar la baja en Supabase.");
     return;
   }
 
@@ -10491,6 +10564,7 @@ function renderAttendanceTable() {
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
               <button class="table-action secondary-btn" type="button" data-action="complete-course" data-id="${student.id}">Curso finalizado</button>
+              <button class="table-action action-delete" type="button" data-action="drop-student" data-id="${student.id}">Dar de baja</button>
               <button class="table-action action-delete" type="button" data-action="delete-attendance" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
@@ -17663,6 +17737,9 @@ attendanceTableBody.addEventListener("click", async (event) => {
   if (action === "view-history") renderAttendanceHistory(id);
   if (action === "complete-course") {
     await completeStudentCourseFromAttendance(id);
+  }
+  if (action === "drop-student") {
+    await dropStudentFromAttendance(id);
   }
   if (action === "delete-attendance") {
     await deleteAttendanceForStudent(id);
