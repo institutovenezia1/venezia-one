@@ -18,6 +18,10 @@
     "Comprobante de domicilio",
     "Comprobante de último grado de estudios"
   ];
+  var DOCUMENT_DOWNLOADS = [
+    { label: "Descargar reglamento interno", href: "/images/reglamentooficial-venezia.pdf" },
+    { label: "Descargar contrato de alumno", href: "/images/CONTRATO-ALUMNO.pdf" }
+  ];
   var BOOTSTRAP_DIRECTORS = [
     { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" }
   ];
@@ -993,6 +997,7 @@
       missing: missing,
       complete: count === 0,
       pendingCount: count,
+      summary: count === 0 ? "Tu expediente está completo." : (count === 1 ? "Te falta 1 documento" : "Te faltan " + count + " documentos"),
       label: count === 0 ? "Documentación completa" : (count === 1 ? "1 pendiente" : count + " pendientes")
     };
   }
@@ -1154,6 +1159,33 @@
     return '<article class="mv2-stat-card"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong><small>' + escapeHtml(meta || "") + '</small></article>';
   }
 
+  function getDocumentationStatusKey(status) {
+    var normalized = normalizeLoose(status);
+    if (normalized === "completa" || normalized === "completo") {
+      return "complete";
+    }
+    if (normalized === "parcial") {
+      return "partial";
+    }
+    return "incomplete";
+  }
+
+  function renderInicioDocumentsNotice(docState) {
+    if (docState.complete) {
+      return (
+        '<section class="mv2-document-alert is-complete">' +
+        '<div><span>Documentación completa</span><strong>Tu expediente está completo.</strong><p>No tienes documentos pendientes registrados.</p></div>' +
+        '</section>'
+      );
+    }
+    return (
+      '<section class="mv2-document-alert is-pending">' +
+      '<div><span>Documentos pendientes por entregar</span><strong>' + escapeHtml(docState.summary) + '</strong><p>Tienes documentos pendientes. Entrégalos en dirección para completar tu expediente.</p></div>' +
+      '<button class="mv2-inline-action" type="button" data-documents-action="open">Ver documentos pendientes</button>' +
+      '</section>'
+    );
+  }
+
   function renderAllPanels(student, details) {
     renderInicio(student, details);
     renderPerfil(student);
@@ -1171,6 +1203,7 @@
     byId("panelInicio").innerHTML =
       '<div class="mv2-panel-header"><h2>Inicio</h2><p>' + escapeHtml(statusInfo.intro) + '</p></div>' +
       statusNoticeHtml(statusInfo) +
+      renderInicioDocumentsNotice(docState) +
       '<div class="mv2-info-grid">' +
       infoItem(statusInfo.courseLabel, student.curso) +
       infoItem("Plantel", student.sucursal) +
@@ -1278,30 +1311,53 @@
     byId("panelAsistencias").innerHTML = html;
   }
 
-  function renderDocumentItemList(items, emptyText) {
+  function renderOfficialDocumentList(items, type, emptyText) {
+    var stateClass = type === "delivered" ? "is-delivered" : "is-missing";
+    var stateLabel = type === "delivered" ? "Entregado" : "Pendiente";
     if (!items.length) {
       return '<div class="mv2-empty">' + escapeHtml(emptyText) + '</div>';
     }
-
-    return '<div class="mv2-doc-list">' + items.map(function (item) {
-      return '<article class="mv2-doc-item"><span>Documento</span><strong>' + escapeHtml(item) + '</strong></article>';
+    return '<div class="mv2-doc-list mv2-official-doc-list">' + items.map(function (item) {
+      return (
+        '<article class="mv2-doc-item mv2-official-doc ' + stateClass + '">' +
+        '<span>' + escapeHtml(stateLabel) + '</span>' +
+        '<strong>' + escapeHtml(item) + '</strong>' +
+        '</article>'
+      );
     }).join("") + '</div>';
+  }
+
+  function renderDocumentDownloadLinks() {
+    if (!DOCUMENT_DOWNLOADS.length) {
+      return '<p class="mv2-document-download-note">Los formatos estarán disponibles próximamente.</p>';
+    }
+    return (
+      '<div class="mv2-document-downloads">' +
+      DOCUMENT_DOWNLOADS.map(function (documentLink) {
+        return '<a class="mv2-download-link" href="' + escapeHtml(documentLink.href) + '" target="_blank" rel="noopener" download>' + escapeHtml(documentLink.label) + '</a>';
+      }).join("") +
+      '</div>'
+    );
   }
 
   function renderDocumentos(student) {
     var docState = getDocumentsState(student);
+    var statusKey = getDocumentationStatusKey(docState.status);
     byId("panelDocumentos").innerHTML =
       '<div class="mv2-panel-header"><h2>Documentos</h2><p>Documentos registrados en tu expediente.</p></div>' +
-      '<div class="mv2-doc-list">' +
-      '<article class="mv2-doc-item"><span>Documentación general</span><strong>' + escapeHtml(docState.status || docState.raw) + '</strong><small>' + escapeHtml(docState.complete ? "Tu documentación está completa." : "Documentos pendientes por entregar") + '</small></article>' +
-      '<article class="mv2-doc-item"><span>Reglamento</span><strong>' + escapeHtml(student.lecturaReglamento ? "Lectura confirmada" : "Lectura pendiente") + '</strong><small>' + escapeHtml(student.fechaLecturaReglamento || "Sin fecha registrada") + '</small></article>' +
-      '<article class="mv2-doc-item"><span>Contrato</span><strong>' + escapeHtml(student.lecturaContrato ? "Lectura confirmada" : "Lectura pendiente") + '</strong><small>' + escapeHtml(student.fechaLecturaContrato || "Sin fecha registrada") + '</small></article>' +
-      '</div>' +
+      '<section class="mv2-document-summary-card mv2-document-status-' + escapeHtml(statusKey) + '">' +
+      '<span>Estado general</span>' +
+      '<strong>' + escapeHtml(docState.status || docState.raw) + '</strong>' +
+      '<p>' + escapeHtml(docState.complete ? "Tu documentación está completa." : docState.summary + ". Revisa la lista de pendientes.") + '</p>' +
+      '</section>' +
       '<div class="mv2-section-block"><h3>Documentos entregados</h3>' +
-      renderDocumentItemList(docState.delivered, "Aún no hay documentos entregados registrados.") +
+      renderOfficialDocumentList(docState.delivered, "delivered", "Aún no hay documentos entregados registrados.") +
       '</div>' +
       '<div class="mv2-section-block"><h3>Documentos pendientes por entregar</h3>' +
-      renderDocumentItemList(docState.missing, "Tu documentación está completa.") +
+      renderOfficialDocumentList(docState.missing, "missing", "Tu documentación está completa.") +
+      '</div>' +
+      '<div class="mv2-section-block"><h3>Formatos descargables</h3>' +
+      renderDocumentDownloadLinks() +
       '</div>';
   }
 
@@ -1525,6 +1581,17 @@
           activateTab(tab);
         }
       };
+    }
+    if (byId("dashboardView")) {
+      byId("dashboardView").addEventListener("click", function (event) {
+        var target = event.target || event.srcElement;
+        var trigger = target && target.closest ? target.closest('[data-documents-action="open"]') : null;
+        if (!trigger) {
+          return;
+        }
+        event.preventDefault();
+        activateTab("documentos");
+      });
     }
   }
 
