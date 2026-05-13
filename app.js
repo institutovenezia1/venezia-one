@@ -92,6 +92,7 @@ const INTERNAL_USERS_STORAGE_KEY = "venezia-one-v2-internal-users";
 const STAFF_STORAGE_KEY = "venezia-one-v2-staff";
 const WEB_SETTINGS_STORAGE_KEY = "venezia-one-v2-web-settings";
 const MI_VENEZIA_SESSION_KEY = "venezia-one-v2-mi-venezia-session";
+const MI_VENEZIA_V2_PATH = "/mi-venezia-v2.html";
 const INTERNAL_SESSION_KEY = "venezia-one-v2-internal-session";
 const INTERNAL_USER_PERMISSIONS_STORAGE_KEY = "venezia-one-v2-internal-user-permissions";
 const dataService = window.VeneziaDataService;
@@ -5055,6 +5056,18 @@ function isMiVeneziaDirectOpenRequested() {
   );
 }
 
+function redirectToMiVeneziaV2(source = "legacy") {
+  try {
+    if (!window.location || window.location.pathname === MI_VENEZIA_V2_PATH) {
+      return;
+    }
+    window.location.replace(MI_VENEZIA_V2_PATH);
+  } catch (error) {
+    window.location.href = MI_VENEZIA_V2_PATH;
+  }
+  markVeneziaVisibleUiReady(`redirectToMiVeneziaV2:${source}`);
+}
+
 function focusMiVeneziaLoginField() {
   window.setTimeout(() => {
     if (!miVeneziaLoginPanel || miVeneziaLoginPanel.hidden || currentPortalStudentId) {
@@ -5095,21 +5108,7 @@ function revealMiVeneziaLoginPanel() {
 }
 
 function openMiVeneziaPortal(source = "manual") {
-  currentInternalUserId = "";
-  currentAccessMode = "student";
-  publicAccessPanelOpen = false;
-  if (internalLoginError) {
-    internalLoginError.hidden = true;
-  }
-  setMiVeneziaLoginFeedback("");
-  resetMiVeneziaLoginDebug();
-  dataService.sessions.clearInternal();
-  updateSessionUI();
-  renderMiVeneziaDashboard();
-  setActiveModule("mi-venezia");
-  revealMiVeneziaLoginPanel();
-  focusMiVeneziaLoginField();
-  markVeneziaVisibleUiReady(`openMiVeneziaPortal:${source}`);
+  redirectToMiVeneziaV2(source);
 }
 
 function applyRoleToSidebar() {
@@ -18033,7 +18032,15 @@ async function initApp() {
     dataService.sessions.clearStudent();
   }
   const shouldOpenMiVeneziaDirectly = isMiVeneziaDirectOpenRequested();
-  currentAccessMode = currentPortalStudentId || shouldOpenMiVeneziaDirectly ? "student" : "logged-out";
+  if (shouldOpenMiVeneziaDirectly) {
+    redirectToMiVeneziaV2("legacy-route");
+    return;
+  }
+  if (currentPortalStudentId) {
+    redirectToMiVeneziaV2("student-session");
+    return;
+  }
+  currentAccessMode = "logged-out";
   publicAccessPanelOpen = false;
   updateSessionUI();
   renderAll();
