@@ -225,6 +225,14 @@
     element.setAttribute("data-tone", tone || "info");
   }
 
+  function clearRuntimeMessage() {
+    var box = byId("runtimeErrorBox");
+    if (box) {
+      box.hidden = true;
+      box.textContent = "";
+    }
+  }
+
   function setLoginBusy(isBusy, label) {
     var button = byId("loginButton");
     state.loginBusy = isBusy;
@@ -583,7 +591,106 @@
   }
 
   function isStudentDeleted(student) {
-    return normalizeLoose(student && student.estado) === "eliminada";
+    var normalized = normalizeLoose(student && student.estado);
+    return normalized === "eliminada" || normalized === "eliminado";
+  }
+
+  function getStudentStatusInfo(student) {
+    var normalized = normalizeLoose(student && student.estado);
+    if (normalized === "baja temporal") {
+      return {
+        key: "paused",
+        label: "Baja temporal",
+        badge: "Estado: Baja temporal",
+        heroTitle: "Acceso en pausa temporal",
+        notice: "Tu acceso se encuentra en pausa temporal. Si deseas reactivar tu curso, comunícate con Dirección.",
+        intro: "Tu expediente permanece disponible para consulta de historial, pagos, clases, documentos y contacto.",
+        courseLabel: "Curso en expediente",
+        paymentCopy: "Historial de pagos registrados en tu expediente.",
+        attendanceCopy: "Historial de clases y asistencias registradas."
+      };
+    }
+    if (normalized === "baja definitiva") {
+      return {
+        key: "withdrawn",
+        label: "Baja definitiva",
+        badge: "Estado: Baja definitiva",
+        heroTitle: "Expediente en historial",
+        notice: "Tu curso fue dado de baja de forma definitiva. Si deseas más información o revisar tu expediente, comunícate con Dirección.",
+        intro: "Puedes consultar tu historial visible de pagos, documentos y clases registradas.",
+        courseLabel: "Curso en historial",
+        paymentCopy: "Historial de pagos registrados en tu expediente.",
+        attendanceCopy: "Historial de clases y asistencias registradas."
+      };
+    }
+    if (normalized === "curso finalizado") {
+      return {
+        key: "completed",
+        label: "Curso finalizado",
+        badge: "Estado: Curso finalizado",
+        heroTitle: "Curso finalizado",
+        notice: "¡Felicidades! Has finalizado tu curso en Instituto Venezia.",
+        intro: "Tu expediente queda disponible como historial académico y financiero.",
+        courseLabel: "Curso finalizado",
+        paymentCopy: "Historial de pagos del curso finalizado.",
+        attendanceCopy: "Historial de asistencias del curso finalizado."
+      };
+    }
+    if (normalized === "eliminada" || normalized === "eliminado") {
+      return {
+        key: "unavailable",
+        label: "Acceso no disponible",
+        badge: "Acceso no disponible",
+        heroTitle: "Acceso no disponible",
+        notice: "Tu acceso no está disponible. Comunícate con Dirección.",
+        intro: "Comunícate con Dirección para revisar el estado de tu acceso.",
+        courseLabel: "Estado del acceso",
+        paymentCopy: "",
+        attendanceCopy: ""
+      };
+    }
+    return {
+      key: "active",
+      label: "Activa",
+      badge: "Estado: Activa",
+      heroTitle: safe(student && student.curso, "Tu curso Venezia"),
+      notice: "",
+      intro: "Resumen real de tu expediente en Venezia.",
+      courseLabel: "Curso actual",
+      paymentCopy: "Pagos realizados, mensualidades y pendientes visibles.",
+      attendanceCopy: "Resumen de asistencias registradas."
+    };
+  }
+
+  function statusBadgeHtml(statusInfo) {
+    return '<span class="mv2-status-badge mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.badge) + '</span>';
+  }
+
+  function statusNoticeHtml(statusInfo) {
+    if (!statusInfo.notice || statusInfo.key === "active") {
+      return "";
+    }
+    return '<div class="mv2-status-notice mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.notice) + '</div>';
+  }
+
+  function showUnavailableAccessMessage() {
+    var box = byId("runtimeErrorBox");
+    clearSession();
+    state.currentStudent = null;
+    state.details = null;
+    if (byId("dashboardView")) {
+      byId("dashboardView").hidden = true;
+    }
+    if (byId("loginView")) {
+      byId("loginView").hidden = false;
+    }
+    setLoginBusy(false);
+    setFeedback("Tu acceso no está disponible. Comunícate con Dirección.", "error");
+    if (box) {
+      box.hidden = false;
+      box.innerHTML = '<strong>Acceso no disponible</strong><span>Tu acceso no está disponible. Comunícate con Dirección.</span>';
+    }
+    updateDebug();
   }
 
   function findStudentForLogin(identifier, password) {
@@ -612,9 +719,6 @@
 
     for (index = 0; index < state.students.length; index += 1) {
       student = state.students[index];
-      if (isStudentDeleted(student)) {
-        continue;
-      }
       state.debugInfo.studentsReviewed += 1;
       portalUser = normalizeIdentifier(student.portalUser || "");
       portalPhone = normalizeIdentifier(student.telefono || "");
@@ -624,7 +728,7 @@
       passwordMatches = candidatePassword === normalizedPassword || (!!profilePassword && profilePassword === normalizedPassword);
       if (identifierMatches && passwordMatches) {
         state.debugInfo.matchFound = true;
-        state.debugInfo.matchedStudent = (student.nombre || "Sin nombre") + " / " + (student.id || "sin id");
+        state.debugInfo.matchedStudent = isStudentDeleted(student) ? "Acceso no disponible" : (student.nombre || "Sin nombre") + " / " + (student.id || "sin id");
         updateDebug();
         return student;
       }
@@ -1029,14 +1133,18 @@
     var docState = getDocumentsState(student);
     var paymentSummary = details ? getPaymentsSummary(details) : null;
     var attendanceSummary = details ? getAttendanceSummary(details.attendance) : null;
+    var statusInfo = getStudentStatusInfo(student);
     byId("studentName").textContent = student.nombre || "Estudiante";
-    byId("studentMeta").textContent = safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar");
-    byId("heroGreeting").textContent = "Hola, " + (student.nombre || "estudiante");
-    byId("heroCourse").textContent = safe(student.curso, "Tu curso Venezia");
-    byId("heroDetails").textContent = safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar");
-    byId("heroDocStatus").textContent = docState.label;
+    byId("studentMeta").textContent = "Estado: " + statusInfo.label + " | " + safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar");
+    byId("heroGreeting").textContent = statusInfo.key === "completed" ? "¡Felicidades!" : "Hola, " + (student.nombre || "estudiante");
+    byId("heroCourse").textContent = statusInfo.key === "active" ? safe(student.curso, "Tu curso Venezia") : statusInfo.heroTitle;
+    byId("heroDetails").textContent = statusInfo.key === "active"
+      ? safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar")
+      : statusInfo.notice + " " + safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar");
+    byId("heroDocStatus").className = "mv2-doc-badge mv2-status-badge mv2-status-" + statusInfo.key;
+    byId("heroDocStatus").textContent = statusInfo.badge;
     byId("quickStats").innerHTML =
-      statCard("Curso activo", safe(student.curso, "-"), safe(student.horario, "Horario pendiente")) +
+      statCard(statusInfo.courseLabel, safe(student.curso, "-"), statusInfo.label + " | " + safe(student.horario, "Horario pendiente")) +
       statCard("Pagos", paymentSummary ? paymentSummary.status : "Cargando...", "Mensualidad: " + safe(student.mensualidad || student.colegiatura, "-")) +
       statCard("Asistencia", attendanceSummary ? attendanceSummary.percentage + "%" : "Cargando...", attendanceSummary ? attendanceSummary.asistencias + " asistencias registradas" : "Leyendo clases") +
       statCard("Documentos", docState.label, docState.raw);
@@ -1059,10 +1167,12 @@
     var docState = getDocumentsState(student);
     var payments = details ? getPaymentsSummary(details) : null;
     var attendance = details ? getAttendanceSummary(details.attendance) : null;
+    var statusInfo = getStudentStatusInfo(student);
     byId("panelInicio").innerHTML =
-      '<div class="mv2-panel-header"><h2>Inicio</h2><p>Resumen real de tu expediente en Venezia.</p></div>' +
+      '<div class="mv2-panel-header"><h2>Inicio</h2><p>' + escapeHtml(statusInfo.intro) + '</p></div>' +
+      statusNoticeHtml(statusInfo) +
       '<div class="mv2-info-grid">' +
-      infoItem("Curso activo", student.curso) +
+      infoItem(statusInfo.courseLabel, student.curso) +
       infoItem("Plantel", student.sucursal) +
       infoItem("Horario", student.horario) +
       infoItem("Documentación", docState.label) +
@@ -1070,7 +1180,7 @@
       infoItem("Asistencia", attendance ? attendance.percentage + "% visible" : "Cargando asistencias...") +
       '</div>' +
       '<div class="mv2-pill-row">' +
-      '<span class="mv2-pill">' + escapeHtml(safe(student.estado, "Activa")) + '</span>' +
+      statusBadgeHtml(statusInfo) +
       '<span class="mv2-pill">' + escapeHtml(safe(student.accesoElegido, "Acceso por confirmar")) + '</span>' +
       '<span class="mv2-pill">' + escapeHtml(formatDate(student.fechaInicio)) + '</span>' +
       '</div>';
@@ -1097,13 +1207,14 @@
     var summary;
     var html;
     var index;
+    var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.payments) {
       byId("panelPagos").innerHTML = '<div class="mv2-panel-header"><h2>Pagos</h2><p>No pudimos cargar tus pagos en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus pagos en este momento.</div>';
       return;
     }
     summary = getPaymentsSummary(details);
     html =
-      '<div class="mv2-panel-header"><h2>Pagos</h2><p>Pagos realizados, mensualidades y pendientes visibles.</p></div>' +
+      '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Pagos realizados, mensualidades y pendientes visibles.") + '</p></div>' +
       '<div class="mv2-info-grid">' +
       infoItem("Estado básico", summary.status) +
       infoItem("Mensualidad registrada", student.mensualidad || student.colegiatura || summary.latest.mensualidadPactada) +
@@ -1141,13 +1252,14 @@
     var summary;
     var html;
     var index;
+    var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.attendance) {
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
       return;
     }
     summary = getAttendanceSummary(details.attendance);
     html =
-      '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>Resumen de asistencias registradas.</p></div>' +
+      '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>' + escapeHtml(statusInfo.attendanceCopy || "Resumen de asistencias registradas.") + '</p></div>' +
       '<div class="mv2-info-grid">' +
       infoItem("Asistencias", String(summary.asistencias)) +
       infoItem("Faltas", String(summary.faltas)) +
@@ -1355,6 +1467,7 @@
     state.debugInfo.passwordLength = normalizePassword(password).length;
     updateDebug();
     setLoginBusy(true, "Validando...");
+    clearRuntimeMessage();
     setFeedback("Validando acceso...");
 
     loadStudents(function (error) {
@@ -1368,6 +1481,10 @@
       if (!student) {
         setLoginBusy(false);
         setFeedback("Usuario o contraseña incorrectos", "error");
+        return;
+      }
+      if (isStudentDeleted(student)) {
+        showUnavailableAccessMessage();
         return;
       }
       saveSession(student);
@@ -1439,17 +1556,23 @@
   function tryRestoreSession() {
     var session = readSession();
     var student = null;
+    var matchedStudent = null;
     var index;
     if (!session || !session.studentId) {
       return;
     }
     loadStudents(function () {
       for (index = 0; index < state.students.length; index += 1) {
-        if (state.students[index].id === session.studentId && !isStudentDeleted(state.students[index])) {
-          student = state.students[index];
+        if (state.students[index].id === session.studentId) {
+          matchedStudent = state.students[index];
           break;
         }
       }
+      if (matchedStudent && isStudentDeleted(matchedStudent)) {
+        showUnavailableAccessMessage();
+        return;
+      }
+      student = matchedStudent;
       if (student) {
         openDashboard(student);
       } else {

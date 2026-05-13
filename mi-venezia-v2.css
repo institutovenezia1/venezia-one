@@ -206,6 +206,15 @@ button {
   line-height: 1.45;
 }
 
+.mv2-error-box strong,
+.mv2-error-box span {
+  display: block;
+}
+
+.mv2-error-box span {
+  margin-top: 4px;
+}
+
 .mv2-dashboard-view {
   display: block;
   max-width: 1120px;
@@ -266,6 +275,61 @@ button {
   color: #fff;
   font-size: 0.92rem;
   font-weight: 900;
+}
+
+.mv2-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.mv2-doc-badge.mv2-status-badge {
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.mv2-status-active {
+  border-color: rgba(21, 128, 61, 0.24);
+  background: rgba(220, 252, 231, 0.92);
+  color: #14532d;
+}
+
+.mv2-status-paused {
+  border-color: rgba(201, 162, 39, 0.34);
+  background: #fff7d6;
+  color: #6f4f00;
+}
+
+.mv2-status-withdrawn {
+  border-color: rgba(143, 45, 45, 0.22);
+  background: #fff4f1;
+  color: #8f2d2d;
+}
+
+.mv2-status-completed {
+  border-color: rgba(75, 37, 95, 0.2);
+  background: #f1e7f7;
+  color: var(--mv2-purple);
+}
+
+.mv2-status-unavailable {
+  border-color: rgba(68, 64, 60, 0.22);
+  background: #f5f5f4;
+  color: #44403c;
+}
+
+.mv2-status-notice {
+  margin: 0 0 14px;
+  border: 1px solid rgba(75, 37, 95, 0.14);
+  border-radius: 16px;
+  padding: 13px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .mv2-stats-grid {
