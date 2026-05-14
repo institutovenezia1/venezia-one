@@ -2144,7 +2144,6 @@
     var summary;
     var html;
     var index;
-    var timelineItems;
     var calendarEntries;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.payments) {
@@ -2152,7 +2151,6 @@
       return;
     }
     summary = getPaymentsSummary(details, student);
-    timelineItems = buildPaymentTimeline(summary, details, student);
     calendarEntries = buildPaymentCalendarEntries(student, details, summary);
     html =
       '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Pagos realizados, mensualidades y pendientes visibles.") + '</p></div>' +
@@ -2172,18 +2170,6 @@
       html += '</div>';
     } else {
       html += '<div class="mv2-empty">Aún no hay calendario de pagos disponible.</div>';
-    }
-    html += '</div>' +
-      '<div class="mv2-section-block"><h3>Línea de tiempo de pagos</h3>';
-
-    if (timelineItems.length) {
-      html += '<div class="mv2-timeline">';
-      for (index = 0; index < timelineItems.length; index += 1) {
-        html += renderPaymentTimelineItem(timelineItems[index]);
-      }
-      html += '</div>';
-    } else {
-      html += '<div class="mv2-empty">No hay información de pagos disponible por el momento.</div>';
     }
     html += '</div>';
     byId("panelPagos").innerHTML = html;
