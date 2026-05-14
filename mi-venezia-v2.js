@@ -809,6 +809,7 @@
       reference: text(row.reference),
       relatedStudentId: text(row.related_student_id || row.relatedStudentId),
       relatedPaymentId: text(row.related_payment_id || row.relatedPaymentId),
+      conceptKey: text(extractMetadata(notes, "Clave de concepto") || row.conceptKey),
       concepto: text(extractMetadata(notes, "Concepto real pago") || extractMetadata(notes, "Concepto") || row.concepto),
       cancelled: isConfirmed(extractMetadata(notes, "Cancelado")),
       createdAt: text(row.created_at || row.createdAt)
@@ -1588,7 +1589,7 @@
       '<strong>' + escapeHtml(item.label) + '</strong>' +
       '<div class="mv2-timeline-meta">' +
       timelineMeta("Monto", item.amount) +
-      timelineMeta("Fecha", item.date) +
+      timelineMeta(item.dateLabel || "Fecha", item.date) +
       timelineMeta("Método", item.method) +
       timelineMeta("Periodo", item.period) +
       '</div>' +
@@ -1597,36 +1598,252 @@
     );
   }
 
+  function normalizePaymentRuleKey(value) {
+    return normalizeLoose(value).replace(/[^a-z0-9]/g, "");
+  }
+
+  function paymentRuleKeyMatches(value, rule) {
+    var normalized = normalizePaymentRuleKey(value);
+    var aliases;
+    var index;
+    if (!normalized || !rule) {
+      return false;
+    }
+    aliases = getPaymentRuleAliases(rule);
+    if (normalized === normalizePaymentRuleKey(rule.field)) {
+      return true;
+    }
+    for (index = 0; index < aliases.length; index += 1) {
+      if (normalized === normalizePaymentRuleKey(aliases[index])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function findPaymentRecordById(payments, paymentId) {
+    var normalizedId = text(paymentId);
+    var index;
+    if (!normalizedId) {
+      return null;
+    }
+    for (index = 0; payments && index < payments.length; index += 1) {
+      if (text(payments[index].id) === normalizedId) {
+        return payments[index];
+      }
+    }
+    return null;
+  }
+
+  function getPaymentRuleDetailSortValue(payment) {
+    return normalizeLocalDateKey(payment && payment.paymentRealDate) || text(payment && (payment.updatedAt || payment.createdAt));
+  }
+
+  function getSpecificPaymentRecordForRule(rule, payments) {
+    var sortedPayments = (payments || []).slice().sort(function (left, right) {
+      return getPaymentRuleDetailSortValue(right).localeCompare(getPaymentRuleDetailSortValue(left));
+    });
+    var index;
+    var payment;
+    for (index = 0; index < sortedPayments.length; index += 1) {
+      payment = sortedPayments[index];
+      if (isEligiblePaymentStatus(payment && payment[rule.field]) && paymentRecordMatchesRuleConcept(payment, rule)) {
+        return payment;
+      }
+    }
+    return null;
+  }
+
+  function getFinanceRuleSortValue(financeItem) {
+    return normalizeLocalDateKey(financeItem && financeItem.fecha) || text(financeItem && financeItem.createdAt);
+  }
+
+  function referenceLooksLikePaymentConcept(value) {
+    var normalized = normalizeLoose(value);
+    var compact = normalizePaymentRuleKey(value);
+    return Boolean(
+      normalized.indexOf("mens") !== -1 ||
+      normalized.indexOf("certificado") !== -1 ||
+      compact === "c1" ||
+      compact === "c2" ||
+      compact === "men1" ||
+      compact === "men2" ||
+      compact === "men3" ||
+      compact === "men4" ||
+      compact === "men5"
+    );
+  }
+
+  function financeRecordMatchesRuleConcept(financeItem, rule, payments) {
+    var linkedPayment;
+    if (!financeItem || financeItem.cancelled || normalizeLoose(financeItem.tipo) === "egreso") {
+      return false;
+    }
+    if (paymentRuleKeyMatches(financeItem.conceptKey, rule)) {
+      return true;
+    }
+    if (textMatchesPaymentRule([financeItem.concepto, financeItem.categoria].join(" "), rule)) {
+      return true;
+    }
+    if (referenceLooksLikePaymentConcept(financeItem.reference) && textMatchesPaymentRule(financeItem.reference, rule)) {
+      return true;
+    }
+    linkedPayment = findPaymentRecordById(payments || [], financeItem.relatedPaymentId);
+    return Boolean(linkedPayment && paymentRecordMatchesRuleConcept(linkedPayment, rule));
+  }
+
+  function findSpecificFinanceRecordForRule(rule, finance, payments) {
+    var sortedFinance = (finance || []).slice().sort(function (left, right) {
+      return getFinanceRuleSortValue(right).localeCompare(getFinanceRuleSortValue(left));
+    });
+    var index;
+    for (index = 0; index < sortedFinance.length; index += 1) {
+      if (financeRecordMatchesRuleConcept(sortedFinance[index], rule, payments)) {
+        return sortedFinance[index];
+      }
+    }
+    return null;
+  }
+
+  function getPaymentPeriodForFinanceRule(financeItem, rule, payments) {
+    var linkedPayment = findPaymentRecordById(payments || [], financeItem && financeItem.relatedPaymentId);
+    var specificPayment = linkedPayment && paymentRecordMatchesRuleConcept(linkedPayment, rule)
+      ? linkedPayment
+      : getSpecificPaymentRecordForRule(rule, payments || []);
+    return text(specificPayment && specificPayment.mesPago);
+  }
+
+  function buildPaymentRuleDetailFromFinance(financeItem, rule, payments) {
+    if (!financeItem) {
+      return null;
+    }
+    return {
+      source: "finance",
+      financeId: financeItem.id || "",
+      date: normalizeLocalDateKey(financeItem.fecha),
+      method: financeItem.metodoPago || "",
+      amount: financeItem.monto,
+      period: getPaymentPeriodForFinanceRule(financeItem, rule, payments),
+      reference: financeItem.concepto || financeItem.categoria || financeItem.reference || ""
+    };
+  }
+
+  function buildPaymentRuleDetailFromPayment(payment) {
+    if (!payment) {
+      return null;
+    }
+    return {
+      source: "payment",
+      paymentId: payment.id || "",
+      date: normalizeLocalDateKey(payment.paymentRealDate),
+      method: payment.metodoPago || "",
+      amount: payment.cantidadPagada || "",
+      period: payment.mesPago || "",
+      reference: payment.paymentMovementConcept || ""
+    };
+  }
+
+  function resolvePaymentRuleDetail(rule, payments, finance) {
+    var financeItem = findSpecificFinanceRecordForRule(rule, finance || [], payments || []);
+    if (financeItem) {
+      return buildPaymentRuleDetailFromFinance(financeItem, rule, payments || []);
+    }
+    return buildPaymentRuleDetailFromPayment(getSpecificPaymentRecordForRule(rule, payments || []));
+  }
+
+  function getPaymentReferenceByField(summary, field) {
+    var index;
+    for (index = 0; summary && summary.references && index < summary.references.length; index += 1) {
+      if (summary.references[index].field === field) {
+        return summary.references[index];
+      }
+    }
+    return null;
+  }
+
+  function getPaymentEstimatedDateForRule(rule, student) {
+    var sessions = getStudentAttendanceReferenceSessions(student);
+    var session = sessions[rule.sessionIndex] || null;
+    return session && session.date ? session.date : "";
+  }
+
+  function buildPaymentTimelinePlanItem(rule, status, detail, plan, student) {
+    var normalizedStatus = getPaymentStatusLabel(status);
+    var state = getPaymentStatusKey(status);
+    var applicable = normalizedStatus !== "No aplica";
+    var isCovered = normalizedStatus === "Pagado" || normalizedStatus === "Parcial";
+    var estimatedDate = applicable ? getPaymentEstimatedDateForRule(rule, student) : "";
+    var amount = applicable ? formatMoney((detail && detail.amount) || getPaymentRuleAmount(rule, plan, student)) : "";
+    var date = "";
+    var dateLabel = "Fecha";
+    var method = "";
+    var period = "";
+
+    if (isCovered) {
+      date = detail && detail.date ? formatDate(detail.date) : "Fecha no registrada";
+      dateLabel = "Fecha real";
+      method = detail && detail.method ? detail.method : "Sin dato registrado";
+      period = detail && detail.period ? detail.period : "Sin dato registrado";
+    } else if (normalizedStatus === "Pendiente") {
+      date = estimatedDate ? formatDate(estimatedDate) : "";
+      dateLabel = "Fecha estimada";
+    }
+
+    return {
+      label: rule.label,
+      status: normalizedStatus,
+      state: state,
+      type: "Plan de pagos",
+      amount: amount,
+      date: date,
+      dateLabel: dateLabel,
+      method: method,
+      period: period
+    };
+  }
+
+  function buildUnmatchedFinanceTimelineItem(financeItem) {
+    return {
+      label: financeItem.concepto || financeItem.categoria || "Pago registrado",
+      status: "Pagado",
+      state: "paid",
+      type: "Movimiento registrado",
+      amount: formatMoney(financeItem.monto),
+      date: formatDate(financeItem.fecha),
+      dateLabel: "Fecha real",
+      method: financeItem.metodoPago || "Método no registrado",
+      period: ""
+    };
+  }
+
   function buildPaymentTimeline(summary, details, student) {
     var items = [];
     var index;
     var reference;
+    var rule;
+    var status;
+    var detail;
+    var matchedFinanceIds = {};
+    var plan = summary && summary.latest ? summary.latest : getMergedPaymentPlanRecord(details && details.payments);
     var financeItem;
+    for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
+      rule = PAYMENT_CALENDAR_RULES[index];
+      reference = getPaymentReferenceByField(summary, rule.field);
+      if (!reference) {
+        continue;
+      }
+      status = reference.status;
+      detail = resolvePaymentRuleDetail(rule, details.payments || [], summary.finance || []);
+      if (detail && detail.financeId) {
+        matchedFinanceIds[detail.financeId] = true;
+      }
+      items.push(buildPaymentTimelinePlanItem(rule, status, detail, plan, student));
+    }
     for (index = 0; index < summary.finance.length; index += 1) {
       financeItem = summary.finance[index];
-      items.push({
-        label: financeItem.concepto || financeItem.categoria || "Pago registrado",
-        status: "Pagado",
-        state: "paid",
-        type: "Movimiento registrado",
-        amount: formatMoney(financeItem.monto),
-        date: formatDate(financeItem.fecha),
-        method: financeItem.metodoPago || "Método no registrado",
-        period: ""
-      });
-    }
-    for (index = 0; index < summary.references.length; index += 1) {
-      reference = summary.references[index];
-      items.push({
-        label: reference.label,
-        status: getPaymentStatusLabel(reference.status),
-        state: getPaymentStatusKey(reference.status),
-        type: "Plan de pagos",
-        amount: formatMoney(inferPaymentAmount(reference, student, summary)),
-        date: formatDate(reference.updatedAt),
-        method: (summary.latest && summary.latest.metodoPago) || student.metodoPago || "",
-        period: reference.month || ""
-      });
+      if (!matchedFinanceIds[financeItem.id]) {
+        items.push(buildUnmatchedFinanceTimelineItem(financeItem));
+      }
     }
     if (!items.length && details.payments.length) {
       for (index = 0; index < details.payments.length; index += 1) {
@@ -1636,8 +1853,9 @@
           state: "paid",
           type: "Pago visible",
           amount: formatMoney(details.payments[index].cantidadPagada || details.payments[index].mensualidadPactada),
-          date: formatDate(details.payments[index].paymentRealDate || details.payments[index].updatedAt || details.payments[index].createdAt),
-          method: details.payments[index].metodoPago || student.metodoPago || "",
+          date: details.payments[index].paymentRealDate ? formatDate(details.payments[index].paymentRealDate) : "Fecha no registrada",
+          dateLabel: "Fecha real",
+          method: details.payments[index].metodoPago || "Sin dato registrado",
           period: details.payments[index].mesPago || ""
         });
       }
@@ -1685,15 +1903,23 @@
   }
 
   function getPaymentRuleAliases(rule) {
-    var aliases = [rule.label, rule.shortLabel];
+    var aliases = [rule.field, rule.label, rule.shortLabel];
+    var monthlyAliases = {
+      mensualidad1: ["Primera mensualidad", "1ra mensualidad", "Mensualidad uno", "Mens 1"],
+      mensualidad2: ["Segunda mensualidad", "2da mensualidad", "Mensualidad dos", "Mens 2"],
+      mensualidad3: ["Tercera mensualidad", "3ra mensualidad", "Mensualidad tres", "Mens 3"],
+      mensualidad4: ["Cuarta mensualidad", "4ta mensualidad", "Mensualidad cuatro", "Mens 4"],
+      mensualidad5: ["Quinta mensualidad", "5ta mensualidad", "Mensualidad cinco", "Mens 5"]
+    };
     if (rule.field === "certificadoP1") {
-      aliases.push("Certificado P1", "Pago C1", "C1");
+      aliases.push("Certificado P1", "Certificado uno", "Pago C1", "Pago certificado C1", "C1");
     }
     if (rule.field === "certificadoP2") {
-      aliases.push("Certificado P2", "Pago C2", "C2");
+      aliases.push("Certificado P2", "Certificado dos", "Pago C2", "Pago certificado C2", "C2");
     }
     if (rule.field.indexOf("mensualidad") === 0) {
       aliases.push(rule.label.replace("Mensualidad", "Mens"), rule.label.replace("Mensualidad", "Mensualidad "));
+      aliases = aliases.concat(monthlyAliases[rule.field] || []);
     }
     return aliases;
   }
@@ -1739,42 +1965,8 @@
   }
 
   function getPaymentRuleRealDate(rule, payments, finance) {
-    var sortedPayments = (payments || []).slice().sort(function (left, right) {
-      return getPaymentSortValue(left).localeCompare(getPaymentSortValue(right));
-    });
-    var fallbackDate = "";
-    var index;
-    var payment;
-    var realDate;
-    var financeDate;
-    for (index = 0; index < sortedPayments.length; index += 1) {
-      payment = sortedPayments[index];
-      if (!isEligiblePaymentStatus(payment[rule.field])) {
-        continue;
-      }
-      realDate = normalizeLocalDateKey(payment.paymentRealDate);
-      if (!realDate) {
-        continue;
-      }
-      if (paymentRecordMatchesRuleConcept(payment, rule)) {
-        return realDate;
-      }
-      if (!fallbackDate) {
-        fallbackDate = realDate;
-      }
-    }
-    for (index = 0; finance && index < finance.length; index += 1) {
-      if (finance[index].cancelled || normalizeLoose(finance[index].tipo) === "egreso") {
-        continue;
-      }
-      if (textMatchesPaymentRule([finance[index].concepto, finance[index].categoria, finance[index].reference].join(" "), rule)) {
-        financeDate = normalizeLocalDateKey(finance[index].fecha);
-        if (financeDate) {
-          return financeDate;
-        }
-      }
-    }
-    return fallbackDate;
+    var detail = resolvePaymentRuleDetail(rule, payments || [], finance || []);
+    return detail && detail.date ? detail.date : "";
   }
 
   function buildPaymentCalendarEntries(student, details, summary) {
