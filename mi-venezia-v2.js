@@ -1589,7 +1589,8 @@
       '<strong>' + escapeHtml(item.label) + '</strong>' +
       '<div class="mv2-timeline-meta">' +
       timelineMeta("Monto", item.amount) +
-      timelineMeta(item.dateLabel || "Fecha", item.date) +
+      timelineMeta("Fecha programada", item.scheduledDate) +
+      timelineMeta("Fecha real", item.realDate) +
       timelineMeta("Método", item.method) +
       timelineMeta("Periodo", item.period) +
       '</div>' +
@@ -1774,19 +1775,21 @@
     var isCovered = normalizedStatus === "Pagado" || normalizedStatus === "Parcial";
     var estimatedDate = applicable ? getPaymentEstimatedDateForRule(rule, student) : "";
     var amount = applicable ? formatMoney((detail && detail.amount) || getPaymentRuleAmount(rule, plan, student)) : "";
-    var date = "";
-    var dateLabel = "Fecha";
+    var scheduledDate = "";
+    var realDate = "";
     var method = "";
     var period = "";
 
+    if (applicable) {
+      scheduledDate = estimatedDate ? formatDate(estimatedDate) : "Sin fecha calculable";
+    } else {
+      scheduledDate = "No aplica";
+    }
+
     if (isCovered) {
-      date = detail && detail.date ? formatDate(detail.date) : "Fecha no registrada";
-      dateLabel = "Fecha real";
-      method = detail && detail.method ? detail.method : "Sin dato registrado";
-      period = detail && detail.period ? detail.period : "Sin dato registrado";
-    } else if (normalizedStatus === "Pendiente") {
-      date = estimatedDate ? formatDate(estimatedDate) : "";
-      dateLabel = "Fecha estimada";
+      realDate = detail && detail.date ? formatDate(detail.date) : "No registrada";
+      method = detail && detail.method ? detail.method : "No registrado";
+      period = detail && detail.period ? detail.period : "";
     }
 
     return {
@@ -1795,8 +1798,8 @@
       state: state,
       type: "Plan de pagos",
       amount: amount,
-      date: date,
-      dateLabel: dateLabel,
+      scheduledDate: scheduledDate,
+      realDate: realDate,
       method: method,
       period: period
     };
@@ -1809,8 +1812,8 @@
       state: "paid",
       type: "Movimiento registrado",
       amount: formatMoney(financeItem.monto),
-      date: formatDate(financeItem.fecha),
-      dateLabel: "Fecha real",
+      scheduledDate: "",
+      realDate: formatDate(financeItem.fecha),
       method: financeItem.metodoPago || "Método no registrado",
       period: ""
     };
@@ -1853,9 +1856,9 @@
           state: "paid",
           type: "Pago visible",
           amount: formatMoney(details.payments[index].cantidadPagada || details.payments[index].mensualidadPactada),
-          date: details.payments[index].paymentRealDate ? formatDate(details.payments[index].paymentRealDate) : "Fecha no registrada",
-          dateLabel: "Fecha real",
-          method: details.payments[index].metodoPago || "Sin dato registrado",
+          scheduledDate: "",
+          realDate: details.payments[index].paymentRealDate ? formatDate(details.payments[index].paymentRealDate) : "No registrada",
+          method: details.payments[index].metodoPago || "No registrado",
           period: details.payments[index].mesPago || ""
         });
       }
