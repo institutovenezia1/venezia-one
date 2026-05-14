@@ -9,7 +9,18 @@
   var LEGACY_STAFF_KEY = "venezia-one-v2-staff";
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
   var SUPPORT_WHATSAPP = "522463831375";
-  var TLAXCALA_WEEKEND_REFERRAL_WHATSAPP = "2461379504";
+  var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = "2461379504";
+  var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
+  // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
+  var PAYMENT_CALENDAR_RULES = [
+    { field: "mensualidad1", label: "Mensualidad 1", shortLabel: "Men1", sessionIndex: 0, amountField: "mensualidad1Amount", amountType: "monthly" },
+    { field: "mensualidad2", label: "Mensualidad 2", shortLabel: "Men2", sessionIndex: 3, amountField: "mensualidad2Amount", amountType: "monthly" },
+    { field: "certificadoP1", label: "Certificado C1", shortLabel: "C1", sessionIndex: 4, amountField: "certificadoP1Amount", amountType: "certificate" },
+    { field: "mensualidad3", label: "Mensualidad 3", shortLabel: "Men3", sessionIndex: 7, amountField: "mensualidad3Amount", amountType: "monthly" },
+    { field: "certificadoP2", label: "Certificado C2", shortLabel: "C2", sessionIndex: 8, amountField: "certificadoP2Amount", amountType: "certificate" },
+    { field: "mensualidad4", label: "Mensualidad 4", shortLabel: "Men4", sessionIndex: 11, amountField: "mensualidad4Amount", amountType: "monthly" },
+    { field: "mensualidad5", label: "Mensualidad 5", shortLabel: "Men5", sessionIndex: 15, amountField: "mensualidad5Amount", amountType: "monthly", onlyFifthMonth: true }
+  ];
   var STUDENT_DOCUMENT_REQUIREMENTS = [
     "Reglamento interno",
     "Contrato de alumno",
@@ -755,6 +766,13 @@
       mensualidad3: text(extractMetadata(notes, "3ra mensualidad") || row.mensualidad3),
       mensualidad4: text(extractMetadata(notes, "4ta mensualidad") || row.mensualidad4),
       mensualidad5: text(extractMetadata(notes, "5ta mensualidad") || row.mensualidad5),
+      certificadoP1Amount: text(row.certificate_p1_amount || row.certificadoP1Amount),
+      certificadoP2Amount: text(row.certificate_p2_amount || row.certificadoP2Amount),
+      mensualidad1Amount: text(row.first_month_amount || row.mensualidad1Amount),
+      mensualidad2Amount: text(row.second_month_amount || row.mensualidad2Amount),
+      mensualidad3Amount: text(row.third_month_amount || row.mensualidad3Amount),
+      mensualidad4Amount: text(row.fourth_month_amount || row.mensualidad4Amount),
+      mensualidad5Amount: text(row.fifth_month_amount || row.mensualidad5Amount),
       pagosPendientes: text(row.pending_payments || row.pagosPendientes),
       metodoPago: text(row.payment_method || row.metodoPago),
       cantidadPagada: text(extractMetadata(notes, "Cantidad pagada") || row.cantidadPagada),
@@ -790,6 +808,7 @@
       metodoPago: text(row.payment_method || row.metodoPago),
       reference: text(row.reference),
       relatedStudentId: text(row.related_student_id || row.relatedStudentId),
+      relatedPaymentId: text(row.related_payment_id || row.relatedPaymentId),
       concepto: text(extractMetadata(notes, "Concepto real pago") || extractMetadata(notes, "Concepto") || row.concepto),
       cancelled: isConfirmed(extractMetadata(notes, "Cancelado")),
       createdAt: text(row.created_at || row.createdAt)
@@ -945,6 +964,210 @@
     return source;
   }
 
+  function twoDigit(value) {
+    return ("0" + value).slice(-2);
+  }
+
+  function formatDateKey(date) {
+    return [
+      date.getFullYear(),
+      twoDigit(date.getMonth() + 1),
+      twoDigit(date.getDate())
+    ].join("-");
+  }
+
+  function parseLocalDateKey(value) {
+    var match = text(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var year;
+    var month;
+    var day;
+    var date;
+    if (!match) {
+      return null;
+    }
+    year = Number(match[1]);
+    month = Number(match[2]);
+    day = Number(match[3]);
+    date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return null;
+    }
+    return date;
+  }
+
+  function normalizeLocalDateKey(value) {
+    var normalized = text(value);
+    var directDate = parseLocalDateKey(normalized);
+    var slicedDate;
+    if (directDate) {
+      return formatDateKey(directDate);
+    }
+    slicedDate = parseLocalDateKey(normalized.slice(0, 10));
+    return slicedDate ? formatDateKey(slicedDate) : "";
+  }
+
+  function addDaysToDateKey(dateKey, days) {
+    var baseDate = parseLocalDateKey(dateKey);
+    var nextDate;
+    if (!baseDate) {
+      return "";
+    }
+    nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+    nextDate.setDate(nextDate.getDate() + days);
+    return formatDateKey(nextDate);
+  }
+
+  function normalizeAttendanceDayLabel(dayLabel) {
+    var normalized = normalizeLoose(dayLabel);
+    if (!normalized) {
+      return "";
+    }
+    if (normalized === "viernes") {
+      return "Viernes";
+    }
+    if (normalized === "sabado") {
+      return "Sábado";
+    }
+    if (normalized === "domingo") {
+      return "Domingo";
+    }
+    if (
+      normalized === "entre semana" ||
+      normalized === "entresemana" ||
+      normalized === "martes a jueves" ||
+      normalized === "martes-jueves" ||
+      normalized === "martes a jueves (3 dias)"
+    ) {
+      return "Entre semana";
+    }
+    return text(dayLabel);
+  }
+
+  function getStudentClassDayLabel(student) {
+    var source = normalizeLoose([
+      student && student.diaClases,
+      student && student.horario,
+      student && student.schedule
+    ].join(" "));
+    if (!source) {
+      return "";
+    }
+    if (
+      source.indexOf("entre semana") !== -1 ||
+      source.indexOf("martes a jueves") !== -1 ||
+      source.indexOf("martes-jueves") !== -1 ||
+      source.indexOf("3 dias") !== -1 ||
+      source.indexOf("tres dias") !== -1 ||
+      source.indexOf("lunes a jueves") !== -1 ||
+      source.indexOf("martes y jueves") !== -1 ||
+      source.indexOf("lunes y miercoles") !== -1
+    ) {
+      return "Entre semana";
+    }
+    if (source.indexOf("viernes") !== -1) {
+      return "Viernes";
+    }
+    if (source.indexOf("sabado") !== -1) {
+      return "Sábado";
+    }
+    if (source.indexOf("domingo") !== -1) {
+      return "Domingo";
+    }
+    return normalizeAttendanceDayLabel(student && student.diaClases);
+  }
+
+  function getAttendanceWeekdayIndex(dayLabel) {
+    var normalized = normalizeAttendanceDayLabel(dayLabel);
+    if (normalized === "Viernes") {
+      return 5;
+    }
+    if (normalized === "Sábado") {
+      return 6;
+    }
+    if (normalized === "Domingo") {
+      return 0;
+    }
+    if (normalized === "Entre semana") {
+      return 2;
+    }
+    return null;
+  }
+
+  function alignDateToSelectedClassDay(dateValue, dayLabel) {
+    var normalizedDate = normalizeLocalDateKey(dateValue);
+    var normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+    var weekday = getAttendanceWeekdayIndex(normalizedDay);
+    var date;
+    var currentDay;
+    var diff;
+    if (!normalizedDate || weekday === null) {
+      return normalizedDate;
+    }
+    date = parseLocalDateKey(normalizedDate);
+    if (!date) {
+      return "";
+    }
+    if (normalizedDay === "Entre semana") {
+      currentDay = date.getDay();
+      if (currentDay >= 2 && currentDay <= 4) {
+        date.setDate(date.getDate() - (currentDay - 2));
+        return formatDateKey(date);
+      }
+    }
+    diff = (weekday - date.getDay() + 7) % 7;
+    date.setDate(date.getDate() + diff);
+    return formatDateKey(date);
+  }
+
+  function getAttendanceSessionCountForCourse(course) {
+    var normalizedCourse = normalizeLoose(course);
+    if (normalizedCourse === "barberia") {
+      return 20;
+    }
+    return DEFAULT_ATTENDANCE_SESSION_COUNT;
+  }
+
+  function courseUsesFifthMonth(course) {
+    return normalizeLoose(course) === "barberia";
+  }
+
+  function getStudentAttendanceBaseDate(student) {
+    var startDate = normalizeLocalDateKey(student && student.fechaInicio);
+    if (!startDate) {
+      return "";
+    }
+    return alignDateToSelectedClassDay(startDate, getStudentClassDayLabel(student));
+  }
+
+  function getStudentAttendanceReferenceSessions(student) {
+    var baseDate = getStudentAttendanceBaseDate(student);
+    var sessionCount = getAttendanceSessionCountForCourse(student && student.curso);
+    var dayLabel = normalizeAttendanceDayLabel(getStudentClassDayLabel(student));
+    var sessions = [];
+    var index;
+    if (!baseDate) {
+      return sessions;
+    }
+    if (dayLabel === "Entre semana") {
+      for (index = 0; index < sessionCount; index += 1) {
+        sessions.push({
+          key: "w" + (index + 1),
+          date: addDaysToDateKey(baseDate, index * 7),
+          classLabel: "Semana " + (index + 1)
+        });
+      }
+      return sessions;
+    }
+    for (index = 0; index < sessionCount; index += 1) {
+      sessions.push({
+        key: "s" + (index + 1),
+        date: addDaysToDateKey(baseDate, index * 7),
+        classLabel: "Clase " + (index + 1)
+      });
+    }
+    return sessions;
+  }
+
   function formatMoney(value) {
     var amount = Number(String(value || "").replace(/[$,\s]/g, ""));
     var rounded;
@@ -1020,43 +1243,135 @@
     return text(value);
   }
 
-  function buildPaymentReferences(payments) {
-    var fields = [
-      ["certificadoP1", "Certificado P1"],
-      ["certificadoP2", "Certificado P2"],
-      ["mensualidad1", "1ra mensualidad"],
-      ["mensualidad2", "2da mensualidad"],
-      ["mensualidad3", "3ra mensualidad"],
-      ["mensualidad4", "4ta mensualidad"],
-      ["mensualidad5", "5ta mensualidad"]
+  function normalizePaymentPlanStatus(value) {
+    var normalized = normalizePaymentStatus(value);
+    if (normalized === "Pagado" || normalized === "Parcial" || normalized === "Pendiente" || normalized === "No aplica") {
+      return normalized;
+    }
+    return "";
+  }
+
+  function getEmptyPaymentPlanRecord(studentId) {
+    return {
+      id: "",
+      studentId: studentId || "",
+      mensualidadPactada: "",
+      certificadoP1: "",
+      certificadoP2: "",
+      mensualidad1: "",
+      mensualidad2: "",
+      mensualidad3: "",
+      mensualidad4: "",
+      mensualidad5: "",
+      certificadoP1Amount: "",
+      certificadoP2Amount: "",
+      mensualidad1Amount: "",
+      mensualidad2Amount: "",
+      mensualidad3Amount: "",
+      mensualidad4Amount: "",
+      mensualidad5Amount: "",
+      pagosPendientes: "",
+      metodoPago: "",
+      cantidadPagada: "",
+      mesPago: "",
+      paymentRealDate: "",
+      paymentMovementConcept: "",
+      observaciones: "",
+      updatedAt: "",
+      createdAt: ""
+    };
+  }
+
+  function getPaymentSortValue(payment) {
+    return text(payment && (payment.updatedAt || payment.createdAt));
+  }
+
+  function getMergedPaymentPlanRecord(payments) {
+    var sortedPayments = (payments || []).slice().sort(function (left, right) {
+      return getPaymentSortValue(left).localeCompare(getPaymentSortValue(right));
+    });
+    var latest = sortedPayments.length ? sortedPayments[sortedPayments.length - 1] : null;
+    var merged = getEmptyPaymentPlanRecord(latest && latest.studentId);
+    var stickyFields = [
+      "mensualidadPactada",
+      "certificadoP1",
+      "certificadoP2",
+      "mensualidad1",
+      "mensualidad2",
+      "mensualidad3",
+      "mensualidad4",
+      "mensualidad5",
+      "certificadoP1Amount",
+      "certificadoP2Amount",
+      "mensualidad1Amount",
+      "mensualidad2Amount",
+      "mensualidad3Amount",
+      "mensualidad4Amount",
+      "mensualidad5Amount",
+      "pagosPendientes"
     ];
-    var result = [];
     var paymentIndex;
     var fieldIndex;
+    var field;
     var value;
-    for (paymentIndex = 0; paymentIndex < payments.length; paymentIndex += 1) {
-      for (fieldIndex = 0; fieldIndex < fields.length; fieldIndex += 1) {
-        value = normalizePaymentStatus(payments[paymentIndex][fields[fieldIndex][0]]);
-        if (value && value !== "0") {
-          result.push({
-            label: fields[fieldIndex][1],
-            status: value,
-            month: payments[paymentIndex].mesPago || "",
-            updatedAt: payments[paymentIndex].updatedAt || payments[paymentIndex].createdAt || ""
-          });
+    for (paymentIndex = 0; paymentIndex < sortedPayments.length; paymentIndex += 1) {
+      for (fieldIndex = 0; fieldIndex < stickyFields.length; fieldIndex += 1) {
+        field = stickyFields[fieldIndex];
+        value = text(sortedPayments[paymentIndex][field]);
+        if (value) {
+          merged[field] = value;
         }
       }
+    }
+    if (latest) {
+      merged.id = latest.id || "";
+      merged.studentId = latest.studentId || merged.studentId;
+      merged.metodoPago = latest.metodoPago || merged.metodoPago;
+      merged.cantidadPagada = latest.cantidadPagada || "";
+      merged.mesPago = latest.mesPago || "";
+      merged.paymentRealDate = latest.paymentRealDate || "";
+      merged.paymentMovementConcept = latest.paymentMovementConcept || "";
+      merged.observaciones = latest.observaciones || "";
+      merged.updatedAt = latest.updatedAt || "";
+      merged.createdAt = latest.createdAt || "";
+    }
+    return merged;
+  }
+
+  function buildPaymentReferences(payments, student) {
+    var result = [];
+    var plan = getMergedPaymentPlanRecord(payments || []);
+    var index;
+    var rule;
+    var status;
+    if (!payments || !payments.length) {
+      return result;
+    }
+    for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
+      rule = PAYMENT_CALENDAR_RULES[index];
+      if (rule.onlyFifthMonth && !courseUsesFifthMonth(student && student.curso)) {
+        status = "No aplica";
+      } else {
+        status = normalizePaymentPlanStatus(plan[rule.field]) || "Pendiente";
+      }
+      result.push({
+        field: rule.field,
+        label: rule.label,
+        status: status,
+        month: plan.mesPago || "",
+        updatedAt: plan.updatedAt || plan.createdAt || ""
+      });
     }
     return result;
   }
 
-  function getPaymentsSummary(details) {
-    var references = buildPaymentReferences(details.payments || []);
+  function getPaymentsSummary(details, student) {
+    var references = buildPaymentReferences(details.payments || [], student);
     var pending = 0;
     var paid = 0;
     var partial = 0;
     var index;
-    var latest = details.payments && details.payments.length ? details.payments[0] : {};
+    var latest = getMergedPaymentPlanRecord(details.payments || []);
     var finance = [];
     for (index = 0; details.finance && index < details.finance.length; index += 1) {
       if (!details.finance[index].cancelled && normalizeLoose(details.finance[index].tipo) !== "egreso") {
@@ -1137,7 +1452,7 @@
 
   function renderHeader(student, details) {
     var docState = getDocumentsState(student);
-    var paymentSummary = details ? getPaymentsSummary(details) : null;
+    var paymentSummary = details ? getPaymentsSummary(details, student) : null;
     var attendanceSummary = details ? getAttendanceSummary(details.attendance) : null;
     var statusInfo = getStudentStatusInfo(student);
     byId("studentName").textContent = student.nombre || "Estudiante";
@@ -1175,15 +1490,19 @@
     ].join("\n");
   }
 
-  function resolveReferralContact(student, details) {
+  function resolveOfficialContactOverride(student) {
     var branch = normalizeLoose(student && student.sucursal);
     if (branch.indexOf("tlaxcala") !== -1 && classifySchedule(student) === "weekend") {
       return {
-        phone: TLAXCALA_WEEKEND_REFERRAL_WHATSAPP,
+        phone: TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP,
         coverage: "weekend",
         name: "Dirección fin de semana Tlaxcala"
       };
     }
+    return null;
+  }
+
+  function resolveReferralContact(student, details) {
     return resolveContact(student, details);
   }
 
@@ -1216,6 +1535,337 @@
       '</div>' +
       '<a class="mv2-referral-button" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Enviar recomendación por WhatsApp</a>' +
       '</article>';
+  }
+
+  function timelineMeta(label, value) {
+    var resolved = safe(value, "-");
+    if (resolved === "-") {
+      return "";
+    }
+    return '<small><span>' + escapeHtml(label) + '</span>' + escapeHtml(resolved) + '</small>';
+  }
+
+  function renderTimelineMetric(label, value, meta) {
+    return '<article class="mv2-timeline-metric"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong><small>' + escapeHtml(meta || "") + '</small></article>';
+  }
+
+  function getPaymentStatusKey(status) {
+    var normalized = normalizePaymentStatus(status);
+    if (normalized === "Pagado") {
+      return "paid";
+    }
+    if (normalized === "Pendiente" || normalized === "Parcial") {
+      return "pending";
+    }
+    if (normalized === "No aplica") {
+      return "na";
+    }
+    return "unknown";
+  }
+
+  function getPaymentStatusLabel(status) {
+    var normalized = normalizePaymentStatus(status);
+    return normalized || "Sin información";
+  }
+
+  function inferPaymentAmount(reference, student, summary) {
+    var label = normalizeLoose(reference && reference.label);
+    if (label.indexOf("mensualidad") !== -1) {
+      return student.mensualidad || student.colegiatura || (summary.latest && summary.latest.mensualidadPactada) || "";
+    }
+    return "";
+  }
+
+  function renderPaymentTimelineItem(item) {
+    return (
+      '<article class="mv2-timeline-item is-' + escapeHtml(item.state) + '">' +
+      '<div class="mv2-timeline-marker" aria-hidden="true"></div>' +
+      '<div class="mv2-timeline-card">' +
+      '<div class="mv2-timeline-card-head">' +
+      '<span class="mv2-timeline-type">' + escapeHtml(item.type || "Pago") + '</span>' +
+      '<span class="mv2-timeline-badge">' + escapeHtml(item.status) + '</span>' +
+      '</div>' +
+      '<strong>' + escapeHtml(item.label) + '</strong>' +
+      '<div class="mv2-timeline-meta">' +
+      timelineMeta("Monto", item.amount) +
+      timelineMeta("Fecha", item.date) +
+      timelineMeta("Método", item.method) +
+      timelineMeta("Periodo", item.period) +
+      '</div>' +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function buildPaymentTimeline(summary, details, student) {
+    var items = [];
+    var index;
+    var reference;
+    var financeItem;
+    for (index = 0; index < summary.finance.length; index += 1) {
+      financeItem = summary.finance[index];
+      items.push({
+        label: financeItem.concepto || financeItem.categoria || "Pago registrado",
+        status: "Pagado",
+        state: "paid",
+        type: "Movimiento registrado",
+        amount: formatMoney(financeItem.monto),
+        date: formatDate(financeItem.fecha),
+        method: financeItem.metodoPago || "Método no registrado",
+        period: ""
+      });
+    }
+    for (index = 0; index < summary.references.length; index += 1) {
+      reference = summary.references[index];
+      items.push({
+        label: reference.label,
+        status: getPaymentStatusLabel(reference.status),
+        state: getPaymentStatusKey(reference.status),
+        type: "Plan de pagos",
+        amount: formatMoney(inferPaymentAmount(reference, student, summary)),
+        date: formatDate(reference.updatedAt),
+        method: (summary.latest && summary.latest.metodoPago) || student.metodoPago || "",
+        period: reference.month || ""
+      });
+    }
+    if (!items.length && details.payments.length) {
+      for (index = 0; index < details.payments.length; index += 1) {
+        items.push({
+          label: details.payments[index].paymentMovementConcept || details.payments[index].mesPago || "Pago registrado",
+          status: "Pagado",
+          state: "paid",
+          type: "Pago visible",
+          amount: formatMoney(details.payments[index].cantidadPagada || details.payments[index].mensualidadPactada),
+          date: formatDate(details.payments[index].paymentRealDate || details.payments[index].updatedAt || details.payments[index].createdAt),
+          method: details.payments[index].metodoPago || student.metodoPago || "",
+          period: details.payments[index].mesPago || ""
+        });
+      }
+    }
+    return items;
+  }
+
+  function getNextPendingPayment(summary) {
+    var index;
+    var status;
+    for (index = 0; index < summary.references.length; index += 1) {
+      status = normalizePaymentStatus(summary.references[index].status);
+      if (status === "Pendiente" || status === "Parcial") {
+        return summary.references[index].label;
+      }
+    }
+    return "Sin pendiente visible";
+  }
+
+  function getCalendarPaymentStatus(value) {
+    var normalized = normalizePaymentPlanStatus(value);
+    if (normalized === "Pagado") {
+      return "Pagado";
+    }
+    if (normalized === "No aplica") {
+      return "No aplica";
+    }
+    return "Pendiente";
+  }
+
+  function isEligiblePaymentStatus(value) {
+    var normalized = normalizePaymentPlanStatus(value);
+    return normalized === "Pagado" || normalized === "Parcial";
+  }
+
+  function getPaymentRuleAmount(rule, plan, student) {
+    var explicitAmount = text(plan && rule && plan[rule.amountField]);
+    if (explicitAmount) {
+      return explicitAmount;
+    }
+    if (rule && rule.amountType === "monthly") {
+      return text((plan && plan.mensualidadPactada) || (student && student.mensualidad) || (student && student.colegiatura));
+    }
+    return "";
+  }
+
+  function getPaymentRuleAliases(rule) {
+    var aliases = [rule.label, rule.shortLabel];
+    if (rule.field === "certificadoP1") {
+      aliases.push("Certificado P1", "Pago C1", "C1");
+    }
+    if (rule.field === "certificadoP2") {
+      aliases.push("Certificado P2", "Pago C2", "C2");
+    }
+    if (rule.field.indexOf("mensualidad") === 0) {
+      aliases.push(rule.label.replace("Mensualidad", "Mens"), rule.label.replace("Mensualidad", "Mensualidad "));
+    }
+    return aliases;
+  }
+
+  function textMatchesPaymentRule(value, rule) {
+    var normalized = normalizeLoose(value);
+    var aliases = getPaymentRuleAliases(rule);
+    var index;
+    var alias;
+    if (!normalized) {
+      return false;
+    }
+    for (index = 0; index < aliases.length; index += 1) {
+      alias = normalizeLoose(aliases[index]);
+      if (alias && normalized.indexOf(alias) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getPaidPaymentFields(payment) {
+    var fields = [];
+    var index;
+    var rule;
+    for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
+      rule = PAYMENT_CALENDAR_RULES[index];
+      if (isEligiblePaymentStatus(payment && payment[rule.field])) {
+        fields.push(rule.field);
+      }
+    }
+    return fields;
+  }
+
+  function paymentRecordMatchesRuleConcept(payment, rule) {
+    var concept = text(payment && payment.paymentMovementConcept);
+    var paidFields;
+    if (concept) {
+      return textMatchesPaymentRule(concept, rule);
+    }
+    paidFields = getPaidPaymentFields(payment);
+    return paidFields.length === 1 && paidFields[0] === rule.field;
+  }
+
+  function getPaymentRuleRealDate(rule, payments, finance) {
+    var sortedPayments = (payments || []).slice().sort(function (left, right) {
+      return getPaymentSortValue(left).localeCompare(getPaymentSortValue(right));
+    });
+    var fallbackDate = "";
+    var index;
+    var payment;
+    var realDate;
+    var financeDate;
+    for (index = 0; index < sortedPayments.length; index += 1) {
+      payment = sortedPayments[index];
+      if (!isEligiblePaymentStatus(payment[rule.field])) {
+        continue;
+      }
+      realDate = normalizeLocalDateKey(payment.paymentRealDate);
+      if (!realDate) {
+        continue;
+      }
+      if (paymentRecordMatchesRuleConcept(payment, rule)) {
+        return realDate;
+      }
+      if (!fallbackDate) {
+        fallbackDate = realDate;
+      }
+    }
+    for (index = 0; finance && index < finance.length; index += 1) {
+      if (finance[index].cancelled || normalizeLoose(finance[index].tipo) === "egreso") {
+        continue;
+      }
+      if (textMatchesPaymentRule([finance[index].concepto, finance[index].categoria, finance[index].reference].join(" "), rule)) {
+        financeDate = normalizeLocalDateKey(finance[index].fecha);
+        if (financeDate) {
+          return financeDate;
+        }
+      }
+    }
+    return fallbackDate;
+  }
+
+  function buildPaymentCalendarEntries(student, details, summary) {
+    var entries = [];
+    var plan = summary && summary.latest ? summary.latest : getMergedPaymentPlanRecord(details && details.payments);
+    var sessions = getStudentAttendanceReferenceSessions(student);
+    var index;
+    var rule;
+    var applicable;
+    var status;
+    var session;
+    if (!details || !details.payments || !details.payments.length) {
+      return entries;
+    }
+    for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
+      rule = PAYMENT_CALENDAR_RULES[index];
+      applicable = !rule.onlyFifthMonth || courseUsesFifthMonth(student && student.curso);
+      status = applicable ? getCalendarPaymentStatus(plan[rule.field]) : "No aplica";
+      session = sessions[rule.sessionIndex] || null;
+      entries.push({
+        field: rule.field,
+        label: rule.label,
+        status: status,
+        state: getPaymentStatusKey(status),
+        estimatedDate: applicable ? (session && session.date ? session.date : "") : "",
+        amount: applicable ? formatMoney(getPaymentRuleAmount(rule, plan, student)) : "",
+        paidAt: status === "Pagado" ? getPaymentRuleRealDate(rule, details.payments || [], summary.finance || []) : ""
+      });
+    }
+    return entries;
+  }
+
+  function renderPaymentCalendarItem(item) {
+    var dateLabel = item.status === "No aplica" ? "No aplica" : (item.estimatedDate || "Sin fecha calculable");
+    return (
+      '<article class="mv2-payment-calendar-card is-' + escapeHtml(item.state) + '">' +
+      '<div class="mv2-payment-calendar-head">' +
+      '<strong>' + escapeHtml(item.label) + '</strong>' +
+      '<span class="mv2-payment-calendar-badge">' + escapeHtml(item.status) + '</span>' +
+      '</div>' +
+      '<div class="mv2-payment-calendar-meta">' +
+      timelineMeta("Fecha de pago", dateLabel) +
+      timelineMeta("Monto", item.amount) +
+      timelineMeta("Pagado el", item.paidAt) +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function getAttendanceStatusKey(status) {
+    if (status === "Asistencia") {
+      return "attended";
+    }
+    if (status === "Falta") {
+      return "absence";
+    }
+    if (status === "Recuperación") {
+      return "recovery";
+    }
+    if (status === "Permiso") {
+      return "permit";
+    }
+    return "pending";
+  }
+
+  function getAttendanceStatusLabel(status) {
+    if (status === "Asistencia") {
+      return "Asistió";
+    }
+    return status || "Pendiente";
+  }
+
+  function renderAttendanceTimelineItem(record, index) {
+    var status = normalizeAttendanceStatus(record.estado);
+    var state = getAttendanceStatusKey(status);
+    var label = status === "Recuperación" ? "Recuperación" : "Clase " + (index + 1);
+    return (
+      '<article class="mv2-timeline-item is-' + escapeHtml(state) + '">' +
+      '<div class="mv2-timeline-marker" aria-hidden="true"></div>' +
+      '<div class="mv2-timeline-card">' +
+      '<div class="mv2-timeline-card-head">' +
+      '<span class="mv2-timeline-type">' + escapeHtml(label) + '</span>' +
+      '<span class="mv2-timeline-badge">' + escapeHtml(getAttendanceStatusLabel(status)) + '</span>' +
+      '</div>' +
+      '<strong>' + escapeHtml(formatDate(record.fecha)) + '</strong>' +
+      '<div class="mv2-timeline-meta">' +
+      timelineMeta("Observación", record.observaciones || "Sin observaciones") +
+      '</div>' +
+      '</div>' +
+      '</article>'
+    );
   }
 
   function getDocumentationStatusKey(status) {
@@ -1256,7 +1906,7 @@
 
   function renderInicio(student, details) {
     var docState = getDocumentsState(student);
-    var payments = details ? getPaymentsSummary(details) : null;
+    var payments = details ? getPaymentsSummary(details, student) : null;
     var attendance = details ? getAttendanceSummary(details.attendance) : null;
     var statusInfo = getStudentStatusInfo(student);
     byId("panelInicio").innerHTML =
@@ -1299,44 +1949,48 @@
     var summary;
     var html;
     var index;
+    var timelineItems;
+    var calendarEntries;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.payments) {
       byId("panelPagos").innerHTML = '<div class="mv2-panel-header"><h2>Pagos</h2><p>No pudimos cargar tus pagos en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus pagos en este momento.</div>';
       return;
     }
-    summary = getPaymentsSummary(details);
+    summary = getPaymentsSummary(details, student);
+    timelineItems = buildPaymentTimeline(summary, details, student);
+    calendarEntries = buildPaymentCalendarEntries(student, details, summary);
     html =
       '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Pagos realizados, mensualidades y pendientes visibles.") + '</p></div>' +
-      '<div class="mv2-info-grid">' +
-      infoItem("Estado básico", summary.status) +
-      infoItem("Mensualidad registrada", student.mensualidad || student.colegiatura || summary.latest.mensualidadPactada) +
-      infoItem("Método de pago", summary.latest.metodoPago || student.metodoPago) +
-      infoItem("Pagos pendientes", summary.latest.pagosPendientes || String(summary.pending)) +
-      '</div>';
+      '<div class="mv2-timeline-summary">' +
+      renderTimelineMetric("Pagos completados", String(summary.paid || summary.finance.length), "Movimientos visibles") +
+      renderTimelineMetric("Pagos pendientes", String(summary.pending), "Plan de pagos") +
+      renderTimelineMetric("Próximo pendiente", getNextPendingPayment(summary), "Según registros visibles") +
+      renderTimelineMetric("Estado general", summary.status, "Resumen actual") +
+      '</div>' +
+      '<div class="mv2-section-block"><h3>Calendario de pagos</h3>';
 
-    html += '<div class="mv2-section-block"><h3>Pagos realizados</h3><div class="mv2-payment-list">';
-    if (summary.finance.length) {
-      for (index = 0; index < summary.finance.length; index += 1) {
-        html += '<article class="mv2-payment-item"><span>' + escapeHtml(formatDate(summary.finance[index].fecha)) + '</span><strong>' + escapeHtml(summary.finance[index].concepto || "Pago registrado") + '</strong><small>' + escapeHtml(formatMoney(summary.finance[index].monto) + " | " + safe(summary.finance[index].metodoPago, "Método no registrado")) + '</small></article>';
+    if (calendarEntries.length) {
+      html += '<div class="mv2-payment-calendar">';
+      for (index = 0; index < calendarEntries.length; index += 1) {
+        html += renderPaymentCalendarItem(calendarEntries[index]);
       }
-    } else if (details.payments.length) {
-      for (index = 0; index < details.payments.length; index += 1) {
-        html += '<article class="mv2-payment-item"><span>' + escapeHtml(formatDate(details.payments[index].paymentRealDate || details.payments[index].updatedAt || details.payments[index].createdAt)) + '</span><strong>' + escapeHtml(details.payments[index].paymentMovementConcept || details.payments[index].mesPago || "Pago registrado") + '</strong><small>' + escapeHtml(formatMoney(details.payments[index].cantidadPagada || details.payments[index].mensualidadPactada) + " | " + safe(details.payments[index].metodoPago, "Método no registrado")) + '</small></article>';
-      }
+      html += '</div>';
     } else {
-      html += '<div class="mv2-empty">No hay pagos realizados visibles por ahora.</div>';
+      html += '<div class="mv2-empty">Aún no hay calendario de pagos disponible.</div>';
     }
-    html += '</div></div>';
+    html += '</div>' +
+      '<div class="mv2-section-block"><h3>Línea de tiempo de pagos</h3>';
 
-    html += '<div class="mv2-section-block"><h3>Mensualidades y próximos pagos</h3><div class="mv2-payment-list">';
-    if (summary.references.length) {
-      for (index = 0; index < summary.references.length; index += 1) {
-        html += '<article class="mv2-payment-item"><span>' + escapeHtml(summary.references[index].label) + '</span><strong>' + escapeHtml(summary.references[index].status) + '</strong><small>' + escapeHtml(summary.references[index].month || "Sin mes específico") + '</small></article>';
+    if (timelineItems.length) {
+      html += '<div class="mv2-timeline">';
+      for (index = 0; index < timelineItems.length; index += 1) {
+        html += renderPaymentTimelineItem(timelineItems[index]);
       }
+      html += '</div>';
     } else {
-      html += '<div class="mv2-empty">No hay próximos pagos registrados en este momento.</div>';
+      html += '<div class="mv2-empty">No hay información de pagos disponible por el momento.</div>';
     }
-    html += '</div></div>';
+    html += '</div>';
     byId("panelPagos").innerHTML = html;
   }
 
@@ -1344,29 +1998,33 @@
     var summary;
     var html;
     var index;
+    var records;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.attendance) {
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
       return;
     }
     summary = getAttendanceSummary(details.attendance);
+    records = (details.attendance || []).slice().reverse();
     html =
       '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>' + escapeHtml(statusInfo.attendanceCopy || "Resumen de asistencias registradas.") + '</p></div>' +
-      '<div class="mv2-info-grid">' +
-      infoItem("Asistencias", String(summary.asistencias)) +
-      infoItem("Faltas", String(summary.faltas)) +
-      infoItem("Permisos", String(summary.permisos)) +
-      infoItem("Avance visible", summary.percentage + "%") +
+      '<div class="mv2-timeline-summary">' +
+      renderTimelineMetric("Clases tomadas", String(summary.asistencias), "Asistencias registradas") +
+      renderTimelineMetric("Faltas", String(summary.faltas), "Registros visibles") +
+      renderTimelineMetric("Recuperaciones", String(summary.recuperaciones), "Clases recuperadas") +
+      renderTimelineMetric("Asistencia", summary.percentage + "%", "Avance visible") +
       '</div>' +
-      '<div class="mv2-section-block"><h3>Historial</h3><div class="mv2-list">';
-    if (details.attendance.length) {
-      for (index = 0; index < details.attendance.length; index += 1) {
-        html += '<article class="mv2-list-item"><span>' + escapeHtml(formatDate(details.attendance[index].fecha)) + '</span><strong>' + escapeHtml(normalizeAttendanceStatus(details.attendance[index].estado)) + '</strong><small>' + escapeHtml(details.attendance[index].observaciones || "Sin observaciones") + '</small></article>';
+      '<div class="mv2-section-block"><h3>Línea de tiempo de clases</h3>';
+    if (records.length) {
+      html += '<div class="mv2-timeline">';
+      for (index = 0; index < records.length; index += 1) {
+        html += renderAttendanceTimelineItem(records[index], index);
       }
+      html += '</div>';
     } else {
-      html += '<div class="mv2-empty">Aún no hay asistencias registradas visibles.</div>';
+      html += '<div class="mv2-empty">No hay asistencias registradas todavía.</div>';
     }
-    html += '</div></div>';
+    html += '</div>';
     byId("panelAsistencias").innerHTML = html;
   }
 
@@ -1454,12 +2112,16 @@
   function resolveContact(student, details) {
     var branch = normalizeLoose(student.sucursal);
     var scheduleType = classifySchedule(student);
+    var officialOverride = resolveOfficialContactOverride(student);
     var candidates = [];
     var index;
     var user;
     var staff;
     var phone;
     var coverage;
+    if (officialOverride) {
+      return officialOverride;
+    }
     if (details && details.users && details.staff) {
       for (index = 0; index < details.users.length; index += 1) {
         user = details.users[index];
