@@ -1385,6 +1385,7 @@ function summarizePaymentRecordForTrace(record = {}) {
     mensualidad5: record.mensualidad5 || "",
     reportes: record.reportes || "",
     observaciones: record.observaciones || "",
+    nextCourseStartDate: record.nextCourseStartDate || "",
     paymentRealDate: record.paymentRealDate || "",
     paymentMovementConcept: record.paymentMovementConcept || "",
     updatedAt: record.updatedAt || "",
@@ -1453,6 +1454,7 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
     "observaciones",
     "paymentRealDate",
     "paymentMovementConcept",
+    "nextCourseStartDate",
     "mesPago",
   ];
 
@@ -6666,6 +6668,7 @@ function mergeRemotePaymentWithLocalFallback(remoteRecord, localRecord) {
     "lastMonthlyPaymentStatus",
     "continuityStatus",
     "nextCourse",
+    "nextCourseStartDate",
     "lifecycleStatus",
     "mesPago",
   ].forEach((field) => {
@@ -10971,6 +10974,7 @@ function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
     lastMonthlyPaymentStatus: "",
     continuityStatus: "",
     nextCourse: "",
+    nextCourseStartDate: "",
     lifecycleStatus: STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentMovementConcept: "",
     paymentRealDate: "",
@@ -10994,6 +10998,7 @@ function getPersistentPaymentRecord(studentId) {
     "lastMonthlyPaymentStatus",
     "continuityStatus",
     "nextCourse",
+    "nextCourseStartDate",
     "lifecycleStatus",
   ];
   const studentRecords = getPaymentRecordsForStudentIdentity(studentId)
@@ -11046,6 +11051,7 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
       lastMonthlyPaymentStatus: historyRecord.lastMonthlyPaymentStatus || "",
       continuityStatus: historyRecord.continuityStatus || "",
       nextCourse: historyRecord.nextCourse || "",
+      nextCourseStartDate: historyRecord.nextCourseStartDate || "",
       lifecycleStatus: historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
       paymentRealDate: "",
       paymentMovementConcept: "",
@@ -11066,6 +11072,7 @@ function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId
     lastMonthlyPaymentStatus: monthRecord.lastMonthlyPaymentStatus || historyRecord.lastMonthlyPaymentStatus || "",
     continuityStatus: monthRecord.continuityStatus || historyRecord.continuityStatus || "",
     nextCourse: monthRecord.nextCourse || historyRecord.nextCourse || "",
+    nextCourseStartDate: monthRecord.nextCourseStartDate || historyRecord.nextCourseStartDate || "",
     lifecycleStatus: monthRecord.lifecycleStatus || historyRecord.lifecycleStatus || STUDENT_LIFECYCLE_STATUS.ACTIVE,
     paymentRealDate: monthRecord.paymentRealDate || "",
     paymentMovementConcept: monthRecord.paymentMovementConcept || "",
@@ -11306,6 +11313,10 @@ function getPaymentContinuitySelection(paymentRecord, student) {
 
 function getPaymentNextCourseSelection(paymentRecord, student) {
   return normalizeNextCourse(__veneziaGet(paymentRecord, "nextCourse") || __veneziaGet(student, "nextCourse"));
+}
+
+function getPaymentNextCourseStartDateValue(paymentRecord) {
+  return normalizeLocalDateKey(__veneziaGet(paymentRecord, "nextCourseStartDate")) || "";
 }
 
 function getStudentPaymentReferenceRule(field) {
@@ -11763,6 +11774,7 @@ function renderPaymentsTable() {
       const lastMonthlySelection = getPaymentLastMonthlySelection(payment, student);
       const continuitySelection = getPaymentContinuitySelection(payment, student);
       const nextCourseSelection = getPaymentNextCourseSelection(payment, student);
+      const nextCourseStartDateValue = getPaymentNextCourseStartDateValue(payment);
       const paymentRealDateValue = getPaymentRealDateInputValue(payment);
       return `
         <tr data-payment-student-row="${escapeHtml(student.id)}">
@@ -11776,11 +11788,11 @@ function renderPaymentsTable() {
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
           <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
-          <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions)}</td>
           <td>${renderPaymentStatusSelect("mensualidad1", student, payment, studentSessions)}</td>
           <td>${renderPaymentStatusSelect("mensualidad2", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions)}</td>
           <td>${renderPaymentStatusSelect("mensualidad3", student, payment, studentSessions)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions)}</td>
           <td>${renderPaymentStatusSelect("mensualidad4", student, payment, studentSessions)}</td>
           <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
@@ -11791,6 +11803,7 @@ function renderPaymentsTable() {
           <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
           <td><select data-payment-field="continuityStatus" data-student-id="${student.id}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
           <td><select data-payment-field="nextCourse" data-student-id="${student.id}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
+          <td><input type="date" value="${escapeHtml(nextCourseStartDateValue)}" data-payment-field="nextCourseStartDate" data-student-id="${student.id}" /></td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
@@ -12330,6 +12343,7 @@ async function savePaymentForStudent(studentId) {
     "lastMonthlyPaymentStatus",
     "continuityStatus",
     "nextCourse",
+    "nextCourseStartDate",
   ];
 
   const historyRecord = getPersistentPaymentRecord(studentId);
@@ -12401,6 +12415,7 @@ async function savePaymentForStudent(studentId) {
   newRecord.lastMonthlyPaymentStatus = normalizeLastMonthlyPaymentStatus(newRecord.lastMonthlyPaymentStatus);
   newRecord.continuityStatus = normalizeContinuitySelection(newRecord.continuityStatus);
   newRecord.nextCourse = normalizeNextCourse(newRecord.nextCourse);
+  newRecord.nextCourseStartDate = normalizeLocalDateKey(newRecord.nextCourseStartDate);
   newRecord.paymentRealDate = normalizeLocalDateKey(newRecord.paymentRealDate);
 
   if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
