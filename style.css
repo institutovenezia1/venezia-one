@@ -53,6 +53,23 @@ textarea {
   min-height: 100vh;
 }
 
+.app-shell--topnav-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell--topnav-only > .sidebar {
+  display: none !important;
+}
+
+.app-shell--topnav-only .main-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.session-user-chip {
+  display: none !important;
+}
+
 .login-shell {
   position: fixed;
   inset: 0;
