@@ -2046,19 +2046,20 @@ td select {
 }
 
 #asistenciasSection > .stats-grid .attendance-summary-card {
-  flex: 1 1 224px;
+  flex: 1 1 340px;
   width: auto;
-  min-width: 214px;
-  max-width: 304px;
-  min-height: 116px;
-  padding: 0.74rem 0.82rem 0.82rem;
+  min-width: 320px;
+  max-width: 460px;
+  min-height: 112px;
+  padding: 0.76rem;
   border-radius: 18px;
 }
 
 #asistenciasSection > .stats-grid .attendance-summary-course-card {
   display: grid;
-  align-content: start;
-  gap: 0.34rem;
+  grid-template-columns: minmax(72px, 0.34fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.62rem;
 }
 
 #asistenciasSection > .stats-grid .attendance-summary-pending-card,
@@ -2071,7 +2072,9 @@ td select {
 
 .attendance-summary-main {
   display: grid;
+  align-content: center;
   gap: 0.04rem;
+  min-width: 0;
 }
 
 .attendance-schedule-breakdown {
@@ -2079,8 +2082,8 @@ td select {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 0.3rem;
-  max-height: 4.35rem;
-  min-height: 2.15rem;
+  max-height: 4.7rem;
+  min-height: 100%;
   padding: 0.42rem;
   border: 1px solid rgba(201, 162, 39, 0.2);
   border-radius: 13px;
@@ -2127,6 +2130,19 @@ td select {
     flex: 1 1 100%;
     min-width: 0;
     max-width: none;
+  }
+
+  #asistenciasSection > .stats-grid .attendance-summary-course-card {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+  }
+
+  .attendance-summary-main {
+    align-content: start;
+  }
+
+  .attendance-schedule-breakdown {
+    min-height: 2.15rem;
   }
 }
 
