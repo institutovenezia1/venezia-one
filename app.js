@@ -10131,24 +10131,115 @@ async function dropStudentFromAttendance(studentId) {
 
 function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
   const preferredOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
-  const countsByCourse = studentsList.reduce((accumulator, student) => {
+  const branchesByCourse = studentsList.reduce((accumulator, student) => {
+    const course = String(student.curso || "").trim();
+    const branch = String(student.sucursal || "").trim();
+    if (!course || !branch) {
+      return accumulator;
+    }
+    const courseBranches = accumulator.get(course) || new Set();
+    courseBranches.add(branch);
+    accumulator.set(course, courseBranches);
+    return accumulator;
+  }, new Map());
+  const summaryByCourse = studentsList.reduce((accumulator, student) => {
     const course = String(student.curso || "").trim();
     if (!course) {
       return accumulator;
     }
-    accumulator.set(course, (accumulator.get(course) || 0) + 1);
+    const courseSummary = accumulator.get(course) || {
+      course,
+      count: 0,
+      schedules: new Map(),
+    };
+    const scheduleSummary = getAttendanceStudentScheduleSummary(student, {
+      includeBranch: (branchesByCourse.get(course)?.size || 0) > 1,
+    });
+
+    courseSummary.count += 1;
+    if (scheduleSummary.key) {
+      const currentSchedule = courseSummary.schedules.get(scheduleSummary.key) || {
+        ...scheduleSummary,
+        count: 0,
+      };
+      currentSchedule.count += 1;
+      courseSummary.schedules.set(scheduleSummary.key, currentSchedule);
+    }
+    accumulator.set(course, courseSummary);
     return accumulator;
   }, new Map());
 
-  const dynamicCourses = Array.from(countsByCourse.keys()).filter((course) => !preferredOrder.includes(course));
+  const dynamicCourses = Array.from(summaryByCourse.keys()).filter((course) => !preferredOrder.includes(course));
   return preferredOrder
     .concat(dynamicCourses.sort((left, right) => left.localeCompare(right)))
     .filter((course, index, collection) => collection.indexOf(course) === index)
-    .filter((course) => (countsByCourse.get(course) || 0) > 0)
-    .map((course) => ({
-      course,
-      count: countsByCourse.get(course) || 0,
+    .map((course) => summaryByCourse.get(course))
+    .filter((summary) => summary && summary.count > 0)
+    .map((summary) => ({
+      course: summary.course,
+      count: summary.count,
+      schedules: Array.from(summary.schedules.values())
+        .filter((schedule) => schedule.count > 0)
+        .sort(compareAttendanceScheduleSummaryItems),
     }));
+}
+
+function getAttendanceScheduleDayDisplay(dayLabel) {
+  const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  if (normalizedDay === "Viernes") return "Vie";
+  if (normalizedDay === "Sábado") return "Sáb";
+  if (normalizedDay === "Domingo") return "Dom";
+  return "";
+}
+
+function getAttendanceScheduleDaySortValue(dayLabel) {
+  return __veneziaCoalesce({
+    "Entre semana": 1,
+    Viernes: 2,
+    Sábado: 3,
+    Domingo: 4,
+  }[normalizeAttendanceDayLabel(dayLabel)], 9);
+}
+
+function getAttendanceStudentScheduleSummary(student, options = {}) {
+  const { includeBranch = false } = options;
+  const day = normalizeAttendanceDayLabel(__veneziaGet(student, "diaClases"));
+  const dayDisplay = getAttendanceScheduleDayDisplay(day);
+  const schedule = String(__veneziaGet(student, "horario") || "").trim();
+  const modality = String(__veneziaGet(student, "modalidad") || "").trim();
+  const branch = includeBranch ? String(__veneziaGet(student, "sucursal") || "").trim() : "";
+  const baseSchedule = schedule || modality || "Horario sin definir";
+  const labelParts = [
+    dayDisplay ? `${dayDisplay} ${baseSchedule}` : baseSchedule,
+    modality && modality !== schedule ? modality : "",
+    branch,
+  ].filter(Boolean);
+
+  return {
+    key: [day, schedule, modality, branch].join("|"),
+    label: labelParts.join(" · "),
+    daySort: getAttendanceScheduleDaySortValue(day),
+    scheduleSort: baseSchedule,
+    branchSort: branch,
+  };
+}
+
+function compareAttendanceScheduleSummaryItems(left, right) {
+  if (left.daySort !== right.daySort) {
+    return left.daySort - right.daySort;
+  }
+  const scheduleComparison = String(left.scheduleSort || "").localeCompare(
+    String(right.scheduleSort || ""),
+    "es",
+    { numeric: true, sensitivity: "base" }
+  );
+  if (scheduleComparison !== 0) {
+    return scheduleComparison;
+  }
+  return String(left.branchSort || "").localeCompare(String(right.branchSort || ""), "es", {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function getFilteredStudentsForAttendance() {
@@ -10736,14 +10827,34 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
     attendanceSummaryGrid.innerHTML = [
       ...courseCounts.map(
         (entry) => `
-          <article class="stat-card">
-            <p>${escapeHtml(entry.course)}</p>
-            <strong>${entry.count}</strong>
+          <article class="stat-card attendance-summary-card attendance-summary-course-card">
+            <div class="attendance-summary-main">
+              <p>${escapeHtml(entry.course)}</p>
+              <strong>${entry.count}</strong>
+            </div>
+            ${
+              entry.schedules.length > 0
+                ? `
+                  <div class="attendance-schedule-breakdown" aria-label="Horarios activos de ${escapeHtml(entry.course)}">
+                    ${entry.schedules
+                      .map(
+                        (schedule) => `
+                          <span class="attendance-schedule-chip" title="${escapeHtml(`${schedule.label}: ${schedule.count}`)}">
+                            <span>${escapeHtml(schedule.label)}</span>
+                            <span class="attendance-schedule-count">${schedule.count}</span>
+                          </span>
+                        `
+                      )
+                      .join("")}
+                  </div>
+                `
+                : ""
+            }
           </article>
         `
       ),
       `
-        <article class="stat-card">
+        <article class="stat-card attendance-summary-card attendance-summary-total-card">
           <p>Total de alumnas</p>
           <strong id="attendanceGroupCount">${scopedStudents.length}</strong>
         </article>
