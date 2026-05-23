@@ -9982,14 +9982,29 @@ function getAttendanceScopedStudents() {
   });
 }
 
+function hasStudentAttendanceClassRecord(studentId) {
+  return attendanceRecords.some(
+    (record) => record.studentId === studentId && String(__veneziaGet(record, "estado") || "").trim()
+  );
+}
+
+function getAttendanceStartedSummaryStudents() {
+  return getAttendanceScopedStudents().filter((student) => hasStudentAttendanceClassRecord(student.id));
+}
+
 function getAttendanceUpcomingStartStudents() {
   const today = getCurrentMexicoDateValue();
-  return students.filter((student) => isStudentUpcomingStartForAttendance(student, today)).filter((student) => {
-    if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
-      return false;
-    }
-    return true;
-  });
+  return students
+    .filter((student) => (
+      isStudentUpcomingStartForAttendance(student, today) ||
+      (isStudentVisibleInAttendance(student, today) && !hasStudentAttendanceClassRecord(student.id))
+    ))
+    .filter((student) => {
+      if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
+        return false;
+      }
+      return true;
+    });
 }
 
 function getAttendanceGraduateStudents() {
@@ -10841,7 +10856,7 @@ async function completeStudentCourseFromAttendance(studentId) {
 }
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
-  const scopedStudents = getAttendanceScopedStudents();
+  const scopedStudents = getAttendanceStartedSummaryStudents();
   const upcomingStartStudents = getAttendanceUpcomingStartStudents();
   const courseCounts = getAttendanceCourseSummaryItems(scopedStudents);
 
