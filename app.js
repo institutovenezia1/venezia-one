@@ -4780,6 +4780,17 @@ function isStudentVisibleInAttendance(student, anchorDate = getCurrentMexicoDate
   );
 }
 
+function isStudentUpcomingStartForAttendance(student, anchorDate = getCurrentMexicoDateValue()) {
+  const prospect = prospects.find((item) => item.id === student.prospectId);
+  return (
+    matchesCurrentBranch(student.sucursal) &&
+    !isStudentDeleted(student) &&
+    !isStudentCourseCompletedForAttendance(student) &&
+    isStudentFutureStartForAttendance(student, anchorDate) &&
+    (!prospect || prospect.estado === "Alta completada" || prospect.estado === "Inscrita")
+  );
+}
+
 function generateStudentCode(branch, inscriptionDate = formatDateForInput(new Date())) {
   const normalizedBranch = String(branch || "").trim();
   const prefix = normalizedBranch === "Tlaxcala" ? "TLX" : normalizedBranch === "Puebla" ? "PUE" : "ALT";
@@ -9971,6 +9982,16 @@ function getAttendanceScopedStudents() {
   });
 }
 
+function getAttendanceUpcomingStartStudents() {
+  const today = getCurrentMexicoDateValue();
+  return students.filter((student) => isStudentUpcomingStartForAttendance(student, today)).filter((student) => {
+    if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function getAttendanceGraduateStudents() {
   return students
     .filter((student) => matchesCurrentBranch(student.sucursal))
@@ -10821,6 +10842,7 @@ async function completeStudentCourseFromAttendance(studentId) {
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
   const scopedStudents = getAttendanceScopedStudents();
+  const upcomingStartStudents = getAttendanceUpcomingStartStudents();
   const courseCounts = getAttendanceCourseSummaryItems(scopedStudents);
 
   if (attendanceSummaryGrid) {
@@ -10853,6 +10875,12 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
           </article>
         `
       ),
+      `
+        <article class="stat-card attendance-summary-card attendance-summary-pending-card">
+          <p>Por iniciar curso</p>
+          <strong>${upcomingStartStudents.length}</strong>
+        </article>
+      `,
       `
         <article class="stat-card attendance-summary-card attendance-summary-total-card">
           <p>Total de alumnas</p>

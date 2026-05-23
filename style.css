@@ -2050,33 +2050,35 @@ td select {
   width: auto;
   min-width: 210px;
   max-width: 292px;
-  min-height: 126px;
-  padding: 1rem;
+  min-height: 104px;
+  padding: 0.76rem 0.86rem;
   border-radius: 18px;
 }
 
 #asistenciasSection > .stats-grid .attendance-summary-course-card {
   display: grid;
   align-content: start;
-  gap: 0.72rem;
+  gap: 0.42rem;
 }
 
+#asistenciasSection > .stats-grid .attendance-summary-pending-card,
 #asistenciasSection > .stats-grid .attendance-summary-total-card {
   flex: 0 0 176px;
   min-width: 168px;
   max-width: 190px;
+  min-height: 104px;
 }
 
 .attendance-summary-main {
   display: grid;
-  gap: 0.12rem;
+  gap: 0.04rem;
 }
 
 .attendance-schedule-breakdown {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.36rem;
-  max-height: 3.85rem;
+  gap: 0.28rem;
+  max-height: 3.35rem;
   overflow: hidden;
 }
 
@@ -2086,7 +2088,7 @@ td select {
   gap: 0.28rem;
   min-width: 0;
   max-width: 100%;
-  padding: 0.24rem 0.42rem;
+  padding: 0.2rem 0.38rem;
   border: 1px solid rgba(201, 162, 39, 0.22);
   border-radius: 999px;
   background: rgba(255, 250, 240, 0.82);
