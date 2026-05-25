@@ -11693,6 +11693,37 @@ function getFridayForOperationalWeekend(anchorDate) {
   return addLocalDaysToDateKey(anchorDate, 5 - day);
 }
 
+function getCurrentWeekdayPaymentWindow(today) {
+  const day = getLocalWeekdayIndex(today);
+  if (day === null || day === 0 || day > 4) {
+    return null;
+  }
+
+  const currentTuesday = addLocalDaysToDateKey(today, 2 - day);
+  const currentThursday = addLocalDaysToDateKey(currentTuesday, 2);
+  const from = today > currentTuesday ? today : currentTuesday;
+  if (!from || !currentThursday || from > currentThursday) {
+    return null;
+  }
+
+  return { from, to: currentThursday, type: "current-week", scope: "weekday" };
+}
+
+function getNextWeekdayPaymentWindow(today) {
+  const day = getLocalWeekdayIndex(today);
+  if (day === null) {
+    return null;
+  }
+
+  const daysUntilNextTuesday = day === 0 ? 2 : 9 - day;
+  const nextTuesday = addLocalDaysToDateKey(today, daysUntilNextTuesday);
+  if (!nextTuesday) {
+    return null;
+  }
+
+  return { from: nextTuesday, to: addLocalDaysToDateKey(nextTuesday, 2), type: "next-week", scope: "weekday" };
+}
+
 function getUpcomingPaymentDateWindows(scope, anchorDate = getCurrentMexicoDateValue()) {
   const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
   const day = getLocalWeekdayIndex(today);
@@ -11701,16 +11732,7 @@ function getUpcomingPaymentDateWindows(scope, anchorDate = getCurrentMexicoDateV
   }
 
   if (scope === "weekday") {
-    const windows = [];
-    if (day >= 1 && day <= 5) {
-      windows.push({ from: today, to: today, type: "today", scope });
-    }
-
-    const nextMonday = getNextMondayDateKey(today);
-    if (nextMonday) {
-      windows.push({ from: nextMonday, to: addLocalDaysToDateKey(nextMonday, 4), type: "next-week", scope });
-    }
-    return windows;
+    return [getCurrentWeekdayPaymentWindow(today), getNextWeekdayPaymentWindow(today)].filter(Boolean);
   }
 
   if (scope === "weekend") {
@@ -11837,7 +11859,13 @@ function buildUpcomingPaymentEntry(student, { scope = getUpcomingPaymentSchedule
     return null;
   }
 
-  const windowRange = findDateWindowForUpcomingPayment(nextPayment.date, scheduleType, anchorDate);
+  const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
+  const paymentDate = normalizeLocalDateKey(nextPayment.date);
+  if (!paymentDate || paymentDate < today) {
+    return null;
+  }
+
+  const windowRange = findDateWindowForUpcomingPayment(paymentDate, scheduleType, anchorDate);
   if (!windowRange) {
     return null;
   }
@@ -11847,9 +11875,9 @@ function buildUpcomingPaymentEntry(student, { scope = getUpcomingPaymentSchedule
     scheduleType,
     scheduleLabel: getUpcomingPaymentScopeLabel(scheduleType),
     nextPayment,
-    date: normalizeLocalDateKey(nextPayment.date),
+    date: paymentDate,
     amount: nextPayment.amount,
-    status: getUpcomingPaymentStatusLabel(nextPayment.date, windowRange, anchorDate),
+    status: getUpcomingPaymentStatusLabel(paymentDate, windowRange, anchorDate),
   };
 }
 
