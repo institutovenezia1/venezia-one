@@ -187,6 +187,7 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "mensualidad4", label: "Mensualidad 4", movementLabel: "Mensualidad 4" },
   { key: "mensualidad5", label: "Mensualidad 5", movementLabel: "Mensualidad 5" },
 ];
+const PAYMENT_CONCEPT_FIELD_KEYS = new Set(BALANCE_PAYMENT_CONCEPT_FIELDS.map(({ key }) => key));
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
 const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
@@ -5990,13 +5991,17 @@ function getSafeStoredPaymentConcept(record) {
   return "";
 }
 
-function getChangedPaymentMovementConcepts(currentRecord, nextRecord) {
+function getChangedPaidPaymentConcepts(currentRecord, nextRecord) {
   return BALANCE_PAYMENT_CONCEPT_FIELDS
     .filter(({ key }) => {
       const previousStatus = String(__veneziaGet(currentRecord, key) || "").trim();
       const nextStatus = String(__veneziaGet(nextRecord, key) || "").trim();
       return isEligiblePaymentStatus(nextStatus) && previousStatus !== nextStatus;
-    })
+    });
+}
+
+function getChangedPaymentMovementConcepts(currentRecord, nextRecord) {
+  return getChangedPaidPaymentConcepts(currentRecord, nextRecord)
     .map(({ movementLabel, label }) => movementLabel || label);
 }
 
@@ -6037,6 +6042,46 @@ function getBalancePaymentConceptDisplay(record) {
 
 function buildPaymentFinanceReference(paymentId) {
   return paymentId ? `${PAYMENT_FINANCE_REFERENCE_PREFIX}${paymentId}` : "";
+}
+
+function buildPaymentConceptFinanceReference(paymentId, conceptKey) {
+  const normalizedPaymentId = String(paymentId || "").trim();
+  const normalizedConceptKey = String(conceptKey || "").trim();
+  return normalizedPaymentId && normalizedConceptKey
+    ? `${PAYMENT_FINANCE_REFERENCE_PREFIX}${normalizedPaymentId}:${normalizedConceptKey}`
+    : "";
+}
+
+function getPaymentFinanceReferenceParts(reference) {
+  const normalizedReference = String(reference || "").trim();
+  if (!normalizedReference.startsWith(PAYMENT_FINANCE_REFERENCE_PREFIX)) {
+    return {
+      paymentId: "",
+      conceptKey: "",
+    };
+  }
+
+  const referenceBody = normalizedReference.slice(PAYMENT_FINANCE_REFERENCE_PREFIX.length);
+  const separatorIndex = referenceBody.indexOf(":");
+  if (separatorIndex < 0) {
+    return {
+      paymentId: referenceBody,
+      conceptKey: "",
+    };
+  }
+
+  return {
+    paymentId: referenceBody.slice(0, separatorIndex),
+    conceptKey: referenceBody.slice(separatorIndex + 1),
+  };
+}
+
+function getPaymentConceptKeyFromFinanceRecord(record) {
+  return getPaymentFinanceReferenceParts(__veneziaGet(record, "reference")).conceptKey;
+}
+
+function isPaymentConceptFinanceRecord(record) {
+  return Boolean(getPaymentConceptKeyFromFinanceRecord(record));
 }
 
 function buildAltaInscriptionFinanceReference(altaId) {
@@ -6364,7 +6409,8 @@ async function syncAltaInscriptionFinanceDelta(previousStudentRecord, nextStuden
   };
 }
 
-function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords, paymentIdAliases = []) {
+function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords, paymentIdAliases = [], options = {}) {
+  const includeConceptRecords = __veneziaGet(options, "includeConceptRecords") !== false;
   const linkedPaymentIds = new Set(
     [paymentId, ...paymentIdAliases]
       .map((value) => String(value || "").trim())
@@ -6376,6 +6422,38 @@ function getLinkedPaymentFinanceRecords(paymentId, records = financeRecords, pay
 
   return records
     .filter((record) => linkedPaymentIds.has(String(__veneziaGet(record, "relatedPaymentId") || "").trim()))
+    .filter((record) => includeConceptRecords || !isPaymentConceptFinanceRecord(record))
+    .sort((left, right) => {
+      const dateComparison = String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      return String(left.id || "").localeCompare(String(right.id || ""));
+    });
+}
+
+function getPaymentConceptFinanceRecords(paymentId, records = financeRecords, conceptKey = "") {
+  const normalizedPaymentId = String(paymentId || "").trim();
+  const normalizedConceptKey = String(conceptKey || "").trim();
+  if (!normalizedPaymentId) {
+    return [];
+  }
+  const expectedReference = normalizedConceptKey
+    ? buildPaymentConceptFinanceReference(normalizedPaymentId, normalizedConceptKey)
+    : "";
+
+  return records
+    .filter((record) => {
+      const reference = String(__veneziaGet(record, "reference") || "").trim();
+      if (expectedReference && reference === expectedReference) {
+        return true;
+      }
+      return String(__veneziaGet(record, "relatedPaymentId") || "").trim() === normalizedPaymentId;
+    })
+    .filter((record) => {
+      const recordConceptKey = getPaymentConceptKeyFromFinanceRecord(record);
+      return recordConceptKey && (!normalizedConceptKey || recordConceptKey === normalizedConceptKey);
+    })
     .sort((left, right) => {
       const dateComparison = String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
       if (dateComparison !== 0) {
@@ -6497,6 +6575,39 @@ function buildPaymentFinanceRecord(paymentRecord, student, existingFinanceRecord
   };
 }
 
+function buildPaymentConceptFinanceRecord(paymentRecord, student, paymentConceptDefinition, existingFinanceRecord = null) {
+  const conceptKey = __veneziaGet(paymentConceptDefinition, "key") || "";
+  const paymentConcept = __veneziaGet(paymentConceptDefinition, "movementLabel") ||
+    __veneziaGet(paymentConceptDefinition, "label") ||
+    "Pago registrado";
+  const paymentCategory = getPaymentFinanceCategoryFromConcept(paymentConcept) || getPaymentFinanceCategory(paymentRecord);
+
+  return {
+    id: __veneziaGet(existingFinanceRecord, "id") || createMiVeneziaCompatibleId(),
+    fecha: getPaymentEffectiveDate(paymentRecord, existingFinanceRecord ? [existingFinanceRecord] : []),
+    sucursal: student.sucursal || "",
+    tipo: "Ingreso",
+    categoria: paymentCategory,
+    concepto: paymentConcept,
+    paymentConcept,
+    source: "payment",
+    conceptKey,
+    alumna: student.nombre || "",
+    monto: parsePaymentAmount(paymentRecord.cantidadPagada),
+    metodoPago: paymentRecord.metodoPago || "-",
+    usuario: student.usuarioAlta || student.inscribio || "",
+    observaciones: paymentRecord.observaciones || "",
+    createdAt:
+      __veneziaGet(existingFinanceRecord, "createdAt") ||
+      paymentRecord.updatedAt ||
+      paymentRecord.createdAt ||
+      new Date().toISOString(),
+    reference: buildPaymentConceptFinanceReference(paymentRecord.id, conceptKey),
+    relatedStudentId: paymentRecord.studentId || "",
+    relatedPaymentId: paymentRecord.id,
+  };
+}
+
 function isSamePaymentFinanceRecord(currentRecord, nextRecord) {
   return (
     String(__veneziaGet(currentRecord, "fecha") || "") === String(__veneziaGet(nextRecord, "fecha") || "") &&
@@ -6516,8 +6627,8 @@ function isSamePaymentFinanceRecord(currentRecord, nextRecord) {
   );
 }
 
-async function deleteLinkedPaymentFinanceRecords(paymentId) {
-  const linkedRecords = getLinkedPaymentFinanceRecords(paymentId);
+async function deleteLinkedPaymentFinanceRecords(paymentId, options = {}) {
+  const linkedRecords = getLinkedPaymentFinanceRecords(paymentId, financeRecords, [], options);
   let synced = true;
 
   for (const record of linkedRecords) {
@@ -6539,7 +6650,8 @@ async function syncPaymentFinanceRecord(paymentRecord, { student: providedStuden
   const linkedRecords = getLinkedPaymentFinanceRecords(
     __veneziaGet(paymentRecord, "id"),
     financeRecords,
-    paymentIdAliases
+    paymentIdAliases,
+    { includeConceptRecords: false }
   );
   const canonicalRecord = linkedRecords[0] || null;
   const student = providedStudent || getStudentById(__veneziaGet(paymentRecord, "studentId"));
@@ -6553,7 +6665,7 @@ async function syncPaymentFinanceRecord(paymentRecord, { student: providedStuden
       };
     }
 
-    const deleteResult = await deleteLinkedPaymentFinanceRecords(paymentRecord.id);
+    const deleteResult = await deleteLinkedPaymentFinanceRecords(paymentRecord.id, { includeConceptRecords: false });
     return {
       synced: deleteResult.synced,
       deleted: deleteResult.deletedCount > 0,
@@ -6585,6 +6697,53 @@ async function syncPaymentFinanceRecord(paymentRecord, { student: providedStuden
     synced: true,
     record: nextRecord,
     duplicatesRemoved,
+  };
+}
+
+async function syncPaymentConceptFinanceRecord(paymentRecord, { student: providedStudent = null, concept }) {
+  const student = providedStudent || getStudentById(__veneziaGet(paymentRecord, "studentId"));
+  const isEligible = isPaymentEligibleForFinanceRecord(paymentRecord, student);
+  if (!isEligible || !concept) {
+    return {
+      synced: true,
+      skipped: true,
+    };
+  }
+
+  const existingFinanceRecord = getPaymentConceptFinanceRecords(paymentRecord.id, financeRecords, concept.key)[0] || null;
+  const nextRecord = buildPaymentConceptFinanceRecord(paymentRecord, student, concept, existingFinanceRecord);
+  if (!existingFinanceRecord || !isSamePaymentFinanceRecord(existingFinanceRecord, nextRecord)) {
+    return saveFinanceRecord(nextRecord);
+  }
+
+  return {
+    synced: true,
+    record: existingFinanceRecord,
+    duplicatesRemoved: 0,
+  };
+}
+
+async function syncChangedPaymentConceptFinanceRecords(paymentRecord, { student: providedStudent = null, changedConcepts = [] } = {}) {
+  const records = [];
+
+  for (const concept of changedConcepts) {
+    const syncResult = await syncPaymentConceptFinanceRecord(paymentRecord, {
+      student: providedStudent,
+      concept,
+    });
+    if (!syncResult.synced) {
+      return syncResult;
+    }
+    if (syncResult.record) {
+      records.push(syncResult.record);
+    }
+  }
+
+  return {
+    synced: true,
+    record: records[0] || null,
+    records,
+    duplicatesRemoved: 0,
   };
 }
 
@@ -7410,6 +7569,7 @@ function auditPaymentFinanceLinks({
   const paymentsById = new Map(payments.map((record) => [record.id, record]));
   const studentsById = new Map(studentsList.map((student) => [student.id, student]));
   const linkedFinanceByPaymentId = new Map();
+  const legacyLinkedFinanceByPaymentId = new Map();
 
   finance
     .filter((record) => record.relatedPaymentId)
@@ -7417,6 +7577,12 @@ function auditPaymentFinanceLinks({
       const bucket = linkedFinanceByPaymentId.get(record.relatedPaymentId) || [];
       bucket.push(record);
       linkedFinanceByPaymentId.set(record.relatedPaymentId, bucket);
+
+      if (!isPaymentConceptFinanceRecord(record)) {
+        const legacyBucket = legacyLinkedFinanceByPaymentId.get(record.relatedPaymentId) || [];
+        legacyBucket.push(record);
+        legacyLinkedFinanceByPaymentId.set(record.relatedPaymentId, legacyBucket);
+      }
     });
 
   const missingLinkedFinance = payments.filter(
@@ -7424,7 +7590,7 @@ function auditPaymentFinanceLinks({
       isPaymentEligibleForFinanceRecord(record, studentsById.get(record.studentId)) &&
       (linkedFinanceByPaymentId.get(record.id) || []).length === 0
   );
-  const duplicateLinkedFinance = Array.from(linkedFinanceByPaymentId.entries())
+  const duplicateLinkedFinance = Array.from(legacyLinkedFinanceByPaymentId.entries())
     .filter(([, records]) => records.length > 1)
     .map(([paymentId, records]) => ({
       paymentId,
@@ -7471,7 +7637,12 @@ function auditPaymentFinanceLinks({
     }));
   const staleLinkedFinanceRecord = payments
     .map((record) => {
-      const linkedRecords = linkedFinanceByPaymentId.get(record.id) || [];
+      const hasConceptFinanceRecords = (linkedFinanceByPaymentId.get(record.id) || []).some(isPaymentConceptFinanceRecord);
+      if (hasConceptFinanceRecords) {
+        return null;
+      }
+
+      const linkedRecords = legacyLinkedFinanceByPaymentId.get(record.id) || [];
       const canonicalFinanceRecord = linkedRecords[0] || null;
       const student = studentsById.get(record.studentId);
       if (!canonicalFinanceRecord || !isPaymentEligibleForFinanceRecord(record, student)) {
@@ -11580,7 +11751,7 @@ function renderPaymentStatusSelect(field, student, payment, sessions = getStuden
   return `
     <div class="payment-status-cell" ${title ? `title="${escapeHtml(title)}"` : ""}>
       <small class="payment-reference-date">${escapeHtml(referenceLabel)}</small>
-      <select data-payment-field="${field}" data-student-id="${student.id}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>
+      <select data-payment-field="${field}" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(selectedValue)}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>
     </div>
   `;
 }
@@ -11979,7 +12150,7 @@ function renderPaymentsTable() {
           <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
           <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
-          <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" /></td>
+          <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
           <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
@@ -12631,9 +12802,16 @@ async function savePaymentForStudent(studentId) {
     formPayload,
   });
 
-  const existingFinanceRecord = getLinkedPaymentFinanceRecords(resolvedPaymentId)[0] || null;
+  const existingFinanceRecord =
+    getLinkedPaymentFinanceRecords(resolvedPaymentId, financeRecords, [], { includeConceptRecords: false })[0] || null;
   const nextRecord = { ...baseRecord, ...newRecord };
   const comparisonRecord = recordToUpdate || editingMonthRecord;
+  const changedPaidConcepts = getChangedPaidPaymentConcepts(comparisonRecord, nextRecord);
+  if (changedPaidConcepts.length > 1) {
+    alert("Guarda un concepto de pago a la vez para registrar fecha, método y cantidad sin mezclar movimientos.");
+    return;
+  }
+
   if (isRealPaidPaymentRecord(nextRecord) && !getStoredPaymentRealDate(nextRecord)) {
     alert("Captura la Fecha real de pago antes de guardar para registrar el ingreso en el día correcto.");
     return;
@@ -12643,11 +12821,13 @@ async function savePaymentForStudent(studentId) {
     newRecord.paymentRealDate = "";
   }
 
-  newRecord.paymentMovementConcept = resolvePaymentMovementConcept(
-    comparisonRecord,
-    nextRecord,
-    existingFinanceRecord
-  );
+  newRecord.paymentMovementConcept = changedPaidConcepts.length > 0
+    ? changedPaidConcepts.map(({ movementLabel, label }) => movementLabel || label).join(" + ")
+    : resolvePaymentMovementConcept(
+      comparisonRecord,
+      nextRecord,
+      existingFinanceRecord
+    );
   const finalRecord = { ...baseRecord, ...newRecord };
   const detectedChanges = getPaymentFieldChanges(comparisonRecord, finalRecord);
 
@@ -12767,7 +12947,9 @@ async function savePaymentForStudent(studentId) {
     return;
   }
 
-  const financeSyncResult = await syncPaymentFinanceRecord(saveResult.record, { student });
+  const financeSyncResult = changedPaidConcepts.length > 0
+    ? await syncChangedPaymentConceptFinanceRecords(saveResult.record, { student, changedConcepts: changedPaidConcepts })
+    : await syncPaymentFinanceRecord(saveResult.record, { student });
   console.log("=== PAYMENT FINANCE RESULT ===", {
     result: financeSyncResult.synced ? "success" : "fail",
     deleted: Boolean(financeSyncResult.deleted),
@@ -17954,6 +18136,44 @@ if (attendanceGraduatesTableBody) {
     }
   });
 }
+
+function handlePaymentFieldChange(event) {
+  const fieldControl = event.target.closest("[data-payment-field]");
+  if (!fieldControl || !paymentsTableBody.contains(fieldControl)) {
+    return;
+  }
+
+  const field = fieldControl.dataset.paymentField || "";
+  if (field === "paymentRealDate") {
+    fieldControl.dataset.paymentUserEdited = "true";
+    return;
+  }
+
+  if (!PAYMENT_CONCEPT_FIELD_KEYS.has(field)) {
+    return;
+  }
+
+  const previousStatus = fieldControl.dataset.paymentInitialValue || "";
+  const nextStatus = fieldControl.value || "";
+  if (!isEligiblePaymentStatus(nextStatus) || isEligiblePaymentStatus(previousStatus)) {
+    return;
+  }
+
+  const studentId = fieldControl.dataset.studentId || "";
+  const realDateControl = paymentsTableBody.querySelector(
+    `[data-payment-field="paymentRealDate"][data-student-id="${studentId}"]`
+  );
+  if (!realDateControl || realDateControl.dataset.paymentUserEdited === "true") {
+    return;
+  }
+
+  const initialDateValue = realDateControl.dataset.paymentInitialValue || "";
+  if (!realDateControl.value || realDateControl.value === initialDateValue) {
+    realDateControl.value = getCurrentMexicoDateValue();
+  }
+}
+
+paymentsTableBody.addEventListener("change", handlePaymentFieldChange);
 
 paymentsTableBody.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
