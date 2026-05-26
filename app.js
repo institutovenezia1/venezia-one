@@ -187,7 +187,16 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "mensualidad4", label: "Mensualidad 4", movementLabel: "Mensualidad 4" },
   { key: "mensualidad5", label: "Mensualidad 5", movementLabel: "Mensualidad 5" },
 ];
-const PAYMENT_CONCEPT_FIELD_KEYS = new Set(BALANCE_PAYMENT_CONCEPT_FIELDS.map(({ key }) => key));
+const PAYMENT_CONCEPT_DETAIL_FIELDS = [
+  { key: "mensualidad1", label: "MEN1", movementLabel: "Mensualidad 1" },
+  { key: "mensualidad2", label: "MEN2", movementLabel: "Mensualidad 2" },
+  { key: "certificadoP1", label: "C1", movementLabel: "C1" },
+  { key: "mensualidad3", label: "MEN3", movementLabel: "Mensualidad 3" },
+  { key: "certificadoP2", label: "C2", movementLabel: "C2" },
+  { key: "mensualidad4", label: "MEN4", movementLabel: "Mensualidad 4" },
+  { key: "mensualidad5", label: "MEN5", movementLabel: "Mensualidad 5" },
+];
+const PAYMENT_CONCEPT_FIELD_KEYS = new Set(PAYMENT_CONCEPT_DETAIL_FIELDS.map(({ key }) => key));
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
 const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
@@ -5992,7 +6001,7 @@ function getSafeStoredPaymentConcept(record) {
 }
 
 function getChangedPaidPaymentConcepts(currentRecord, nextRecord) {
-  return BALANCE_PAYMENT_CONCEPT_FIELDS
+  return PAYMENT_CONCEPT_DETAIL_FIELDS
     .filter(({ key }) => {
       const previousStatus = String(__veneziaGet(currentRecord, key) || "").trim();
       const nextStatus = String(__veneziaGet(nextRecord, key) || "").trim();
@@ -6461,6 +6470,104 @@ function getPaymentConceptFinanceRecords(paymentId, records = financeRecords, co
       }
       return String(left.id || "").localeCompare(String(right.id || ""));
     });
+}
+
+function getPaymentConceptDetailLegacyAmount(paymentRecord, conceptDefinition) {
+  const status = String(__veneziaGet(paymentRecord, conceptDefinition.key) || "").trim();
+  if (!isEligiblePaymentStatus(status)) {
+    return "";
+  }
+
+  const paidConcepts = getPaidPaymentConcepts(paymentRecord);
+  const storedAmount = parsePaymentAmount(__veneziaGet(paymentRecord, "cantidadPagada"));
+  if (paidConcepts.length === 1 && __veneziaGet(paidConcepts[0], "key") === conceptDefinition.key && storedAmount > 0) {
+    return storedAmount;
+  }
+
+  const isMonthlyConcept = /^mensualidad\d+$/.test(conceptDefinition.key);
+  const assignedMonthlyAmount = parsePaymentAmount(__veneziaGet(paymentRecord, "mensualidadPactada"));
+  if (isMonthlyConcept && status === "Pagado" && assignedMonthlyAmount > 0) {
+    return assignedMonthlyAmount;
+  }
+
+  return "";
+}
+
+function getPaymentConceptDetailFromSpecificFinance(paymentRecord, conceptDefinition, financeRecord) {
+  const storedStatus = String(__veneziaGet(paymentRecord, conceptDefinition.key) || "").trim();
+  const amount = parsePaymentAmount(__veneziaGet(financeRecord, "monto"));
+  const status = isEligiblePaymentStatus(storedStatus)
+    ? storedStatus
+    : amount > 0
+      ? "Pagado"
+      : storedStatus || "";
+
+  return {
+    conceptKey: conceptDefinition.key,
+    label: conceptDefinition.label,
+    movementLabel: conceptDefinition.movementLabel,
+    status,
+    amount,
+    paymentMethod: __veneziaGet(financeRecord, "metodoPago") || "",
+    paymentRealDate: normalizeLocalDateKey(__veneziaGet(financeRecord, "fecha")) || "",
+    category: __veneziaGet(financeRecord, "categoria") || "",
+    financeRecordId: __veneziaGet(financeRecord, "id") || "",
+    reference:
+      __veneziaGet(financeRecord, "reference") ||
+      buildPaymentConceptFinanceReference(__veneziaGet(paymentRecord, "id"), conceptDefinition.key),
+    source: "concept-finance",
+    hasSpecificFinanceRecord: true,
+  };
+}
+
+function getPaymentConceptDetailFromLegacy(paymentRecord, conceptDefinition) {
+  const status = String(__veneziaGet(paymentRecord, conceptDefinition.key) || "").trim();
+  const hasLegacyStatus = Boolean(status);
+
+  return {
+    conceptKey: conceptDefinition.key,
+    label: conceptDefinition.label,
+    movementLabel: conceptDefinition.movementLabel,
+    status,
+    amount: getPaymentConceptDetailLegacyAmount(paymentRecord, conceptDefinition),
+    paymentMethod: "",
+    paymentRealDate: "",
+    category: getPaymentFinanceCategoryFromConcept(conceptDefinition.movementLabel),
+    financeRecordId: "",
+    reference: buildPaymentConceptFinanceReference(__veneziaGet(paymentRecord, "id"), conceptDefinition.key),
+    source: hasLegacyStatus ? "legacy-payment" : "unknown",
+    hasSpecificFinanceRecord: false,
+  };
+}
+
+function getPaymentConceptDetails(paymentRecord, records = financeRecords) {
+  return PAYMENT_CONCEPT_DETAIL_FIELDS.map((conceptDefinition) => {
+    const specificFinanceRecord = getPaymentConceptFinanceRecords(
+      __veneziaGet(paymentRecord, "id"),
+      records,
+      conceptDefinition.key
+    )[0] || null;
+
+    if (specificFinanceRecord) {
+      return getPaymentConceptDetailFromSpecificFinance(paymentRecord, conceptDefinition, specificFinanceRecord);
+    }
+
+    return getPaymentConceptDetailFromLegacy(paymentRecord, conceptDefinition);
+  });
+}
+
+function getPaymentConceptDetailsByKey(paymentConceptDetails = []) {
+  return new Map(paymentConceptDetails.map((detail) => [detail.conceptKey, detail]));
+}
+
+function applyPaymentConceptDetailsToPaymentRecord(paymentRecord, paymentConceptDetails = getPaymentConceptDetails(paymentRecord)) {
+  const nextRecord = { ...paymentRecord };
+  paymentConceptDetails.forEach((detail) => {
+    if (detail.source === "concept-finance" && detail.status) {
+      nextRecord[detail.conceptKey] = detail.status;
+    }
+  });
+  return nextRecord;
 }
 
 function getReconciledPaymentRealDate(record, linkedFinanceRecords = []) {
@@ -11410,8 +11517,9 @@ function getPaymentDisplayRecord(studentId) {
   const historyRecord = getPersistentPaymentRecord(studentId);
   const editingMonth = resolvePaymentSaveMonth();
   const editingMonthRecord = getPaymentRecordForDisplay(studentId, editingMonth);
+  const editableRecord = buildPaymentEditableRecord(historyRecord, editingMonthRecord, editingMonth, studentId);
 
-  return buildPaymentEditableRecord(historyRecord, editingMonthRecord, editingMonth, studentId);
+  return applyPaymentConceptDetailsToPaymentRecord(editableRecord);
 }
 
 function getPaymentStudentIdentityKey(student) {
@@ -11740,18 +11848,40 @@ function getStudentPaymentScheduleEntries(student) {
     }));
 }
 
-function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student)) {
+function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student), conceptDetailsByKey = new Map()) {
+  const conceptDetail = conceptDetailsByKey.get(field) || null;
   const selectedValue = field === "mensualidad5" && !courseUsesFifthMonth(student.curso)
     ? "No aplica"
-    : payment[field] || "";
+    : __veneziaGet(conceptDetail, "status") || payment[field] || "";
   const disabled = field === "mensualidad5" && !courseUsesFifthMonth(student.curso) ? "disabled" : "";
   const reference = getStudentPaymentReferenceByField(field, student, sessions);
   const referenceLabel = __veneziaGet(reference, "value") || "-";
-  const title = reference ? `${reference.label}: ${reference.value}` : "";
+  const detailTitle = conceptDetail && conceptDetail.source === "concept-finance"
+    ? [
+      `Fuente: detalle por concepto`,
+      conceptDetail.paymentRealDate ? `Fecha: ${conceptDetail.paymentRealDate}` : "",
+      conceptDetail.paymentMethod ? `Método: ${conceptDetail.paymentMethod}` : "",
+      conceptDetail.amount ? `Monto: ${conceptDetail.amount}` : "",
+    ].filter(Boolean).join(" | ")
+    : conceptDetail && conceptDetail.source === "legacy-payment"
+      ? "Fuente: registro legacy"
+      : "";
+  const title = [reference ? `${reference.label}: ${reference.value}` : "", detailTitle].filter(Boolean).join(" | ");
   return `
     <div class="payment-status-cell" ${title ? `title="${escapeHtml(title)}"` : ""}>
       <small class="payment-reference-date">${escapeHtml(referenceLabel)}</small>
-      <select data-payment-field="${field}" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(selectedValue)}" ${disabled}>${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>
+      <select
+        data-payment-field="${field}"
+        data-student-id="${student.id}"
+        data-payment-initial-value="${escapeHtml(selectedValue)}"
+        data-payment-concept-source="${escapeHtml(__veneziaGet(conceptDetail, "source") || "")}"
+        data-payment-concept-reference="${escapeHtml(__veneziaGet(conceptDetail, "reference") || "")}"
+        data-payment-concept-finance-id="${escapeHtml(__veneziaGet(conceptDetail, "financeRecordId") || "")}"
+        data-payment-concept-date="${escapeHtml(__veneziaGet(conceptDetail, "paymentRealDate") || "")}"
+        data-payment-concept-method="${escapeHtml(__veneziaGet(conceptDetail, "paymentMethod") || "")}"
+        data-payment-concept-amount="${escapeHtml(String(__veneziaGet(conceptDetail, "amount") || ""))}"
+        ${disabled}
+      >${renderPaymentSelectOptions(selectedValue, PAYMENT_STATUS_OPTIONS)}</select>
     </div>
   `;
 }
@@ -12122,6 +12252,8 @@ function renderPaymentsTable() {
   paymentsTableBody.innerHTML = visibleStudents
     .map((student) => {
       const payment = getPaymentDisplayRecord(student.id);
+      const paymentConceptDetails = getPaymentConceptDetails(payment);
+      const paymentConceptDetailsByKey = getPaymentConceptDetailsByKey(paymentConceptDetails);
       const studentSessions = getStudentAttendanceReferenceSessions(student);
       const mensualidadAsignada = payment.mensualidadPactada || student.mensualidad || student.colegiatura || "";
       const lastMonthlySelection = getPaymentLastMonthlySelection(payment, student);
@@ -12129,6 +12261,8 @@ function renderPaymentsTable() {
       const nextCourseSelection = getPaymentNextCourseSelection(payment, student);
       const nextCourseStartDateValue = getPaymentNextCourseStartDateValue(payment);
       const paymentRealDateValue = getPaymentRealDateInputValue(payment);
+      const paymentMethodValue = payment.metodoPago || "";
+      const paymentAmountValue = payment.cantidadPagada || "";
       return `
         <tr data-payment-student-row="${escapeHtml(student.id)}">
           <td>
@@ -12141,15 +12275,15 @@ function renderPaymentsTable() {
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
           <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
-          <td>${renderPaymentStatusSelect("mensualidad1", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad2", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad3", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad4", student, payment, studentSessions)}</td>
-          <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions)}</td>
-          <td><select data-payment-field="metodoPago" data-student-id="${student.id}">${renderPaymentSelectOptions(payment.metodoPago, PAYMENT_METHOD_OPTIONS)}</select></td>
-          <td><input type="text" value="${escapeHtml(payment.cantidadPagada || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" placeholder="$0" /></td>
+          <td>${renderPaymentStatusSelect("mensualidad1", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad2", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad3", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad4", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td><select data-payment-field="metodoPago" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentMethodValue)}">${renderPaymentSelectOptions(paymentMethodValue, PAYMENT_METHOD_OPTIONS)}</select></td>
+          <td><input type="text" value="${escapeHtml(paymentAmountValue || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentAmountValue || "")}" placeholder="$0" /></td>
           <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
@@ -12316,6 +12450,12 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   const method = String(__veneziaGet(record, "metodoPago") || "").trim();
   const paymentRealDate = getStoredPaymentRealDate(record);
   const linkedFinanceRecords = getLinkedPaymentFinanceRecords(record.id);
+  const legacyLinkedFinanceRecords = getLinkedPaymentFinanceRecords(
+    record.id,
+    financeRecords,
+    [],
+    { includeConceptRecords: false }
+  );
   const concept = getPaymentReviewRecordConcept(record);
   const paidConcepts = getPaidPaymentConcepts(record);
   const expectedCategory = getPaymentFinanceCategoryFromConcept(concept) || getPaymentFinanceCategory(record);
@@ -12341,7 +12481,7 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   if (
     amount > 0 &&
     paymentRealDate &&
-    linkedFinanceRecords.some((financeRecord) => {
+    legacyLinkedFinanceRecords.some((financeRecord) => {
       const financeDate = normalizeLocalDateKey(__veneziaGet(financeRecord, "fecha"));
       return financeDate && financeDate !== paymentRealDate;
     })
@@ -12352,7 +12492,7 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
   if (
     amount > 0 &&
     expectedCategory &&
-    linkedFinanceRecords.some((financeRecord) => {
+    legacyLinkedFinanceRecords.some((financeRecord) => {
       const financeCategory = String(__veneziaGet(financeRecord, "categoria") || "").trim();
       return financeCategory && financeCategory !== expectedCategory;
     })
@@ -12362,7 +12502,7 @@ function buildIncompletePaymentReviewEntry(record, studentsById) {
 
   if (
     amount > 0 &&
-    linkedFinanceRecords.some((financeRecord) => parsePaymentAmount(__veneziaGet(financeRecord, "monto")) !== amount)
+    legacyLinkedFinanceRecords.some((financeRecord) => parsePaymentAmount(__veneziaGet(financeRecord, "monto")) !== amount)
   ) {
     issues.push({ label: "Monto distinto en finance_record", risk: "ALTO" });
   }
@@ -12699,13 +12839,15 @@ async function savePaymentForStudent(studentId) {
     "nextCourseStartDate",
   ];
 
-  const historyRecord = getPersistentPaymentRecord(studentId);
+  const historyRecord = applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(studentId));
   const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
-  const editingMonthRecord = buildPaymentEditableRecord(
-    historyRecord,
-    currentMonthRecord,
-    targetPaymentMonth,
-    studentId
+  const editingMonthRecord = applyPaymentConceptDetailsToPaymentRecord(
+    buildPaymentEditableRecord(
+      historyRecord,
+      currentMonthRecord,
+      targetPaymentMonth,
+      studentId
+    )
   );
   const existingPaymentRow = getExistingPaymentRowForSave(studentId, targetPaymentMonth);
   const recordToUpdate = existingPaymentRow.record;
@@ -12805,7 +12947,7 @@ async function savePaymentForStudent(studentId) {
   const existingFinanceRecord =
     getLinkedPaymentFinanceRecords(resolvedPaymentId, financeRecords, [], { includeConceptRecords: false })[0] || null;
   const nextRecord = { ...baseRecord, ...newRecord };
-  const comparisonRecord = recordToUpdate || editingMonthRecord;
+  const comparisonRecord = applyPaymentConceptDetailsToPaymentRecord(recordToUpdate || editingMonthRecord);
   const changedPaidConcepts = getChangedPaidPaymentConcepts(comparisonRecord, nextRecord);
   if (changedPaidConcepts.length > 1) {
     alert("Guarda un concepto de pago a la vez para registrar fecha, método y cantidad sin mezclar movimientos.");
@@ -18137,6 +18279,63 @@ if (attendanceGraduatesTableBody) {
   });
 }
 
+function setPaymentEditableControlFromConceptDetail(studentId, field, value) {
+  const normalizedValue = String(__veneziaCoalesce(value, "")).trim();
+  if (!normalizedValue) {
+    return false;
+  }
+
+  const control = paymentsTableBody.querySelector(`[data-payment-field="${field}"][data-student-id="${studentId}"]`);
+  if (!control || control.dataset.paymentUserEdited === "true") {
+    return false;
+  }
+
+  control.value = normalizedValue;
+  return true;
+}
+
+function applyPaymentConceptDetailToEditableControls(fieldControl) {
+  if (!fieldControl || fieldControl.dataset.paymentConceptSource !== "concept-finance") {
+    return false;
+  }
+
+  if (!isEligiblePaymentStatus(fieldControl.value || "")) {
+    return false;
+  }
+
+  const studentId = fieldControl.dataset.studentId || "";
+  const appliedDate = setPaymentEditableControlFromConceptDetail(
+    studentId,
+    "paymentRealDate",
+    fieldControl.dataset.paymentConceptDate || ""
+  );
+  const appliedMethod = setPaymentEditableControlFromConceptDetail(
+    studentId,
+    "metodoPago",
+    fieldControl.dataset.paymentConceptMethod || ""
+  );
+  const appliedAmount = setPaymentEditableControlFromConceptDetail(
+    studentId,
+    "cantidadPagada",
+    fieldControl.dataset.paymentConceptAmount || ""
+  );
+
+  return appliedDate || appliedMethod || appliedAmount;
+}
+
+function handlePaymentConceptFieldFocus(event) {
+  const fieldControl = event.target.closest("[data-payment-field]");
+  if (!fieldControl || !paymentsTableBody.contains(fieldControl)) {
+    return;
+  }
+
+  if (!PAYMENT_CONCEPT_FIELD_KEYS.has(fieldControl.dataset.paymentField || "")) {
+    return;
+  }
+
+  applyPaymentConceptDetailToEditableControls(fieldControl);
+}
+
 function handlePaymentFieldChange(event) {
   const fieldControl = event.target.closest("[data-payment-field]");
   if (!fieldControl || !paymentsTableBody.contains(fieldControl)) {
@@ -18144,7 +18343,7 @@ function handlePaymentFieldChange(event) {
   }
 
   const field = fieldControl.dataset.paymentField || "";
-  if (field === "paymentRealDate") {
+  if (field === "paymentRealDate" || field === "metodoPago" || field === "cantidadPagada") {
     fieldControl.dataset.paymentUserEdited = "true";
     return;
   }
@@ -18156,6 +18355,11 @@ function handlePaymentFieldChange(event) {
   const previousStatus = fieldControl.dataset.paymentInitialValue || "";
   const nextStatus = fieldControl.value || "";
   if (!isEligiblePaymentStatus(nextStatus) || isEligiblePaymentStatus(previousStatus)) {
+    applyPaymentConceptDetailToEditableControls(fieldControl);
+    return;
+  }
+
+  if (applyPaymentConceptDetailToEditableControls(fieldControl)) {
     return;
   }
 
@@ -18173,6 +18377,7 @@ function handlePaymentFieldChange(event) {
   }
 }
 
+paymentsTableBody.addEventListener("focusin", handlePaymentConceptFieldFocus);
 paymentsTableBody.addEventListener("change", handlePaymentFieldChange);
 
 paymentsTableBody.addEventListener("click", async (event) => {
