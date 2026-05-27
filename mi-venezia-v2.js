@@ -8,9 +8,11 @@
   var LEGACY_FINANCE_KEY = "venezia-one-v2-finanzas";
   var LEGACY_STAFF_KEY = "venezia-one-v2-staff";
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
-  var SUPPORT_WHATSAPP = "522463831375";
-  var TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP = "2464497292";
-  var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = "2461379504";
+  var OFFICIAL_WHATSAPP_LOCAL_NUMBER = "2464497292";
+  var OFFICIAL_WHATSAPP_NUMBER = "522464497292";
+  var SUPPORT_WHATSAPP = OFFICIAL_WHATSAPP_NUMBER;
+  var TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP = OFFICIAL_WHATSAPP_LOCAL_NUMBER;
+  var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = OFFICIAL_WHATSAPP_LOCAL_NUMBER;
   var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [
@@ -36,7 +38,8 @@
     { label: "Descargar contrato de alumno", href: "/images/CONTRATO-ALUMNO.pdf" }
   ];
   var BOOTSTRAP_DIRECTORS = [
-    { branch: "Tlaxcala", scheduleType: "weekday", phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP }
+    { branch: "Tlaxcala", scheduleType: "weekday", phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP },
+    { branch: "Tlaxcala", scheduleType: "weekend", phone: TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP }
   ];
 
   var state = {
@@ -2365,11 +2368,7 @@
   }
 
   function whatsappUrl(phone, message) {
-    var normalized = normalizePhone(phone);
-    if (!normalized || normalized.length < 10) {
-      normalized = SUPPORT_WHATSAPP;
-    }
-    return "https://wa.me/" + normalized + "?text=" + encodeURIComponent(message);
+    return "https://wa.me/" + OFFICIAL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(message);
   }
 
   function renderContacto(student, details) {

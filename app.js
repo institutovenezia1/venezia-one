@@ -776,9 +776,12 @@ const DASHBOARD_ADVISORS = [
 
 const ACTIVE_SYSTEM_BRANCHES = ["Tlaxcala"];
 const DASHBOARD_BRANCHES = getActiveSystemBranches();
-const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
+const OFFICIAL_WHATSAPP_LOCAL_NUMBER = "2464497292";
+const OFFICIAL_WHATSAPP_NUMBER = "522464497292";
+const WEB_DEFAULT_WHATSAPP_NUMBER = OFFICIAL_WHATSAPP_NUMBER;
 const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
-  { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" },
+  { branch: "Tlaxcala", scheduleType: "weekday", phone: OFFICIAL_WHATSAPP_LOCAL_NUMBER },
+  { branch: "Tlaxcala", scheduleType: "weekend", phone: OFFICIAL_WHATSAPP_LOCAL_NUMBER },
 ];
 const WEB_DEFAULT_COURSES = [
   {
@@ -4217,14 +4220,10 @@ function getProspectWhatsAppUrl(prospect) {
 }
 
 function getWhatsAppUrlByPhone(phone) {
-  if (!phone || phone.length < 10) {
-    return "";
-  }
-
   const message = encodeURIComponent(
     "Hola, te contacto de Instituto Venezia para dar seguimiento a la información que pediste sobre nuestros cursos. 💜"
   );
-  return `https://wa.me/${phone}?text=${message}`;
+  return `https://wa.me/${OFFICIAL_WHATSAPP_NUMBER}?text=${message}`;
 }
 
 function getProspectPriorityRank(prospect) {
@@ -9752,12 +9751,7 @@ function resolveDirectorContactByBranchAndSchedule(branch, scheduleType = "unkno
 }
 
 function buildWhatsAppUrlWithMessage(phone, message) {
-  const normalizedPhone = normalizePhone(phone);
-  if (!normalizedPhone || normalizedPhone.length < 10) {
-    return "";
-  }
-
-  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${OFFICIAL_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 function hasPendingCourseStart(student, today = getCurrentMexicoDateValue()) {
