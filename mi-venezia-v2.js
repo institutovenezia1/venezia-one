@@ -12,7 +12,7 @@
   var OFFICIAL_WHATSAPP_NUMBER = "522464497292";
   var SUPPORT_WHATSAPP = OFFICIAL_WHATSAPP_NUMBER;
   var TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP = OFFICIAL_WHATSAPP_LOCAL_NUMBER;
-  var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = OFFICIAL_WHATSAPP_LOCAL_NUMBER;
+  var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = "2461379504";
   var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [
@@ -2368,7 +2368,11 @@
   }
 
   function whatsappUrl(phone, message) {
-    return "https://wa.me/" + OFFICIAL_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(message);
+    var normalized = normalizePhone(phone);
+    if (!normalized || normalized.length < 10) {
+      normalized = SUPPORT_WHATSAPP;
+    }
+    return "https://wa.me/" + normalized + "?text=" + encodeURIComponent(message);
   }
 
   function renderContacto(student, details) {
