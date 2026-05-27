@@ -774,7 +774,8 @@ const DASHBOARD_ADVISORS = [
   "Yuritzi Pertupe",
 ];
 
-const DASHBOARD_BRANCHES = ["Tlaxcala", "Puebla"];
+const ACTIVE_SYSTEM_BRANCHES = ["Tlaxcala"];
+const DASHBOARD_BRANCHES = getActiveSystemBranches();
 const WEB_DEFAULT_WHATSAPP_NUMBER = "522463831375";
 const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
   { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" },
@@ -2951,11 +2952,11 @@ function populateTeacherSelects() {
   const visibleTeachers = getSelectableTeacherProfiles({ includeInactive: true });
   const attendanceBranchValue = teacherAttendanceBranch.value;
   const filteredForAttendance = visibleTeachers.filter(
-    (record) => !attendanceBranchValue || record.sucursal === attendanceBranchValue
+    (record) => matchesOperationalSystemBranch(record.sucursal, attendanceBranchValue)
   );
   const summaryBranchValue = teacherSummaryBranchFilter.value;
   const filteredForSummary = visibleTeachers.filter(
-    (record) => !summaryBranchValue || record.sucursal === summaryBranchValue
+    (record) => matchesOperationalSystemBranch(record.sucursal, summaryBranchValue)
   );
 
   const previousAttendanceTeacher = teacherAttendanceTeacherId.value;
@@ -3360,7 +3361,7 @@ function getFilteredTeacherSummaryEntries() {
     if (!matchesCurrentBranch(entry.sucursal)) {
       return false;
     }
-    if (teacherSummaryBranchFilter.value && entry.sucursal !== teacherSummaryBranchFilter.value) {
+    if (!matchesOperationalSystemBranch(entry.sucursal, teacherSummaryBranchFilter.value)) {
       return false;
     }
     if (teacherSummaryTeacherFilter.value && entry.teacherId !== teacherSummaryTeacherFilter.value) {
@@ -3393,7 +3394,7 @@ function getFilteredTeacherPaymentRecords() {
   const range = getTeacherSummaryRange();
   return teacherPaymentRecords
     .filter((record) => matchesCurrentBranch(record.sucursal))
-    .filter((record) => !teacherSummaryBranchFilter.value || record.sucursal === teacherSummaryBranchFilter.value)
+    .filter((record) => matchesOperationalSystemBranch(record.sucursal, teacherSummaryBranchFilter.value))
     .filter((record) => !teacherSummaryTeacherFilter.value || record.teacherId === teacherSummaryTeacherFilter.value)
     .filter((record) => doesTeacherPaymentMatchRange(record, range))
     .sort((left, right) => {
@@ -4440,16 +4441,22 @@ function getFormData() {
   const fechaContacto = formData.get("fechaContacto");
   const estado = normalizeProspectState(formData.get("estado"), { preserveOperationalState: false });
   const isAutoFollowup = shouldAutoAssignFollowup(estado);
+  const sucursal = resolveSystemBranchForSave(formData.get("sucursal"), __veneziaGet(existingProspect, "sucursal"));
   const proximoSeguimiento = isAutoFollowup
     ? getAutoFollowupDate(new Date())
     : String(formData.get("proximoSeguimiento") || __veneziaGet(existingProspect, "proximoSeguimiento") || "");
+
+  if (!isSystemBranchAllowedForSave(sucursal, __veneziaGet(existingProspect, "sucursal"))) {
+    alert("Selecciona una sucursal activa para guardar la prospecta.");
+    return null;
+  }
 
   return {
     id: existingId || createMiVeneziaCompatibleId(),
     nombre: formData.get("nombre").trim(),
     telefono: normalizePhone(formData.get("telefono")),
     fechaContacto,
-    sucursal: String(formData.get("sucursal") || "").trim(),
+    sucursal,
     curso: formData.get("curso").trim(),
     origen: normalizeLeadOrigin(formData.get("origen")),
     medio: normalizeLeadChannel(formData.get("medio"), formData.get("origen")),
@@ -4469,15 +4476,18 @@ function getAltaFormData() {
   const formData = new FormData(altaForm);
   const telefono = normalizePhone(formData.get("telefono"));
   const allowedBranch = getAllowedBranch();
-  const sucursal = allowedBranch || String(formData.get("sucursal") || "").trim();
   const fechaInicio = String(
     formData.get("fechaInicio") || formData.get("fechaInscripcion") || formatDateForInput(new Date())
   ).trim();
+  const existingStudentId = String(formData.get("studentId") || "").trim();
+  const existingStudent = students.find((student) => student.id === existingStudentId);
+  const sucursal = resolveSystemBranchForSave(
+    allowedBranch || formData.get("sucursal"),
+    __veneziaGet(existingStudent, "sucursal")
+  );
   const studentCode = String(
     formData.get("studentCode") || generateStudentCode(sucursal, fechaInicio)
   ).trim();
-  const existingStudentId = String(formData.get("studentId") || "").trim();
-  const existingStudent = students.find((student) => student.id === existingStudentId);
   const createdAt = __veneziaGet(existingStudent, "createdAt") || new Date().toISOString();
   const fechaNacimiento = String(formData.get("fechaNacimiento") || "").trim();
   const portalUser = telefono;
@@ -4622,9 +4632,16 @@ function clearAltaValidation() {
 
 function getAltaValidationErrors(altaData) {
   const errors = [];
+  const existingStudent = students.find((student) => student.id === altaData.id);
   if (!altaData.nombre) errors.push("Nombre completo");
   if (!altaData.telefono) errors.push("Teléfono");
   if (!altaData.sucursal) errors.push("Sucursal");
+  if (
+    altaData.sucursal &&
+    !isSystemBranchAllowedForSave(altaData.sucursal, __veneziaGet(existingStudent, "sucursal"))
+  ) {
+    errors.push("Sucursal activa");
+  }
   if (!altaData.curso) errors.push("Curso");
   if (!altaData.accesoElegido) errors.push("Acceso elegido");
   if (!altaData.horario) errors.push("Horario");
@@ -4799,6 +4816,89 @@ function syncAltaDateDisplay(value = "") {
 
 function isAllBranchesScope(branch) {
   return String(branch || "").trim().toLowerCase() === "todas";
+}
+
+function normalizeSystemBranch(branch) {
+  return String(branch || "").trim();
+}
+
+function getActiveSystemBranches() {
+  return [...ACTIVE_SYSTEM_BRANCHES];
+}
+
+function getHistoricalSystemBranches() {
+  const branchValues = [
+    ...prospects.map((record) => record.sucursal),
+    ...students.map((record) => record.sucursal),
+    ...staffRecords.map((record) => record.sucursal),
+    ...teacherRecords.map((record) => record.sucursal),
+    ...financeRecords.map((record) => record.sucursal),
+    ...balanceExpenses.map((record) => record.sucursal),
+    ...internalUsers.map((record) => record.branch),
+  ];
+
+  return [...new Set(branchValues.map(normalizeSystemBranch).filter((branch) => branch && !isAllBranchesScope(branch)))]
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function isActiveSystemBranch(branch) {
+  return getActiveSystemBranches().includes(normalizeSystemBranch(branch));
+}
+
+function isHistoricalSystemBranch(branch) {
+  return getHistoricalSystemBranches().includes(normalizeSystemBranch(branch));
+}
+
+function isSystemBranchAllowedForSave(branch, existingBranch = "") {
+  const normalizedBranch = normalizeSystemBranch(branch);
+  const normalizedExistingBranch = normalizeSystemBranch(existingBranch);
+
+  if (isActiveSystemBranch(normalizedBranch)) {
+    return true;
+  }
+
+  return Boolean(
+    normalizedBranch &&
+      normalizedExistingBranch &&
+      normalizedBranch === normalizedExistingBranch &&
+      isHistoricalSystemBranch(normalizedBranch)
+  );
+}
+
+function resolveSystemBranchForSave(selectedBranch, existingBranch = "") {
+  const normalizedSelectedBranch = normalizeSystemBranch(selectedBranch);
+  const normalizedExistingBranch = normalizeSystemBranch(existingBranch);
+
+  if (normalizedSelectedBranch) {
+    return normalizedSelectedBranch;
+  }
+
+  if (normalizedExistingBranch && !isActiveSystemBranch(normalizedExistingBranch)) {
+    return normalizedExistingBranch;
+  }
+
+  return "";
+}
+
+function matchesOperationalSystemBranch(branch, selectedBranch = "") {
+  const normalizedSelectedBranch = normalizeSystemBranch(selectedBranch);
+  const normalizedBranch = normalizeSystemBranch(branch);
+
+  if (normalizedSelectedBranch) {
+    return normalizedBranch === normalizedSelectedBranch;
+  }
+
+  return isActiveSystemBranch(normalizedBranch);
+}
+
+function getSingleActiveBranchForOperationalScope(selectedBranch = "") {
+  const normalizedSelectedBranch = normalizeSystemBranch(selectedBranch);
+  if (normalizedSelectedBranch) {
+    return normalizedSelectedBranch;
+  }
+
+  const activeBranches = getActiveSystemBranches();
+  return activeBranches.length === 1 ? activeBranches[0] : "";
 }
 
 function isStudentDeleted(student) {
@@ -5476,9 +5576,12 @@ function getFinanceFormData() {
   const existingId = document.getElementById("financeId").value;
   const existingRecord = financeRecords.find((record) => record.id === existingId);
   const allowedBranch = getAllowedBranch();
-  const sucursal = String(allowedBranch || formData.get("sucursal") || "").trim();
+  const sucursal = resolveSystemBranchForSave(
+    allowedBranch || formData.get("sucursal"),
+    __veneziaGet(existingRecord, "sucursal")
+  );
 
-  if (!isValidSystemBranch(sucursal)) {
+  if (!isSystemBranchAllowedForSave(sucursal, __veneziaGet(existingRecord, "sucursal"))) {
     alert("Selecciona una sucursal valida del sistema para registrar el movimiento financiero.");
     return null;
   }
@@ -5503,6 +5606,9 @@ function getInternalUserFormData() {
   const existingId = document.getElementById("internalUserId").value;
   const existingUser = internalUsers.find((user) => user.id === existingId);
   const username = String(formData.get("login") || "").trim();
+  const branch = isAllBranchesScope(formData.get("sucursal"))
+    ? "Todas"
+    : resolveSystemBranchForSave(formData.get("sucursal"), __veneziaGet(existingUser, "branch"));
   let permissions = Array.from(
     internalUserForm.querySelectorAll('input[name="permissions"]:checked')
   ).map((input) => input.value);
@@ -5523,7 +5629,7 @@ function getInternalUserFormData() {
     phone: __veneziaGet(existingUser, "phone") || "",
     password: String(formData.get("password") || "").trim(),
     role,
-    branch: formData.get("sucursal"),
+    branch,
     status: formData.get("estado"),
     permissions,
   };
@@ -5537,6 +5643,10 @@ function getStaffFormData() {
   const allowedBranch = getAllowedBranch();
   const username = staffAccessUsername.value.trim();
   const password = staffTemporaryPassword.value.trim();
+  const sucursal = resolveSystemBranchForSave(
+    allowedBranch || formData.get("sucursal"),
+    __veneziaGet(existingRecord, "sucursal")
+  );
 
   return {
     id: existingId || createMiVeneziaCompatibleId(),
@@ -5544,7 +5654,7 @@ function getStaffFormData() {
     telefono: normalizePhone(formData.get("telefono")),
     puesto: formData.get("puesto"),
     area: formData.get("area"),
-    sucursal: allowedBranch || formData.get("sucursal"),
+    sucursal,
     fechaIngreso: formData.get("fechaIngreso"),
     fechaNacimiento: String(formData.get("fechaNacimiento") || "").trim(),
     estado: formData.get("estado"),
@@ -8619,32 +8729,15 @@ function buildFinanceSummary(
 }
 
 function matchesDashboardBranch(branch) {
-  return matchesCurrentBranch(branch) && (!dashboardBranchFilter.value || branch === dashboardBranchFilter.value);
+  return matchesCurrentBranch(branch) && matchesOperationalSystemBranch(branch, dashboardBranchFilter.value);
 }
 
 function getValidSystemBranches() {
-  const allowedBranch = String(getAllowedBranch() || "").trim();
-  const branchOptions = [
-    ...new Set(
-      [
-        ...prospects.map((record) => record.sucursal),
-        ...students.map((record) => record.sucursal),
-        ...staffRecords.map((record) => record.sucursal),
-      ]
-        .map((value) => String(value || "").trim())
-        .filter(Boolean)
-    ),
-  ].sort((a, b) => a.localeCompare(b));
-
-  if (allowedBranch && !branchOptions.includes(allowedBranch)) {
-    branchOptions.unshift(allowedBranch);
-  }
-
-  return branchOptions;
+  return getActiveSystemBranches();
 }
 
 function isValidSystemBranch(branch) {
-  return getValidSystemBranches().includes(String(branch || "").trim());
+  return isActiveSystemBranch(branch);
 }
 
 function populateFinancialEntryBranchFields() {
@@ -8721,7 +8814,7 @@ function getDashboardPaymentRecords() {
 function getDashboardFinanceRecords() {
   return getFinanceRecordsForScope({
     month: dashboardSelectedMonth || selectedMonth,
-    branch: dashboardBranchFilter.value,
+    branch: getSingleActiveBranchForOperationalScope(dashboardBranchFilter.value),
   });
 }
 
@@ -8762,7 +8855,7 @@ function getDashboardInscriptionAnchorDate() {
 
 function getDashboardInscriptionIncomeSummary() {
   const records = getDashboardOperationalInscriptionRecords();
-  const branch = dashboardBranchFilter.value || "";
+  const branch = getSingleActiveBranchForOperationalScope(dashboardBranchFilter.value);
   const selectedDashboardMonth = getDashboardSelectedMonthValue();
   const anchorDate = getDashboardInscriptionAnchorDate();
   const scope = ["day", "week", "month", "year"].includes(dashboardInscriptionScope)
@@ -8838,20 +8931,7 @@ function renderDashboardInscriptionIncome() {
 }
 
 function populateDashboardBranchFilter() {
-  const branchOptions = [
-    ...new Set(
-      [
-        ...prospects.map((record) => record.sucursal),
-        ...students.map((record) => record.sucursal),
-        ...financeRecords.map((record) => record.sucursal),
-        ...staffRecords.map((record) => record.sucursal),
-      ]
-        .map((value) => String(value || "").trim())
-        .filter(Boolean)
-    ),
-  ].sort((a, b) => a.localeCompare(b));
-
-  populateSelectWithValues(dashboardBranchFilter, branchOptions, "Todas");
+  populateSelectWithValues(dashboardBranchFilter, getActiveSystemBranches(), "Todas");
 }
 
 function populateDashboardMonthFilter() {
@@ -8905,11 +8985,11 @@ function renderDashboard() {
   populateDashboardBranchFilter();
   populateDashboardMonthFilter();
   const baseFinanceSnapshot = getExecutiveFinanceSnapshot({
-    branch: dashboardBranchFilter.value,
+    branch: getSingleActiveBranchForOperationalScope(dashboardBranchFilter.value),
     displayMonth: dashboardSelectedMonth,
   });
   const dashboardFinanceSnapshot = getExecutiveFinanceSnapshot({
-    branch: dashboardBranchFilter.value,
+    branch: getSingleActiveBranchForOperationalScope(dashboardBranchFilter.value),
     displayMonth: dashboardSelectedMonth,
     records: getDashboardFinanceSnapshotRecords(),
   });
@@ -10261,7 +10341,7 @@ function populateAttendanceFilters() {
     {
       element: attendanceSucursalFilter,
       defaultLabel: "Todas",
-      options: ["Puebla", "Tlaxcala"],
+      options: getActiveSystemBranches(),
     },
     {
       element: attendanceCursoFilter,
@@ -10400,7 +10480,7 @@ function isDuplicateKeySupabaseError(error) {
 function getAttendanceScopedStudents() {
   const today = getCurrentMexicoDateValue();
   return students.filter((student) => isStudentVisibleInAttendance(student, today)).filter((student) => {
-    if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
+    if (!matchesOperationalSystemBranch(student.sucursal, attendanceSucursalFilter.value)) {
       return false;
     }
     return true;
@@ -10425,7 +10505,7 @@ function getAttendanceUpcomingStartStudents() {
       (isStudentVisibleInAttendance(student, today) && !hasStudentAttendanceClassRecord(student.id))
     ))
     .filter((student) => {
-      if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) {
+      if (!matchesOperationalSystemBranch(student.sucursal, attendanceSucursalFilter.value)) {
         return false;
       }
       return true;
@@ -10808,7 +10888,7 @@ function getFilteredStudentsForAttendance() {
     if (normalizedSearch && !searchableText.includes(normalizedSearch)) return false;
 
     if (!activeAttendanceQuickFilter) {
-      if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
+      if (!matchesOperationalSystemBranch(student.sucursal, attendanceSucursalFilter.value)) return false;
       if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
       if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
       if (
@@ -13801,7 +13881,7 @@ function getBalanceIncomeRows() {
     .filter((record) => record.sourceType === "payment" && record.tipo === "Ingreso")
     .filter(Boolean)
     .filter((record) => matchesCurrentBranch(record.sucursal))
-    .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
+    .filter((record) => matchesOperationalSystemBranch(record.sucursal, balanceBranchFilter.value))
     .filter((record) => matchesBalanceDate(record.fecha))
     .map((record) => ({
       id: record.sourceRecordId || record.id,
@@ -13824,22 +13904,22 @@ function getBalanceIncomeRows() {
 
 function getBalanceInscriptionRows() {
   const anchorDate = __veneziaGet(balanceDateFilter, "value") || getCurrentMexicoDateValue();
-  const branch = __veneziaGet(balanceBranchFilter, "value") || "";
 
   return getFinanceRecordsForScope({
     records: getOperationalInscriptionRecords(),
     scope: "day",
     date: anchorDate,
-    branch,
-  }).map((record) => ({
-    id: record.sourceRecordId || record.id,
-    fecha: record.fecha,
-    alumna: record.alumna || "-",
-    concepto: record.concepto || ALTA_INSCRIPTION_CONCEPT_LABEL,
-    monto: Number(record.monto || 0),
-    sucursal: record.sucursal || "",
-    metodoPago: record.metodoPago || "-",
-  }));
+  })
+    .filter((record) => matchesOperationalSystemBranch(record.sucursal, __veneziaGet(balanceBranchFilter, "value")))
+    .map((record) => ({
+      id: record.sourceRecordId || record.id,
+      fecha: record.fecha,
+      alumna: record.alumna || "-",
+      concepto: record.concepto || ALTA_INSCRIPTION_CONCEPT_LABEL,
+      monto: Number(record.monto || 0),
+      sucursal: record.sucursal || "",
+      metodoPago: record.metodoPago || "-",
+    }));
 }
 
 function getBalanceMethodBucket(method) {
@@ -13897,7 +13977,7 @@ function getFilteredBalanceExpenses() {
   return getCentralFinanceRecords()
     .filter((record) => record.sourceType === "balance-expense" && record.tipo === "Egreso")
     .filter((record) => matchesCurrentBranch(record.sucursal))
-    .filter((record) => !balanceBranchFilter.value || record.sucursal === balanceBranchFilter.value)
+    .filter((record) => matchesOperationalSystemBranch(record.sucursal, balanceBranchFilter.value))
     .filter((record) => matchesBalanceDate(record.fecha))
     .map((record) => ({
       id: record.sourceRecordId || record.id,
@@ -13965,9 +14045,12 @@ function getBalanceExpenseFormData() {
   const costoUnitario = Number(formData.get("costoUnitario") || 0);
   const total = Number((cantidad * costoUnitario).toFixed(2));
   const allowedBranch = getAllowedBranch();
-  const sucursal = allowedBranch || String(formData.get("sucursal") || "").trim();
+  const sucursal = resolveSystemBranchForSave(
+    allowedBranch || formData.get("sucursal"),
+    __veneziaGet(existingRecord, "sucursal")
+  );
 
-  if (!isValidSystemBranch(sucursal)) {
+  if (!isSystemBranchAllowedForSave(sucursal, __veneziaGet(existingRecord, "sucursal"))) {
     alert("Selecciona una sucursal valida del sistema para registrar el egreso.");
     return null;
   }
@@ -14163,25 +14246,11 @@ function updateFinanceCategories() {
 function getFilteredFinanceRecords() {
   return getFinanceRecordsForScope({
     month: financeMonthFilter.value || selectedMonth,
-    branch: financeBranchFilter.value,
-  });
+  }).filter((record) => matchesOperationalSystemBranch(record.sucursal, financeBranchFilter.value));
 }
 
 function populateFinanceBranchFilter() {
-  const branchOptions = [
-    ...new Set(
-      [
-        ...prospects.map((record) => record.sucursal),
-        ...students.map((record) => record.sucursal),
-        ...financeRecords.map((record) => record.sucursal),
-        ...staffRecords.map((record) => record.sucursal),
-      ]
-        .map((value) => String(value || "").trim())
-        .filter(Boolean)
-    ),
-  ].sort((a, b) => a.localeCompare(b));
-
-  populateSelectWithValues(financeBranchFilter, branchOptions, "Todas");
+  populateSelectWithValues(financeBranchFilter, getActiveSystemBranches(), "Todas");
 }
 
 function populateFinanceVisibleMonthFilter() {
@@ -14286,7 +14355,7 @@ function updateFinanceSummary() {
   populateFinanceVisibleMonthFilter();
   const historyMonth = financeMonthFilter.value || selectedMonth || getCurrentMexicoDateValue().slice(0, 7);
   const summary = getExecutiveFinanceSnapshot({
-    branch: financeBranchFilter.value,
+    branch: getSingleActiveBranchForOperationalScope(financeBranchFilter.value),
     historyMonth,
   });
   const buildExecutiveItems = (periodSummary) => [
@@ -17628,6 +17697,9 @@ function renderAll() {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = getFormData();
+  if (!formData) {
+    return;
+  }
   const saveResult = await saveProspectRecord(formData);
   if (!saveResult.synced) {
     renderAll();
@@ -17793,6 +17865,14 @@ internalUserForm.addEventListener("submit", async (event) => {
   }
 
   const userData = getInternalUserFormData();
+  const existingUser = internalUsers.find((user) => user.id === userData.id);
+  if (
+    !isAllBranchesScope(userData.branch) &&
+    !isSystemBranchAllowedForSave(userData.branch, __veneziaGet(existingUser, "branch"))
+  ) {
+    alert("Selecciona una sucursal activa para el usuario.");
+    return;
+  }
   const existingIndex = internalUsers.findIndex((user) => user.id === userData.id);
 
   if (existingIndex >= 0) {
@@ -17818,6 +17898,11 @@ internalUserForm.addEventListener("submit", async (event) => {
 staffForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const staffData = getStaffFormData();
+  const existingStaffRecord = staffRecords.find((record) => record.id === staffData.id);
+  if (!isSystemBranchAllowedForSave(staffData.sucursal, __veneziaGet(existingStaffRecord, "sucursal"))) {
+    alert("Selecciona una sucursal activa para el personal.");
+    return;
+  }
   const internalAccessResult = await syncStaffInternalAccess(staffData);
   staffData.linkedUserId = internalAccessResult.record.id;
   const saveResult = await saveStaffRecord(staffData);
@@ -17858,6 +17943,7 @@ teacherForm.addEventListener("submit", async (event) => {
 teacherAttendanceForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const attendanceData = getTeacherAttendanceFormData();
+  const existingTeacherAttendance = teacherAttendanceRecords.find((record) => record.id === attendanceData.id);
   const isUpdatingExistingRecord = teacherAttendanceRecords.some(
     (record) =>
       record.id === attendanceData.id ||
@@ -17866,6 +17952,11 @@ teacherAttendanceForm.addEventListener("submit", (event) => {
 
   if (!attendanceData.teacherId || !attendanceData.fecha || !attendanceData.turno || !attendanceData.estatus) {
     alert("Completa fecha, maestra, turno y estatus para guardar la asistencia laboral.");
+    return;
+  }
+
+  if (!isSystemBranchAllowedForSave(attendanceData.sucursal, __veneziaGet(existingTeacherAttendance, "sucursal"))) {
+    alert("Selecciona una sucursal activa para registrar asistencia de maestras.");
     return;
   }
 
@@ -18159,6 +18250,16 @@ async function handleWebLeadSubmit(event) {
   }
   if (submitButton) {
     submitButton.disabled = true;
+  }
+  if (!isActiveSystemBranch(leadData.sucursal)) {
+    setWebLeadFeedback({
+      success: false,
+      message: "Selecciona una sucursal activa para enviar tu solicitud.",
+    });
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
+    return;
   }
   const saveResult = await saveProspectRecord(leadData, { keepLocalOnFailure: false });
   if (!saveResult.synced) {
