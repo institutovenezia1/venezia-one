@@ -9,6 +9,7 @@
   var LEGACY_STAFF_KEY = "venezia-one-v2-staff";
   var LEGACY_USERS_KEY = "venezia-one-v2-internal-users";
   var SUPPORT_WHATSAPP = "522463831375";
+  var TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP = "2464497292";
   var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = "2461379504";
   var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
@@ -35,7 +36,7 @@
     { label: "Descargar contrato de alumno", href: "/images/CONTRATO-ALUMNO.pdf" }
   ];
   var BOOTSTRAP_DIRECTORS = [
-    { branch: "Tlaxcala", scheduleType: "weekday", phone: "2461208995" }
+    { branch: "Tlaxcala", scheduleType: "weekday", phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP }
   ];
 
   var state = {
@@ -1493,6 +1494,13 @@
 
   function resolveOfficialContactOverride(student) {
     var branch = normalizeLoose(student && student.sucursal);
+    if (branch.indexOf("tlaxcala") !== -1 && classifySchedule(student) === "weekday") {
+      return {
+        phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP,
+        coverage: "weekday",
+        name: "Dirección entre semana Tlaxcala"
+      };
+    }
     if (branch.indexOf("tlaxcala") !== -1 && classifySchedule(student) === "weekend") {
       return {
         phone: TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP,
