@@ -405,6 +405,7 @@ const accessSelectorLogoutButton = document.getElementById("accessSelectorLogout
 
 const attendanceDate = document.getElementById("attendanceDate");
 const attendanceSearchInput = document.getElementById("attendanceSearchInput");
+const attendanceSearchRow = attendanceSearchInput ? attendanceSearchInput.closest(".attendance-search-row") : null;
 const attendanceSucursalFilter = document.getElementById("attendanceSucursalFilter");
 const attendanceCursoFilter = document.getElementById("attendanceCursoFilter");
 const attendanceHorarioFilter = document.getElementById("attendanceHorarioFilter");
@@ -864,6 +865,7 @@ let dashboardInscriptionScope = "month";
 let selectedAttendanceStudentId = "";
 let activeAttendanceSearch = "";
 let attendanceTableExpanded = false;
+let activeAttendanceQuickFilter = null;
 let selectedAltaDateFilter = "";
 let activeAltaPendingFilter = "all";
 let activePaymentsSearch = "";
@@ -10430,6 +10432,108 @@ function getAttendanceUpcomingStartStudents() {
     });
 }
 
+function getAttendanceBranchesByCourse(studentsList = []) {
+  return studentsList.reduce((accumulator, student) => {
+    const course = String(student.curso || "").trim();
+    const branch = String(student.sucursal || "").trim();
+    if (!course || !branch) {
+      return accumulator;
+    }
+    const courseBranches = accumulator.get(course) || new Set();
+    courseBranches.add(branch);
+    accumulator.set(course, courseBranches);
+    return accumulator;
+  }, new Map());
+}
+
+function getAttendanceScheduleFilterStudents(filter = activeAttendanceQuickFilter) {
+  if (!filter || filter.type !== "schedule") {
+    return [];
+  }
+
+  const startedStudents = getAttendanceStartedSummaryStudents();
+  const branchesByCourse = getAttendanceBranchesByCourse(startedStudents);
+  return startedStudents.filter((student) => {
+    const course = String(student.curso || "").trim();
+    if (course !== filter.course) {
+      return false;
+    }
+
+    const scheduleSummary = getAttendanceStudentScheduleSummary(student, {
+      includeBranch: (branchesByCourse.get(course)?.size || 0) > 1,
+    });
+    return scheduleSummary.key === filter.scheduleKey;
+  });
+}
+
+function getAttendanceBaseStudentsForActiveFilter() {
+  if (!activeAttendanceQuickFilter) {
+    return getAttendanceScopedStudents();
+  }
+
+  if (activeAttendanceQuickFilter.type === "schedule") {
+    return getAttendanceScheduleFilterStudents(activeAttendanceQuickFilter);
+  }
+
+  if (activeAttendanceQuickFilter.type === "pending-start") {
+    return getAttendanceUpcomingStartStudents();
+  }
+
+  return getAttendanceScopedStudents();
+}
+
+function getAttendanceQuickFilterLabel() {
+  if (!activeAttendanceQuickFilter) {
+    return "";
+  }
+
+  if (activeAttendanceQuickFilter.type === "pending-start") {
+    return "Por iniciar curso";
+  }
+
+  return [activeAttendanceQuickFilter.course, activeAttendanceQuickFilter.label]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function isAttendanceScheduleQuickFilterActive(course, scheduleKey) {
+  return Boolean(
+    activeAttendanceQuickFilter &&
+      activeAttendanceQuickFilter.type === "schedule" &&
+      activeAttendanceQuickFilter.course === course &&
+      activeAttendanceQuickFilter.scheduleKey === scheduleKey
+  );
+}
+
+function isAttendancePendingStartQuickFilterActive() {
+  return Boolean(activeAttendanceQuickFilter && activeAttendanceQuickFilter.type === "pending-start");
+}
+
+function setAttendanceScheduleQuickFilter({ course = "", scheduleKey = "", label = "" } = {}) {
+  activeAttendanceQuickFilter = {
+    type: "schedule",
+    course,
+    scheduleKey,
+    label,
+  };
+  attendanceTableExpanded = true;
+  renderAttendanceTable();
+}
+
+function setAttendancePendingStartQuickFilter() {
+  activeAttendanceQuickFilter = {
+    type: "pending-start",
+    label: "Por iniciar curso",
+  };
+  attendanceTableExpanded = true;
+  renderAttendanceTable();
+}
+
+function clearAttendanceQuickFilter() {
+  activeAttendanceQuickFilter = null;
+  renderAttendanceTable();
+}
+
 function getAttendanceGraduateStudents() {
   return students
     .filter((student) => matchesCurrentBranch(student.sucursal))
@@ -10590,17 +10694,7 @@ async function dropStudentFromAttendance(studentId) {
 
 function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
   const preferredOrder = ["Uñas", "Pestañas", "Barbería", "Maquillaje"];
-  const branchesByCourse = studentsList.reduce((accumulator, student) => {
-    const course = String(student.curso || "").trim();
-    const branch = String(student.sucursal || "").trim();
-    if (!course || !branch) {
-      return accumulator;
-    }
-    const courseBranches = accumulator.get(course) || new Set();
-    courseBranches.add(branch);
-    accumulator.set(course, courseBranches);
-    return accumulator;
-  }, new Map());
+  const branchesByCourse = getAttendanceBranchesByCourse(studentsList);
   const summaryByCourse = studentsList.reduce((accumulator, student) => {
     const course = String(student.curso || "").trim();
     if (!course) {
@@ -10702,7 +10796,7 @@ function compareAttendanceScheduleSummaryItems(left, right) {
 }
 
 function getFilteredStudentsForAttendance() {
-  return getAttendanceScopedStudents().filter((student) => {
+  return getAttendanceBaseStudentsForActiveFilter().filter((student) => {
     const normalizedSearch = activeAttendanceSearch.trim().toLowerCase();
     const searchableText = [
       student.nombre,
@@ -10712,14 +10806,17 @@ function getFilteredStudentsForAttendance() {
     ].join(" ").toLowerCase();
 
     if (normalizedSearch && !searchableText.includes(normalizedSearch)) return false;
-    if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
-    if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
-    if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
-    if (
-      attendanceDayFilter.value &&
-      normalizeAttendanceDayLabel(student.diaClases) !== normalizeAttendanceDayLabel(attendanceDayFilter.value)
-    ) {
-      return false;
+
+    if (!activeAttendanceQuickFilter) {
+      if (attendanceSucursalFilter.value && student.sucursal !== attendanceSucursalFilter.value) return false;
+      if (attendanceCursoFilter.value && student.curso !== attendanceCursoFilter.value) return false;
+      if (attendanceHorarioFilter.value && student.horario !== attendanceHorarioFilter.value) return false;
+      if (
+        attendanceDayFilter.value &&
+        normalizeAttendanceDayLabel(student.diaClases) !== normalizeAttendanceDayLabel(attendanceDayFilter.value)
+      ) {
+        return false;
+      }
     }
     return true;
   });
@@ -10983,12 +11080,40 @@ function getAttendanceSummaryFromSelection(studentsList) {
   };
 }
 
+function renderAttendanceQuickFilterIndicator() {
+  if (!attendanceSearchRow || !attendanceSearchInput) {
+    return;
+  }
+
+  let indicator = document.getElementById("attendanceActiveQuickFilter");
+  if (!indicator) {
+    indicator = document.createElement("div");
+    indicator.id = "attendanceActiveQuickFilter";
+    indicator.className = "attendance-active-filter";
+    attendanceSearchRow.insertBefore(indicator, attendanceSearchInput);
+  }
+
+  const filterLabel = getAttendanceQuickFilterLabel();
+  if (!filterLabel) {
+    indicator.hidden = true;
+    indicator.innerHTML = "";
+    return;
+  }
+
+  indicator.hidden = false;
+  indicator.innerHTML = `
+    <span>Filtro activo: <strong>${escapeHtml(filterLabel)}</strong></span>
+    <button class="secondary-btn attendance-clear-filter-btn" type="button" data-action="clear-attendance-quick-filter">Quitar filtro</button>
+  `;
+}
+
 function renderAttendanceTable() {
   const studentsList = getFilteredStudentsForAttendance();
   const visibleStudents = attendanceTableExpanded ? studentsList : studentsList.slice(0, 3);
   const selectedDate = getAttendanceBaseDate(studentsList);
   attendanceDate.value = selectedDate;
   const sessionColumns = getAttendanceColumnDefinitions(visibleStudents);
+  renderAttendanceQuickFilterIndicator();
 
   attendanceTableHead.innerHTML = `
     <tr>
@@ -11298,12 +11423,24 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
                   <div class="attendance-schedule-breakdown" aria-label="Horarios activos de ${escapeHtml(entry.course)}">
                     ${entry.schedules
                       .map(
-                        (schedule) => `
-                          <span class="attendance-schedule-chip" title="${escapeHtml(`${schedule.label}: ${schedule.count}`)}">
+                        (schedule) => {
+                          const isActive = isAttendanceScheduleQuickFilterActive(entry.course, schedule.key);
+                          return `
+                          <button
+                            class="attendance-schedule-chip${isActive ? " is-active" : ""}"
+                            type="button"
+                            title="${escapeHtml(`${schedule.label}: ${schedule.count}`)}"
+                            data-attendance-summary-filter="schedule"
+                            data-attendance-course="${escapeHtml(entry.course)}"
+                            data-attendance-schedule-key="${escapeHtml(schedule.key)}"
+                            data-attendance-schedule-label="${escapeHtml(schedule.label)}"
+                            aria-pressed="${isActive ? "true" : "false"}"
+                          >
                             <span>${escapeHtml(schedule.label)}</span>
                             <span class="attendance-schedule-count">${schedule.count}</span>
-                          </span>
-                        `
+                          </button>
+                        `;
+                        }
                       )
                       .join("")}
                   </div>
@@ -11314,7 +11451,13 @@ function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance
         `
       ),
       `
-        <article class="stat-card attendance-summary-card attendance-summary-pending-card">
+        <article
+          class="stat-card attendance-summary-card attendance-summary-pending-card attendance-summary-filter-card${isAttendancePendingStartQuickFilterActive() ? " is-active" : ""}"
+          role="button"
+          tabindex="0"
+          data-attendance-summary-filter="pending-start"
+          aria-pressed="${isAttendancePendingStartQuickFilterActive() ? "true" : "false"}"
+        >
           <p>Por iniciar curso</p>
           <strong>${upcomingStartStudents.length}</strong>
         </article>
@@ -18396,6 +18539,49 @@ attendanceSearchInput.addEventListener("input", (event) => {
   activeAttendanceSearch = event.target.value;
   renderAttendanceTable();
 });
+
+if (attendanceSummaryGrid) {
+  attendanceSummaryGrid.addEventListener("click", (event) => {
+    const filterControl = event.target.closest("[data-attendance-summary-filter]");
+    if (!filterControl || !attendanceSummaryGrid.contains(filterControl)) {
+      return;
+    }
+
+    const filterType = filterControl.dataset.attendanceSummaryFilter || "";
+    if (filterType === "schedule") {
+      setAttendanceScheduleQuickFilter({
+        course: filterControl.dataset.attendanceCourse || "",
+        scheduleKey: filterControl.dataset.attendanceScheduleKey || "",
+        label: filterControl.dataset.attendanceScheduleLabel || "",
+      });
+    }
+    if (filterType === "pending-start") {
+      setAttendancePendingStartQuickFilter();
+    }
+  });
+
+  attendanceSummaryGrid.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    const filterControl = event.target.closest("[data-attendance-summary-filter]");
+    if (!filterControl || !attendanceSummaryGrid.contains(filterControl)) {
+      return;
+    }
+    event.preventDefault();
+    filterControl.click();
+  });
+}
+
+if (attendanceSearchRow) {
+  attendanceSearchRow.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-action='clear-attendance-quick-filter']");
+    if (!actionButton || !attendanceSearchRow.contains(actionButton)) {
+      return;
+    }
+    clearAttendanceQuickFilter();
+  });
+}
 
 if (attendanceToggleButton) {
   attendanceToggleButton.addEventListener("click", () => {

@@ -788,6 +788,10 @@ textarea {
 }
 
 .attendance-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.85rem;
 }
 
@@ -798,6 +802,31 @@ textarea {
   background: linear-gradient(180deg, #fcfaf7 0%, #f7f2eb 100%);
   color: #1a1a1a;
   font-weight: 700;
+}
+
+.attendance-active-filter {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  padding: 0.3rem 0.36rem 0.3rem 0.58rem;
+  border: 1px solid rgba(201, 162, 39, 0.24);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffdf8 0%, #f6efe4 100%);
+  color: #5f4a12;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.attendance-active-filter[hidden] {
+  display: none;
+}
+
+.attendance-clear-filter-btn {
+  min-height: 1.75rem;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .attendance-filters {
@@ -2070,6 +2099,25 @@ td select {
   min-height: 104px;
 }
 
+#asistenciasSection > .stats-grid .attendance-summary-filter-card {
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+#asistenciasSection > .stats-grid .attendance-summary-filter-card:hover,
+#asistenciasSection > .stats-grid .attendance-summary-filter-card:focus-visible {
+  border-color: rgba(201, 162, 39, 0.42);
+  box-shadow: 0 12px 26px rgba(89, 67, 10, 0.12);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+#asistenciasSection > .stats-grid .attendance-summary-filter-card.is-active {
+  border-color: rgba(201, 162, 39, 0.58);
+  background: linear-gradient(180deg, #fff7db 0%, #f4e3ad 100%);
+  box-shadow: 0 12px 28px rgba(148, 106, 12, 0.16);
+}
+
 .attendance-summary-main {
   display: grid;
   align-content: center;
@@ -2108,6 +2156,26 @@ td select {
   font-weight: 800;
   line-height: 1.08;
   box-shadow: 0 5px 12px rgba(89, 67, 10, 0.04);
+  cursor: pointer;
+  appearance: none;
+  font-family: inherit;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.attendance-schedule-chip:hover,
+.attendance-schedule-chip:focus-visible {
+  border-color: rgba(201, 162, 39, 0.46);
+  background: #fffaf0;
+  box-shadow: 0 7px 15px rgba(89, 67, 10, 0.1);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.attendance-schedule-chip.is-active {
+  border-color: rgba(201, 162, 39, 0.62);
+  background: linear-gradient(180deg, #fff3c8 0%, #f1d884 100%);
+  color: #3d2f09;
+  box-shadow: 0 8px 16px rgba(148, 106, 12, 0.16);
 }
 
 .attendance-schedule-chip span:first-child {
