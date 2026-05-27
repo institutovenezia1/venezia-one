@@ -212,12 +212,16 @@ const PAYMENT_TRACE_STUDENT_NAMES = new Set([
   "GERARDO ANTONIO JIMENEZ ELIZARRARAS",
   "HELEN KARINA QUINTERO DURAN",
   "JAQUELIN HUERTA RODRIGUEZ",
+  "CYNTHIA JEFTE NAVA MAZON",
+  "MELANI CARCANO PEREZ",
+  "MELANI CARCAÑO PEREZ",
 ]);
 const PAYMENT_COMPARISON_STUDENT_NAMES = new Set([
   "HELEN KARINA QUINTERO DURAN",
   "JAQUELIN HUERTA RODRIGUEZ",
 ]);
 const paymentComparisonSnapshots = new Map();
+const paymentLastInteractedConceptByStudentId = new Map();
 const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
   { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
@@ -1400,6 +1404,70 @@ function summarizePaymentRecordForTrace(record = {}) {
     paymentMovementConcept: record.paymentMovementConcept || "",
     updatedAt: record.updatedAt || "",
     createdAt: record.createdAt || "",
+  };
+}
+
+function summarizePaymentSaveDebugRecord(record = {}) {
+  return {
+    mensualidad1: __veneziaGet(record, "mensualidad1") || "",
+    mensualidad2: __veneziaGet(record, "mensualidad2") || "",
+    certificadoP1: __veneziaGet(record, "certificadoP1") || "",
+    mensualidad3: __veneziaGet(record, "mensualidad3") || "",
+    certificadoP2: __veneziaGet(record, "certificadoP2") || "",
+    mensualidad4: __veneziaGet(record, "mensualidad4") || "",
+    mensualidad5: __veneziaGet(record, "mensualidad5") || "",
+    paymentRealDate: __veneziaGet(record, "paymentRealDate") || "",
+    payment_method: __veneziaGet(record, "metodoPago") || "",
+    amount: __veneziaGet(record, "cantidadPagada") || "",
+    notes: __veneziaGet(record, "observaciones") || "",
+    paymentMovementConcept: __veneziaGet(record, "paymentMovementConcept") || "",
+    updated_at: __veneziaGet(record, "updatedAt") || "",
+  };
+}
+
+function summarizePaymentConceptsForDebug(concepts = []) {
+  return concepts.map((concept) => ({
+    conceptKey: concept.key || "",
+    label: concept.label || "",
+    movementLabel: concept.movementLabel || concept.label || "",
+  }));
+}
+
+function summarizePaymentRenderSourcesForDebug(paymentRecord = {}) {
+  return getPaymentConceptDetails(paymentRecord).map((detail) => ({
+    conceptKey: detail.conceptKey || "",
+    status: detail.status || "",
+    source: detail.source || "",
+    reference: detail.reference || "",
+    record_date: detail.paymentRealDate || "",
+    amount: detail.amount || "",
+    payment_method: detail.paymentMethod || "",
+  }));
+}
+
+function summarizeFinanceConceptResultForDebug(result = {}) {
+  const resultRecords = Array.isArray(result.records)
+    ? result.records
+    : result.record
+      ? [result.record]
+      : [];
+
+  return {
+    synced: Boolean(result.synced),
+    reference: resultRecords.map((record) => record.reference || "").filter(Boolean).join(", "),
+    record_date: resultRecords.map((record) => record.fecha || "").filter(Boolean).join(", "),
+    amount: resultRecords.map((record) => record.monto || "").filter((value) => value !== "").join(", "),
+    payment_method: resultRecords.map((record) => record.metodoPago || "").filter(Boolean).join(", "),
+    created_updated: resultRecords.map((record) => record.createdAt || "").filter(Boolean).join(", "),
+    duplicatesRemoved: result.duplicatesRemoved || 0,
+    error: result.error
+      ? {
+          code: result.error.code || "",
+          message: result.error.message || "",
+          details: result.error.details || "",
+          hint: result.error.hint || "",
+        }
+      : null,
   };
 }
 
@@ -6009,6 +6077,60 @@ function getChangedPaidPaymentConcepts(currentRecord, nextRecord) {
     });
 }
 
+function getEditedPaidPaymentConceptsFromForm(studentId) {
+  return PAYMENT_CONCEPT_DETAIL_FIELDS
+    .map((concept) => {
+      const control = paymentsTableBody.querySelector(
+        `[data-payment-field="${concept.key}"][data-student-id="${studentId}"]`
+      );
+      if (!control || !isEligiblePaymentStatus(control.value || "")) {
+        return null;
+      }
+
+      return hasPaymentControlChanged(control) || control.dataset.paymentUserEdited === "true"
+        ? concept
+        : null;
+    })
+    .filter(Boolean);
+}
+
+function hasEditedPaymentCaptureFields(studentId) {
+  return ["paymentRealDate", "metodoPago", "cantidadPagada"].some((field) => {
+    const control = paymentsTableBody.querySelector(
+      `[data-payment-field="${field}"][data-student-id="${studentId}"]`
+    );
+    return Boolean(control && (hasPaymentControlChanged(control) || control.dataset.paymentUserEdited === "true"));
+  });
+}
+
+function getLastInteractedPaidPaymentConceptFromForm(studentId) {
+  const field = paymentLastInteractedConceptByStudentId.get(studentId) || "";
+  const concept = getPaymentConceptDefinitionByKey(field);
+  if (!concept) {
+    return [];
+  }
+
+  const control = paymentsTableBody.querySelector(
+    `[data-payment-field="${field}"][data-student-id="${studentId}"]`
+  );
+  return control && isEligiblePaymentStatus(control.value || "") ? [concept] : [];
+}
+
+function getPaymentConceptsForSave(studentId, changedPaidConcepts = []) {
+  if (changedPaidConcepts.length > 0) {
+    return changedPaidConcepts;
+  }
+
+  const editedPaidConcepts = getEditedPaidPaymentConceptsFromForm(studentId);
+  if (editedPaidConcepts.length > 0) {
+    return editedPaidConcepts;
+  }
+
+  return hasEditedPaymentCaptureFields(studentId)
+    ? getLastInteractedPaidPaymentConceptFromForm(studentId)
+    : [];
+}
+
 function getChangedPaymentMovementConcepts(currentRecord, nextRecord) {
   return getChangedPaidPaymentConcepts(currentRecord, nextRecord)
     .map(({ movementLabel, label }) => movementLabel || label);
@@ -6817,21 +6939,43 @@ async function syncPaymentConceptFinanceRecord(paymentRecord, { student: provide
     };
   }
 
-  const existingFinanceRecord = getPaymentConceptFinanceRecords(paymentRecord.id, financeRecords, concept.key)[0] || null;
+  const existingFinanceRecords = getPaymentConceptFinanceRecords(paymentRecord.id, financeRecords, concept.key);
+  const existingFinanceRecord = existingFinanceRecords[0] || null;
   const nextRecord = buildPaymentConceptFinanceRecord(paymentRecord, student, concept, existingFinanceRecord);
+  let savedRecord = existingFinanceRecord || nextRecord;
   if (!existingFinanceRecord || !isSamePaymentFinanceRecord(existingFinanceRecord, nextRecord)) {
-    return saveFinanceRecord(nextRecord);
+    const saveResult = await saveFinanceRecord(nextRecord);
+    if (!saveResult.synced) {
+      return saveResult;
+    }
+    savedRecord = saveResult.record || nextRecord;
+  }
+
+  let duplicatesRemoved = 0;
+  for (const duplicateRecord of existingFinanceRecords.slice(1)) {
+    const deleteResult = await dataService.entities.financialMovements.deleteOne(duplicateRecord.id, { alertOnFailure: false });
+    financeRecords = deleteResult.records;
+    if (!deleteResult.synced) {
+      return {
+        synced: false,
+        error: deleteResult.error,
+        record: savedRecord,
+        duplicatesRemoved,
+      };
+    }
+    duplicatesRemoved += 1;
   }
 
   return {
     synced: true,
-    record: existingFinanceRecord,
-    duplicatesRemoved: 0,
+    record: savedRecord,
+    duplicatesRemoved,
   };
 }
 
 async function syncChangedPaymentConceptFinanceRecords(paymentRecord, { student: providedStudent = null, changedConcepts = [] } = {}) {
   const records = [];
+  let duplicatesRemoved = 0;
 
   for (const concept of changedConcepts) {
     const syncResult = await syncPaymentConceptFinanceRecord(paymentRecord, {
@@ -6844,13 +6988,14 @@ async function syncChangedPaymentConceptFinanceRecords(paymentRecord, { student:
     if (syncResult.record) {
       records.push(syncResult.record);
     }
+    duplicatesRemoved += syncResult.duplicatesRemoved || 0;
   }
 
   return {
     synced: true,
     record: records[0] || null,
     records,
-    duplicatesRemoved: 0,
+    duplicatesRemoved,
   };
 }
 
@@ -11719,6 +11864,47 @@ function renderPaymentSelectOptions(selectedValue, options, placeholderLabel = "
     .join("");
 }
 
+function getPaymentConceptDefinitionByKey(field) {
+  return PAYMENT_CONCEPT_DETAIL_FIELDS.find((definition) => definition.key === field) || null;
+}
+
+function rememberPaymentConceptInteraction(studentId, field) {
+  if (!studentId || !PAYMENT_CONCEPT_FIELD_KEYS.has(field)) {
+    return;
+  }
+
+  paymentLastInteractedConceptByStudentId.set(studentId, field);
+}
+
+function hasPaymentControlChanged(control) {
+  if (!control || !Object.prototype.hasOwnProperty.call(control.dataset, "paymentInitialValue")) {
+    return false;
+  }
+
+  return String(control.value || "") !== String(control.dataset.paymentInitialValue || "");
+}
+
+function updatePaymentControlEditedState(control) {
+  if (!control || !Object.prototype.hasOwnProperty.call(control.dataset, "paymentInitialValue")) {
+    return;
+  }
+
+  if (hasPaymentControlChanged(control)) {
+    control.dataset.paymentUserEdited = "true";
+  } else {
+    delete control.dataset.paymentUserEdited;
+  }
+}
+
+function hasUnsavedPaymentTableChanges() {
+  if (!paymentsTableBody) {
+    return false;
+  }
+
+  return Array.from(paymentsTableBody.querySelectorAll("[data-payment-field][data-payment-initial-value]"))
+    .some((control) => hasPaymentControlChanged(control));
+}
+
 function renderContinuityStatusOptions(selectedValue) {
   const options = [
     { value: "", label: "Seleccionar" },
@@ -12239,7 +12425,16 @@ function getArchivedNoContinuationStudents(studentsList = students) {
     .filter((student) => normalizeLifecycleStatus(student.lifecycleStatus) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION);
 }
 
-function renderPaymentsTable() {
+function renderPaymentsTable(options = {}) {
+  const forceRender = Boolean(__veneziaGet(options, "force"));
+  if (!forceRender && activeModule === "pagos" && hasUnsavedPaymentTableChanges()) {
+    console.warn("PAGOS render omitido para conservar cambios sin guardar.", {
+      selectedPaymentsMonth,
+      activePaymentsSearch,
+    });
+    return false;
+  }
+
   syncPreferredPaymentsMonth();
   const studentsList = getFilteredStudentsForPayments();
   const visibleStudents = activePaymentsSearch.trim() || paymentsTableExpanded
@@ -12274,7 +12469,7 @@ function renderPaymentsTable() {
           <td>${escapeHtml(getShortBranchLabel(student.sucursal))}</td>
           <td>${escapeHtml(student.curso)}</td>
           <td>${escapeHtml(student.horario)}</td>
-          <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" /></td>
+          <td><input type="text" value="${escapeHtml(mensualidadAsignada)}" data-payment-field="mensualidadPactada" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(mensualidadAsignada)}" /></td>
           <td>${renderPaymentStatusSelect("mensualidad1", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
           <td>${renderPaymentStatusSelect("mensualidad2", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
           <td>${renderPaymentStatusSelect("certificadoP1", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
@@ -12285,12 +12480,12 @@ function renderPaymentsTable() {
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentMethodValue)}">${renderPaymentSelectOptions(paymentMethodValue, PAYMENT_METHOD_OPTIONS)}</select></td>
           <td><input type="text" value="${escapeHtml(paymentAmountValue || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentAmountValue || "")}" placeholder="$0" /></td>
           <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
-          <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" /></td>
-          <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" /></td>
-          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
-          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
-          <td><select data-payment-field="nextCourse" data-student-id="${student.id}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
-          <td><input type="date" value="${escapeHtml(nextCourseStartDateValue)}" data-payment-field="nextCourseStartDate" data-student-id="${student.id}" /></td>
+          <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.reportes)}" /></td>
+          <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.observaciones)}" /></td>
+          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(lastMonthlySelection)}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
+          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(continuitySelection)}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
+          <td><select data-payment-field="nextCourse" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseSelection)}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
+          <td><input type="date" value="${escapeHtml(nextCourseStartDateValue)}" data-payment-field="nextCourseStartDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseStartDateValue)}" /></td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
@@ -12342,6 +12537,7 @@ function renderPaymentsTable() {
   }
 
   renderPaymentsLifecyclePanels();
+  return true;
 }
 
 function getPaymentReviewConceptRules(student) {
@@ -12864,6 +13060,12 @@ async function savePaymentForStudent(studentId) {
     existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
     reusedPaymentId: resolvedPaymentId,
   });
+  console.log("=== PAYMENT SAVE START ===", {
+    studentName,
+    studentId,
+    paymentId: resolvedPaymentId,
+  });
+  console.log("=== PERSISTED RECORD BEFORE SAVE ===", summarizePaymentSaveDebugRecord(recordToUpdate || editingMonthRecord || historyRecord));
   if (isJaquelinPaymentDebugStudent(studentName)) {
     console.error("=== JAQUELIN DEBUG ===", {
       stage: "savePaymentForStudent:existing-row-check",
@@ -12912,6 +13114,24 @@ async function savePaymentForStudent(studentId) {
   newRecord.nextCourse = normalizeNextCourse(newRecord.nextCourse);
   newRecord.nextCourseStartDate = normalizeLocalDateKey(newRecord.nextCourseStartDate);
   newRecord.paymentRealDate = normalizeLocalDateKey(newRecord.paymentRealDate);
+  formPayload.lastMonthlyPaymentStatus = newRecord.lastMonthlyPaymentStatus;
+  formPayload.continuityStatus = newRecord.continuityStatus;
+  formPayload.nextCourse = newRecord.nextCourse;
+  formPayload.nextCourseStartDate = newRecord.nextCourseStartDate;
+  formPayload.paymentRealDate = newRecord.paymentRealDate;
+
+  console.log("=== FORM VALUES ===", {
+    mensualidad1: formPayload.mensualidad1 || "",
+    mensualidad2: formPayload.mensualidad2 || "",
+    certificadoP1: formPayload.certificadoP1 || "",
+    mensualidad3: formPayload.mensualidad3 || "",
+    certificadoP2: formPayload.certificadoP2 || "",
+    mensualidad4: formPayload.mensualidad4 || "",
+    mensualidad5: formPayload.mensualidad5 || "",
+    method: formPayload.metodoPago || "",
+    amount: formPayload.cantidadPagada || "",
+    paymentRealDate: formPayload.paymentRealDate || "",
+  });
 
   if (newRecord.continuityStatus === "will_continue" && !newRecord.nextCourse) {
     alert("Selecciona el siguiente curso si la alumna continuará.");
@@ -12949,7 +13169,14 @@ async function savePaymentForStudent(studentId) {
   const nextRecord = { ...baseRecord, ...newRecord };
   const comparisonRecord = applyPaymentConceptDetailsToPaymentRecord(recordToUpdate || editingMonthRecord);
   const changedPaidConcepts = getChangedPaidPaymentConcepts(comparisonRecord, nextRecord);
-  if (changedPaidConcepts.length > 1) {
+  const paymentConceptsForSave = getPaymentConceptsForSave(studentId, changedPaidConcepts);
+  const preliminaryChanges = getPaymentFieldChanges(comparisonRecord, nextRecord);
+  console.log("=== DETECTED CHANGES ===", {
+    changedFields: preliminaryChanges,
+    changedPaidConcepts: summarizePaymentConceptsForDebug(changedPaidConcepts),
+    conceptKeyDetectado: paymentConceptsForSave.map((concept) => concept.key).join(", "),
+  });
+  if (paymentConceptsForSave.length > 1) {
     alert("Guarda un concepto de pago a la vez para registrar fecha, método y cantidad sin mezclar movimientos.");
     return;
   }
@@ -12963,8 +13190,8 @@ async function savePaymentForStudent(studentId) {
     newRecord.paymentRealDate = "";
   }
 
-  newRecord.paymentMovementConcept = changedPaidConcepts.length > 0
-    ? changedPaidConcepts.map(({ movementLabel, label }) => movementLabel || label).join(" + ")
+  newRecord.paymentMovementConcept = paymentConceptsForSave.length > 0
+    ? paymentConceptsForSave.map(({ movementLabel, label }) => movementLabel || label).join(" + ")
     : resolvePaymentMovementConcept(
       comparisonRecord,
       nextRecord,
@@ -12975,6 +13202,7 @@ async function savePaymentForStudent(studentId) {
 
   const lifecycleAfterSave = getStudentCollectionLifecycle(student, finalRecord);
   finalRecord.lifecycleStatus = lifecycleAfterSave.lifecycleStatus;
+  console.log("=== FINAL RECORD BEFORE UPSERT ===", summarizePaymentSaveDebugRecord(finalRecord));
 
   console.log("PAGO antes de savePaymentForStudent -> savePaymentRecord", {
     studentId,
@@ -13008,7 +13236,22 @@ async function savePaymentForStudent(studentId) {
   });
 
   const saveResult = await savePaymentRecord(finalRecord);
-  const remoteVerification = __veneziaGet(saveResult, "response.remoteVerification") || null;
+  const remoteVerification = __veneziaGet(__veneziaGet(saveResult, "response"), "remoteVerification") || null;
+  const returnedRemoteRecord = __veneziaGet(__veneziaGet(__veneziaGet(saveResult, "response"), "data"), 0) || null;
+  console.log("=== UPSERT RESULT ===", {
+    synced: Boolean(saveResult.synced),
+    error: saveResult.error
+      ? {
+          code: saveResult.error.code || "",
+          message: saveResult.error.message || "",
+          details: saveResult.error.details || "",
+          hint: saveResult.error.hint || "",
+        }
+      : null,
+    returnedRecord: saveResult.record ? summarizePaymentSaveDebugRecord(saveResult.record) : null,
+    returnedRawRecord: returnedRemoteRecord,
+  });
+  console.log("=== REMOTE AFTER UPSERT ===", summarizePaymentSaveDebugRecord(saveResult.record || {}));
   console.log("=== PAYMENT SUPABASE UPSERT RESULT ===", {
     synced: Boolean(saveResult.synced),
     errorCode: __veneziaGet(saveResult, "error.code") || "",
@@ -13063,6 +13306,10 @@ async function savePaymentForStudent(studentId) {
       paymentId: resolvedPaymentId,
     });
     const fallbackMessage = "El pago no se sincronizó con Supabase. Se reintentará automáticamente al abrir Pagos.";
+    console.log("=== FINAL MESSAGE ===", {
+      messageKey: "local_fallback_only",
+      messageText: fallbackMessage,
+    });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "local_fallback_only",
       messageText: fallbackMessage,
@@ -13074,13 +13321,17 @@ async function savePaymentForStudent(studentId) {
   const lifecycleSyncResult = await syncStudentLifecycleFromPaymentRecord(student, saveResult.record);
   if (!lifecycleSyncResult.synced) {
     await refreshSharedSupabaseState({ force: true, render: false });
-    renderPaymentsTable();
+    renderPaymentsTable({ force: true });
     renderBalanceModule();
     renderFinanceTable();
     updateFinanceSummary();
     updatePaymentsSummary();
     renderDashboard();
     const lifecycleMessage = "El pago se guardó, pero no se pudo actualizar el estado de continuidad de la alumna.";
+    console.log("=== FINAL MESSAGE ===", {
+      messageKey: "lifecycle_sync_failed",
+      messageText: lifecycleMessage,
+    });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "lifecycle_sync_failed",
       messageText: lifecycleMessage,
@@ -13089,9 +13340,13 @@ async function savePaymentForStudent(studentId) {
     return;
   }
 
-  const financeSyncResult = changedPaidConcepts.length > 0
-    ? await syncChangedPaymentConceptFinanceRecords(saveResult.record, { student, changedConcepts: changedPaidConcepts })
+  const financeSyncResult = paymentConceptsForSave.length > 0
+    ? await syncChangedPaymentConceptFinanceRecords(saveResult.record, { student, changedConcepts: paymentConceptsForSave })
     : await syncPaymentFinanceRecord(saveResult.record, { student });
+  console.log("=== FINANCE CONCEPT RESULT ===", {
+    conceptKey: paymentConceptsForSave.map((concept) => concept.key).join(", "),
+    ...summarizeFinanceConceptResultForDebug(financeSyncResult),
+  });
   console.log("=== PAYMENT FINANCE RESULT ===", {
     result: financeSyncResult.synced ? "success" : "fail",
     deleted: Boolean(financeSyncResult.deleted),
@@ -13131,7 +13386,7 @@ async function savePaymentForStudent(studentId) {
   });
   if (!financeSyncResult.synced) {
     await refreshSharedSupabaseState({ force: true, render: false });
-    renderPaymentsTable();
+    renderPaymentsTable({ force: true });
     renderBalanceModule();
     renderFinanceTable();
     updateFinanceSummary();
@@ -13142,6 +13397,10 @@ async function savePaymentForStudent(studentId) {
       paymentId: resolvedPaymentId,
     });
     const financeMessage = "Pago guardado. Revisa el reflejo en Balance/Finanzas.";
+    console.log("=== FINAL MESSAGE ===", {
+      messageKey: "finance_sync_failed",
+      messageText: financeMessage,
+    });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "finance_sync_failed",
       messageText: financeMessage,
@@ -13154,7 +13413,13 @@ async function savePaymentForStudent(studentId) {
   console.log("=== PAYMENT REFRESH RESULT ===", {
     result: refreshSucceeded ? "success" : "fail",
   });
-  renderPaymentsTable();
+  const afterRefreshRecord = getPaymentDisplayRecord(studentId);
+  console.log("=== AFTER REFRESH/MERGE ===", {
+    ...summarizePaymentSaveDebugRecord(afterRefreshRecord),
+    sourceUsedByRender: summarizePaymentRenderSourcesForDebug(afterRefreshRecord),
+  });
+  paymentLastInteractedConceptByStudentId.delete(studentId);
+  renderPaymentsTable({ force: true });
   renderBalanceModule();
   renderFinanceTable();
   updateFinanceSummary();
@@ -13167,6 +13432,10 @@ async function savePaymentForStudent(studentId) {
   });
   if (saveResult.recoveredFromSupabase) {
     const recoveredMessage = "Pago ya sincronizado en Supabase.";
+    console.log("=== FINAL MESSAGE ===", {
+      messageKey: "already_synced_remote",
+      messageText: recoveredMessage,
+    });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "already_synced_remote",
       messageText: recoveredMessage,
@@ -13177,6 +13446,10 @@ async function savePaymentForStudent(studentId) {
 
   if (!refreshSucceeded) {
     const refreshMessage = "Pago guardado. Actualiza la página si no ves el cambio.";
+    console.log("=== FINAL MESSAGE ===", {
+      messageKey: "refresh_failed_after_remote_save",
+      messageText: refreshMessage,
+    });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
       messageKey: "refresh_failed_after_remote_save",
       messageText: refreshMessage,
@@ -13186,6 +13459,10 @@ async function savePaymentForStudent(studentId) {
   }
 
   const successMessage = "Pago guardado correctamente.";
+  console.log("=== FINAL MESSAGE ===", {
+    messageKey: "remote_save_complete",
+    messageText: successMessage,
+  });
   console.log("=== PAYMENT FINAL USER MESSAGE ===", {
     messageKey: "remote_save_complete",
     messageText: successMessage,
@@ -18329,10 +18606,12 @@ function handlePaymentConceptFieldFocus(event) {
     return;
   }
 
-  if (!PAYMENT_CONCEPT_FIELD_KEYS.has(fieldControl.dataset.paymentField || "")) {
+  const field = fieldControl.dataset.paymentField || "";
+  if (!PAYMENT_CONCEPT_FIELD_KEYS.has(field)) {
     return;
   }
 
+  rememberPaymentConceptInteraction(fieldControl.dataset.studentId || "", field);
   applyPaymentConceptDetailToEditableControls(fieldControl);
 }
 
@@ -18343,6 +18622,7 @@ function handlePaymentFieldChange(event) {
   }
 
   const field = fieldControl.dataset.paymentField || "";
+  updatePaymentControlEditedState(fieldControl);
   if (field === "paymentRealDate" || field === "metodoPago" || field === "cantidadPagada") {
     fieldControl.dataset.paymentUserEdited = "true";
     return;
@@ -18352,6 +18632,7 @@ function handlePaymentFieldChange(event) {
     return;
   }
 
+  rememberPaymentConceptInteraction(fieldControl.dataset.studentId || "", field);
   const previousStatus = fieldControl.dataset.paymentInitialValue || "";
   const nextStatus = fieldControl.value || "";
   if (!isEligiblePaymentStatus(nextStatus) || isEligiblePaymentStatus(previousStatus)) {
