@@ -903,6 +903,7 @@ attendanceDate.value = formatDateForInput(new Date());
 financeMonthFilter.value = selectedMonth;
 teacherAttendanceDate.value = formatDateForInput(new Date());
 teacherSummaryMonthFilter.value = selectedMonth;
+syncTeacherSummaryDateRangeFromMonth({ force: true });
 if (teacherPaymentDate) {
   teacherPaymentDate.value = formatDateForInput(new Date());
 }
@@ -3305,43 +3306,62 @@ function getConsolidatedTeacherAttendanceEntries(sourceRecords = teacherAttendan
     });
 }
 
+function getTeacherSummaryDefaultRange(monthValue = "") {
+  const selectedMonthValue = monthValue || teacherSummaryMonthFilter.value || getCurrentMonthValue();
+  if (!selectedMonthValue) {
+    return { from: "", to: "" };
+  }
+
+  const [year, month] = selectedMonthValue.split("-");
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const currentDate = getCurrentMexicoDateValue();
+  const currentMonth = currentDate.slice(0, 7);
+
+  return {
+    from: `${selectedMonthValue}-01`,
+    to: selectedMonthValue === currentMonth ? currentDate : `${selectedMonthValue}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function syncTeacherSummaryDateRangeFromMonth({ force = false } = {}) {
+  if (!teacherSummaryDateFromFilter || !teacherSummaryDateToFilter) {
+    return;
+  }
+
+  const defaultRange = getTeacherSummaryDefaultRange();
+  const alreadyInitialized = teacherSummaryDateFromFilter.dataset.initialized === "true";
+  if (force || (!alreadyInitialized && !teacherSummaryDateFromFilter.value && !teacherSummaryDateToFilter.value)) {
+    teacherSummaryDateFromFilter.value = defaultRange.from;
+    teacherSummaryDateToFilter.value = defaultRange.to;
+    teacherSummaryDateFromFilter.dataset.initialized = "true";
+    teacherSummaryDateToFilter.dataset.initialized = "true";
+  }
+}
+
 function getTeacherSummaryRange() {
   const dateFrom = __veneziaGet(teacherSummaryDateFromFilter, "value") || "";
   const dateTo = __veneziaGet(teacherSummaryDateToFilter, "value") || "";
 
-  if (dateFrom || dateTo) {
+  if (!dateFrom || !dateTo) {
     return {
-      from: dateFrom || "",
-      to: dateTo || "",
+      from: dateFrom,
+      to: dateTo,
+      error: "Selecciona fecha de inicio y fecha final para calcular la nómina.",
     };
   }
 
-  const monthValue = teacherSummaryMonthFilter.value || selectedMonth;
-  if (!monthValue) {
-    return { from: "", to: "" };
-  }
-
-  const [year, month] = monthValue.split("-");
-  const lastDay = new Date(Number(year), Number(month), 0).getDate();
-  const fortnight = teacherSummaryFortnightFilter.value;
-
-  if (fortnight === "1") {
+  if (dateTo < dateFrom) {
     return {
-      from: `${monthValue}-01`,
-      to: `${monthValue}-15`,
-    };
-  }
-
-  if (fortnight === "2") {
-    return {
-      from: `${monthValue}-16`,
-      to: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+      from: dateFrom,
+      to: dateTo,
+      error: "La fecha final no puede ser menor que la fecha de inicio.",
     };
   }
 
   return {
-    from: `${monthValue}-01`,
-    to: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+    from: dateFrom,
+    to: dateTo,
+    error: "",
   };
 }
 
@@ -3360,6 +3380,9 @@ function isTeacherDateWithinRange(dateValue, range) {
 
 function getFilteredTeacherSummaryEntries() {
   const range = getTeacherSummaryRange();
+  if (range.error) {
+    return [];
+  }
   return getConsolidatedTeacherAttendanceEntries().filter((entry) => {
     if (!matchesCurrentBranch(entry.sucursal)) {
       return false;
@@ -3395,6 +3418,9 @@ function doesTeacherPaymentMatchRange(record, range) {
 
 function getFilteredTeacherPaymentRecords() {
   const range = getTeacherSummaryRange();
+  if (range.error) {
+    return [];
+  }
   return teacherPaymentRecords
     .filter((record) => matchesCurrentBranch(record.sucursal))
     .filter((record) => matchesOperationalSystemBranch(record.sucursal, teacherSummaryBranchFilter.value))
@@ -3758,6 +3784,14 @@ function renderTeacherPaymentsTable() {
 }
 
 function renderTeacherSummaryTable() {
+  const range = getTeacherSummaryRange();
+  if (range.error) {
+    teacherSummaryTableBody.innerHTML = "";
+    teacherSummaryEmptyState.textContent = range.error;
+    teacherSummaryEmptyState.hidden = false;
+    return;
+  }
+
   const summaryRows = getTeacherSummaryRows();
 
   teacherSummaryTableBody.innerHTML = summaryRows
@@ -3780,6 +3814,7 @@ function renderTeacherSummaryTable() {
     )
     .join("");
 
+  teacherSummaryEmptyState.textContent = "No hay jornadas válidas para los filtros seleccionados.";
   teacherSummaryEmptyState.hidden = summaryRows.length > 0;
 }
 
@@ -3794,6 +3829,7 @@ function renderTeachersModule() {
   populateTeacherSelects();
   syncTeacherConfigFields();
   syncTeacherAttendanceFields();
+  syncTeacherSummaryDateRangeFromMonth();
   if (teacherPaymentForm) {
     populateTeacherPaymentSelects();
     syncTeacherPaymentFields();
@@ -18491,7 +18527,10 @@ if (teacherPaymentTeacherId && teacherPaymentSpecialty) {
 
 teacherSummaryBranchFilter.addEventListener("change", renderTeachersModule);
 teacherSummaryTeacherFilter.addEventListener("change", renderTeachersModule);
-teacherSummaryMonthFilter.addEventListener("change", renderTeachersModule);
+teacherSummaryMonthFilter.addEventListener("change", () => {
+  syncTeacherSummaryDateRangeFromMonth({ force: true });
+  renderTeachersModule();
+});
 teacherSummaryFortnightFilter.addEventListener("change", renderTeachersModule);
 if (teacherSummaryDateFromFilter) {
   teacherSummaryDateFromFilter.addEventListener("change", renderTeachersModule);
