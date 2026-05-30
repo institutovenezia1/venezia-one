@@ -12841,7 +12841,7 @@ function buildOverduePaymentReviewEntries(student, anchorDate = getCurrentMexico
     return [];
   }
 
-  const paymentRecord = getPersistentPaymentRecord(student.id);
+  const paymentRecord = applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(student.id));
   const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, anchorDate);
   if (lifecycle.archivedNoContinuation) {
     return [];
