@@ -4255,11 +4255,29 @@ function getProspectWhatsAppUrl(prospect) {
   return getWhatsAppUrlByPhone(phone);
 }
 
-function getWhatsAppUrlByPhone(phone) {
-  const message = encodeURIComponent(
-    "Hola, te contacto de Instituto Venezia para dar seguimiento a la información que pediste sobre nuestros cursos. 💜"
-  );
-  return `https://wa.me/${OFFICIAL_WHATSAPP_NUMBER}?text=${message}`;
+function normalizeWhatsAppPhoneNumber(phone) {
+  const digits = normalizePhone(phone);
+  if (!digits) {
+    return "";
+  }
+  if (digits.length === 10) {
+    return `52${digits}`;
+  }
+  if (digits.length === 13 && digits.startsWith("521")) {
+    return `52${digits.slice(-10)}`;
+  }
+  return digits;
+}
+
+function getWhatsAppUrlByPhone(
+  phone,
+  message = "Hola, te contacto de Instituto Venezia para dar seguimiento a la información que pediste sobre nuestros cursos. 💜"
+) {
+  const normalizedPhone = normalizeWhatsAppPhoneNumber(phone);
+  if (!normalizedPhone) {
+    return "";
+  }
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 function getProspectPriorityRank(prospect) {
@@ -14517,7 +14535,9 @@ function getPaymentTone(value) {
 }
 
 function getStudentWhatsAppUrl(student) {
-  return getWhatsAppUrlByPhone(normalizePhone(__veneziaGet(student, "telefono")));
+  const studentName = __veneziaGet(student, "nombre");
+  const message = `Hola, te contacto de Instituto Venezia${studentName ? ` para dar seguimiento a tu expediente, ${studentName}.` : "."}`;
+  return getWhatsAppUrlByPhone(__veneziaGet(student, "telefono"), message);
 }
 
 async function copyStudentFileValue(value, button) {
@@ -14607,6 +14627,10 @@ function renderStudentFile(studentId) {
       <strong>${escapeHtml(student.accesoElegido || "-")}</strong>
     </div>
   `;
+  const whatsappActionMarkup = whatsappUrl
+    ? `<a class="secondary-btn student-file-action" href="${whatsappUrl}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>`
+    : `<button class="secondary-btn student-file-action" type="button" disabled title="Esta alumna no tiene teléfono registrado.">Abrir WhatsApp</button>`;
+
   studentFileQuickActions.innerHTML = `
     <button class="secondary-btn student-file-action" type="button" data-student-file-action="copy-user" ${student.portalUser ? "" : "disabled"}>
       Copiar usuario Mi Venezia
@@ -14614,9 +14638,7 @@ function renderStudentFile(studentId) {
     <button class="secondary-btn student-file-action" type="button" data-student-file-action="copy-password" ${student.portalPassword ? "" : "disabled"}>
       Copiar contraseña
     </button>
-    <a class="secondary-btn student-file-action" href="${whatsappUrl || "#"}" target="_blank" rel="noopener noreferrer" ${whatsappUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
-      Abrir WhatsApp
-    </a>
+    ${whatsappActionMarkup}
   `;
 
   renderStudentFileInfoList(studentFileGeneral, [
