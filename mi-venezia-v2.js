@@ -615,6 +615,34 @@
     return normalized === "eliminada" || normalized === "eliminado";
   }
 
+  function getStudentLoginPriority(student) {
+    var normalized = normalizeLoose(student && student.estado);
+    if (!normalized || normalized === "activa" || normalized === "activo") {
+      return 0;
+    }
+    if (normalized === "baja temporal") {
+      return 1;
+    }
+    if (normalized === "curso finalizado") {
+      return 2;
+    }
+    if (normalized === "baja definitiva") {
+      return 3;
+    }
+    if (normalized === "eliminada" || normalized === "eliminado") {
+      return 4;
+    }
+    return 0;
+  }
+
+  function compareStudentLoginCandidates(left, right) {
+    var priorityDifference = getStudentLoginPriority(left) - getStudentLoginPriority(right);
+    if (priorityDifference !== 0) {
+      return priorityDifference;
+    }
+    return String(right && right.createdAt || "").localeCompare(String(left && left.createdAt || ""));
+  }
+
   function getStudentStatusInfo(student) {
     var normalized = normalizeLoose(student && student.estado);
     if (normalized === "baja temporal") {
@@ -718,6 +746,7 @@
     var normalizedPassword = normalizePassword(password);
     var index;
     var student;
+    var candidates = [];
     var portalUser;
     var portalPhone;
     var candidatePassword;
@@ -747,12 +776,19 @@
       profilePassword = normalizePassword(student.profilePassword || "");
       passwordMatches = candidatePassword === normalizedPassword || (!!profilePassword && profilePassword === normalizedPassword);
       if (identifierMatches && passwordMatches) {
-        state.debugInfo.matchFound = true;
-        state.debugInfo.matchedStudent = isStudentDeleted(student) ? "Acceso no disponible" : (student.nombre || "Sin nombre") + " / " + (student.id || "sin id");
-        updateDebug();
-        return student;
+        candidates.push(student);
       }
     }
+
+    if (candidates.length) {
+      candidates.sort(compareStudentLoginCandidates);
+      student = candidates[0];
+      state.debugInfo.matchFound = true;
+      state.debugInfo.matchedStudent = isStudentDeleted(student) ? "Acceso no disponible" : (student.nombre || "Sin nombre") + " / " + (student.id || "sin id");
+      updateDebug();
+      return student;
+    }
+
     updateDebug();
     return null;
   }
