@@ -721,6 +721,25 @@
     return '<div class="mv2-status-notice mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.notice) + '</div>';
   }
 
+  function shouldShowLateFeeNotice(statusInfo) {
+    return statusInfo && statusInfo.key !== "unavailable";
+  }
+
+  function lateFeeNoticeHtml(statusInfo) {
+    if (!shouldShowLateFeeNotice(statusInfo)) {
+      return "";
+    }
+    return (
+      '<section class="mv2-late-fee-alert" role="note" aria-label="Aviso importante sobre moratorio por atraso de pago">' +
+      '<span class="mv2-late-fee-alert-icon" aria-hidden="true">&#9888;</span>' +
+      '<div class="mv2-late-fee-alert-copy">' +
+      '<strong>Moratorio por atraso de pago</strong>' +
+      '<p>En caso de atraso, se aplicará un cargo moratorio de $100 diarios hasta cubrir el pago pendiente.</p>' +
+      '</div>' +
+      '</section>'
+    );
+  }
+
   function showUnavailableAccessMessage() {
     var box = byId("runtimeErrorBox");
     clearSession();
@@ -2154,6 +2173,7 @@
     byId("panelInicio").innerHTML =
       '<div class="mv2-panel-header"><h2>Inicio</h2><p>' + escapeHtml(statusInfo.intro) + '</p></div>' +
       statusNoticeHtml(statusInfo) +
+      lateFeeNoticeHtml(statusInfo) +
       renderInicioDocumentsNotice(docState) +
       '<div class="mv2-info-grid">' +
       infoItem(statusInfo.courseLabel, student.curso) +
@@ -2207,6 +2227,7 @@
       renderTimelineMetric("Próximo pendiente", getNextPendingPayment(summary), "Según registros visibles") +
       renderTimelineMetric("Estado general", summary.status, "Resumen actual") +
       '</div>' +
+      lateFeeNoticeHtml(statusInfo) +
       '<div class="mv2-section-block"><h3>Calendario de pagos</h3>';
 
     if (calendarEntries.length) {
