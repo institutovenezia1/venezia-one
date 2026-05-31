@@ -338,12 +338,12 @@ button {
   gap: 12px;
   align-items: flex-start;
   margin: 0 0 14px;
-  border: 1px solid rgba(194, 65, 12, 0.3);
-  border-left: 5px solid #c2410c;
+  border: 1px solid rgba(185, 28, 28, 0.42);
+  border-left: 5px solid #dc2626;
   border-radius: 16px;
   background:
-    linear-gradient(135deg, rgba(255, 247, 237, 0.98), rgba(255, 241, 242, 0.92));
-  box-shadow: 0 12px 28px rgba(194, 65, 12, 0.12);
+    linear-gradient(135deg, rgba(255, 237, 213, 0.98), rgba(255, 228, 230, 0.94));
+  box-shadow: 0 12px 28px rgba(185, 28, 28, 0.16);
   padding: 13px;
 }
 
@@ -354,23 +354,23 @@ button {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: #fff7ed;
-  color: #b42318;
-  box-shadow: inset 0 0 0 1px rgba(194, 65, 12, 0.24);
+  background: #fee2e2;
+  color: #991b1b;
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.36);
   font-size: 1.02rem;
   line-height: 1;
 }
 
 .mv2-late-fee-alert-copy strong {
   display: block;
-  color: #8a1f11;
+  color: #7f1d1d;
   font-size: 1rem;
   line-height: 1.25;
 }
 
 .mv2-late-fee-alert-copy p {
   margin: 5px 0 0;
-  color: #5f2a1d;
+  color: #6b2417;
   line-height: 1.45;
 }
 

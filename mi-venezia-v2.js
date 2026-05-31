@@ -734,7 +734,7 @@
       '<span class="mv2-late-fee-alert-icon" aria-hidden="true">&#9888;</span>' +
       '<div class="mv2-late-fee-alert-copy">' +
       '<strong>Moratorio por atraso de pago</strong>' +
-      '<p>En caso de atraso, se aplicará un cargo moratorio de $100 diarios hasta cubrir el pago pendiente.</p>' +
+      '<p>En caso de atraso, se aplicará un cargo moratorio de $100 diarios hasta cubrir el pago pendiente, tal como está estipulado en el reglamento de alumno.</p>' +
       '</div>' +
       '</section>'
     );
