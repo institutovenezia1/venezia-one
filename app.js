@@ -785,30 +785,44 @@ const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
 ];
 const WEB_DEFAULT_COURSES = [
   {
-    name: "Uñas",
-    description: "Aprende con horarios pensados para tu ritmo de vida.",
-    statusLabel: "Curso activo y disponible",
+    name: "Uñas Acrílicas Profesionales",
+    icon: "💅",
+    description: "Domina técnicas profesionales desde cero y empieza a atender clientas con seguridad.",
+    statusLabel: "INSCRIPCIONES ABIERTAS",
+    categoryLabel: "CURSOS ACTIVOS",
+    visualTone: "green",
     imagePath: "images/unas.jpg",
   },
   {
-    name: "Pestañas",
-    description: "Capacítate en fines de semana y da el primer paso para generar ingresos.",
-    statusLabel: "Curso activo y disponible",
-    imagePath: "images/pestanas.jpg",
-  },
-  {
-    name: "Barbería",
-    description: "Elige el turno que mejor se adapte a ti.",
-    statusLabel: "Curso activo y disponible",
+    name: "Corte y Barbería Profesional",
+    icon: "💈",
+    description: "Aprende corte, técnica y servicio profesional para iniciar en barbería.",
+    statusLabel: "INSCRIPCIONES ABIERTAS",
+    categoryLabel: "CURSOS ACTIVOS",
+    visualTone: "electric",
     imagePath: "images/barberia.jpg",
   },
   {
-    name: "Maquillaje",
-    description: "",
-    statusLabel: "Próximamente",
+    name: "Lashista Profesional",
+    icon: "👁️",
+    description: "Especialización en pestañas para servicios con alta demanda.",
+    statusLabel: "PRÓXIMAMENTE",
+    categoryLabel: "PRÓXIMAMENTE",
+    visualTone: "soft",
+    imagePath: "images/pestanas.jpg",
+    availabilityTitle: "PRÓXIMAMENTE",
+    comingSoon: "Nueva generación en preparación",
+  },
+  {
+    name: "Maquillaje Profesional",
+    icon: "💄",
+    description: "Técnicas de maquillaje profesional para eventos, clientas y proyectos propios.",
+    statusLabel: "PRÓXIMAMENTE",
+    categoryLabel: "PRÓXIMAMENTE",
+    visualTone: "soft",
     imagePath: "",
-    availabilityTitle: "PROXIMAMENTE",
-    comingSoon: "AUTOMAQUILLAJE / MAYO",
+    availabilityTitle: "PRÓXIMAMENTE",
+    comingSoon: "Agenda próxima por confirmar",
   },
 ];
 
@@ -5859,10 +5873,11 @@ function renderWebCourses() {
     webCoursesGrid.innerHTML = courses
       .map(
         (course) => `
-          <article class="web-course-card">
+          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")}">
             ${course.imagePath ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
+            ${course.categoryLabel ? `<span class="web-course-category">${escapeHtml(course.categoryLabel)}</span>` : ""}
             <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
-            <strong>${escapeHtml(course.name)}</strong>
+            <strong>${course.icon ? `<span class="web-course-card-icon" aria-hidden="true">${escapeHtml(course.icon)}</span>` : ""}${escapeHtml(course.name)}</strong>
             ${course.description ? `<p>${escapeHtml(course.description)}</p>` : ""}
             ${renderWebCourseAvailability(course)}
             <button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>
@@ -16671,66 +16686,46 @@ async function handleMiVeneziaContratoConfirmation() {
 
 function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
-    <div class="web-access-grid">
-      <article class="web-access-card web-access-card-featured">
-        <span class="web-course-tag">Platinum</span>
-        <strong>Platinum</strong>
-        <p class="web-access-price">Inscripción: $2,299.99</p>
-        <ul class="web-access-list">
-          <li>Mensualidad fija en $1,800</li>
-          <li>50% de material para practicar durante todos los cursos</li>
-          <li>Clases personalizadas</li>
-          <li>Horarios flexibles</li>
-          <li>Asesoría para emprendimiento</li>
-          <li>3 cursos o más</li>
-        </ul>
-        <small>Ideal para ti si quieres avanzar más rápido y aprovechar más beneficios.</small>
-      </article>
-      <article class="web-access-card">
-        <span class="web-course-tag">Oro</span>
-        <strong>Oro</strong>
-        <p class="web-access-price">Inscripción: $1,499.99</p>
-        <ul class="web-access-list">
-          <li>Mensualidad en $1,700</li>
-          <li>No incluye material para practicar</li>
-          <li>Clases personalizadas</li>
-          <li>Solo 2 cursos</li>
-        </ul>
-        <small>Ideal si quieres estudiar más de un curso con una inversión accesible.</small>
-      </article>
-      <article class="web-access-card">
-        <span class="web-course-tag">Plata</span>
-        <strong>Plata</strong>
-        <p class="web-access-price">Inscripción: $999.99</p>
-        <ul class="web-access-list">
-          <li>Mensualidad en $1,600</li>
-          <li>No incluye material para practicar</li>
-          <li>Clases personalizadas</li>
-          <li>Solo 1 curso</li>
-        </ul>
-        <small>Ideal para empezar desde cero con una opción más económica.</small>
-      </article>
-      <article class="web-access-card web-access-card-scholarship">
+    <div class="web-scholarship-impact">
+      <article class="web-access-card web-access-card-scholarship web-scholarship-main-card">
         <figure class="web-access-media">
           <img src="images/beca-venezia.jpg" alt="Beca Venezia en Instituto Venezia" />
         </figure>
-        <span class="web-course-tag">Beca Venezia</span>
-        <strong>Beca Venezia</strong>
-        <p class="web-access-urgency">Solo 7 Becas Venezia disponibles</p>
-        <p>Pregunta por la opción de beca disponible y conoce si puedes obtener apoyo especial en inscripción o beneficios según temporada y sucursal.</p>
-        <small>Sujeto a disponibilidad real según temporada y sucursal.</small>
+        <div class="web-scholarship-copy">
+          <span class="web-course-tag">BECA VENEZIA</span>
+          <strong>Beca Venezia 2026</strong>
+          <p>Una oportunidad para aprender belleza profesional con inversión reducida y acompañamiento cercano.</p>
+        </div>
       </article>
+      <div class="web-scholarship-price-grid" aria-label="Costos de Beca Venezia">
+        <article class="web-scholarship-price-card">
+          <span>Inscripción</span>
+          <strong><s>$2,300</s> $999</strong>
+        </article>
+        <article class="web-scholarship-price-card">
+          <span>Mensualidad</span>
+          <strong><s>$1,900</s> $1,700</strong>
+        </article>
+        <article class="web-scholarship-price-card web-scholarship-price-card-wide">
+          <span>Material para prácticas</span>
+          <strong>80% incluido</strong>
+        </article>
+        <article class="web-scholarship-price-card web-scholarship-price-card-urgent">
+          <span>Cupos limitados</span>
+          <strong>Inscripciones abiertas</strong>
+        </article>
+      </div>
     </div>
     <div class="web-access-footer">
       <div class="web-access-copy">
-        <p class="eyebrow">Accesos Venezia</p>
-        <h3>Elige el acceso que mejor se adapta a ti</h3>
-        <p>En Instituto Venezia creemos que cada alumna merece una oportunidad real de aprender y crecer. Por eso contamos con diferentes accesos según tus metas, tu presupuesto y el nivel de acompañamiento que buscas.</p>
+        <p class="eyebrow">Beca Venezia</p>
+        <h3>Empieza con una beca diseñada para convertir tu aprendizaje en ingresos</h3>
+        <p>Pregunta por disponibilidad y recibe orientación para elegir el curso activo que mejor va con tu meta.</p>
       </div>
-      <p>¿No sabes cuál acceso te conviene más? Escríbenos por WhatsApp y te orientamos según tu meta, tu tiempo y tu presupuesto.</p>
+      <p>La beca está sujeta a cupos reales de la generación vigente.</p>
       <div class="form-actions">
-        <a class="primary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre los accesos Venezia y saber cuál me conviene más."))}" target="_blank" rel="noopener">Quiero información</a>
-        <button class="secondary-btn web-course-btn" type="button" data-course="Aplicar a beca">Quiero aplicar a una Beca Venezia</button>
+        <a class="primary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre la Beca Venezia 2026."))}" target="_blank" rel="noopener">QUIERO MI BECA</a>
+        <button class="secondary-btn web-course-btn" type="button" data-course="Aplicar a beca">Ver cursos disponibles</button>
       </div>
     </div>
   `;
