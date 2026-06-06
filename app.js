@@ -4980,6 +4980,15 @@ function getStudentStatus(student) {
   return String(__veneziaGet(student, "estado") || "").trim();
 }
 
+function isStudentActiveForPaymentReview(student) {
+  const normalizedStatus = normalizeLooseText(getStudentStatus(student));
+  return (
+    !isStudentDeleted(student) &&
+    !isStudentCourseCompleted(student) &&
+    (!normalizedStatus || normalizedStatus === "activa" || normalizedStatus === "activo")
+  );
+}
+
 function isStudentDropped(student) {
   const normalizedStatus = normalizeLooseText(getStudentStatus(student));
   return ATTENDANCE_DROPPED_STATUSES.some((status) => normalizeLooseText(status) === normalizedStatus);
@@ -13021,14 +13030,15 @@ function getPaymentsReviewEntries({
   payments = paymentRecords,
   anchorDate = getCurrentMexicoDateValue(),
 } = {}) {
+  const activeReviewStudentsList = studentsList.filter(isStudentActiveForPaymentReview);
   const studentsByPaymentAliasId = new Map();
-  studentsList.forEach((student) => {
+  activeReviewStudentsList.forEach((student) => {
     getPaymentStudentAliasIds(student.id).forEach((aliasId) => {
       studentsByPaymentAliasId.set(aliasId, student);
     });
   });
-  const canonicalStudentIds = new Set(studentsList.map((student) => student.id));
-  const overdueEntries = studentsList.flatMap((student) => buildOverduePaymentReviewEntries(student, anchorDate));
+  const canonicalStudentIds = new Set(activeReviewStudentsList.map((student) => student.id));
+  const overdueEntries = activeReviewStudentsList.flatMap((student) => buildOverduePaymentReviewEntries(student, anchorDate));
   const incompleteEntries = payments
     .filter((record) => {
       const aliasIds = getPaymentStudentAliasIds(record.studentId);
