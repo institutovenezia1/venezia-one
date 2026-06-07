@@ -1023,7 +1023,13 @@ async function saveStudentRecord(record) {
   return result;
 }
 
-async function refreshSharedSupabaseState({ force = false, render = true, syncLocalPayments = true } = {}) {
+async function refreshSharedSupabaseState({
+  force = false,
+  render = true,
+  syncLocalPayments = true,
+  reconcilePaymentsFinance = true,
+  reconcileAltaInscription = true,
+} = {}) {
   if (!dataService.supabaseReady) {
     return false;
   }
@@ -1103,8 +1109,12 @@ async function refreshSharedSupabaseState({ force = false, render = true, syncLo
         financeRecords = syncedFinanceRecords;
       }
     }
-    await reconcilePaymentFinanceRecords();
-    await reconcileAltaInscriptionRecords();
+    if (reconcilePaymentsFinance) {
+      await reconcilePaymentFinanceRecords();
+    }
+    if (reconcileAltaInscription) {
+      await reconcileAltaInscriptionRecords();
+    }
     lastSharedDataRefreshAt = Date.now();
 
     console.log("refreshSharedSupabaseState ejecutado", {
@@ -5017,6 +5027,176 @@ function isStudentInAttendanceHistoryStatus(student) {
 
 function isStudentCourseCompletedForAttendance(student) {
   return isStudentCourseCompleted(student) || isStudentInactiveForAttendance(student);
+}
+
+function getStudentAttendanceStatusInfo(student) {
+  const normalizedStatus = normalizeLooseText(getStudentStatus(student));
+  if (!normalizedStatus || normalizedStatus === "activa" || normalizedStatus === "activo") {
+    return {
+      key: "active",
+      label: "Activa",
+      tone: "green",
+    };
+  }
+  if (normalizedStatus === "baja temporal") {
+    return {
+      key: "temporary-drop",
+      label: "Baja temporal",
+      tone: "gold",
+    };
+  }
+  if (normalizedStatus === "baja definitiva") {
+    return {
+      key: "definitive-drop",
+      label: "Baja definitiva",
+      tone: "red",
+    };
+  }
+  if (normalizedStatus === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS)) {
+    return {
+      key: "course-completed",
+      label: ATTENDANCE_COURSE_COMPLETED_STATUS,
+      tone: "blue",
+    };
+  }
+  if (isStudentDeleted(student)) {
+    return {
+      key: "deleted",
+      label: "Eliminada",
+      tone: "red",
+    };
+  }
+  return {
+    key: "unknown",
+    label: getStudentStatus(student) || "Activa",
+    tone: "greige",
+  };
+}
+
+function renderStudentAttendanceStatusBadge(student) {
+  const statusInfo = getStudentAttendanceStatusInfo(student);
+  return renderStudentFileBadge(statusInfo.label, statusInfo.tone);
+}
+
+function normalizeStudentAttendanceTargetStatus(status) {
+  const normalizedStatus = normalizeLooseText(status);
+  if (!normalizedStatus) {
+    return "";
+  }
+  if (normalizedStatus === "activa" || normalizedStatus === "activo") {
+    return "Activa";
+  }
+  if (normalizedStatus === "baja temporal") {
+    return "Baja temporal";
+  }
+  if (normalizedStatus === "baja definitiva") {
+    return "Baja definitiva";
+  }
+  if (normalizedStatus === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS)) {
+    return ATTENDANCE_COURSE_COMPLETED_STATUS;
+  }
+  return "";
+}
+
+function getStudentAttendanceStatusUpdateBlocker(student, nextStatus) {
+  if (!student) {
+    return "missing-student";
+  }
+
+  const normalizedNextStatus = normalizeLooseText(nextStatus);
+  if (!normalizedNextStatus) {
+    return "invalid-status";
+  }
+
+  const isReactivation = normalizeLooseText(normalizeStudentAttendanceTargetStatus(nextStatus)) === "activa";
+  const isDrop = ATTENDANCE_DROPPED_STATUSES.some((status) => normalizeLooseText(status) === normalizedNextStatus);
+
+  if (isDrop && isStudentDeleted(student)) {
+    return "deleted-student";
+  }
+  if (isReactivation && !isStudentInAttendanceHistoryStatus(student)) {
+    return "not-in-attendance-history";
+  }
+  if (isDrop && isStudentInAttendanceHistoryStatus(student)) {
+    return "already-in-attendance-history";
+  }
+
+  return "";
+}
+
+async function updateStudentAttendanceStatus(studentId, nextStatus, options = {}) {
+  const student = getStudentById(studentId);
+  const targetStatus = normalizeStudentAttendanceTargetStatus(nextStatus);
+  const messages = __veneziaGet(options, "messages") || {};
+  const blocker = getStudentAttendanceStatusUpdateBlocker(student, targetStatus);
+
+  if (blocker) {
+    const blockedMessage = __veneziaGet(messages, blocker) || "";
+    if (blockedMessage) {
+      alert(blockedMessage);
+    }
+    if (typeof options.onBlocked === "function") {
+      options.onBlocked(blocker, student);
+    }
+    return {
+      synced: false,
+      reason: blocker,
+      student,
+      nextStatus: targetStatus,
+    };
+  }
+
+  if (__veneziaGet(options, "confirmMessage") && !confirm(options.confirmMessage)) {
+    return {
+      synced: false,
+      reason: "cancelled",
+      student,
+      nextStatus: targetStatus,
+    };
+  }
+
+  const saveResult = await saveStudentRecord({
+    ...student,
+    estado: targetStatus,
+  });
+
+  if (!saveResult.synced) {
+    const saveFailedMessage = __veneziaGet(messages, "save-failed") || "";
+    if (saveFailedMessage) {
+      alert(saveFailedMessage);
+    }
+    return {
+      synced: false,
+      reason: "save-failed",
+      student,
+      nextStatus: targetStatus,
+      saveResult,
+    };
+  }
+
+  const refreshOptions = {
+    force: true,
+    render: false,
+    ...(__veneziaGet(options, "refreshOptions") || {}),
+  };
+  await refreshSharedSupabaseState(refreshOptions);
+
+  if (typeof options.onSuccess === "function") {
+    options.onSuccess({
+      studentId,
+      student,
+      nextStatus: targetStatus,
+      saveResult,
+    });
+  }
+
+  return {
+    synced: true,
+    reason: "updated",
+    student,
+    nextStatus: targetStatus,
+    saveResult,
+  };
 }
 
 function isStudentFutureStartForAttendance(student, anchorDate = getCurrentMexicoDateValue()) {
@@ -10741,40 +10921,25 @@ function renderAttendanceGraduatesTable() {
 }
 
 async function reactivateStudentAttendanceFromGraduates(studentId) {
-  const student = getStudentById(studentId);
-  if (!student) {
-    alert("No se encontró la alumna para reactivar en Asistencias.");
-    return;
-  }
-
-  if (!isStudentInAttendanceHistoryStatus(student)) {
-    alert("Esta alumna no está marcada como Curso finalizado o baja.");
-    renderAttendanceTable();
-    return;
-  }
-
-  const confirmed = confirm(
-    "¿Seguro que deseas reactivar a esta alumna? Volverá a aparecer como activa académicamente."
-  );
-  if (!confirmed) {
-    return;
-  }
-
-  const saveResult = await saveStudentRecord({
-    ...student,
-    estado: "Activa",
+  await updateStudentAttendanceStatus(studentId, "Activa", {
+    confirmMessage: "¿Seguro que deseas reactivar a esta alumna? Volverá a aparecer como activa académicamente.",
+    messages: {
+      "missing-student": "No se encontró la alumna para reactivar en Asistencias.",
+      "not-in-attendance-history": "Esta alumna no está marcada como Curso finalizado o baja.",
+      "save-failed": "No se pudo reactivar la alumna en Supabase.",
+    },
+    onBlocked(reason) {
+      if (reason === "not-in-attendance-history") {
+        renderAttendanceTable();
+      }
+    },
+    onSuccess() {
+      renderAttendanceTable();
+      if (activeStudentFileId === studentId) {
+        renderStudentFile(studentId);
+      }
+    },
   });
-
-  if (!saveResult.synced) {
-    alert("No se pudo reactivar la alumna en Supabase.");
-    return;
-  }
-
-  await refreshSharedSupabaseState({ force: true, render: false });
-  renderAttendanceTable();
-  if (activeStudentFileId === studentId) {
-    renderStudentFile(studentId);
-  }
 }
 
 function resolveAttendanceDropStatus() {
@@ -10799,17 +10964,16 @@ function resolveAttendanceDropStatus() {
 
 async function dropStudentFromAttendance(studentId) {
   const student = getStudentById(studentId);
-  if (!student) {
+  const blocker = getStudentAttendanceStatusUpdateBlocker(student, "Baja temporal");
+  if (blocker === "missing-student") {
     alert("No se encontró la alumna para dar de baja.");
     return;
   }
-
-  if (isStudentDeleted(student)) {
+  if (blocker === "deleted-student") {
     alert("Esta alumna está eliminada. La baja no debe usarse como eliminación.");
     return;
   }
-
-  if (isStudentInAttendanceHistoryStatus(student)) {
+  if (blocker === "already-in-attendance-history") {
     alert("Esta alumna ya está fuera de Asistencias activas.");
     renderAttendanceTable();
     return;
@@ -10820,28 +10984,26 @@ async function dropStudentFromAttendance(studentId) {
     return;
   }
 
-  const confirmed = confirm(
-    "¿Seguro que deseas dar de baja a esta alumna? Se conservarán pagos, asistencias, documentos e historial."
-  );
-  if (!confirmed) {
-    return;
-  }
-
-  const saveResult = await saveStudentRecord({
-    ...student,
-    estado: nextStatus,
+  await updateStudentAttendanceStatus(studentId, nextStatus, {
+    confirmMessage: "¿Seguro que deseas dar de baja a esta alumna? Se conservarán pagos, asistencias, documentos e historial.",
+    messages: {
+      "missing-student": "No se encontró la alumna para dar de baja.",
+      "deleted-student": "Esta alumna está eliminada. La baja no debe usarse como eliminación.",
+      "already-in-attendance-history": "Esta alumna ya está fuera de Asistencias activas.",
+      "save-failed": "No se pudo guardar la baja en Supabase.",
+    },
+    onBlocked(reason) {
+      if (reason === "already-in-attendance-history") {
+        renderAttendanceTable();
+      }
+    },
+    onSuccess() {
+      renderAttendanceTable();
+      if (activeStudentFileId === studentId) {
+        renderStudentFile(studentId);
+      }
+    },
   });
-
-  if (!saveResult.synced) {
-    alert("No se pudo guardar la baja en Supabase.");
-    return;
-  }
-
-  await refreshSharedSupabaseState({ force: true, render: false });
-  renderAttendanceTable();
-  if (activeStudentFileId === studentId) {
-    renderStudentFile(studentId);
-  }
 }
 
 function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStudents()) {
@@ -11541,18 +11703,15 @@ async function completeStudentCourseFromAttendance(studentId) {
     return;
   }
 
-  const saveResult = await saveStudentRecord({
-    ...student,
-    estado: ATTENDANCE_COURSE_COMPLETED_STATUS,
+  await updateStudentAttendanceStatus(studentId, ATTENDANCE_COURSE_COMPLETED_STATUS, {
+    messages: {
+      "missing-student": "No se encontró la alumna para marcar el curso como finalizado.",
+      "save-failed": "No se pudo marcar el curso como finalizado en Supabase.",
+    },
+    onSuccess() {
+      renderAttendanceTable();
+    },
   });
-
-  if (!saveResult.synced) {
-    alert("No se pudo marcar el curso como finalizado en Supabase.");
-    return;
-  }
-
-  await refreshSharedSupabaseState({ force: true, render: false });
-  renderAttendanceTable();
 }
 
 function updateAttendanceSummary(studentsList = getFilteredStudentsForAttendance()) {
@@ -12781,11 +12940,13 @@ function renderPaymentsTable(options = {}) {
           <td><select data-payment-field="continuityStatus" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(continuitySelection)}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
           <td><select data-payment-field="nextCourse" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseSelection)}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
           <td><input type="date" value="${escapeHtml(nextCourseStartDateValue)}" data-payment-field="nextCourseStartDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseStartDateValue)}" /></td>
+          <td class="payments-student-status-cell">${renderStudentAttendanceStatusBadge(student)}</td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
               <button class="table-action action-edit" type="button" data-action="save-payment" data-id="${student.id}">Guardar</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
+              <button class="table-action secondary-btn" type="button" data-action="change-student-attendance-status" data-id="${student.id}">Cambiar estado</button>
               <button class="table-action action-delete" type="button" data-action="delete-payment" data-id="${student.id}">Eliminar</button>
             </div>
           </td>
@@ -13089,6 +13250,12 @@ function renderPaymentsReviewPanel() {
               data-student-id="${escapeHtml(__veneziaGet(student, "id") || "")}"
               data-payment-field="${escapeHtml(entry.focusField || "")}"
             >Editar</button>
+            <button
+              class="table-action secondary-btn"
+              type="button"
+              data-action="change-student-attendance-status"
+              data-id="${escapeHtml(__veneziaGet(student, "id") || "")}"
+            >Cambiar estado</button>
           </td>
           <td class="payments-student-name-cell"><strong>${escapeHtml(__veneziaGet(student, "nombre") || "-")}</strong></td>
           <td>${escapeHtml(__veneziaGet(student, "curso") || "-")}</td>
@@ -13097,6 +13264,7 @@ function renderPaymentsReviewPanel() {
           <td class="payments-date-cell">${escapeHtml(displayDate)}</td>
           <td>${escapeHtml(entry.currentStatus || "-")}</td>
           <td>${escapeHtml(entry.problem || "Revisar recibo")}</td>
+          <td class="payments-student-status-cell">${renderStudentAttendanceStatusBadge(student)}</td>
           <td>${renderPaymentReviewRiskBadge(entry.risk)}</td>
         </tr>
       `;
@@ -13180,6 +13348,98 @@ function focusPaymentReviewStudent(studentId, preferredField = "") {
     if (fallbackControl) {
       window.setTimeout(() => fallbackControl.focus({ preventScroll: true }), 300);
     }
+  });
+}
+
+function resolvePaymentsAttendanceStatusChange(student) {
+  const currentStatusInfo = getStudentAttendanceStatusInfo(student);
+  const promptHeader = `Estado actual: ${currentStatusInfo.label}`;
+  const canReactivate = isStudentInAttendanceHistoryStatus(student);
+  const response = canReactivate
+    ? window.prompt(`${promptHeader}\n\n1. Reactivar alumna (Activa)\n\nEscribe 1 o Activa.`)
+    : window.prompt(
+        `${promptHeader}\n\n1. Baja temporal\n2. Baja definitiva\n3. Curso finalizado\n\nEscribe 1, 2 o 3.`
+      );
+  const normalizedResponse = normalizeLooseText(response);
+
+  if (!normalizedResponse) {
+    return "";
+  }
+  if (canReactivate) {
+    if (normalizedResponse === "1" || normalizedResponse === "activa" || normalizedResponse === "activo") {
+      return "Activa";
+    }
+    alert("Selecciona una opción válida para reactivar a la alumna.");
+    return "";
+  }
+
+  if (normalizedResponse === "1" || normalizedResponse.includes("temporal")) {
+    return "Baja temporal";
+  }
+  if (normalizedResponse === "2" || normalizedResponse.includes("definitiva")) {
+    return "Baja definitiva";
+  }
+  if (
+    normalizedResponse === "3" ||
+    normalizedResponse.includes("curso finalizado") ||
+    normalizedResponse.includes("finalizado")
+  ) {
+    return ATTENDANCE_COURSE_COMPLETED_STATUS;
+  }
+
+  alert("Selecciona una opción válida para cambiar el estado académico.");
+  return "";
+}
+
+function refreshPaymentsAfterAttendanceStatusChange(studentId) {
+  renderPaymentsTable({ force: true });
+  renderPaymentsLifecyclePanels();
+  updatePaymentsSummary();
+  renderAttendanceTable();
+  renderDashboard();
+  if (activeStudentFileId === studentId) {
+    renderStudentFile(studentId);
+  }
+}
+
+async function changeStudentAttendanceStatusFromPayments(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) {
+    alert("No se encontró la alumna para cambiar su estado desde Pagos.");
+    return;
+  }
+
+  const nextStatus = resolvePaymentsAttendanceStatusChange(student);
+  if (!nextStatus) {
+    return;
+  }
+
+  const currentStatus = normalizeStudentAttendanceTargetStatus(getStudentStatus(student));
+  if (normalizeLooseText(currentStatus) === normalizeLooseText(nextStatus)) {
+    alert("La alumna ya tiene ese estado académico.");
+    return;
+  }
+
+  const currentStatusInfo = getStudentAttendanceStatusInfo(student);
+  await updateStudentAttendanceStatus(studentId, nextStatus, {
+    confirmMessage: `¿Seguro que deseas cambiar el estado de ${student.nombre || "esta alumna"} de ${currentStatusInfo.label} a ${nextStatus}? Se conservarán pagos, asistencias, documentos e historial.`,
+    messages: {
+      "missing-student": "No se encontró la alumna para cambiar su estado desde Pagos.",
+      "deleted-student": "Esta alumna está eliminada. No se puede cambiar su estado académico desde Pagos.",
+      "not-in-attendance-history": "Esta alumna no está marcada como Curso finalizado o baja.",
+      "already-in-attendance-history": "Esta alumna ya está fuera de Asistencias activas.",
+      "save-failed": "No se pudo actualizar el estado académico en Supabase.",
+    },
+    refreshOptions: {
+      force: true,
+      render: false,
+      syncLocalPayments: false,
+      reconcilePaymentsFinance: false,
+      reconcileAltaInscription: false,
+    },
+    onSuccess() {
+      refreshPaymentsAfterAttendanceStatusChange(studentId);
+    },
   });
 }
 
@@ -19037,19 +19297,28 @@ paymentsTableBody.addEventListener("click", async (event) => {
     openStudentFile(actionButton.dataset.id);
   }
 
+  if (actionButton.dataset.action === "change-student-attendance-status") {
+    await changeStudentAttendanceStatusFromPayments(actionButton.dataset.id);
+  }
+
   if (actionButton.dataset.action === "delete-payment") {
     await deletePaymentForStudent(actionButton.dataset.id);
   }
 });
 
 if (paymentsReviewTableBody) {
-  paymentsReviewTableBody.addEventListener("click", (event) => {
-    const actionButton = event.target.closest('[data-action="focus-review-payment"]');
+  paymentsReviewTableBody.addEventListener("click", async (event) => {
+    const actionButton = event.target.closest("[data-action]");
     if (!actionButton) {
       return;
     }
 
-    focusPaymentReviewStudent(actionButton.dataset.studentId || "", actionButton.dataset.paymentField || "");
+    if (actionButton.dataset.action === "focus-review-payment") {
+      focusPaymentReviewStudent(actionButton.dataset.studentId || "", actionButton.dataset.paymentField || "");
+    }
+    if (actionButton.dataset.action === "change-student-attendance-status") {
+      await changeStudentAttendanceStatusFromPayments(actionButton.dataset.id || "");
+    }
   });
 }
 

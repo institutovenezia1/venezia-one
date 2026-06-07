@@ -3038,6 +3038,17 @@ td select {
   min-width: 9rem;
 }
 
+.payments-student-status-cell {
+  min-width: 8.25rem;
+  white-space: nowrap;
+}
+
+.payments-student-status-cell .student-file-badge {
+  min-height: 28px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.74rem;
+}
+
 .payments-review-action-cell {
   white-space: nowrap;
 }
