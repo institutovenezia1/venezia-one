@@ -658,6 +658,7 @@ const webHorarioCita = document.getElementById("webHorarioCita");
 const webHoraSugeridaField = document.getElementById("webHoraSugeridaField");
 const webHoraSugerida = document.getElementById("webHoraSugerida");
 const webLeadSubmitButton = document.getElementById("webLeadSubmitButton");
+const webGeneralInfoButton = document.getElementById("webGeneralInfoButton");
 const webCoursesGrid = document.getElementById("webCoursesGrid");
 const webCourseButtons = document.querySelectorAll(".web-course-btn");
 const webAccessButtons = document.querySelectorAll(".web-access-btn");
@@ -792,6 +793,7 @@ const WEB_DEFAULT_COURSES = [
     categoryLabel: "CURSOS ACTIVOS",
     visualTone: "green",
     imagePath: "images/unas.jpg",
+    enrollmentOpen: true,
   },
   {
     name: "Corte y Barbería Profesional",
@@ -801,28 +803,33 @@ const WEB_DEFAULT_COURSES = [
     categoryLabel: "CURSOS ACTIVOS",
     visualTone: "electric",
     imagePath: "images/barberia.jpg",
+    enrollmentOpen: true,
   },
   {
     name: "Lashista Profesional",
     icon: "👁️",
-    description: "Especialización en pestañas para servicios con alta demanda.",
-    statusLabel: "PRÓXIMAMENTE",
-    categoryLabel: "PRÓXIMAMENTE",
-    visualTone: "soft",
-    imagePath: "images/pestanas.jpg",
-    availabilityTitle: "PRÓXIMAMENTE",
-    comingSoon: "Nueva generación en preparación",
-  },
-  {
-    name: "Maquillaje Profesional",
-    icon: "💄",
-    description: "Técnicas de maquillaje profesional para eventos, clientas y proyectos propios.",
-    statusLabel: "PRÓXIMAMENTE",
+    description: "Este curso existe en Venezia, pero no está abierto actualmente.",
+    statusLabel: "CURSO PRÓXIMO",
     categoryLabel: "PRÓXIMAMENTE",
     visualTone: "soft",
     imagePath: "",
     availabilityTitle: "PRÓXIMAMENTE",
-    comingSoon: "Agenda próxima por confirmar",
+    comingSoon: "No está abierto actualmente",
+    enrollmentOpen: false,
+    isMiniCard: true,
+  },
+  {
+    name: "Maquillaje Profesional",
+    icon: "💄",
+    description: "Este curso existe en Venezia, pero no está abierto actualmente.",
+    statusLabel: "CURSO PRÓXIMO",
+    categoryLabel: "PRÓXIMAMENTE",
+    visualTone: "soft",
+    imagePath: "",
+    availabilityTitle: "PRÓXIMAMENTE",
+    comingSoon: "No está abierto actualmente",
+    enrollmentOpen: false,
+    isMiniCard: true,
   },
 ];
 
@@ -5939,7 +5946,55 @@ async function resolveLinkedInternalUserId(selectedId) {
 function getWebLeadFormData() {
   const formData = new FormData(webLeadForm);
   const today = formatDateForInput(new Date());
-  const notes = "Lead captado desde Web Venezia.";
+  const leadSource = String(formData.get("conocioBeca") || "").trim();
+  const sourceMap = {
+    preparatoria: {
+      origin: "PREPARATORIA",
+      label: "Me invitaron en mi preparatoria",
+      requestType: "Beca Venezia preparatoria",
+    },
+    internet: {
+      origin: "INTERNET",
+      label: "Vi publicidad en internet",
+      requestType: "Información general",
+    },
+    familiar: {
+      origin: "FAMILIAR",
+      label: "Me recomendó un familiar",
+      requestType: "Información general",
+    },
+    amigo: {
+      origin: "AMIGO",
+      label: "Me recomendó un amigo",
+      requestType: "Información general",
+    },
+    otro: {
+      origin: "OTRO",
+      label: "Otro",
+      requestType: "Información general",
+    },
+  };
+  const sourceConfig = sourceMap[leadSource] || sourceMap.otro;
+  const isPreparatoriaSource = leadSource === "preparatoria";
+  const edad = String(formData.get("edad") || "").trim();
+  const sexo = String(formData.get("sexo") || "").trim();
+  const nombrePreparatoria = isPreparatoriaSource
+    ? String(formData.get("nombrePreparatoria") || "").trim()
+    : "";
+  const semestre = isPreparatoriaSource ? String(formData.get("semestre") || "").trim() : "";
+  const turno = isPreparatoriaSource ? String(formData.get("turno") || "").trim() : "";
+  const notes = [
+    "Lead captado desde Web Venezia.",
+    `Cómo conoció la beca: ${sourceConfig.label}`,
+    `Origen específico: ${sourceConfig.origin}`,
+    `Edad: ${edad}`,
+    `Sexo: ${sexo}`,
+    nombrePreparatoria ? `Nombre de preparatoria: ${nombrePreparatoria}` : "",
+    semestre ? `Semestre: ${semestre}` : "",
+    turno ? `Turno: ${turno}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   return {
     id: createMiVeneziaCompatibleId(),
@@ -5948,7 +6003,7 @@ function getWebLeadFormData() {
     fechaContacto: today,
     sucursal: String(formData.get("sucursal") || "").trim(),
     curso: String(formData.get("curso") || "").trim(),
-    origen: "Web",
+    origen: sourceConfig.origin,
     medio: "WhatsApp",
     informacion: "Pendiente de enviar",
     estado: "Prospecto nuevo",
@@ -5957,13 +6012,45 @@ function getWebLeadFormData() {
     temperatura: "",
     contacto: "",
     notas: notes,
-    accesoInteres: "",
+    accesoInteres: "Beca Venezia",
     horarioCita: "",
     horaSugerida: "",
-    tipoSolicitud: "",
+    tipoSolicitud: sourceConfig.requestType,
+    edad,
+    sexo,
+    origenDetalle: sourceConfig.origin,
+    nombrePreparatoria,
+    semestre,
+    turno,
     inscribio: "Pendiente",
     createdAt: new Date().toISOString(),
   };
+}
+
+function syncWebSchoolFields() {
+  if (!webLeadForm) {
+    return;
+  }
+
+  const schoolFields = document.getElementById("webSchoolFields");
+  if (!schoolFields) {
+    return;
+  }
+
+  const selectedSource = webLeadForm.querySelector('input[name="conocioBeca"]:checked');
+  const shouldShowSchoolFields = Boolean(selectedSource && selectedSource.value === "preparatoria");
+  const schoolInputs = Array.from(
+    schoolFields.querySelectorAll("input, select, textarea")
+  );
+
+  schoolFields.hidden = !shouldShowSchoolFields;
+  schoolInputs.forEach((field) => {
+    field.disabled = !shouldShowSchoolFields;
+    field.required = shouldShowSchoolFields;
+    if (!shouldShowSchoolFields) {
+      field.value = "";
+    }
+  });
 }
 
 function updateWebAppointmentFields() {
@@ -6019,6 +6106,10 @@ function getWebCourseCatalog() {
   return WEB_DEFAULT_COURSES.map((course) => ({ ...course }));
 }
 
+function getWebOpenCourseCatalog() {
+  return getWebCourseCatalog().filter((course) => course.enrollmentOpen !== false);
+}
+
 function renderWebCourseAvailability(course) {
   if (course.comingSoon) {
     return `
@@ -6061,24 +6152,29 @@ function renderWebCourses() {
   if (webCoursesGrid) {
     webCoursesGrid.innerHTML = courses
       .map(
-        (course) => `
-          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")}">
-            ${course.imagePath ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
+        (course) => {
+          const isMiniCard = Boolean(course.isMiniCard);
+          return `
+          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")}${isMiniCard ? " web-course-card-mini" : ""}">
+            ${course.imagePath && !isMiniCard ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
             ${course.categoryLabel ? `<span class="web-course-category">${escapeHtml(course.categoryLabel)}</span>` : ""}
             <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
             <strong>${course.icon ? `<span class="web-course-card-icon" aria-hidden="true">${escapeHtml(course.icon)}</span>` : ""}${escapeHtml(course.name)}</strong>
-            ${course.description ? `<p>${escapeHtml(course.description)}</p>` : ""}
-            ${renderWebCourseAvailability(course)}
-            <button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>
+            ${isMiniCard ? `<p class="web-course-status-note">${escapeHtml(course.comingSoon || course.description || "No está abierto actualmente.")}</p>` : ""}
+            ${!isMiniCard && course.description ? `<p>${escapeHtml(course.description)}</p>` : ""}
+            ${!isMiniCard ? renderWebCourseAvailability(course) : ""}
+            ${isMiniCard ? "" : `<button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>`}
           </article>
-        `
+        `;
+        }
       )
       .join("");
   }
 
+  const openCourses = getWebOpenCourseCatalog();
   populateSelectWithValues(
     document.getElementById("webCurso"),
-    courses.map((course) => course.name),
+    openCourses.map((course) => course.name),
     "Selecciona una opcion"
   );
 }
@@ -16958,9 +17054,6 @@ function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
     <div class="web-scholarship-impact">
       <article class="web-access-card web-access-card-scholarship web-scholarship-main-card">
-        <figure class="web-access-media">
-          <img src="images/beca-venezia.jpg" alt="Beca Venezia en Instituto Venezia" />
-        </figure>
         <div class="web-scholarship-copy">
           <span class="web-course-tag">BECA VENEZIA</span>
           <strong>Beca Venezia 2026</strong>
@@ -16977,8 +17070,9 @@ function renderWebScholarshipSection() {
           <strong><s>$1,900</s> $1,700</strong>
         </article>
         <article class="web-scholarship-price-card web-scholarship-price-card-wide">
-          <span>Material para prácticas</span>
-          <strong>80% incluido</strong>
+          <span>PARA LAS PRIMERAS 7 PERSONAS</span>
+          <strong>80% de material para prácticas</strong>
+          <small class="web-scholarship-cups-note">3 CUPOS DISPONIBLES CON MATERIAL</small>
         </article>
         <article class="web-scholarship-price-card web-scholarship-price-card-urgent">
           <span>Cupos limitados</span>
@@ -18555,6 +18649,7 @@ teacherPortalPasswordForm.addEventListener("submit", handleTeacherPortalPassword
 async function handleWebLeadSubmit(event) {
   console.log("WEB ENVIAR SOLICITUD CLICKED");
   event.preventDefault();
+  syncWebSchoolFields();
   updateWebAppointmentFields();
   const leadData = getWebLeadFormData();
   const { successAlert, errorAlert, submitButton } = getWebLeadUiElements();
@@ -18596,6 +18691,7 @@ async function handleWebLeadSubmit(event) {
   console.log("WEB lead success", saveResult.response || saveResult.record);
   renderAll();
   webLeadForm.reset();
+  syncWebSchoolFields();
   updateWebAppointmentFields();
   setWebLeadFeedback({
     success: true,
@@ -18616,12 +18712,32 @@ async function handleWebLeadSubmit(event) {
 
 if (webLeadForm) {
   webLeadForm.addEventListener("submit", handleWebLeadSubmit);
+  webLeadForm.addEventListener("change", (event) => {
+    if (event.target && event.target.name === "conocioBeca") {
+      syncWebSchoolFields();
+    }
+  });
+  syncWebSchoolFields();
 }
 
 if (webLeadSubmitButton) {
   webLeadSubmitButton.addEventListener("click", () => {
     if (webLeadSubmitButton.form !== webLeadForm && webLeadForm) {
       webLeadForm.requestSubmit();
+    }
+  });
+}
+
+if (webGeneralInfoButton && webLeadForm) {
+  webGeneralInfoButton.addEventListener("click", () => {
+    const generalSourceOption = webLeadForm.querySelector('input[name="conocioBeca"][value="otro"]');
+    if (generalSourceOption) {
+      generalSourceOption.checked = true;
+    }
+    syncWebSchoolFields();
+    const nameField = document.getElementById("webNombre");
+    if (nameField && typeof nameField.focus === "function") {
+      nameField.focus();
     }
   });
 }
@@ -18831,7 +18947,7 @@ webVeneziaSection.addEventListener("click", (event) => {
   if (courseButton) {
     const course = courseButton.dataset.course;
     const webCurso = document.getElementById("webCurso");
-    const availableCourses = getWebCourseCatalog().map((item) => item.name);
+    const availableCourses = getWebOpenCourseCatalog().map((item) => item.name);
 
     if (availableCourses.includes(course)) {
       webCurso.value = course;

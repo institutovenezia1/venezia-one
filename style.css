@@ -5237,6 +5237,36 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
   align-content: start;
 }
 
+.web-course-card-mini {
+  gap: 0.5rem;
+  min-height: auto;
+  opacity: 0.88;
+}
+
+.web-course-card-mini .web-course-category,
+.web-course-card-mini .web-course-tag {
+  font-size: 0.68rem;
+}
+
+.web-course-card-mini .web-course-card-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 12px;
+}
+
+.web-course-card-mini strong {
+  font-size: 1.08rem;
+  line-height: 1.15;
+}
+
+.web-course-status-note {
+  margin: 0;
+  color: #5f5a54;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .web-course-media {
   aspect-ratio: 4 / 3;
   border: 1px solid rgba(201, 162, 39, 0.14);
@@ -5653,6 +5683,64 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
 
 .web-contact-links .web-link-btn {
   width: 100%;
+}
+
+.web-lead-source-field {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid rgba(201, 161, 74, 0.18);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.web-lead-source-field legend {
+  padding: 0 0.35rem;
+  color: var(--web-black);
+  font-weight: 900;
+}
+
+.web-lead-source-options {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.web-lead-form .web-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 42px;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid rgba(201, 161, 74, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--web-black);
+  font-weight: 700;
+}
+
+.web-lead-form .web-radio-option input {
+  width: auto;
+  margin: 0;
+  accent-color: #19c875;
+}
+
+.web-lead-form .web-radio-option span {
+  font-size: 0.92rem;
+}
+
+.web-school-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.web-school-fields[hidden] {
+  display: none !important;
+}
+
+.web-general-info-button {
+  min-height: 50px;
 }
 
 .web-location-section {
@@ -9884,8 +9972,9 @@ body.public-mode .web-mobile-app-shell .web-utility-row {
 body.public-mode .web-mobile-app-shell .web-brand-logo {
   width: 56px;
   height: 56px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.08);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 body.public-mode .web-mobile-app-shell .web-utility-copy {
@@ -10104,6 +10193,16 @@ body.public-mode .web-mobile-app-shell .web-course-card {
   padding: 1rem;
 }
 
+body.public-mode .web-mobile-app-shell .web-course-card-mini {
+  gap: 0.48rem;
+  padding: 0.78rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow:
+    0 12px 28px rgba(16, 24, 40, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
 body.public-mode .web-mobile-app-shell .web-course-card::before {
   content: "";
   position: absolute;
@@ -10172,6 +10271,11 @@ body.public-mode .web-mobile-app-shell .web-course-card strong {
   line-height: 1.08;
 }
 
+body.public-mode .web-mobile-app-shell .web-course-card-mini strong {
+  font-size: 1rem;
+  line-height: 1.14;
+}
+
 body.public-mode .web-mobile-app-shell .web-course-card-icon {
   display: inline-grid;
   flex: 0 0 auto;
@@ -10181,6 +10285,17 @@ body.public-mode .web-mobile-app-shell .web-course-card-icon {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.76);
   box-shadow: 0 12px 24px rgba(16, 24, 40, 0.08);
+}
+
+body.public-mode .web-mobile-app-shell .web-course-card-mini .web-course-card-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 12px;
+}
+
+body.public-mode .web-mobile-app-shell .web-course-card-mini .web-course-status-note {
+  color: #596170;
+  font-size: 0.82rem;
 }
 
 body.public-mode .web-mobile-app-shell .web-course-availability {
@@ -10278,6 +10393,19 @@ body.public-mode .web-mobile-app-shell .web-scholarship-price-card s {
   color: rgba(255, 255, 255, 0.54);
   font-size: 0.9em;
   text-decoration-thickness: 2px;
+}
+
+body.public-mode .web-mobile-app-shell .web-scholarship-cups-note {
+  width: fit-content;
+  margin-top: 0.15rem;
+  padding: 0.32rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 body.public-mode .web-mobile-app-shell .web-scholarship-price-card-urgent {
@@ -10390,6 +10518,14 @@ body.public-mode .web-mobile-app-shell .web-floating-whatsapp {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  body.public-mode .web-mobile-app-shell .web-course-card:not(.web-course-card-mini) {
+    grid-column: span 2;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-course-card-mini {
+    grid-column: span 1;
+  }
+
   body.public-mode .web-mobile-app-shell .web-scholarship-impact {
     grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
     align-items: stretch;
@@ -10405,5 +10541,16 @@ body.public-mode .web-mobile-app-shell .web-floating-whatsapp {
 
   body.public-mode .web-mobile-app-shell .web-location-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 759px) {
+  .web-school-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .web-lead-form .form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
