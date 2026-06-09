@@ -789,8 +789,8 @@ const WEB_DEFAULT_COURSES = [
     name: "Uñas Acrílicas Profesionales",
     icon: "💅",
     description: "Domina técnicas profesionales desde cero y empieza a atender clientas con seguridad.",
-    statusLabel: "INSCRIPCIONES ABIERTAS",
-    categoryLabel: "CURSOS ACTIVOS",
+    statusLabel: "ACTIVO",
+    categoryLabel: "",
     visualTone: "green",
     imagePath: "images/unas.jpg",
     enrollmentOpen: true,
@@ -799,8 +799,8 @@ const WEB_DEFAULT_COURSES = [
     name: "Corte y Barbería Profesional",
     icon: "💈",
     description: "Aprende corte, técnica y servicio profesional para iniciar en barbería.",
-    statusLabel: "INSCRIPCIONES ABIERTAS",
-    categoryLabel: "CURSOS ACTIVOS",
+    statusLabel: "ACTIVO",
+    categoryLabel: "",
     visualTone: "electric",
     imagePath: "images/barberia.jpg",
     enrollmentOpen: true,
@@ -808,26 +808,26 @@ const WEB_DEFAULT_COURSES = [
   {
     name: "Lashista Profesional",
     icon: "👁️",
-    description: "Este curso existe en Venezia, pero no está abierto actualmente.",
-    statusLabel: "CURSO PRÓXIMO",
-    categoryLabel: "PRÓXIMAMENTE",
-    visualTone: "soft",
-    imagePath: "",
+    description: "",
+    statusLabel: "PRÓXIMAMENTE",
+    categoryLabel: "",
+    visualTone: "lash",
+    imagePath: "images/pestanas.jpg",
     availabilityTitle: "PRÓXIMAMENTE",
-    comingSoon: "No está abierto actualmente",
+    comingSoon: "",
     enrollmentOpen: false,
     isMiniCard: true,
   },
   {
     name: "Maquillaje Profesional",
     icon: "💄",
-    description: "Este curso existe en Venezia, pero no está abierto actualmente.",
-    statusLabel: "CURSO PRÓXIMO",
-    categoryLabel: "PRÓXIMAMENTE",
-    visualTone: "soft",
-    imagePath: "",
+    description: "",
+    statusLabel: "PRÓXIMAMENTE",
+    categoryLabel: "",
+    visualTone: "makeup",
+    imagePath: "images/ahora-magina%20-esto.png",
     availabilityTitle: "PRÓXIMAMENTE",
-    comingSoon: "No está abierto actualmente",
+    comingSoon: "",
     enrollmentOpen: false,
     isMiniCard: true,
   },
@@ -5950,7 +5950,7 @@ function getWebLeadFormData() {
   const sourceMap = {
     preparatoria: {
       origin: "PREPARATORIA",
-      label: "Me invitaron en mi preparatoria",
+      label: "Me llegó la invitación en mi prepa",
       requestType: "Beca Venezia preparatoria",
     },
     internet: {
@@ -5973,11 +5973,15 @@ function getWebLeadFormData() {
       label: "Otro",
       requestType: "Información general",
     },
+    no_preparatoria: {
+      origin: "NO_PREPARATORIA",
+      label: "No soy estudiante de preparatoria",
+      requestType: "Información general",
+    },
   };
   const sourceConfig = sourceMap[leadSource] || sourceMap.otro;
   const isPreparatoriaSource = leadSource === "preparatoria";
   const edad = String(formData.get("edad") || "").trim();
-  const sexo = String(formData.get("sexo") || "").trim();
   const nombrePreparatoria = isPreparatoriaSource
     ? String(formData.get("nombrePreparatoria") || "").trim()
     : "";
@@ -5985,10 +5989,9 @@ function getWebLeadFormData() {
   const turno = isPreparatoriaSource ? String(formData.get("turno") || "").trim() : "";
   const notes = [
     "Lead captado desde Web Venezia.",
-    `Cómo conoció la beca: ${sourceConfig.label}`,
+    `Cómo supo de la beca: ${sourceConfig.label}`,
     `Origen específico: ${sourceConfig.origin}`,
     `Edad: ${edad}`,
-    `Sexo: ${sexo}`,
     nombrePreparatoria ? `Nombre de preparatoria: ${nombrePreparatoria}` : "",
     semestre ? `Semestre: ${semestre}` : "",
     turno ? `Turno: ${turno}` : "",
@@ -6017,7 +6020,6 @@ function getWebLeadFormData() {
     horaSugerida: "",
     tipoSolicitud: sourceConfig.requestType,
     edad,
-    sexo,
     origenDetalle: sourceConfig.origin,
     nombrePreparatoria,
     semestre,
@@ -6154,16 +6156,25 @@ function renderWebCourses() {
       .map(
         (course) => {
           const isMiniCard = Boolean(course.isMiniCard);
+          if (isMiniCard) {
+            return `
+          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")} web-course-card-mini web-ref-upcoming-card">
+            ${course.imagePath ? `<div class="web-ref-upcoming-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
+            <div class="web-ref-upcoming-body">
+              <span class="web-course-tag">${escapeHtml(course.statusLabel || "PRÓXIMAMENTE")}</span>
+              <strong>${course.icon ? `<span class="web-course-card-icon" aria-hidden="true">${escapeHtml(course.icon)}</span>` : ""}${escapeHtml(course.name)}</strong>
+            </div>
+          </article>
+        `;
+          }
           return `
-          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")}${isMiniCard ? " web-course-card-mini" : ""}">
-            ${course.imagePath && !isMiniCard ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /></div>` : ""}
+          <article class="web-course-card web-course-card-${escapeHtml(course.visualTone || "default")} web-ref-active-course">
+            ${course.imagePath ? `<div class="web-course-media"><img src="${escapeHtml(course.imagePath)}" alt="${escapeHtml(course.name)} en Instituto Venezia" /><span class="web-ref-active-pill">${escapeHtml(course.statusLabel || "ACTIVO")}</span></div>` : ""}
             ${course.categoryLabel ? `<span class="web-course-category">${escapeHtml(course.categoryLabel)}</span>` : ""}
-            <span class="web-course-tag">${escapeHtml(course.statusLabel || "Curso activo y disponible")}</span>
             <strong>${course.icon ? `<span class="web-course-card-icon" aria-hidden="true">${escapeHtml(course.icon)}</span>` : ""}${escapeHtml(course.name)}</strong>
-            ${isMiniCard ? `<p class="web-course-status-note">${escapeHtml(course.comingSoon || course.description || "No está abierto actualmente.")}</p>` : ""}
-            ${!isMiniCard && course.description ? `<p>${escapeHtml(course.description)}</p>` : ""}
-            ${!isMiniCard ? renderWebCourseAvailability(course) : ""}
-            ${isMiniCard ? "" : `<button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información</button>`}
+            ${course.description ? `<p>${escapeHtml(course.description)}</p>` : ""}
+            ${renderWebCourseAvailability(course)}
+            <button class="secondary-btn web-course-btn" type="button" data-course="${escapeHtml(course.name)}">Quiero información <span aria-hidden="true">›</span></button>
           </article>
         `;
         }
@@ -6172,11 +6183,17 @@ function renderWebCourses() {
   }
 
   const openCourses = getWebOpenCourseCatalog();
-  populateSelectWithValues(
-    document.getElementById("webCurso"),
-    openCourses.map((course) => course.name),
-    "Selecciona una opcion"
-  );
+  const webCourseSelect = document.getElementById("webCurso");
+  if (webCourseSelect) {
+    const previousValue = webCourseSelect.value;
+    const courseNames = [...new Set(openCourses.map((course) => course.name).filter(Boolean))];
+    webCourseSelect.innerHTML = [`<option value="">Selecciona una opcion</option>`]
+      .concat(courseNames.map((courseName) => `<option value="${escapeHtml(courseName)}">${escapeHtml(courseName)}</option>`))
+      .join("");
+    if (courseNames.includes(previousValue)) {
+      webCourseSelect.value = previousValue;
+    }
+  }
 }
 
 function renderWebWhatsappLinks() {
@@ -17052,44 +17069,35 @@ async function handleMiVeneziaContratoConfirmation() {
 
 function renderWebScholarshipSection() {
   webScholarshipCard.innerHTML = `
-    <div class="web-scholarship-impact">
-      <article class="web-access-card web-access-card-scholarship web-scholarship-main-card">
-        <div class="web-scholarship-copy">
-          <span class="web-course-tag">BECA VENEZIA</span>
-          <strong>Beca Venezia 2026</strong>
-          <p>Una oportunidad para aprender belleza profesional con inversión reducida y acompañamiento cercano.</p>
-        </div>
-      </article>
+    <div class="web-ref-scholarship">
+      <div class="web-ref-scholarship-copy">
+        <p class="eyebrow">✦ Beca Venezia</p>
+        <h3>Beca Venezia 2026</h3>
+        <p>Una oportunidad para aprender belleza profesional con inversión reducida y acompañamiento cercano.</p>
+      </div>
       <div class="web-scholarship-price-grid" aria-label="Costos de Beca Venezia">
-        <article class="web-scholarship-price-card">
+        <article class="web-scholarship-price-card web-ref-price-card">
           <span>Inscripción</span>
           <strong><s>$2,300</s> $999</strong>
         </article>
-        <article class="web-scholarship-price-card">
+        <article class="web-scholarship-price-card web-ref-price-card">
           <span>Mensualidad</span>
           <strong><s>$1,900</s> $1,700</strong>
         </article>
-        <article class="web-scholarship-price-card web-scholarship-price-card-wide">
-          <span>PARA LAS PRIMERAS 7 PERSONAS</span>
-          <strong>80% de material para prácticas</strong>
-          <small class="web-scholarship-cups-note">3 CUPOS DISPONIBLES CON MATERIAL</small>
+        <article class="web-scholarship-price-card web-ref-price-card">
+          <span>PARA LAS PRIMERAS 7</span>
+          <strong>80% incluido</strong>
         </article>
-        <article class="web-scholarship-price-card web-scholarship-price-card-urgent">
+        <article class="web-scholarship-price-card web-ref-price-card">
+          <strong>3 CUPOS DISPONIBLES<br />con material</strong>
+        </article>
+      </div>
+      <div class="web-scholarship-price-card web-scholarship-price-card-urgent web-ref-scholarship-urgent">
+        <div>
           <span>Cupos limitados</span>
           <strong>Inscripciones abiertas</strong>
-        </article>
-      </div>
-    </div>
-    <div class="web-access-footer">
-      <div class="web-access-copy">
-        <p class="eyebrow">Beca Venezia</p>
-        <h3>Empieza con una beca diseñada para convertir tu aprendizaje en ingresos</h3>
-        <p>Pregunta por disponibilidad y recibe orientación para elegir el curso activo que mejor va con tu meta.</p>
-      </div>
-      <p>La beca está sujeta a cupos reales de la generación vigente.</p>
-      <div class="form-actions">
-        <a class="primary-btn web-link-btn web-whatsapp-link" href="${escapeHtml(getWebWhatsAppUrl("Hola, quiero información sobre la Beca Venezia 2026."))}" target="_blank" rel="noopener">QUIERO MI BECA</a>
-        <button class="secondary-btn web-course-btn" type="button" data-course="Aplicar a beca">Ver cursos disponibles</button>
+        </div>
+        <span class="web-ref-cap" aria-hidden="true">🎓</span>
       </div>
     </div>
   `;

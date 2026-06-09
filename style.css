@@ -22,6 +22,1058 @@
   --web-card-shadow: 0 20px 40px rgba(17, 17, 17, 0.07);
 }
 
+/* Web Venezia 2.3: visual reference rebuild from supplied screenshots. */
+body.public-mode .main-content {
+  padding: 0;
+  background: linear-gradient(180deg, #f4f7f8 0%, #ffffff 48%, #f2f7f4 100%);
+}
+
+body.public-mode .web-reference-shell {
+  width: min(1182px, 100%);
+  max-width: 1182px;
+  padding: 10px 8px 42px;
+  gap: 22px;
+}
+
+body.public-mode .web-reference-shell .web-sales-section {
+  border: 1px solid rgba(209, 216, 224, 0.78);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.08);
+}
+
+body.public-mode .web-reference-shell .eyebrow {
+  margin: 0 0 0.42rem;
+  color: #c89c36;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-section-heading {
+  margin-bottom: 1.7rem;
+}
+
+body.public-mode .web-reference-shell .web-section-heading h3 {
+  margin: 0;
+  max-width: none;
+  color: #101828;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2.2rem, 3.2vw, 3.05rem);
+  font-weight: 700;
+  line-height: 0.98;
+}
+
+body.public-mode .web-reference-shell .web-lead {
+  margin-top: 0.85rem;
+  color: #202531;
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero {
+  position: relative;
+  min-height: 920px;
+  padding: 54px 58px;
+  overflow: hidden;
+  color: #ffffff;
+  background: #111a23;
+  border-color: rgba(255, 255, 255, 0.7);
+  border-radius: 28px;
+  box-shadow:
+    0 26px 54px rgba(15, 23, 42, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-bg {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 72%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% center;
+  filter: saturate(0.9) contrast(0.95);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 62% 48%, rgba(25, 130, 100, 0.24), transparent 36%),
+    linear-gradient(90deg, rgba(12, 20, 30, 0.98) 0%, rgba(17, 31, 42, 0.92) 38%, rgba(22, 72, 66, 0.46) 58%, rgba(8, 14, 20, 0.1) 100%),
+    linear-gradient(180deg, rgba(9, 16, 24, 0.62) 0%, rgba(13, 24, 33, 0.28) 46%, rgba(9, 18, 28, 0.7) 100%);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-number {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  z-index: 2;
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111827;
+  font-size: 1.8rem;
+  font-weight: 900;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 8px 16px rgba(0, 0, 0, 0.22);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-nav {
+  position: absolute;
+  top: 44px;
+  right: 28px;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-nav .web-utility-link {
+  min-width: 176px;
+  min-height: 64px;
+  padding: 0 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(40, 54, 67, 0.72);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 24px rgba(0, 0, 0, 0.12);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: min(510px, 54%);
+  min-height: 100%;
+  align-content: start;
+  padding-top: 84px;
+}
+
+body.public-mode .web-reference-shell .web-ref-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-ref-pill-green {
+  margin-bottom: 44px;
+  padding: 0.8rem 1.25rem;
+  border: 1px solid rgba(129, 247, 182, 0.28);
+  background: rgba(35, 67, 64, 0.58);
+  color: #b9f8d2;
+  font-size: 1.08rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero h2 {
+  margin: 0;
+  color: #ffffff;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(4.2rem, 7.2vw, 6.75rem);
+  font-weight: 900;
+  line-height: 1.02;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-subtitle {
+  margin: 2rem 0 1.85rem;
+  max-width: 470px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.34rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-actions .web-link-btn {
+  min-width: 178px;
+  min-height: 66px;
+  border-radius: 20px;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-actions .web-hero-primary-cta {
+  background: linear-gradient(180deg, #83efa4 0%, #44d273 100%) !important;
+  color: #071c14 !important;
+  box-shadow: 0 16px 34px rgba(37, 202, 108, 0.25) !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-actions .web-hero-whatsapp-cta {
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(105, 139, 133, 0.56) !important;
+  color: #ffffff !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-bottom {
+  margin-top: 118px;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-bottom .eyebrow {
+  color: #d9bd80;
+  font-size: 0.93rem;
+  letter-spacing: 0.28em;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-bottom strong {
+  display: block;
+  max-width: 560px;
+  color: #ffffff;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-dots {
+  position: absolute;
+  right: 45%;
+  bottom: 48px;
+  z-index: 3;
+  display: flex;
+  gap: 18px;
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-dots span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+body.public-mode .web-reference-shell .web-ref-hero-dots span.is-active {
+  background: #e8d19c;
+}
+
+body.public-mode .web-reference-shell .web-ref-testimonials {
+  padding: 48px 54px;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 34px;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card {
+  display: block;
+  min-height: 0;
+  padding: 0 0 1.2rem;
+  overflow: hidden;
+  border: 1px solid rgba(226, 231, 236, 0.95);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+body.public-mode .web-reference-shell .web-testimonial-photo {
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 1.9 / 1;
+  overflow: hidden;
+  border-radius: 22px 22px 0 0;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 34%;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card > strong {
+  display: inline-block;
+  margin: 1rem 0 0 1.05rem;
+  color: #101828;
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card > span {
+  display: inline-block;
+  margin-left: 0.25rem;
+  color: #a97922;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card p {
+  margin: 0.55rem 1.05rem 0;
+  color: #111827;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card p strong {
+  display: inline;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 900;
+  line-height: inherit;
+}
+
+body.public-mode .web-reference-shell .web-ref-courses {
+  padding: 34px 38px 24px;
+}
+
+body.public-mode .web-reference-shell .web-ref-courses .eyebrow,
+body.public-mode .web-reference-shell .web-ref-prep .eyebrow {
+  color: #28944f;
+}
+
+body.public-mode .web-reference-shell .web-ref-courses .web-section-heading h3 {
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(2.05rem, 3vw, 2.95rem);
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-course-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(245px, 0.7fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  min-height: 430px;
+  padding: 0 28px 26px;
+  overflow: hidden;
+  border: 1px solid rgba(220, 226, 232, 0.96);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.1);
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(1),
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(2) {
+  grid-column: auto !important;
+  grid-row: 1 / span 2;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(1) {
+  grid-column: 1 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(2) {
+  grid-column: 2 !important;
+}
+
+body.public-mode .web-reference-shell .web-course-media {
+  position: relative;
+  width: calc(100% + 56px);
+  height: 205px;
+  margin: 0 -28px 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: none;
+}
+
+body.public-mode .web-reference-shell .web-course-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-pill {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  padding: 0.72rem 1.05rem;
+  border-radius: 999px;
+  color: #0a4a2d;
+  background: #9bf0ad;
+  font-size: 1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-course-card-electric .web-ref-active-pill {
+  color: #124276;
+  background: #b8dcff;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course .web-course-card-icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  margin: -34px 0 14px;
+  place-items: center;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.13);
+  font-size: 1.75rem;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course strong {
+  display: block;
+  color: #101828;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.75rem, 2.05vw, 2.35rem);
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course p {
+  margin: 0.8rem 0 0;
+  color: #252b35;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course .web-course-btn {
+  align-self: end;
+  min-height: 58px;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #101828;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course .web-course-btn span {
+  margin-left: auto;
+  font-size: 1.8rem;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 205px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(229, 219, 239, 0.86);
+  border-radius: 16px;
+  background: #fffaff;
+  box-shadow: 0 18px 34px rgba(86, 63, 121, 0.08);
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(3),
+body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(4) {
+  grid-column: 3 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-media {
+  min-height: 92px;
+  overflow: hidden;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 92px;
+  object-fit: cover;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 20px 18px;
+  justify-items: center;
+  text-align: left;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card .web-course-tag {
+  margin-top: -16px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  color: #8262a4;
+  background: #eadcff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card strong {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  color: #101828;
+  font-family: "Manrope", sans-serif;
+  font-size: 1.28rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card .web-course-card-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  font-size: 1.2rem;
+}
+
+body.public-mode .web-reference-shell .web-ref-all-courses {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  margin: 20px auto 0;
+  color: #28944f;
+  font-size: 1.12rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+body.public-mode .web-reference-shell .web-ref-all-courses span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid #82dca0;
+  border-radius: 50%;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-section {
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(520px, 1fr);
+  gap: 48px;
+  padding: 48px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 80% 32%, rgba(17, 146, 111, 0.42), transparent 40%),
+    linear-gradient(135deg, #111723 0%, #1f2c3a 48%, #1f7157 100%);
+  color: #ffffff;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-copy {
+  display: grid;
+  align-content: start;
+  min-height: 300px;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-copy .eyebrow {
+  color: #67df87;
+  letter-spacing: 0.1em;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-copy h3 {
+  margin: 1rem 0 1.45rem;
+  color: #ffffff;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(2.4rem, 4vw, 3.35rem);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-copy p:last-child {
+  margin: 0;
+  max-width: 470px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+body.public-mode .web-reference-shell .web-scholarship-price-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+body.public-mode .web-reference-shell .web-ref-price-card {
+  display: grid;
+  align-content: center;
+  min-height: 138px;
+  padding: 26px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+body.public-mode .web-reference-shell .web-ref-price-card span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-ref-price-card strong {
+  margin-top: 16px;
+  color: #ffffff;
+  font-size: clamp(1.8rem, 2.8vw, 2.55rem);
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+body.public-mode .web-reference-shell .web-ref-price-card s {
+  margin-right: 0.45rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration-thickness: 3px;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 144px;
+  margin-top: 18px;
+  padding: 28px 34px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #9af4a8 0%, #4bd06f 100%);
+  color: #082114;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent span,
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent strong {
+  display: block;
+  color: #082114;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent span:not(.web-ref-cap) {
+  font-size: 1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent strong {
+  margin-top: 22px;
+  font-size: clamp(2.2rem, 4vw, 3.35rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+body.public-mode .web-reference-shell .web-ref-cap {
+  font-size: 5rem;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.14));
+}
+
+body.public-mode .web-reference-shell .web-ref-prep {
+  display: grid;
+  grid-template-columns: 0.82fr 1.45fr;
+  gap: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card {
+  border: 1px solid rgba(226, 235, 230, 0.9);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 330px;
+  padding: 36px 32px;
+  text-align: center;
+  background: linear-gradient(135deg, #effbeb 0%, #e1f4dd 100%);
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-icon {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  margin-bottom: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
+  font-size: 3.3rem;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep h3 {
+  margin: 0;
+  color: #101828;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.8rem, 2.8vw, 2.25rem);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left p {
+  margin: 1.15rem 0 1.6rem;
+  color: #202531;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+body.public-mode .web-reference-shell .web-prep-invitation-btn {
+  min-height: 64px;
+  padding: 0 1.6rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5fd983 0%, #25b85b 100%) !important;
+  color: #ffffff !important;
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-right {
+  display: grid;
+  align-content: center;
+  min-height: 330px;
+  padding: 52px 64px;
+  background: linear-gradient(135deg, #ffffff 0%, #effaf3 100%);
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-right h3 {
+  max-width: 820px;
+  font-size: clamp(2rem, 3.1vw, 2.95rem);
+  line-height: 1.3;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 34px;
+  padding: 26px 28px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-benefits span {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #202531;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+body.public-mode .web-reference-shell .web-ref-form-section {
+  padding: 50px;
+  background: #ffffff;
+}
+
+body.public-mode .web-reference-shell .web-form-layout {
+  display: block;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 24px 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form label {
+  display: grid;
+  gap: 12px;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form label span {
+  color: #2a2f3b;
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form input,
+body.public-mode .web-reference-shell .web-ref-lead-form select {
+  width: 100%;
+  min-height: 60px;
+  border: 1px solid rgba(211, 217, 226, 0.94);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form input::placeholder {
+  color: #9aa3b2;
+  font-weight: 700;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form .form-actions {
+  display: block;
+  margin: 22px 0 0;
+}
+
+body.public-mode .web-reference-shell .web-ref-lead-form .primary-btn {
+  width: 100%;
+  min-height: 74px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #61d982 0%, #36ba62 100%) !important;
+  color: #ffffff !important;
+  font-size: 1.18rem;
+  font-weight: 900;
+  text-transform: none;
+}
+
+body.public-mode .web-reference-shell .web-ref-privacy {
+  margin: 0.4rem 0 0;
+  color: #8b95a5;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@media (max-width: 979px) {
+  body.public-mode .web-reference-shell {
+    padding: 8px 8px 34px;
+    gap: 18px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero {
+    min-height: 820px;
+    padding: 28px 28px 34px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-bg {
+    width: 100%;
+    opacity: 0.76;
+    object-position: 60% center;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-shade {
+    background:
+      linear-gradient(180deg, rgba(11, 18, 28, 0.96) 0%, rgba(17, 31, 42, 0.82) 45%, rgba(17, 74, 66, 0.78) 100%),
+      linear-gradient(90deg, rgba(12, 20, 30, 0.95), rgba(12, 20, 30, 0.18));
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-nav {
+    top: 28px;
+    right: 26px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-nav .web-utility-link {
+    min-width: 120px;
+    min-height: 50px;
+    font-size: 0.88rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-number {
+    width: 42px;
+    height: 42px;
+    font-size: 1.35rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-content {
+    width: 100%;
+    padding-top: 82px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-pill-green {
+    margin-bottom: 34px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero h2 {
+    font-size: clamp(4rem, 15vw, 5.1rem);
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-bottom {
+    margin-top: 76px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-dots {
+    right: 42px;
+    bottom: 34px;
+  }
+
+  body.public-mode .web-reference-shell .web-testimonial-grid,
+  body.public-mode .web-reference-shell .web-course-grid,
+  body.public-mode .web-reference-shell .web-ref-prep,
+  body.public-mode .web-reference-shell .web-ref-lead-form,
+  body.public-mode .web-reference-shell .web-ref-scholarship,
+  body.public-mode .web-reference-shell .web-scholarship-price-grid,
+  body.public-mode .web-reference-shell .web-ref-prep-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-active-course:nth-child(1),
+  body.public-mode .web-reference-shell .web-ref-active-course:nth-child(2),
+  body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(3),
+  body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(4) {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-scholarship {
+    gap: 24px;
+    padding: 32px;
+  }
+}
+
+@media (max-width: 620px) {
+  body.public-mode .web-reference-shell {
+    padding: 6px 6px 28px;
+  }
+
+  body.public-mode .web-reference-shell .web-sales-section {
+    border-radius: 22px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero {
+    min-height: 835px;
+    padding: 24px 20px 28px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-nav {
+    left: 20px;
+    right: 20px;
+    top: 72px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-nav .web-utility-link {
+    min-width: 0;
+    min-height: 46px;
+    border-radius: 14px;
+    padding: 0 0.7rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-content {
+    padding-top: 128px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-pill-green {
+    margin-bottom: 26px;
+    padding: 0.62rem 0.9rem;
+    font-size: 0.82rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero h2 {
+    font-size: clamp(3.15rem, 16vw, 4.2rem);
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-subtitle {
+    margin: 1.4rem 0 1.25rem;
+    font-size: 1.02rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-actions .web-link-btn {
+    min-width: 0;
+    min-height: 56px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-bottom {
+    margin-top: 40px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-bottom strong {
+    max-width: 13.5rem;
+    font-size: 1.42rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-hero-dots {
+    right: 28px;
+    bottom: 30px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-testimonials,
+  body.public-mode .web-reference-shell .web-ref-courses,
+  body.public-mode .web-reference-shell .web-ref-form-section {
+    padding: 26px 18px;
+  }
+
+  body.public-mode .web-reference-shell .web-testimonial-card strong {
+    font-size: 1.42rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-active-course {
+    min-height: auto;
+    padding: 0 18px 20px;
+  }
+
+  body.public-mode .web-reference-shell .web-course-media {
+    width: calc(100% + 36px);
+    height: 230px;
+    margin: 0 -18px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-active-course strong {
+    font-size: 1.85rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-upcoming-card {
+    min-height: 230px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-scholarship {
+    padding: 24px 18px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-price-card {
+    min-height: 112px;
+    padding: 20px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-scholarship-urgent {
+    min-height: 118px;
+    padding: 20px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-cap {
+    font-size: 3.2rem;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep-card-left,
+  body.public-mode .web-reference-shell .web-ref-prep-card-right {
+    min-height: auto;
+    padding: 28px 22px;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep-benefits {
+    padding: 18px;
+  }
+
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5685,6 +6737,16 @@ body.teacher-portal-mode #teacherPortalDashboard > .panel:first-child .secondary
   width: 100%;
 }
 
+.web-prep-invitation-section {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+}
+
+.web-prep-invitation-btn {
+  width: fit-content;
+}
+
 .web-lead-source-field {
   display: grid;
   gap: 0.8rem;
@@ -10545,6 +11607,47 @@ body.public-mode .web-mobile-app-shell .web-floating-whatsapp {
 }
 
 @media (max-width: 759px) {
+  body.public-mode .main-content,
+  body.public-mode .web-mobile-app-shell,
+  body.public-mode .web-mobile-app-shell .web-sales-section {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body.public-mode .web-mobile-app-shell *,
+  body.public-mode .web-mobile-app-shell *::before,
+  body.public-mode .web-mobile-app-shell *::after {
+    box-sizing: border-box;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-utility-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-brand-lockup {
+    min-width: 0;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-utility-actions {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-hero-actions {
+    grid-template-columns: 1fr;
+  }
+
+  body.public-mode .web-mobile-app-shell .web-hero-beca-card h2,
+  body.public-mode .web-mobile-app-shell .hero-slide-content strong,
+  body.public-mode .web-mobile-app-shell .web-section-heading h3,
+  body.public-mode .web-mobile-app-shell .web-testimonial-card strong {
+    overflow-wrap: anywhere;
+  }
+
   .web-school-fields {
     grid-template-columns: 1fr;
   }
@@ -10552,5 +11655,203 @@ body.public-mode .web-mobile-app-shell .web-floating-whatsapp {
   .web-lead-form .form-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+}
+
+/* Web Venezia 2.3 final cascade overrides. Keep at file end. */
+body.public-mode .web-reference-shell .web-course-grid {
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 1.18fr) minmax(245px, 0.72fr) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(1) {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course:nth-child(2) {
+  grid-column: 2 !important;
+  grid-row: 1 / span 2 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(3) {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(4) {
+  grid-column: 3 !important;
+  grid-row: 2 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-active-course {
+  min-height: 430px !important;
+}
+
+body.public-mode .web-reference-shell .web-course-media {
+  height: 205px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card {
+  min-height: 205px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-scholarship-urgent .web-ref-cap {
+  display: block !important;
+  margin-left: auto !important;
+  color: #082114 !important;
+  font-size: 5rem !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 979px) {
+  body.public-mode .web-reference-shell .web-course-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-active-course:nth-child(1),
+  body.public-mode .web-reference-shell .web-ref-active-course:nth-child(2),
+  body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(3),
+  body.public-mode .web-reference-shell .web-ref-upcoming-card:nth-child(4) {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}
+
+/* Web Venezia final visual correction: mini-cards, prep block and form separation. */
+body.public-mode .web-reference-shell .web-ref-upcoming-card {
+  align-self: center !important;
+  min-height: 168px !important;
+  height: 168px !important;
+  border-radius: 15px !important;
+  box-shadow: 0 14px 26px rgba(86, 63, 121, 0.07) !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-media {
+  min-height: 66px !important;
+  height: 66px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-media img {
+  min-height: 66px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-body {
+  gap: 6px !important;
+  padding: 0 15px 12px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card .web-course-tag {
+  margin-top: -13px !important;
+  padding: 0.4rem 0.68rem !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.1em !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card strong {
+  gap: 10px !important;
+  font-size: 1.02rem !important;
+  line-height: 1.05 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-upcoming-card .web-course-card-icon {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+  font-size: 1rem !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep {
+  grid-template-columns: minmax(340px, 0.94fr) minmax(0, 1.62fr) !important;
+  gap: 30px !important;
+  margin-top: 4px !important;
+  margin-bottom: 42px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left {
+  min-height: 392px !important;
+  padding: 48px 38px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-icon {
+  width: 126px !important;
+  height: 126px !important;
+  margin-bottom: 26px !important;
+  font-size: 4rem !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left h3 {
+  font-size: clamp(2.12rem, 3.2vw, 2.62rem) !important;
+  line-height: 1.08 !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left p {
+  margin: 1.25rem 0 1.9rem !important;
+  font-size: 1.08rem !important;
+}
+
+body.public-mode .web-reference-shell .web-prep-invitation-btn {
+  min-height: 72px !important;
+  padding: 0 2.15rem !important;
+  font-size: 1.18rem !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-right {
+  min-height: 392px !important;
+  padding: 56px 64px !important;
+}
+
+body.public-mode .web-reference-shell .web-ref-form-section {
+  margin-top: 0 !important;
+  padding: 54px 50px !important;
+}
+
+@media (max-width: 979px) {
+  body.public-mode .web-reference-shell .web-ref-upcoming-card {
+    min-height: 160px !important;
+    height: 160px !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-upcoming-card strong {
+    font-size: 1rem !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep {
+    grid-template-columns: 1fr !important;
+    gap: 22px !important;
+    margin-bottom: 34px !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep-card-left,
+  body.public-mode .web-reference-shell .web-ref-prep-card-right {
+    min-height: auto !important;
+  }
+}
+
+@media (max-width: 620px) {
+  body.public-mode .web-reference-shell .web-ref-prep-card-left {
+    padding: 38px 24px !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep-icon {
+    width: 112px !important;
+    height: 112px !important;
+    font-size: 3.45rem !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-prep-card-left h3 {
+    font-size: 2rem !important;
+  }
+
+  body.public-mode .web-reference-shell .web-ref-form-section {
+    padding: 30px 18px !important;
   }
 }
