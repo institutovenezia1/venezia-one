@@ -5982,6 +5982,9 @@ function getWebLeadFormData() {
   const sourceConfig = sourceMap[leadSource] || sourceMap.otro;
   const isPreparatoriaSource = leadSource === "preparatoria";
   const edad = String(formData.get("edad") || "").trim();
+  const tipoInscripcionWeb = String(formData.get("tipoInscripcionWeb") || "AGENDAR_CITA").trim();
+  const tipoInscripcionLabel =
+    tipoInscripcionWeb === "INSCRIPCION_EN_LINEA" ? "Inscribirme en línea" : "Agendar cita";
   const nombrePreparatoria = isPreparatoriaSource
     ? String(formData.get("nombrePreparatoria") || "").trim()
     : "";
@@ -5991,6 +5994,7 @@ function getWebLeadFormData() {
     "Lead captado desde Web Venezia.",
     `Cómo supo de la beca: ${sourceConfig.label}`,
     `Origen específico: ${sourceConfig.origin}`,
+    `Objetivo: ${tipoInscripcionLabel}`,
     `Edad: ${edad}`,
     nombrePreparatoria ? `Nombre de preparatoria: ${nombrePreparatoria}` : "",
     semestre ? `Semestre: ${semestre}` : "",
@@ -6018,7 +6022,8 @@ function getWebLeadFormData() {
     accesoInteres: "Beca Venezia",
     horarioCita: "",
     horaSugerida: "",
-    tipoSolicitud: sourceConfig.requestType,
+    tipoSolicitud: tipoInscripcionLabel,
+    tipoInscripcionWeb,
     edad,
     origenDetalle: sourceConfig.origin,
     nombrePreparatoria,
@@ -6039,7 +6044,7 @@ function syncWebSchoolFields() {
     return;
   }
 
-  const selectedSource = webLeadForm.querySelector('input[name="conocioBeca"]:checked');
+  const selectedSource = webLeadForm.querySelector('[name="conocioBeca"]');
   const shouldShowSchoolFields = Boolean(selectedSource && selectedSource.value === "preparatoria");
   const schoolInputs = Array.from(
     schoolFields.querySelectorAll("input, select, textarea")
@@ -17076,17 +17081,21 @@ function renderWebScholarshipSection() {
         <p>Una oportunidad para aprender belleza profesional con inversión reducida y acompañamiento cercano.</p>
       </div>
       <div class="web-scholarship-price-grid" aria-label="Costos de Beca Venezia">
-        <article class="web-scholarship-price-card web-ref-price-card">
-          <span>Inscripción</span>
-          <strong><s>$2,300</s> $999</strong>
+        <article class="web-scholarship-price-card web-ref-price-card web-ref-normal-price-card">
+          <span>INSCRIPCIÓN NORMAL</span>
+          <strong>$2,300</strong>
+        </article>
+        <article class="web-scholarship-price-card web-ref-price-card web-ref-beca-price-card">
+          <span>BECA VENEZIA</span>
+          <strong>$999</strong>
         </article>
         <article class="web-scholarship-price-card web-ref-price-card">
           <span>Mensualidad</span>
           <strong><s>$1,900</s> $1,700</strong>
         </article>
         <article class="web-scholarship-price-card web-ref-price-card">
-          <span>PARA LAS PRIMERAS 7</span>
-          <strong>80% incluido</strong>
+          <span>PARA LAS PRIMERAS 7 PERSONAS</span>
+          <strong>80% de material para prácticas</strong>
         </article>
         <article class="web-scholarship-price-card web-ref-price-card">
           <strong>3 CUPOS DISPONIBLES<br />con material</strong>
@@ -18738,9 +18747,9 @@ if (webLeadSubmitButton) {
 
 if (webGeneralInfoButton && webLeadForm) {
   webGeneralInfoButton.addEventListener("click", () => {
-    const generalSourceOption = webLeadForm.querySelector('input[name="conocioBeca"][value="otro"]');
+    const generalSourceOption = webLeadForm.querySelector('[name="conocioBeca"]');
     if (generalSourceOption) {
-      generalSourceOption.checked = true;
+      generalSourceOption.value = "otro";
     }
     syncWebSchoolFields();
     const nameField = document.getElementById("webNombre");

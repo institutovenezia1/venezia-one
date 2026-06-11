@@ -2999,7 +2999,6 @@
             <section class="web-sales-section web-hero-panel web-ref-hero" aria-label="Beca Venezia 2026">
               <img class="web-ref-hero-bg" src="/images/barberia.jpg" alt="Curso de barbería en Instituto Venezia" />
               <div class="web-ref-hero-shade"></div>
-              <span class="web-ref-hero-number" aria-hidden="true">2</span>
               <div class="web-ref-hero-nav">
                 <a class="web-utility-link" href="/mi-venezia-v2.html">Mi Venezia</a>
                 <button class="web-utility-link" type="button" id="publicInternalAccessButton">Acceso interno</button>
@@ -3083,6 +3082,39 @@
             </section>
 
             <section class="web-sales-section web-ref-form-section" id="leadForm">
+              <div class="web-ref-form-heading">
+                <p class="eyebrow">Inscripción en línea</p>
+                <h3>¿Cómo deseas asegurar tu lugar?</h3>
+              </div>
+
+              <div class="web-inscription-mode-grid" aria-label="Opciones para asegurar lugar">
+                <label class="web-inscription-mode-card">
+                  <input type="radio" name="tipoInscripcionWeb" value="AGENDAR_CITA" form="webLeadForm" checked />
+                  <span>
+                    <strong>AGENDAR CITA</strong>
+                    <small>Visita el instituto y completa tu inscripción con una asesora.</small>
+                  </span>
+                </label>
+                <label class="web-inscription-mode-card">
+                  <input type="radio" name="tipoInscripcionWeb" value="INSCRIPCION_EN_LINEA" form="webLeadForm" />
+                  <span>
+                    <strong>INSCRIBIRME EN LÍNEA</strong>
+                    <small>Realiza tu pago desde cualquier lugar y asegura tu lugar inmediatamente.</small>
+                  </span>
+                </label>
+              </div>
+
+              <div class="web-payment-preview" aria-label="Opciones de pago próximas">
+                <article>
+                  <span>💳 Aparta tu lugar</span>
+                  <strong>$399</strong>
+                </article>
+                <article>
+                  <span>🎓 Inscripción con Beca</span>
+                  <strong>$999</strong>
+                </article>
+              </div>
+
               <div id="webSuccessAlert" class="web-alert web-alert-success" hidden>
                 Tu información fue enviada correctamente a Venezia. Una asesora dará seguimiento.
               </div>
@@ -3109,15 +3141,6 @@
                   </label>
 
                   <label>
-                    <span>Preparatoria de procedencia</span>
-                    <select id="webPreparatoria" name="nombrePreparatoria">
-                      <option value="">Selecciona tu preparatoria</option>
-                      <option>Preparatoria invitada</option>
-                      <option>Otra preparatoria</option>
-                    </select>
-                  </label>
-
-                  <label>
                     <span>¿Cómo supiste de la beca?</span>
                     <select id="webLeadSource" name="conocioBeca" required>
                       <option value="preparatoria">Me llegó la invitación en mi prepa</option>
@@ -3125,8 +3148,34 @@
                       <option value="familiar">Me recomendó un familiar</option>
                       <option value="amigo">Me recomendó un amigo</option>
                       <option value="otro">Otro</option>
+                      <option value="no_preparatoria">No soy estudiante de preparatoria</option>
                     </select>
                   </label>
+
+                  <div class="web-school-fields full-width" id="webSchoolFields">
+                    <label>
+                      <span>Preparatoria de procedencia</span>
+                      <select id="webPreparatoria" name="nombrePreparatoria">
+                        <option value="">Selecciona tu preparatoria</option>
+                        <option>Preparatoria invitada</option>
+                        <option>Otra preparatoria</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Semestre</span>
+                      <input id="webSemestre" name="semestre" type="text" inputmode="numeric" />
+                    </label>
+
+                    <label>
+                      <span>Turno</span>
+                      <select id="webTurno" name="turno">
+                        <option value="">Selecciona turno</option>
+                        <option>Matutino</option>
+                        <option>Vespertino</option>
+                      </select>
+                    </label>
+                  </div>
 
                   <input id="webSucursal" name="sucursal" type="hidden" value="Tlaxcala" />
 
@@ -3138,8 +3187,9 @@
                   </label>
 
                   <div class="form-actions full-width">
-                    <button class="primary-btn" type="submit" form="webLeadForm" id="webLeadSubmitButton">Quiero mi beca</button>
+                    <button class="primary-btn" type="submit" form="webLeadForm" id="webLeadSubmitButton">Solicitar cita de inscripción</button>
                   </div>
+                  <p class="web-payment-policy full-width">Al realizar tu pago aceptas reservar un lugar académico dentro de la generación correspondiente.<br />Los apartados e inscripciones no son reembolsables.</p>
                   <p class="web-ref-privacy full-width">🔒 Tus datos están protegidos. Solo serán usados para brindarte información.</p>
                 </form>
               </div>
