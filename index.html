@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260507-mi-venezia-android" />
+    <link rel="stylesheet" href="style.css?v=20260702-pagos-sprint-1" />
   </head>
   <body>
     <div
@@ -1475,8 +1475,8 @@
             <div class="payments-panel-header">
               <div class="section-heading">
                 <p class="eyebrow">Seguimiento de cobro</p>
-                <h3 id="paymentsUpcomingTitle">Próximas alumnas a pagar</h3>
-                <p id="paymentsUpcomingSubtitle" class="module-helper-copy">Seguimiento de próximas mensualidades</p>
+                <h3 id="paymentsUpcomingTitle">Próximo fin de semana</h3>
+                <p id="paymentsUpcomingSubtitle" class="module-helper-copy"></p>
               </div>
             </div>
 
@@ -1486,8 +1486,9 @@
                   <tr>
                     <th>Nombre de la alumna</th>
                     <th>Curso</th>
-                    <th>Próxima mensualidad</th>
-                    <th>Fecha de pago</th>
+                    <th>Fecha esperada</th>
+                    <th>Concepto próximo</th>
+                    <th>Monto esperado</th>
                   </tr>
                 </thead>
                 <tbody id="paymentsUpcomingTableBody"></tbody>
@@ -1495,7 +1496,36 @@
             </div>
 
             <p id="paymentsUpcomingEmptyState" class="empty-state">
-              No hay alumnas próximas a pagar en esta ventana.
+              No hay pagos programados para este fin de semana.
+            </p>
+          </section>
+
+          <section class="panel table-panel payments-panel">
+            <div class="payments-panel-header">
+              <div class="section-heading">
+                <p class="eyebrow">Seguimiento de cobro</p>
+                <h3>Siguiente fin de semana</h3>
+                <p id="paymentsFollowingWeekendSubtitle" class="module-helper-copy"></p>
+              </div>
+            </div>
+
+            <div class="table-wrapper payments-table-wrapper payments-upcoming-table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre de la alumna</th>
+                    <th>Curso</th>
+                    <th>Fecha esperada</th>
+                    <th>Concepto próximo</th>
+                    <th>Monto esperado</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsFollowingWeekendTableBody"></tbody>
+              </table>
+            </div>
+
+            <p id="paymentsFollowingWeekendEmptyState" class="empty-state">
+              No hay pagos programados para este fin de semana.
             </p>
           </section>
 
@@ -3941,7 +3971,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
-    <script src="dataService.js?v=20260527-payment-concept-save-guard"></script>
-    <script src="app.js?v=20260530-payment-review-concept-finance"></script>
+    <script src="dataService.js?v=20260702-pagos-sprint-1"></script>
+    <script src="app.js?v=20260702-pagos-sprint-1"></script>
   </body>
 </html>

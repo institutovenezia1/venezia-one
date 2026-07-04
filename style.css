@@ -3924,7 +3924,7 @@ td select {
 }
 
 .payments-upcoming-table-wrapper table {
-  min-width: 680px;
+  min-width: 760px;
   table-layout: fixed;
   width: 100%;
 }
@@ -3956,22 +3956,27 @@ td select {
 
 .payments-upcoming-table-wrapper th:nth-child(1),
 .payments-upcoming-table-wrapper td:nth-child(1) {
-  width: 34%;
+  width: 28%;
 }
 
 .payments-upcoming-table-wrapper th:nth-child(2),
 .payments-upcoming-table-wrapper td:nth-child(2) {
-  width: 25%;
+  width: 20%;
 }
 
 .payments-upcoming-table-wrapper th:nth-child(3),
 .payments-upcoming-table-wrapper td:nth-child(3) {
-  width: 21%;
+  width: 18%;
 }
 
 .payments-upcoming-table-wrapper th:nth-child(4),
 .payments-upcoming-table-wrapper td:nth-child(4) {
   width: 20%;
+}
+
+.payments-upcoming-table-wrapper th:nth-child(5),
+.payments-upcoming-table-wrapper td:nth-child(5) {
+  width: 14%;
 }
 
 .payments-continuity-table-wrapper th:nth-child(1),

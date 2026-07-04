@@ -121,6 +121,25 @@ const EXPENSE_CATEGORIES = [
 
 const PAYMENT_STATUS_OPTIONS = ["", "Pagado", "Parcial", "Pendiente", "No aplica"];
 const PAYMENT_METHOD_OPTIONS = ["", "Efectivo", "Transferencia"];
+const PAYMENT_EDITABLE_FIELDS = [
+  "mensualidadPactada",
+  "certificadoP1",
+  "certificadoP2",
+  "mensualidad1",
+  "mensualidad2",
+  "mensualidad3",
+  "mensualidad4",
+  "mensualidad5",
+  "metodoPago",
+  "cantidadPagada",
+  "paymentRealDate",
+  "reportes",
+  "observaciones",
+  "lastMonthlyPaymentStatus",
+  "continuityStatus",
+  "nextCourse",
+  "nextCourseStartDate",
+];
 const PAYMENT_LAST_MONTHLY_STATUS_OPTIONS = ["", "Pendiente", "Pagada"];
 const CONTINUITY_STATUS_OPTIONS = [
   { value: "active_payment_pending", label: "Activa para cobro" },
@@ -222,6 +241,7 @@ const PAYMENT_COMPARISON_STUDENT_NAMES = new Set([
 ]);
 const paymentComparisonSnapshots = new Map();
 const paymentLastInteractedConceptByStudentId = new Map();
+const paymentSaveStudentIds = new Set();
 const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad1", label: "Men1", sessionIndex: 0 },
   { field: "mensualidad2", label: "Men2", sessionIndex: 3 },
@@ -509,6 +529,9 @@ const paymentsUpcomingTitle = document.getElementById("paymentsUpcomingTitle");
 const paymentsUpcomingSubtitle = document.getElementById("paymentsUpcomingSubtitle");
 const paymentsUpcomingTableBody = document.getElementById("paymentsUpcomingTableBody");
 const paymentsUpcomingEmptyState = document.getElementById("paymentsUpcomingEmptyState");
+const paymentsFollowingWeekendSubtitle = document.getElementById("paymentsFollowingWeekendSubtitle");
+const paymentsFollowingWeekendTableBody = document.getElementById("paymentsFollowingWeekendTableBody");
+const paymentsFollowingWeekendEmptyState = document.getElementById("paymentsFollowingWeekendEmptyState");
 const paymentsReviewTableBody = document.getElementById("paymentsReviewTableBody");
 const paymentsReviewEmptyState = document.getElementById("paymentsReviewEmptyState");
 const paymentsContinuityTableBody = document.getElementById("paymentsContinuityTableBody");
@@ -6603,9 +6626,29 @@ function getLastInteractedPaidPaymentConceptFromForm(studentId) {
   return control && isEligiblePaymentStatus(control.value || "") ? [concept] : [];
 }
 
-function getPaymentConceptsForSave(studentId, changedPaidConcepts = []) {
+function getPaymentConceptsForSave(studentId, changedPaidConcepts = [], formSnapshot = null) {
   if (changedPaidConcepts.length > 0) {
     return changedPaidConcepts;
+  }
+
+  if (formSnapshot) {
+    const editedPaidConcepts = PAYMENT_CONCEPT_DETAIL_FIELDS.filter(
+      ({ key }) =>
+        isEligiblePaymentStatus(__veneziaGet(formSnapshot.values, key)) &&
+        formSnapshot.editedFields.includes(key)
+    );
+    if (editedPaidConcepts.length > 0) {
+      return editedPaidConcepts;
+    }
+
+    const captureFieldsWereEdited = ["paymentRealDate", "metodoPago", "cantidadPagada"]
+      .some((field) => formSnapshot.editedFields.includes(field));
+    const lastInteractedConcept = getPaymentConceptDefinitionByKey(formSnapshot.lastInteractedConcept);
+    return captureFieldsWereEdited &&
+      lastInteractedConcept &&
+      isEligiblePaymentStatus(__veneziaGet(formSnapshot.values, lastInteractedConcept.key))
+      ? [lastInteractedConcept]
+      : [];
   }
 
   const editedPaidConcepts = getEditedPaidPaymentConceptsFromForm(studentId);
@@ -12477,6 +12520,70 @@ function hasUnsavedPaymentTableChanges() {
     .some((control) => hasPaymentControlChanged(control));
 }
 
+function capturePaymentFormSnapshot(studentId, paymentMonth) {
+  const values = {};
+  const editedFields = [];
+
+  PAYMENT_EDITABLE_FIELDS.forEach((field) => {
+    const control = paymentsTableBody.querySelector(
+      `[data-payment-field="${field}"][data-student-id="${studentId}"]`
+    );
+    values[field] = control ? String(control.value || "").trim() : "";
+    if (control && (hasPaymentControlChanged(control) || control.dataset.paymentUserEdited === "true")) {
+      editedFields.push(field);
+    }
+  });
+
+  const student = getStudentById(studentId);
+  return Object.freeze({
+    studentId,
+    studentName: String(__veneziaGet(student, "nombre") || ""),
+    branch: String(__veneziaGet(student, "sucursal") || ""),
+    paymentMonth,
+    values: Object.freeze({ ...values }),
+    editedFields: Object.freeze([...editedFields]),
+    lastInteractedConcept: paymentLastInteractedConceptByStudentId.get(studentId) || "",
+  });
+}
+
+function setPaymentSaveUiState(studentId, isSaving) {
+  const button = paymentsTableBody.querySelector(
+    `[data-action="save-payment"][data-id="${studentId}"]`
+  );
+  if (!button) {
+    return;
+  }
+
+  button.disabled = isSaving;
+  button.setAttribute("aria-busy", isSaving ? "true" : "false");
+  button.textContent = isSaving ? "Guardando…" : "Guardar";
+}
+
+function getPaymentPersistenceMismatches(expectedRecord, persistedRecord) {
+  const fields = [
+    "id",
+    "studentId",
+    "mesPago",
+    "certificadoP1",
+    "certificadoP2",
+    "mensualidad1",
+    "mensualidad2",
+    "mensualidad3",
+    "mensualidad4",
+    "mensualidad5",
+    "metodoPago",
+    "cantidadPagada",
+    "paymentRealDate",
+    "paymentMovementConcept",
+  ];
+
+  return fields.filter(
+    (field) =>
+      String(__veneziaGet(expectedRecord, field) || "").trim() !==
+      String(__veneziaGet(persistedRecord, field) || "").trim()
+  );
+}
+
 function renderContinuityStatusOptions(selectedValue) {
   const options = [
     { value: "", label: "Seleccionar" },
@@ -12962,6 +13069,83 @@ function getUpcomingPaymentEntries({
     });
 }
 
+function getUpcomingWeekendPaymentWindows(anchorDate = getCurrentMexicoDateValue()) {
+  const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
+  const firstFriday = getFridayForOperationalWeekend(today);
+  if (!firstFriday) {
+    return [];
+  }
+
+  return [0, 7].map((offset, index) => {
+    const from = addLocalDaysToDateKey(firstFriday, offset);
+    return {
+      index,
+      from,
+      to: addLocalDaysToDateKey(from, 2),
+    };
+  });
+}
+
+function formatUpcomingWeekendRange(windowRange) {
+  const from = parseLocalDateKey(__veneziaGet(windowRange, "from"));
+  const to = parseLocalDateKey(__veneziaGet(windowRange, "to"));
+  if (!from || !to) {
+    return "";
+  }
+
+  const weekdayFormatter = new Intl.DateTimeFormat("es-MX", { weekday: "long" });
+  const monthFormatter = new Intl.DateTimeFormat("es-MX", { month: "long" });
+  const fromWeekday = weekdayFormatter.format(from);
+  const toWeekday = weekdayFormatter.format(to);
+  const fromMonth = monthFormatter.format(from);
+  const toMonth = monthFormatter.format(to);
+
+  return fromMonth === toMonth
+    ? `Del ${fromWeekday} ${from.getDate()} al ${toWeekday} ${to.getDate()} de ${toMonth}`
+    : `Del ${fromWeekday} ${from.getDate()} de ${fromMonth} al ${toWeekday} ${to.getDate()} de ${toMonth}`;
+}
+
+function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCanonicalStudentsForPayments(getActiveStudents())) {
+  if (!windowRange) {
+    return [];
+  }
+
+  return studentsList
+    .filter(isStudentActiveForPaymentReview)
+    .map((student) => {
+      const paymentRecord = getPersistentPaymentRecord(student.id);
+      const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, windowRange.from);
+      const nextPayment = getNextPendingMonthlyPayment(student, paymentRecord);
+      const paymentDate = normalizeLocalDateKey(__veneziaGet(nextPayment, "date"));
+
+      if (
+        !lifecycle.activeForCollection ||
+        lifecycle.archivedNoContinuation ||
+        lifecycle.lastMonthlyPaid ||
+        !nextPayment ||
+        !paymentDate ||
+        paymentDate < windowRange.from ||
+        paymentDate > windowRange.to
+      ) {
+        return null;
+      }
+
+      return {
+        student,
+        nextPayment,
+        date: paymentDate,
+        amount: nextPayment.amount,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (left.date !== right.date) {
+        return left.date.localeCompare(right.date);
+      }
+      return String(left.student.nombre || "").localeCompare(String(right.student.nombre || ""), "es-MX");
+    });
+}
+
 async function syncStudentLifecycleFromPaymentRecord(student, paymentRecord) {
   if (!__veneziaGet(student, "id")) {
     return {
@@ -12999,6 +13183,13 @@ function getArchivedNoContinuationStudents(studentsList = students) {
 
 function renderPaymentsTable(options = {}) {
   const forceRender = Boolean(__veneziaGet(options, "force"));
+  const allowDuringSave = Boolean(__veneziaGet(options, "allowDuringSave"));
+  if (!allowDuringSave && paymentSaveStudentIds.size > 0) {
+    console.warn("PAGOS render omitido durante un guardado en curso.", {
+      savingStudentIds: Array.from(paymentSaveStudentIds),
+    });
+    return false;
+  }
   if (!forceRender && activeModule === "pagos" && hasUnsavedPaymentTableChanges()) {
     console.warn("PAGOS render omitido para conservar cambios sin guardar.", {
       selectedPaymentsMonth,
@@ -13562,36 +13753,35 @@ async function changeStudentAttendanceStatusFromPayments(studentId) {
 }
 
 function renderPaymentsLifecyclePanels() {
-  const upcomingScope = getUpcomingPaymentScheduleScope();
-  const upcomingEntries = getUpcomingPaymentEntries({ scope: upcomingScope });
+  const weekendWindows = getUpcomingWeekendPaymentWindows();
+  const nextWeekendWindow = weekendWindows[0] || null;
+  const followingWeekendWindow = weekendWindows[1] || null;
+  const nextWeekendEntries = getUpcomingPaymentsForWeekendWindow(nextWeekendWindow);
+  const followingWeekendEntries = getUpcomingPaymentsForWeekendWindow(followingWeekendWindow);
   const followupStudents = getStudentsPendingContinuityFollowup()
     .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
   const archivedStudents = getArchivedNoContinuationStudents()
     .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
 
   if (paymentsUpcomingTitle) {
-    const scopeLabel = getUpcomingPaymentScopeLabel(upcomingScope);
-    paymentsUpcomingTitle.textContent =
-      upcomingScope === "all" ? "Próximas alumnas a pagar" : `Próximas alumnas a pagar · ${scopeLabel}`;
+    paymentsUpcomingTitle.textContent = "Próximo fin de semana";
   }
 
   if (paymentsUpcomingSubtitle) {
-    paymentsUpcomingSubtitle.textContent =
-      upcomingScope === "all"
-        ? "Seguimiento de próximas mensualidades · vista combinada"
-        : "Seguimiento de próximas mensualidades";
+    paymentsUpcomingSubtitle.textContent = formatUpcomingWeekendRange(nextWeekendWindow);
   }
 
   if (paymentsUpcomingTableBody) {
-    paymentsUpcomingTableBody.innerHTML = upcomingEntries
+    paymentsUpcomingTableBody.innerHTML = nextWeekendEntries
       .map((entry) => {
         const student = entry.student;
         return `
           <tr>
             <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
             <td>${escapeHtml(student.curso || "-")}</td>
-            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
             <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
+            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
+            <td>${escapeHtml(entry.amount ? formatCurrency(parsePaymentAmount(entry.amount)) : "-")}</td>
           </tr>
         `;
       })
@@ -13599,7 +13789,32 @@ function renderPaymentsLifecyclePanels() {
   }
 
   if (paymentsUpcomingEmptyState) {
-    paymentsUpcomingEmptyState.hidden = upcomingEntries.length > 0;
+    paymentsUpcomingEmptyState.hidden = nextWeekendEntries.length > 0;
+  }
+
+  if (paymentsFollowingWeekendSubtitle) {
+    paymentsFollowingWeekendSubtitle.textContent = formatUpcomingWeekendRange(followingWeekendWindow);
+  }
+
+  if (paymentsFollowingWeekendTableBody) {
+    paymentsFollowingWeekendTableBody.innerHTML = followingWeekendEntries
+      .map((entry) => {
+        const student = entry.student;
+        return `
+          <tr>
+            <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
+            <td>${escapeHtml(student.curso || "-")}</td>
+            <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
+            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
+            <td>${escapeHtml(entry.amount ? formatCurrency(parsePaymentAmount(entry.amount)) : "-")}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  if (paymentsFollowingWeekendEmptyState) {
+    paymentsFollowingWeekendEmptyState.hidden = followingWeekendEntries.length > 0;
   }
 
   renderPaymentsReviewPanel();
@@ -13648,9 +13863,18 @@ function renderPaymentsLifecyclePanels() {
 }
 
 async function savePaymentForStudent(studentId) {
+  if (paymentSaveStudentIds.has(studentId)) {
+    console.warn("PAGO segundo guardado bloqueado mientras la primera operación sigue activa.", { studentId });
+    return;
+  }
+
   const targetPaymentMonth = resolvePaymentSaveMonth();
-  const student = getStudentById(studentId);
-  const studentName = __veneziaGet(student, "nombre") || "";
+  const formSnapshot = capturePaymentFormSnapshot(studentId, targetPaymentMonth);
+  const studentName = formSnapshot.studentName;
+  paymentSaveStudentIds.add(studentId);
+  setPaymentSaveUiState(studentId, true);
+
+  try {
   console.log("=== PAGO SAVE START ===", {
     stage: "savePaymentForStudent:start",
     studentName,
@@ -13680,6 +13904,7 @@ async function savePaymentForStudent(studentId) {
     },
   });
   await refreshSharedSupabaseState({ force: true, render: false });
+  const student = getStudentById(studentId);
   if (!student) {
     console.warn("PAGO savePaymentForStudent abortado: student no encontrado", {
       studentId,
@@ -13688,26 +13913,6 @@ async function savePaymentForStudent(studentId) {
     alert("No se encontró la alumna vinculada para guardar el pago.");
     return;
   }
-
-  const fields = [
-    "mensualidadPactada",
-    "certificadoP1",
-    "certificadoP2",
-    "mensualidad1",
-    "mensualidad2",
-    "mensualidad3",
-    "mensualidad4",
-    "mensualidad5",
-    "metodoPago",
-    "cantidadPagada",
-    "paymentRealDate",
-    "reportes",
-    "observaciones",
-    "lastMonthlyPaymentStatus",
-    "continuityStatus",
-    "nextCourse",
-    "nextCourseStartDate",
-  ];
 
   const historyRecord = applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(studentId));
   const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
@@ -13776,9 +13981,8 @@ async function savePaymentForStudent(studentId) {
   };
   const formPayload = {};
 
-  fields.forEach((field) => {
-    const input = paymentsTableBody.querySelector(`[data-payment-field="${field}"][data-student-id="${studentId}"]`);
-    const value = input ? input.value.trim() : "";
+  PAYMENT_EDITABLE_FIELDS.forEach((field) => {
+    const value = __veneziaGet(formSnapshot.values, field) || "";
     formPayload[field] = value;
     newRecord[field] = value;
   });
@@ -13814,18 +14018,13 @@ async function savePaymentForStudent(studentId) {
 
   const paidConceptsForCapture = getPaidPaymentConcepts(newRecord);
   if (paidConceptsForCapture.length > 0 && parsePaymentAmount(newRecord.cantidadPagada) <= 0) {
-    const inferredAmount = getInferredSingleMonthlyPaymentAmount(newRecord, student);
-    if (parsePaymentAmount(inferredAmount) > 0) {
-      newRecord.cantidadPagada = inferredAmount;
-      formPayload.cantidadPagada = inferredAmount;
-      const amountInput = paymentsTableBody.querySelector(`[data-payment-field="cantidadPagada"][data-student-id="${studentId}"]`);
-      if (amountInput) {
-        amountInput.value = inferredAmount;
-      }
-    } else {
-      alert("Captura la cantidad pagada para guardar el pago y reflejarlo en los ingresos del día.");
-      return;
-    }
+    alert("Captura la cantidad real pagada antes de guardar.");
+    return;
+  }
+
+  if (paidConceptsForCapture.length > 0 && !String(newRecord.metodoPago || "").trim()) {
+    alert("Selecciona el método de pago antes de guardar.");
+    return;
   }
 
   console.log("PAGO payload que sale del formulario", {
@@ -13843,7 +14042,7 @@ async function savePaymentForStudent(studentId) {
   const nextRecord = { ...baseRecord, ...newRecord };
   const comparisonRecord = applyPaymentConceptDetailsToPaymentRecord(recordToUpdate || editingMonthRecord);
   const changedPaidConcepts = getChangedPaidPaymentConcepts(comparisonRecord, nextRecord);
-  const paymentConceptsForSave = getPaymentConceptsForSave(studentId, changedPaidConcepts);
+  const paymentConceptsForSave = getPaymentConceptsForSave(studentId, changedPaidConcepts, formSnapshot);
   const preliminaryChanges = getPaymentFieldChanges(comparisonRecord, nextRecord);
   console.log("=== DETECTED CHANGES ===", {
     changedFields: preliminaryChanges,
@@ -13970,37 +14169,46 @@ async function savePaymentForStudent(studentId) {
     });
   }
   if (!saveResult.synced) {
-    renderBalanceModule();
-    renderFinanceTable();
-    updateFinanceSummary();
-    updatePaymentsSummary();
-    renderDashboard();
-    console.warn("PAGO flujo finalizó en fallback local tras fallo de Supabase.", {
+    console.warn("PAGO flujo finalizó sin persistir tras fallo de Supabase.", {
       studentId,
       paymentId: resolvedPaymentId,
     });
-    const fallbackMessage = "El pago no se sincronizó con Supabase. Se reintentará automáticamente al abrir Pagos.";
+    const fallbackMessage = "No se pudo guardar el pago en Supabase. Tus datos siguen en el formulario para reintentar.";
     console.log("=== FINAL MESSAGE ===", {
-      messageKey: "local_fallback_only",
+      messageKey: "remote_save_failed",
       messageText: fallbackMessage,
     });
     console.log("=== PAYMENT FINAL USER MESSAGE ===", {
-      messageKey: "local_fallback_only",
+      messageKey: "remote_save_failed",
       messageText: fallbackMessage,
     });
     alert(fallbackMessage);
     return;
   }
 
+  const returnedRecordForVerification = saveResult.record || {};
+  const expectedConfirmedRecord = {
+    ...finalRecord,
+    id: returnedRecordForVerification.id || finalRecord.id,
+  };
+  const responseMismatches = getPaymentPersistenceMismatches(
+    expectedConfirmedRecord,
+    returnedRecordForVerification
+  );
+  if (responseMismatches.length > 0) {
+    console.error("PAGO respuesta de Supabase no coincide con el snapshot capturado.", {
+      studentId,
+      paymentId: expectedConfirmedRecord.id,
+      mismatches: responseMismatches,
+      expected: summarizePaymentSaveDebugRecord(expectedConfirmedRecord),
+      received: summarizePaymentSaveDebugRecord(returnedRecordForVerification),
+    });
+    alert("Supabase respondió, pero no se pudo confirmar que todos los datos coincidan. El formulario se conservó para revisión.");
+    return;
+  }
+
   const lifecycleSyncResult = await syncStudentLifecycleFromPaymentRecord(student, saveResult.record);
   if (!lifecycleSyncResult.synced) {
-    await refreshSharedSupabaseState({ force: true, render: false });
-    renderPaymentsTable({ force: true });
-    renderBalanceModule();
-    renderFinanceTable();
-    updateFinanceSummary();
-    updatePaymentsSummary();
-    renderDashboard();
     const lifecycleMessage = "El pago se guardó, pero no se pudo actualizar el estado de continuidad de la alumna.";
     console.log("=== FINAL MESSAGE ===", {
       messageKey: "lifecycle_sync_failed",
@@ -14059,13 +14267,6 @@ async function savePaymentForStudent(studentId) {
       : null,
   });
   if (!financeSyncResult.synced) {
-    await refreshSharedSupabaseState({ force: true, render: false });
-    renderPaymentsTable({ force: true });
-    renderBalanceModule();
-    renderFinanceTable();
-    updateFinanceSummary();
-    updatePaymentsSummary();
-    renderDashboard();
     console.warn("PAGO guardado, pero finanzas no sincronizó.", {
       studentId,
       paymentId: resolvedPaymentId,
@@ -14087,13 +14288,39 @@ async function savePaymentForStudent(studentId) {
   console.log("=== PAYMENT REFRESH RESULT ===", {
     result: refreshSucceeded ? "success" : "fail",
   });
-  const afterRefreshRecord = getPaymentDisplayRecord(studentId);
+  if (!refreshSucceeded) {
+    const refreshMessage = "El pago fue recibido por Supabase, pero no se pudo confirmar al refrescar. El formulario se conservó para revisión.";
+    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
+      messageKey: "refresh_failed_after_remote_save",
+      messageText: refreshMessage,
+    });
+    alert(refreshMessage);
+    return;
+  }
+
+  const afterRefreshRecord =
+    getCanonicalPaymentRecord(studentId, targetPaymentMonth) ||
+    getCanonicalPaymentRecordForStudent(studentId) ||
+    {};
   console.log("=== AFTER REFRESH/MERGE ===", {
     ...summarizePaymentSaveDebugRecord(afterRefreshRecord),
     sourceUsedByRender: summarizePaymentRenderSourcesForDebug(afterRefreshRecord),
   });
+  const refreshMismatches = getPaymentPersistenceMismatches(expectedConfirmedRecord, afterRefreshRecord);
+  if (refreshMismatches.length > 0) {
+    console.error("PAGO refrescado no coincide con el snapshot confirmado.", {
+      studentId,
+      paymentId: expectedConfirmedRecord.id,
+      mismatches: refreshMismatches,
+      expected: summarizePaymentSaveDebugRecord(expectedConfirmedRecord),
+      refreshed: summarizePaymentSaveDebugRecord(afterRefreshRecord),
+    });
+    alert("El pago fue recibido, pero el refresco no devolvió exactamente los datos capturados. El formulario se conservó para revisión.");
+    return;
+  }
+
   paymentLastInteractedConceptByStudentId.delete(studentId);
-  renderPaymentsTable({ force: true });
+  renderPaymentsTable({ force: true, allowDuringSave: true });
   renderBalanceModule();
   renderFinanceTable();
   updateFinanceSummary();
@@ -14118,20 +14345,6 @@ async function savePaymentForStudent(studentId) {
     return;
   }
 
-  if (!refreshSucceeded) {
-    const refreshMessage = "Pago guardado. Actualiza la página si no ves el cambio.";
-    console.log("=== FINAL MESSAGE ===", {
-      messageKey: "refresh_failed_after_remote_save",
-      messageText: refreshMessage,
-    });
-    console.log("=== PAYMENT FINAL USER MESSAGE ===", {
-      messageKey: "refresh_failed_after_remote_save",
-      messageText: refreshMessage,
-    });
-    alert(refreshMessage);
-    return;
-  }
-
   const successMessage = "Pago guardado correctamente.";
   console.log("=== FINAL MESSAGE ===", {
     messageKey: "remote_save_complete",
@@ -14142,6 +14355,10 @@ async function savePaymentForStudent(studentId) {
     messageText: successMessage,
   });
   alert(successMessage);
+  } finally {
+    paymentSaveStudentIds.delete(studentId);
+    setPaymentSaveUiState(studentId, false);
+  }
 }
 
 function updatePaymentsSummary() {

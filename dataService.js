@@ -795,9 +795,6 @@
     const remoteValue = getNonEmptyPaymentValue(remoteRecord, field);
     const localValue = getNonEmptyPaymentValue(localRecord, field);
 
-    if (remoteValue === "Pagado" && localValue !== "Pagado") {
-      return remoteValue;
-    }
     if (isEligiblePaymentStatus(localValue)) {
       return localValue;
     }
@@ -1411,6 +1408,7 @@
     orderBy: "updated_at",
     fallbackFactory: paymentsFallbackFactory,
     uiLabel: "pagos",
+    persistLocalOnMutationFailure: false,
     toDb: (record) => ({
       id: record.id,
       student_id: record.studentId || null,
