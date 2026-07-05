@@ -12523,12 +12523,15 @@ function hasUnsavedPaymentTableChanges() {
 function capturePaymentFormSnapshot(studentId, paymentMonth) {
   const values = {};
   const editedFields = [];
+  const paymentRecord = getPaymentDisplayRecord(studentId);
 
   PAYMENT_EDITABLE_FIELDS.forEach((field) => {
     const control = paymentsTableBody.querySelector(
       `[data-payment-field="${field}"][data-student-id="${studentId}"]`
     );
-    values[field] = control ? String(control.value || "").trim() : "";
+    values[field] = control
+      ? String(control.value || "").trim()
+      : String(__veneziaGet(paymentRecord, field) || "").trim();
     if (control && (hasPaymentControlChanged(control) || control.dataset.paymentUserEdited === "true")) {
       editedFields.push(field);
     }
@@ -13245,10 +13248,6 @@ function renderPaymentsTable(options = {}) {
           <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.reportes)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.observaciones)}" /></td>
-          <td><select data-payment-field="lastMonthlyPaymentStatus" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(lastMonthlySelection)}">${renderPaymentSelectOptions(lastMonthlySelection, PAYMENT_LAST_MONTHLY_STATUS_OPTIONS, "Seleccionar")}</select></td>
-          <td><select data-payment-field="continuityStatus" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(continuitySelection)}">${renderContinuityStatusOptions(continuitySelection)}</select></td>
-          <td><select data-payment-field="nextCourse" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseSelection)}">${renderPaymentSelectOptions(nextCourseSelection, NEXT_COURSE_OPTIONS, "Seleccionar")}</select></td>
-          <td><input type="date" value="${escapeHtml(nextCourseStartDateValue)}" data-payment-field="nextCourseStartDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(nextCourseStartDateValue)}" /></td>
           <td class="payments-student-status-cell">${renderStudentAttendanceStatusBadge(student)}</td>
           <td>
             <div class="actions-cell">
