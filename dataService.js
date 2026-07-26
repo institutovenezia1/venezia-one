@@ -16,6 +16,7 @@
     students: "venezia-one-v2-altas",
     attendance: "venezia-one-v2-asistencias",
     payments: "venezia-one-v2-pagos",
+    academicCycles: "venezia-one-v2-academic-cycles",
     teachers: "venezia-one-v2-maestras",
     teacherAttendance: "venezia-one-v2-maestras-asistencias",
     teacherPayments: "venezia-one-v2-maestras-pagos",
@@ -1288,8 +1289,91 @@
   const studentsFallbackFactory = () => [];
   const attendanceFallbackFactory = () => [];
   const paymentsFallbackFactory = () => [];
+  const academicCyclesFallbackFactory = () => [];
   const financeFallbackFactory = () => [];
   const studentPortalProfilesFallbackFactory = () => [];
+
+  function normalizeAcademicCycleStatus(value) {
+    const normalizedValue = String(value || "").trim().toLowerCase();
+    if (normalizedValue === "active") return "active";
+    if (normalizedValue === "completed") return "completed";
+    if (normalizedValue === "cancelled") return "cancelled";
+    return "planned";
+  }
+
+  function normalizeAcademicCycleSource(value) {
+    const normalizedValue = String(value || "").trim().toLowerCase();
+    if (normalizedValue === "continuity") return "continuity";
+    if (normalizedValue === "migration") return "migration";
+    return "manual";
+  }
+
+  function normalizeAcademicCycleRecord(record = {}) {
+    return {
+      id: record.id || "",
+      studentId: record.student_id || record.studentId || "",
+      course: record.course || "",
+      branch: record.branch || "Tlaxcala",
+      schedule: record.schedule || "",
+      classDay: record.class_day || record.classDay || "",
+      startDate: record.start_date || record.startDate || "",
+      status: normalizeAcademicCycleStatus(record.status),
+      source: normalizeAcademicCycleSource(record.source),
+      previousCycleId: record.previous_cycle_id || record.previousCycleId || "",
+      previousCourse: record.previous_course || record.previousCourse || "",
+      sourceContinuityStatus: record.source_continuity_status || record.sourceContinuityStatus || "",
+      sourceNotes: record.source_notes || record.sourceNotes || "",
+      notes: record.notes || "",
+      createdBy: record.created_by || record.createdBy || "",
+      activatedBy: record.activated_by || record.activatedBy || "",
+      completedBy: record.completed_by || record.completedBy || "",
+      cancelledBy: record.cancelled_by || record.cancelledBy || "",
+      createdAt: record.created_at || record.createdAt || "",
+      updatedAt: record.updated_at || record.updatedAt || "",
+      activatedAt: record.activated_at || record.activatedAt || "",
+      completedAt: record.completed_at || record.completedAt || "",
+      cancelledAt: record.cancelled_at || record.cancelledAt || "",
+      cancelledReason: record.cancelled_reason || record.cancelledReason || "",
+    };
+  }
+
+  function getAcademicCyclesByStudentId(cycles = [], studentId = "") {
+    const normalizedStudentId = String(studentId || "").trim();
+    if (!normalizedStudentId) {
+      return [];
+    }
+
+    return cycles
+      .map(normalizeAcademicCycleRecord)
+      .filter((cycle) => cycle.studentId === normalizedStudentId)
+      .sort((left, right) => {
+        const leftDate = left.startDate || "0000-00-00";
+        const rightDate = right.startDate || "0000-00-00";
+        if (leftDate !== rightDate) {
+          return leftDate.localeCompare(rightDate);
+        }
+        return String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
+      });
+  }
+
+  function getActiveAcademicCycleForStudent(cycles = [], studentId = "") {
+    return getAcademicCyclesByStudentId(cycles, studentId)
+      .find((cycle) => cycle.status === "active") || null;
+  }
+
+  function getPlannedAcademicCycles(cycles = []) {
+    return cycles
+      .map(normalizeAcademicCycleRecord)
+      .filter((cycle) => cycle.status === "planned")
+      .sort((left, right) => {
+        const leftDate = left.startDate || "9999-99-99";
+        const rightDate = right.startDate || "9999-99-99";
+        if (leftDate !== rightDate) {
+          return leftDate.localeCompare(rightDate);
+        }
+        return String(left.createdAt || "").localeCompare(String(right.createdAt || ""));
+      });
+  }
 
   const studentsEntityService = createSupabaseEntityService({
     key: STORAGE_KEYS.students,
@@ -1458,6 +1542,62 @@
       createdAt: record.created_at || "",
     }),
   });
+
+  const academicCyclesEntityService = createSupabaseEntityService({
+    key: STORAGE_KEYS.academicCycles,
+    table: "student_academic_cycles",
+    orderBy: "start_date",
+    fallbackFactory: academicCyclesFallbackFactory,
+    hydrateEmptyFromFallback: false,
+    useLocalFallbackWhenRemoteEmpty: false,
+    persistLocalOnMutationFailure: false,
+    toDb: (record) => ({
+      id: record.id || undefined,
+      student_id: record.studentId || null,
+      course: record.course || "",
+      branch: record.branch || "Tlaxcala",
+      schedule: record.schedule || "",
+      class_day: record.classDay || "",
+      start_date: record.startDate || null,
+      status: normalizeAcademicCycleStatus(record.status),
+      source: normalizeAcademicCycleSource(record.source),
+      previous_cycle_id: record.previousCycleId || null,
+      previous_course: record.previousCourse || "",
+      source_continuity_status: record.sourceContinuityStatus || "",
+      source_notes: record.sourceNotes || "",
+      notes: record.notes || "",
+      created_by: record.createdBy || null,
+      activated_by: record.activatedBy || null,
+      completed_by: record.completedBy || null,
+      cancelled_by: record.cancelledBy || null,
+      created_at: record.createdAt || null,
+      updated_at: record.updatedAt || null,
+      activated_at: record.activatedAt || null,
+      completed_at: record.completedAt || null,
+      cancelled_at: record.cancelledAt || null,
+      cancelled_reason: record.cancelledReason || "",
+    }),
+    fromDb: normalizeAcademicCycleRecord,
+  });
+
+  const academicCyclesReadService = {
+    getAll(fallbackFactory = academicCyclesFallbackFactory) {
+      return academicCyclesEntityService.getAll(fallbackFactory).map(normalizeAcademicCycleRecord);
+    },
+    async getAllPrimary(fallbackFactory = academicCyclesFallbackFactory) {
+      const records = await academicCyclesEntityService.getAllPrimary(fallbackFactory);
+      return records.map(normalizeAcademicCycleRecord);
+    },
+    getByStudentId(studentId) {
+      return getAcademicCyclesByStudentId(this.getAll(() => []), studentId);
+    },
+    getActiveForStudent(studentId) {
+      return getActiveAcademicCycleForStudent(this.getAll(() => []), studentId);
+    },
+    getPlanned() {
+      return getPlannedAcademicCycles(this.getAll(() => []));
+    },
+  };
 
   const financeEntityService = createSupabaseEntityService({
     key: STORAGE_KEYS.financialMovements,
@@ -1667,6 +1807,7 @@
       }),
       students: studentsEntityService,
       altas: studentsEntityService,
+      academicCycles: academicCyclesReadService,
       attendance: attendanceEntityService,
       payments: paymentsEntityService,
       teachers: createLocalEntityService(STORAGE_KEYS.teachers),
@@ -1677,6 +1818,12 @@
       webRequests: createLocalEntityService(STORAGE_KEYS.webRequests),
       studentPortalAccess: studentPortalProfilesEntityService,
       webSettings: createLocalEntityService(STORAGE_KEYS.webSettings),
+    },
+    academicCycles: {
+      normalizeRecord: normalizeAcademicCycleRecord,
+      getByStudentId: getAcademicCyclesByStudentId,
+      getActiveForStudent: getActiveAcademicCycleForStudent,
+      getPlanned: getPlannedAcademicCycles,
     },
     sessions: {
       // Sessions remain browser-based for now; later replace with Supabase Auth.
