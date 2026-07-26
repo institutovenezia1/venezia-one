@@ -11619,6 +11619,138 @@ function setAttendanceSaveUiState(studentId, isSaving) {
   button.textContent = isSaving ? "Guardando..." : "Guardar";
 }
 
+function getAttendanceContinuityStatusValue(student) {
+  return normalizeContinuitySelection(__veneziaGet(student, "continuityStatus")) || "pending_followup";
+}
+
+function getAttendanceNextCourseValue(student) {
+  return normalizeNextCourse(__veneziaGet(student, "nextCourse"));
+}
+
+function getAttendanceNextCourseStartDateValue(student) {
+  return normalizeLocalDateKey(__veneziaGet(student, "nextCourseStartDate")) || "";
+}
+
+function getAttendanceProgressSummary(student) {
+  const sessionGroups = getStudentAttendanceSessionGroups(student);
+  const totalClasses = sessionGroups.length;
+  const completedClasses = sessionGroups.filter((group) =>
+    group.slots.some((slot) => {
+      const record = getAttendanceRecord(__veneziaGet(student, "id"), slot.date);
+      return Boolean(String(__veneziaGet(record, "estado") || "").trim());
+    })
+  ).length;
+  const remainingClasses = Math.max(totalClasses - completedClasses, 0);
+
+  return {
+    totalClasses,
+    completedClasses,
+    remainingClasses,
+    nearCompletion: totalClasses > 0 && remainingClasses <= 3,
+  };
+}
+
+function renderAttendanceContinuityStatusOptions(selectedValue) {
+  const options = [
+    { value: "pending_followup", label: "Pendiente" },
+    { value: "will_continue", label: "Sí continúa" },
+    { value: "will_not_continue", label: "No continúa" },
+  ];
+
+  return options
+    .map(
+      (option) =>
+        `<option value="${escapeHtml(option.value)}" ${option.value === selectedValue ? "selected" : ""}>${escapeHtml(option.label)}</option>`
+    )
+    .join("");
+}
+
+function renderAttendanceNextCourseOptions(selectedValue) {
+  return NEXT_COURSE_OPTIONS.map((option) => {
+    const label = option || "Siguiente curso";
+    return `<option value="${escapeHtml(option)}" ${option === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
+function renderAttendanceContinuityControls(student, progressSummary) {
+  const studentId = __veneziaGet(student, "id") || "";
+  const continuityStatus = getAttendanceContinuityStatusValue(student);
+  const nextCourse = getAttendanceNextCourseValue(student);
+  const nextCourseStartDate = getAttendanceNextCourseStartDateValue(student);
+  const disabled = !progressSummary.nearCompletion;
+  const disabledAttribute = disabled ? "disabled" : "";
+  const showNextCourseFields = continuityStatus === "will_continue";
+  const remainingLabel =
+    progressSummary.totalClasses > 0
+      ? `Faltan ${progressSummary.remainingClasses} ${progressSummary.remainingClasses === 1 ? "clase" : "clases"}`
+      : "Sin calendario";
+
+  return `
+    <div class="attendance-continuity-control${disabled ? " is-disabled" : ""}" data-attendance-continuity-control="${escapeHtml(studentId)}">
+      <small class="attendance-session-date">${escapeHtml(remainingLabel)}</small>
+      <select
+        data-attendance-field="continuityStatus"
+        data-student-id="${escapeHtml(studentId)}"
+        data-attendance-initial-value="${escapeHtml(continuityStatus)}"
+        ${disabledAttribute}
+      >${renderAttendanceContinuityStatusOptions(continuityStatus)}</select>
+      <div class="attendance-continuity-next-fields" data-attendance-continuity-next="${escapeHtml(studentId)}" ${showNextCourseFields ? "" : "hidden"}>
+        <select
+          data-attendance-field="nextCourse"
+          data-student-id="${escapeHtml(studentId)}"
+          data-attendance-initial-value="${escapeHtml(nextCourse)}"
+          ${disabledAttribute}
+        >${renderAttendanceNextCourseOptions(nextCourse)}</select>
+        <input
+          type="date"
+          value="${escapeHtml(nextCourseStartDate)}"
+          data-attendance-field="nextCourseStartDate"
+          data-student-id="${escapeHtml(studentId)}"
+          data-attendance-initial-value="${escapeHtml(nextCourseStartDate)}"
+          ${disabledAttribute}
+        />
+      </div>
+    </div>
+  `;
+}
+
+function captureAttendanceContinuitySnapshot(studentId, student) {
+  const continuityField = attendanceTableBody.querySelector(
+    `[data-attendance-field="continuityStatus"][data-student-id="${studentId}"]`
+  );
+  const nextCourseField = attendanceTableBody.querySelector(
+    `[data-attendance-field="nextCourse"][data-student-id="${studentId}"]`
+  );
+  const nextCourseStartDateField = attendanceTableBody.querySelector(
+    `[data-attendance-field="nextCourseStartDate"][data-student-id="${studentId}"]`
+  );
+  const fallbackStatus = getAttendanceContinuityStatusValue(student);
+  const fallbackNextCourse = getAttendanceNextCourseValue(student);
+  const fallbackNextCourseStartDate = getAttendanceNextCourseStartDateValue(student);
+  const status = normalizeContinuityStatus(__veneziaGet(continuityField, "value") || fallbackStatus);
+  const nextCourse = status === "will_continue"
+    ? normalizeNextCourse(__veneziaGet(nextCourseField, "value") || fallbackNextCourse)
+    : "";
+  const nextCourseStartDate = status === "will_continue"
+    ? normalizeLocalDateKey(__veneziaGet(nextCourseStartDateField, "value") || fallbackNextCourseStartDate)
+    : "";
+  const initialStatus = String(__veneziaGet(__veneziaGet(continuityField, "dataset"), "attendanceInitialValue") || fallbackStatus);
+  const initialNextCourse = String(__veneziaGet(__veneziaGet(nextCourseField, "dataset"), "attendanceInitialValue") || fallbackNextCourse);
+  const initialNextCourseStartDate = String(
+    __veneziaGet(__veneziaGet(nextCourseStartDateField, "dataset"), "attendanceInitialValue") || fallbackNextCourseStartDate
+  );
+
+  return Object.freeze({
+    status,
+    nextCourse,
+    nextCourseStartDate,
+    changed:
+      status !== initialStatus ||
+      nextCourse !== (initialStatus === "will_continue" ? initialNextCourse : "") ||
+      nextCourseStartDate !== (initialStatus === "will_continue" ? initialNextCourseStartDate : ""),
+  });
+}
+
 function captureAttendanceFormSnapshot(studentId, student) {
   const studentSessions = getStudentAttendanceSessionDates(student);
   const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || getCurrentMexicoDateValue();
@@ -11649,6 +11781,7 @@ function captureAttendanceFormSnapshot(studentId, student) {
     documentFields.length > 0 &&
     (nextDocumentationState.status !== currentDocumentationState.status ||
       !areStudentDocumentListsEqual(nextDocumentationState.delivered, currentDocumentationState.delivered));
+  const continuitySnapshot = captureAttendanceContinuitySnapshot(studentId, student);
 
   return Object.freeze({
     studentId,
@@ -11664,6 +11797,7 @@ function captureAttendanceFormSnapshot(studentId, student) {
       missing: Object.freeze(nextDocumentationState.missing),
     }),
     documentsChanged,
+    continuity: continuitySnapshot,
     automaticReglamentoStatus: getStudentReglamentoStatus(student).confirmado ? "Sí" : "No",
   });
 }
@@ -11724,6 +11858,7 @@ function renderAttendanceTable(options = {}) {
           `;
         })
         .join("")}
+      <th>Continuidad</th>
       <th>Acciones</th>
     </tr>
   `;
@@ -11737,6 +11872,7 @@ function renderAttendanceTable(options = {}) {
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
       const observationsValue = getAttendanceNotesValue(metadataRecord, "Observaciones") || "";
       const isSavingAttendance = attendanceSaveStudentIds.has(student.id);
+      const attendanceProgress = getAttendanceProgressSummary(student);
       return `
         <tr>
           <td>${index + 1}</td>
@@ -11812,6 +11948,7 @@ function renderAttendanceTable(options = {}) {
               `;
             })
             .join("")}
+          <td>${renderAttendanceContinuityControls(student, attendanceProgress)}</td>
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
@@ -11851,8 +11988,12 @@ async function saveAttendanceForStudent(studentId) {
   }
 
   const attendanceSnapshot = captureAttendanceFormSnapshot(studentId, student);
-  if (attendanceSnapshot.selectedSessions.length === 0 && !attendanceSnapshot.documentsChanged) {
-    alert("Selecciona al menos una asistencia A, P o F o actualiza documentos antes de guardar.");
+  if (
+    attendanceSnapshot.selectedSessions.length === 0 &&
+    !attendanceSnapshot.documentsChanged &&
+    !attendanceSnapshot.continuity.changed
+  ) {
+    alert("Selecciona al menos una asistencia A, P o F, actualiza documentos o continuidad antes de guardar.");
     return;
   }
 
@@ -11899,18 +12040,29 @@ async function saveAttendanceForStudent(studentId) {
       return mergeAttendanceRecordForSync(remoteRecord, localRecord);
     });
 
-    let documentSaveResult = { synced: true };
-    if (attendanceSnapshot.documentsChanged) {
-      documentSaveResult = await saveStudentRecord({
+    let studentSaveResult = { synced: true };
+    if (attendanceSnapshot.documentsChanged || attendanceSnapshot.continuity.changed) {
+      studentSaveResult = await saveStudentRecord({
         ...student,
-        documentos: attendanceSnapshot.nextDocumentationState.status,
-        documentosEntregados: [...attendanceSnapshot.nextDocumentationState.delivered],
+        ...(attendanceSnapshot.documentsChanged
+          ? {
+              documentos: attendanceSnapshot.nextDocumentationState.status,
+              documentosEntregados: [...attendanceSnapshot.nextDocumentationState.delivered],
+            }
+          : {}),
+        ...(attendanceSnapshot.continuity.changed
+          ? {
+              continuityStatus: attendanceSnapshot.continuity.status,
+              nextCourse: attendanceSnapshot.continuity.nextCourse,
+              nextCourseStartDate: attendanceSnapshot.continuity.nextCourseStartDate,
+            }
+          : {}),
       });
     }
 
-    if (!documentSaveResult.synced) {
+    if (!studentSaveResult.synced) {
       updateAttendanceSummary();
-      alert("No se pudo actualizar la documentación en Supabase.");
+      alert("No se pudo actualizar la información académica en Supabase.");
       return;
     }
 
@@ -11938,8 +12090,8 @@ async function saveAttendanceForStudent(studentId) {
       renderStudentFile(studentId);
     }
 
-    if (attendanceSnapshot.documentsChanged && recordsToSave.length === 0) {
-      alert("La documentación entregada se actualizó correctamente.");
+    if ((attendanceSnapshot.documentsChanged || attendanceSnapshot.continuity.changed) && recordsToSave.length === 0) {
+      alert("La información académica se actualizó correctamente.");
     }
   } finally {
     attendanceSaveStudentIds.delete(studentId);
@@ -19518,6 +19670,19 @@ if (dashboardOpenFinanceButton) {
 
 [attendanceSucursalFilter, attendanceCursoFilter, attendanceHorarioFilter, attendanceDayFilter].forEach((filter) => {
   filter.addEventListener("change", renderAttendanceTable);
+});
+
+attendanceTableBody.addEventListener("change", (event) => {
+  const field = event.target.closest('[data-attendance-field="continuityStatus"]');
+  if (!field || !attendanceTableBody.contains(field)) {
+    return;
+  }
+
+  const studentId = field.dataset.studentId || "";
+  const nextFields = attendanceTableBody.querySelector(`[data-attendance-continuity-next="${studentId}"]`);
+  if (nextFields) {
+    nextFields.hidden = field.value !== "will_continue";
+  }
 });
 
 tableBody.addEventListener("click", async (event) => {

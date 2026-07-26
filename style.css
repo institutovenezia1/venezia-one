@@ -2176,6 +2176,30 @@ textarea {
   font-size: 0.8rem;
 }
 
+.attendance-continuity-control {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 132px;
+}
+
+.attendance-continuity-control.is-disabled {
+  opacity: 0.72;
+}
+
+.attendance-continuity-next-fields {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.attendance-continuity-next-fields[hidden] {
+  display: none;
+}
+
+.attendance-continuity-control select,
+.attendance-continuity-control input {
+  width: 100%;
+}
+
 .attendance-school-table-wrapper .actions-cell {
   gap: 0.35rem;
 }

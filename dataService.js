@@ -1107,6 +1107,7 @@
       "Estado operativo ciclo",
       "Seguimiento continuidad",
       "Curso siguiente",
+      "Fecha inicio sig. curso",
       "Última mensualidad del ciclo",
       "Lectura reglamento",
       "Fecha lectura reglamento",
@@ -1161,6 +1162,7 @@
       `Estado operativo ciclo: ${normalizeValue(record.lifecycleStatus)}`,
       `Seguimiento continuidad: ${normalizeValue(record.continuityStatus)}`,
       `Curso siguiente: ${normalizeValue(record.nextCourse)}`,
+      `Fecha inicio sig. curso: ${normalizeValue(record.nextCourseStartDate)}`,
       `Última mensualidad del ciclo: ${normalizeValue(record.lastMonthlyPaymentStatus)}`,
       record.lecturaReglamento ? "Lectura reglamento: Sí" : "",
       record.fechaLecturaReglamento
@@ -1368,6 +1370,7 @@
       lifecycleStatus: extractAltaMetadata(record.notes, "Estado operativo ciclo"),
       continuityStatus: extractAltaMetadata(record.notes, "Seguimiento continuidad"),
       nextCourse: extractAltaMetadata(record.notes, "Curso siguiente"),
+      nextCourseStartDate: extractAltaMetadata(record.notes, "Fecha inicio sig. curso"),
       lastMonthlyPaymentStatus: extractAltaMetadata(record.notes, "Última mensualidad del ciclo"),
       prospectId: record.source_prospect_id || "",
       observaciones: stripAltaMetadata(record.notes),
