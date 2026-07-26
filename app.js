@@ -262,6 +262,7 @@ const ATTENDANCE_STATUS_LABELS = {
   Permiso: "P",
   Falta: "F",
 };
+const attendanceSaveStudentIds = new Set();
 
 const BASE_ROLE_PERMISSIONS = {
   "Director General": ["dashboard", "crm-prospectos", "altas", "asistencias", "maestras", "pagos", "balance", "finanzas", "web-venezia", "mi-venezia"],
@@ -11582,7 +11583,105 @@ function renderAttendanceQuickFilterIndicator() {
   `;
 }
 
-function renderAttendanceTable() {
+function getAttendanceControlSnapshotValue(control) {
+  if (!control) {
+    return "";
+  }
+  if (control.type === "checkbox") {
+    return control.checked ? "checked" : "";
+  }
+  return String(control.value || "").trim();
+}
+
+function hasAttendanceControlChanged(control) {
+  return getAttendanceControlSnapshotValue(control) !== String(control.dataset.attendanceInitialValue || "").trim();
+}
+
+function hasUnsavedAttendanceTableChanges() {
+  if (!attendanceTableBody) {
+    return false;
+  }
+
+  return Array.from(attendanceTableBody.querySelectorAll("[data-attendance-field][data-attendance-initial-value]"))
+    .some((control) => hasAttendanceControlChanged(control));
+}
+
+function setAttendanceSaveUiState(studentId, isSaving) {
+  const button = attendanceTableBody.querySelector(
+    `[data-action="save-attendance"][data-id="${studentId}"]`
+  );
+  if (!button) {
+    return;
+  }
+
+  button.disabled = isSaving;
+  button.setAttribute("aria-busy", isSaving ? "true" : "false");
+  button.textContent = isSaving ? "Guardando..." : "Guardar";
+}
+
+function captureAttendanceFormSnapshot(studentId, student) {
+  const studentSessions = getStudentAttendanceSessionDates(student);
+  const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || getCurrentMexicoDateValue();
+  const sessionSnapshots = Array.from(
+    attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
+  )
+    .map((field) => ({
+      date: normalizeLocalDateKey(field.dataset.sessionDate) || field.dataset.sessionDate || "",
+      value: String(field.value || "").trim(),
+    }))
+    .filter((session) => session.date);
+  const selectedSessions = sessionSnapshots.filter((session) => session.value);
+  const selectedSessionDates = [...new Set(selectedSessions.map((session) => session.date).filter(Boolean))];
+  const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
+  const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
+  const documentFields = Array.from(
+    attendanceTableBody.querySelectorAll(`[data-attendance-field="documento"][data-student-id="${studentId}"]`)
+  );
+  const checkedDocuments = documentFields.filter((field) => field.checked).map((field) => field.value);
+  const currentDocumentationState = getStudentDocumentationState(student);
+  const rawNextDocumentationState = getStudentDocumentationSaveState(student.documentos, checkedDocuments, student);
+  const nextDocumentationState = {
+    status: rawNextDocumentationState.status,
+    delivered: [...rawNextDocumentationState.delivered],
+    missing: [...rawNextDocumentationState.missing],
+  };
+  const documentsChanged =
+    documentFields.length > 0 &&
+    (nextDocumentationState.status !== currentDocumentationState.status ||
+      !areStudentDocumentListsEqual(nextDocumentationState.delivered, currentDocumentationState.delivered));
+
+  return Object.freeze({
+    studentId,
+    date,
+    firstSelectedSessionDate: __veneziaGet(selectedSessions[0], "date") || date,
+    selectedSessions: Object.freeze(selectedSessions.map((session) => Object.freeze({ ...session }))),
+    selectedSessionDates: Object.freeze(selectedSessionDates),
+    reportesValue: String(__veneziaGet(reportesField, "value") || "").trim(),
+    observacionesValue: String(__veneziaGet(observacionesField, "value") || "").trim(),
+    nextDocumentationState: Object.freeze({
+      ...nextDocumentationState,
+      delivered: Object.freeze(nextDocumentationState.delivered),
+      missing: Object.freeze(nextDocumentationState.missing),
+    }),
+    documentsChanged,
+    automaticReglamentoStatus: getStudentReglamentoStatus(student).confirmado ? "Sí" : "No",
+  });
+}
+
+function renderAttendanceTable(options = {}) {
+  const forceRender = Boolean(__veneziaGet(options, "force"));
+  const allowDuringSave = Boolean(__veneziaGet(options, "allowDuringSave"));
+  if (!allowDuringSave && attendanceSaveStudentIds.size > 0) {
+    console.warn("ASISTENCIAS render omitido durante un guardado en curso.", {
+      savingStudentIds: Array.from(attendanceSaveStudentIds),
+    });
+    return false;
+  }
+  if (!forceRender && activeModule === "asistencias" && hasUnsavedAttendanceTableChanges()) {
+    console.warn("ASISTENCIAS render omitido para conservar cambios sin guardar.");
+    return false;
+  }
+
   const studentsList = getFilteredStudentsForAttendance();
   const visibleStudents = attendanceTableExpanded ? studentsList : studentsList.slice(0, 3);
   const selectedDate = getAttendanceBaseDate(studentsList);
@@ -11636,6 +11735,8 @@ function renderAttendanceTable() {
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
       const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
+      const observationsValue = getAttendanceNotesValue(metadataRecord, "Observaciones") || "";
+      const isSavingAttendance = attendanceSaveStudentIds.has(student.id);
       return `
         <tr>
           <td>${index + 1}</td>
@@ -11656,7 +11757,7 @@ function renderAttendanceTable() {
           <td>${escapeHtml(payment.mensualidad4 || "-")}</td>
           <td>${escapeHtml(monthlyPayment5)}</td>
           <td>${escapeHtml(payment.metodoPago || "-")}</td>
-          <td><input type="text" value="${escapeHtml(getAttendanceNotesValue(metadataRecord, "Observaciones") || "")}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" /></td>
+          <td><input type="text" value="${escapeHtml(observationsValue)}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" data-attendance-initial-value="${escapeHtml(observationsValue)}" /></td>
           ${sessionColumns
             .map((column) => {
               const sessionGroup = studentSessionGroups[column.index];
@@ -11682,6 +11783,7 @@ function renderAttendanceTable() {
                       ${sessionGroup.slots
                         .map((slot) => {
                           const record = getAttendanceRecord(student.id, slot.date);
+                          const selectedAttendanceValue = __veneziaGet(record, "estado") || "";
                           const title = [
                             `${slot.classLabel} · ${formatDisplayDate(slot.date) || slot.date}`,
                             paymentReference ? `Referencia ${paymentReference.shortLabel}` : "",
@@ -11697,8 +11799,9 @@ function renderAttendanceTable() {
                                 data-attendance-field="session"
                                 data-session-date="${slot.date}"
                                 data-student-id="${student.id}"
+                                data-attendance-initial-value="${escapeHtml(selectedAttendanceValue)}"
                                 title="${escapeHtml(title)}"
-                              >${renderAttendanceOptions(__veneziaGet(record, "estado") || "")}</select>
+                              >${renderAttendanceOptions(selectedAttendanceValue)}</select>
                             </div>
                           `;
                         })
@@ -11712,7 +11815,7 @@ function renderAttendanceTable() {
           <td>
             <div class="actions-cell">
               <button class="table-action action-edit" type="button" data-action="edit-student" data-id="${student.id}">Editar</button>
-              <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}">Guardar</button>
+              <button class="table-action action-edit" type="button" data-action="save-attendance" data-id="${student.id}" ${isSavingAttendance ? 'disabled aria-busy="true"' : 'aria-busy="false"'}>${isSavingAttendance ? "Guardando..." : "Guardar"}</button>
               <button class="table-action secondary-btn" type="button" data-action="view-student-file" data-id="${student.id}">Ver expediente</button>
               <button class="table-action secondary-btn" type="button" data-action="view-history" data-id="${student.id}">Ver historial</button>
               <button class="table-action secondary-btn" type="button" data-action="complete-course" data-id="${student.id}">Curso finalizado</button>
@@ -11732,54 +11835,48 @@ function renderAttendanceTable() {
   }
   updateAttendanceSummary(studentsList);
   renderAttendanceGraduatesTable();
+  return true;
 }
 
 async function saveAttendanceForStudent(studentId) {
+  if (attendanceSaveStudentIds.has(studentId)) {
+    console.warn("ASISTENCIA segundo guardado bloqueado mientras la primera operación sigue activa.", { studentId });
+    return;
+  }
+
   const student = getStudentById(studentId);
   if (!student) {
     alert("No se encontró la alumna vinculada para guardar la asistencia.");
     return;
   }
 
-  const studentSessions = getStudentAttendanceSessionDates(student);
-  const date = __veneziaGet(studentSessions[0], "date") || attendanceDate.value || getCurrentMexicoDateValue();
-  const sessionFields = Array.from(
-    attendanceTableBody.querySelectorAll(`[data-attendance-field="session"][data-student-id="${studentId}"]`)
-  );
-  const reportesField = attendanceTableBody.querySelector(`[data-attendance-field="reportes"][data-student-id="${studentId}"]`);
-  const observacionesField = attendanceTableBody.querySelector(`[data-attendance-field="observaciones"][data-student-id="${studentId}"]`);
-  const documentFields = Array.from(
-    attendanceTableBody.querySelectorAll(`[data-attendance-field="documento"][data-student-id="${studentId}"]`)
-  );
-  const checkedDocuments = documentFields.filter((field) => field.checked).map((field) => field.value);
-  const currentDocumentationState = getStudentDocumentationState(student);
-  const nextDocumentationState = getStudentDocumentationSaveState(student.documentos, checkedDocuments, student);
-  const documentsChanged =
-    documentFields.length > 0 &&
-    (nextDocumentationState.status !== currentDocumentationState.status ||
-      !areStudentDocumentListsEqual(nextDocumentationState.delivered, currentDocumentationState.delivered));
-  const automaticReglamentoStatus = getStudentReglamentoStatus(student).confirmado ? "Sí" : "No";
-  const selectedSessionDataset = __veneziaGet(sessionFields.find((field) => field.value), "dataset");
-  const firstSelectedSessionDate = __veneziaGet(selectedSessionDataset, "sessionDate") || date;
-  const selectedSessionFields = sessionFields.filter((field) => field.value);
-  const selectedSessionDates = selectedSessionFields
-    .map((field) => normalizeLocalDateKey(field.dataset.sessionDate))
-    .filter(Boolean);
-  let remoteAttendanceRecordsByDate = new Map();
-
-  if (selectedSessionDates.length > 0) {
-    try {
-      remoteAttendanceRecordsByDate = await fetchRemoteAttendanceRecordsByStudentDates(studentId, selectedSessionDates);
-    } catch (error) {
-      console.error("No se pudo verificar la asistencia remota antes de guardar.", error);
-      alert("No se pudo verificar si ya existía asistencia en Supabase. No se guardó para evitar duplicados.");
-      return;
-    }
+  const attendanceSnapshot = captureAttendanceFormSnapshot(studentId, student);
+  if (attendanceSnapshot.selectedSessions.length === 0 && !attendanceSnapshot.documentsChanged) {
+    alert("Selecciona al menos una asistencia A, P o F o actualiza documentos antes de guardar.");
+    return;
   }
 
-  const recordsToSave = selectedSessionFields
-    .map((field) => {
-      const sessionDate = normalizeLocalDateKey(field.dataset.sessionDate) || field.dataset.sessionDate;
+  attendanceSaveStudentIds.add(studentId);
+  setAttendanceSaveUiState(studentId, true);
+
+  try {
+    let remoteAttendanceRecordsByDate = new Map();
+
+    if (attendanceSnapshot.selectedSessionDates.length > 0) {
+      try {
+        remoteAttendanceRecordsByDate = await fetchRemoteAttendanceRecordsByStudentDates(
+          studentId,
+          attendanceSnapshot.selectedSessionDates
+        );
+      } catch (error) {
+        console.error("No se pudo verificar la asistencia remota antes de guardar.", error);
+        alert("No se pudo verificar si ya existía asistencia en Supabase. No se guardó para evitar duplicados.");
+        return;
+      }
+    }
+
+    const recordsToSave = attendanceSnapshot.selectedSessions.map((session) => {
+      const sessionDate = session.date;
       const remoteRecord = remoteAttendanceRecordsByDate.get(sessionDate) || null;
       const existingRecord = getAttendanceRecord(studentId, sessionDate) || null;
       const matchedRecord = remoteRecord || existingRecord;
@@ -11787,13 +11884,13 @@ async function saveAttendanceForStudent(studentId) {
         id: __veneziaGet(matchedRecord, "id") || createMiVeneziaCompatibleId(),
         studentId,
         fecha: sessionDate,
-        estado: field.value,
+        estado: session.value,
         observaciones:
-          sessionDate === date || sessionDate === firstSelectedSessionDate
+          sessionDate === attendanceSnapshot.date || sessionDate === attendanceSnapshot.firstSelectedSessionDate
             ? buildAttendanceNotes({
-                reglamento: automaticReglamentoStatus,
-                reportes: String(__veneziaGet(reportesField, "value") || "").trim(),
-                observaciones: String(__veneziaGet(observacionesField, "value") || "").trim(),
+                reglamento: attendanceSnapshot.automaticReglamentoStatus,
+                reportes: attendanceSnapshot.reportesValue,
+                observaciones: attendanceSnapshot.observacionesValue,
               })
             : __veneziaGet(matchedRecord, "observaciones") || "",
         recordedBy: __veneziaGet(getCurrentInternalUser(), "id") || "",
@@ -11802,53 +11899,51 @@ async function saveAttendanceForStudent(studentId) {
       return mergeAttendanceRecordForSync(remoteRecord, localRecord);
     });
 
-  if (recordsToSave.length === 0 && !documentsChanged) {
-    alert("Selecciona al menos una asistencia A, P o F o actualiza documentos antes de guardar.");
-    return;
-  }
+    let documentSaveResult = { synced: true };
+    if (attendanceSnapshot.documentsChanged) {
+      documentSaveResult = await saveStudentRecord({
+        ...student,
+        documentos: attendanceSnapshot.nextDocumentationState.status,
+        documentosEntregados: [...attendanceSnapshot.nextDocumentationState.delivered],
+      });
+    }
 
-  let documentSaveResult = { synced: true };
-  if (documentsChanged) {
-    documentSaveResult = await saveStudentRecord({
-      ...student,
-      documentos: nextDocumentationState.status,
-      documentosEntregados: nextDocumentationState.delivered,
-    });
-  }
+    if (!documentSaveResult.synced) {
+      updateAttendanceSummary();
+      alert("No se pudo actualizar la documentación en Supabase.");
+      return;
+    }
 
-  if (!documentSaveResult.synced) {
-    renderAttendanceTable();
-    updateAttendanceSummary();
-    alert("No se pudo actualizar la documentación en Supabase.");
-    return;
-  }
+    const saveResults = [];
+    for (const record of recordsToSave) {
+      saveResults.push(await saveAttendanceRecord(record, { remoteRecordsByDate: remoteAttendanceRecordsByDate }));
+    }
 
-  const saveResults = [];
-  for (const record of recordsToSave) {
-    saveResults.push(await saveAttendanceRecord(record, { remoteRecordsByDate: remoteAttendanceRecordsByDate }));
-  }
+    if (saveResults.some((result) => !result.synced)) {
+      updateAttendanceSummary();
+      if (selectedAttendanceStudentId === studentId) {
+        renderAttendanceHistory(studentId);
+      }
+      alert("No se pudo guardar toda la asistencia en Supabase. Revisa tu conexión e inténtalo de nuevo.");
+      return;
+    }
 
-  if (saveResults.some((result) => !result.synced)) {
+    renderAttendanceTable({ force: true, allowDuringSave: true });
     updateAttendanceSummary();
     if (selectedAttendanceStudentId === studentId) {
       renderAttendanceHistory(studentId);
     }
-    alert("No se pudo guardar toda la asistencia en Supabase. Revisa tu conexión e inténtalo de nuevo.");
-    return;
-  }
 
-  renderAttendanceTable();
-  updateAttendanceSummary();
-  if (selectedAttendanceStudentId === studentId) {
-    renderAttendanceHistory(studentId);
-  }
+    if (activeStudentFileId === studentId) {
+      renderStudentFile(studentId);
+    }
 
-  if (activeStudentFileId === studentId) {
-    renderStudentFile(studentId);
-  }
-
-  if (documentsChanged && recordsToSave.length === 0) {
-    alert("La documentación entregada se actualizó correctamente.");
+    if (attendanceSnapshot.documentsChanged && recordsToSave.length === 0) {
+      alert("La documentación entregada se actualizó correctamente.");
+    }
+  } finally {
+    attendanceSaveStudentIds.delete(studentId);
+    setAttendanceSaveUiState(studentId, false);
   }
 }
 
