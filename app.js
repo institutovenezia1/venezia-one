@@ -385,6 +385,8 @@ const altaMonthCount = document.getElementById("altaMonthCount");
 const altaPendingStartCount = document.getElementById("altaPendingStartCount");
 const altaPendingStartMeta = document.getElementById("altaPendingStartMeta");
 const altaPendingFilterChips = Array.from(document.querySelectorAll("[data-alta-pending-filter]"));
+const altaContinuityTableBody = document.getElementById("altaContinuityTableBody");
+const altaContinuityEmptyState = document.getElementById("altaContinuityEmptyState");
 const altaActiveTlaxcala = document.getElementById("altaActiveTlaxcala");
 const altaActivePuebla = document.getElementById("altaActivePuebla");
 const altaActiveTotal = document.getElementById("altaActiveTotal");
@@ -10257,6 +10259,80 @@ function getAltasPendientesPorIniciar(options = {}) {
   return getAltasPendientesPorIniciarDataset(options).finalRecords;
 }
 
+function isStudentEligibleForAltaContinuityStart(student) {
+  const normalizedStatus = normalizeLooseText(getStudentStatus(student));
+  const continuityStatus = normalizeContinuitySelection(__veneziaGet(student, "continuityStatus"));
+  const nextCourse = normalizeNextCourse(__veneziaGet(student, "nextCourse"));
+  const nextCourseStartDate = normalizeLocalDateKey(__veneziaGet(student, "nextCourseStartDate"));
+
+  if (!matchesCurrentBranch(__veneziaGet(student, "sucursal"))) {
+    return false;
+  }
+  if (isStudentDeleted(student)) {
+    return false;
+  }
+  if (["baja temporal", "baja definitiva", "archivada", "archivado"].includes(normalizedStatus)) {
+    return false;
+  }
+  if (normalizeLifecycleStatus(__veneziaGet(student, "lifecycleStatus")) === STUDENT_LIFECYCLE_STATUS.ARCHIVED_NO_CONTINUATION) {
+    return false;
+  }
+  if (continuityStatus !== "will_continue") {
+    return false;
+  }
+
+  return Boolean(nextCourse && nextCourseStartDate);
+}
+
+function getContinuidadesPorIniciarDataset() {
+  return students
+    .filter(isStudentEligibleForAltaContinuityStart)
+    .sort((left, right) => {
+      const leftDate = normalizeLocalDateKey(__veneziaGet(left, "nextCourseStartDate")) || "9999-99-99";
+      const rightDate = normalizeLocalDateKey(__veneziaGet(right, "nextCourseStartDate")) || "9999-99-99";
+      if (leftDate !== rightDate) {
+        return leftDate.localeCompare(rightDate);
+      }
+      return String(__veneziaGet(left, "nombre") || "").localeCompare(
+        String(__veneziaGet(right, "nombre") || ""),
+        "es-MX"
+      );
+    });
+}
+
+function renderContinuidadesPorIniciar() {
+  if (!altaContinuityTableBody || !altaContinuityEmptyState) {
+    return;
+  }
+
+  const continuityStudents = getContinuidadesPorIniciarDataset();
+  altaContinuityTableBody.innerHTML = continuityStudents
+    .map((student) => {
+      const nextCourse = normalizeNextCourse(__veneziaGet(student, "nextCourse"));
+      const nextCourseStartDate = normalizeLocalDateKey(__veneziaGet(student, "nextCourseStartDate"));
+      return `
+        <tr>
+          <td>
+            <div class="alta-pending-primary">
+              <strong>${escapeHtml(__veneziaGet(student, "nombre") || "-")}</strong>
+              <small>${escapeHtml(__veneziaGet(student, "telefono") || "-")}</small>
+            </div>
+          </td>
+          <td>${escapeHtml(__veneziaGet(student, "curso") || "-")}</td>
+          <td>${escapeHtml(nextCourse || "-")}</td>
+          <td>${escapeHtml(nextCourseStartDate || "-")}</td>
+          <td><span class="status-pill prospect-access-pill">Por activar</span></td>
+          <td>
+            <button class="table-action secondary-btn" type="button" disabled aria-disabled="true">Activar nuevo ciclo</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  altaContinuityEmptyState.hidden = continuityStudents.length > 0;
+}
+
 function syncAltaPendingFilterChips() {
   altaPendingFilterChips.forEach((chip) => {
     const isActive = chip.dataset.altaPendingFilter === activeAltaPendingFilter;
@@ -10308,6 +10384,7 @@ function renderAltaHistory() {
     altaPendingStartMeta.textContent = `${formatMonthLabelEs(selectedMonth)} · ${getAltaPendingFilterLabel()}`;
   }
   syncAltaPendingFilterChips();
+  renderContinuidadesPorIniciar();
 
   altaHistoryTableBody.innerHTML = visibleAltas
     .map((student) => {
