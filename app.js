@@ -199,6 +199,17 @@ const TEACHER_ELIGIBLE_POSITION_FRAGMENTS = [
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const STANDARD_COURSE_SESSION_COUNT = 20;
 const BARBERIA_COURSE_SESSION_COUNT = 24;
+const LEGACY_BARBERIA_SESSION_COUNT = 20;
+const EXTENDED_DURATION_STUDENT_NAMES = new Set([
+  "valeria perez perez",
+  "alexandra daniela salazar aguilar",
+  "luz gabriela sanchez leon",
+  "ariana rodriguez flores",
+  "alison abril hernandez roman",
+  "liliana sanchez bueno",
+  "aaron hernandez aguilar",
+  "yoselin perez papalotzi",
+]);
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
@@ -5062,6 +5073,77 @@ function isStudentInactiveForAttendance(student) {
 
 function hasStudentAttendanceCourseCompletedStatus(student) {
   return normalizeLooseText(getStudentStatus(student)) === normalizeLooseText(ATTENDANCE_COURSE_COMPLETED_STATUS);
+}
+
+function isStudentExcludedFromDurationExtension(student) {
+  return (
+    !student ||
+    isStudentDeleted(student) ||
+    isStudentCourseCompleted(student) ||
+    isStudentInactiveForAttendance(student) ||
+    isStudentDropped(student)
+  );
+}
+
+function isExtendedDurationStudent(student) {
+  return EXTENDED_DURATION_STUDENT_NAMES.has(normalizeLooseText(__veneziaGet(student, "nombre")));
+}
+
+function isPendingStartStudent(student, anchorDate = getCurrentMexicoDateValue()) {
+  const startDate = getStudentCourseStartDateValue(student);
+  return Boolean(
+    startDate &&
+    startDate >= anchorDate &&
+    !isStudentExcludedFromDurationExtension(student)
+  );
+}
+
+function studentUsesExtendedDuration(student) {
+  if (isStudentExcludedFromDurationExtension(student)) {
+    return false;
+  }
+  return isExtendedDurationStudent(student) || isPendingStartStudent(student);
+}
+
+function getLegacyAttendanceSessionCountForCourse(course) {
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
+    return LEGACY_BARBERIA_SESSION_COUNT;
+  }
+  if (
+    normalizedCourse === "uñas" ||
+    normalizedCourse === "unas" ||
+    normalizedCourse === "pestañas" ||
+    normalizedCourse === "pestanas" ||
+    normalizedCourse === "maquillaje"
+  ) {
+    return DEFAULT_ATTENDANCE_SESSION_COUNT;
+  }
+  return DEFAULT_ATTENDANCE_SESSION_COUNT;
+}
+
+function getExtendedAttendanceSessionCountForCourse(course) {
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
+    return BARBERIA_COURSE_SESSION_COUNT;
+  }
+  if (
+    normalizedCourse === "uñas" ||
+    normalizedCourse === "unas" ||
+    normalizedCourse === "pestañas" ||
+    normalizedCourse === "pestanas" ||
+    normalizedCourse === "maquillaje"
+  ) {
+    return STANDARD_COURSE_SESSION_COUNT;
+  }
+  return DEFAULT_ATTENDANCE_SESSION_COUNT;
+}
+
+function getStudentExpectedSessionCount(student) {
+  const course = __veneziaGet(student, "curso");
+  return studentUsesExtendedDuration(student)
+    ? getExtendedAttendanceSessionCountForCourse(course)
+    : getLegacyAttendanceSessionCountForCourse(course);
 }
 
 function isStudentInAttendanceHistoryStatus(student) {
@@ -11394,34 +11476,17 @@ function renderAttendanceOptions(selectedValue) {
 }
 
 function getAttendanceSessionCountForCourse(course) {
-  const normalizedCourse = String(course || "").trim().toLowerCase();
-  if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
-    return BARBERIA_COURSE_SESSION_COUNT;
-  }
-  if (
-    normalizedCourse === "uñas" ||
-    normalizedCourse === "unas" ||
-    normalizedCourse === "pestañas" ||
-    normalizedCourse === "pestanas" ||
-    normalizedCourse === "maquillaje"
-  ) {
-    return STANDARD_COURSE_SESSION_COUNT;
-  }
-  return DEFAULT_ATTENDANCE_SESSION_COUNT;
+  return getLegacyAttendanceSessionCountForCourse(course);
 }
 
 function getAttendanceSessionCount(studentsList = []) {
-  const explicitCourse = attendanceCursoFilter.value;
-  if (explicitCourse) {
-    return getAttendanceSessionCountForCourse(explicitCourse);
-  }
-
   if (studentsList.length === 0) {
-    return DEFAULT_ATTENDANCE_SESSION_COUNT;
+    const explicitCourse = attendanceCursoFilter.value;
+    return explicitCourse ? getAttendanceSessionCountForCourse(explicitCourse) : DEFAULT_ATTENDANCE_SESSION_COUNT;
   }
 
   return studentsList.reduce(
-    (maxCount, student) => Math.max(maxCount, getAttendanceSessionCountForCourse(student.curso)),
+    (maxCount, student) => Math.max(maxCount, getStudentExpectedSessionCount(student)),
     DEFAULT_ATTENDANCE_SESSION_COUNT
   );
 }
@@ -11586,7 +11651,7 @@ function getStudentAttendanceSessionGroups(student) {
     return [];
   }
 
-  return getAttendanceSessionGroups(baseDate, getAttendanceSessionCountForCourse(student.curso), __veneziaGet(student, "diaClases") || "");
+  return getAttendanceSessionGroups(baseDate, getStudentExpectedSessionCount(student), __veneziaGet(student, "diaClases") || "");
 }
 
 function getStudentAttendanceReferenceSessions(student) {
@@ -12369,10 +12434,10 @@ function normalizeNextCourse(value) {
 
 function getCourseMonthlyPaymentFields(student) {
   const fields = ["mensualidad1", "mensualidad2", "mensualidad3", "mensualidad4"];
-  if (courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
+  if (studentUsesFifthMonth(student)) {
     fields.push("mensualidad5");
   }
-  if (courseUsesSixthMonth(__veneziaGet(student, "curso"))) {
+  if (studentUsesSixthMonth(student)) {
     fields.push("mensualidad6");
   }
   return fields;
@@ -12811,15 +12876,7 @@ function syncPreferredPaymentsMonth({ force = false } = {}) {
 
 function courseUsesFifthMonth(course) {
   const normalizedCourse = String(course || "").trim().toLowerCase();
-  return (
-    normalizedCourse === "uñas" ||
-    normalizedCourse === "unas" ||
-    normalizedCourse === "pestañas" ||
-    normalizedCourse === "pestanas" ||
-    normalizedCourse === "maquillaje" ||
-    normalizedCourse === "barbería" ||
-    normalizedCourse === "barberia"
-  );
+  return normalizedCourse === "barbería" || normalizedCourse === "barberia";
 }
 
 function courseUsesSixthMonth(course) {
@@ -12827,12 +12884,27 @@ function courseUsesSixthMonth(course) {
   return normalizedCourse === "barbería" || normalizedCourse === "barberia";
 }
 
+function studentUsesFifthMonth(student) {
+  const course = __veneziaGet(student, "curso");
+  if (courseUsesFifthMonth(course)) {
+    return true;
+  }
+  return studentUsesExtendedDuration(student) && getExtendedAttendanceSessionCountForCourse(course) >= STANDARD_COURSE_SESSION_COUNT;
+}
+
+function studentUsesSixthMonth(student) {
+  return studentUsesExtendedDuration(student) && courseUsesSixthMonth(__veneziaGet(student, "curso"));
+}
+
 function isPaymentReferenceRuleApplicableForStudent(rule, student) {
   if (!rule) {
     return false;
   }
   if (rule.onlySixthMonth) {
-    return courseUsesSixthMonth(__veneziaGet(student, "curso"));
+    return studentUsesSixthMonth(student);
+  }
+  if (rule.field === "mensualidad5") {
+    return studentUsesFifthMonth(student);
   }
   return true;
 }
@@ -15969,7 +16041,7 @@ function getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCa
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
-  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(__veneziaGet(student, "curso"));
+  const totalClases = attendanceCalendar.length || getStudentExpectedSessionCount(student);
   const clasesRegistradas = attendanceCalendar.filter((entry) => entry.record).length;
   const clasesTomadas = asistencias + recuperaciones;
   const clasesPendientes = Math.max(totalClases - clasesRegistradas, 0);
@@ -16843,7 +16915,7 @@ function buildMiVeneziaFallbackAttendanceOverview(student, attendanceHistory = [
   const permisos = attendanceHistory.filter((record) => record.estado === "Permiso").length;
   const recuperaciones = attendanceHistory.filter((record) => record.estado === "Recuperación").length;
   const asistencias = attendanceHistory.filter((record) => record.estado === "Asistencia").length;
-  const totalClases = attendanceCalendar.length || getAttendanceSessionCountForCourse(__veneziaGet(student, "curso"));
+  const totalClases = attendanceCalendar.length || getStudentExpectedSessionCount(student);
   const clasesTomadas = asistencias + recuperaciones;
   const completionRate = totalClases > 0 ? Math.round((clasesTomadas / totalClases) * 100) : 0;
 

@@ -16,6 +16,17 @@
   var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
   var STANDARD_COURSE_SESSION_COUNT = 20;
   var BARBERIA_COURSE_SESSION_COUNT = 24;
+  var LEGACY_BARBERIA_SESSION_COUNT = 20;
+  var EXTENDED_DURATION_STUDENT_NAMES = {
+    "valeria perez perez": true,
+    "alexandra daniela salazar aguilar": true,
+    "luz gabriela sanchez leon": true,
+    "ariana rodriguez flores": true,
+    "alison abril hernandez roman": true,
+    "liliana sanchez bueno": true,
+    "aaron hernandez aguilar": true,
+    "yoselin perez papalotzi": true
+  };
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [
     { field: "mensualidad1", label: "Mensualidad 1", shortLabel: "Men1", sessionIndex: 0, amountField: "mensualidad1Amount", amountType: "monthly" },
@@ -618,6 +629,39 @@
     return normalized === "eliminada" || normalized === "eliminado";
   }
 
+  function getTodayDateKey() {
+    return formatDateKey(new Date());
+  }
+
+  function isStudentExcludedFromDurationExtension(student) {
+    var normalized = normalizeLoose(student && student.estado);
+    return (
+      !student ||
+      isStudentDeleted(student) ||
+      normalized === "baja temporal" ||
+      normalized === "baja definitiva" ||
+      normalized === "curso finalizado" ||
+      normalized === "archivada" ||
+      normalized === "archivado"
+    );
+  }
+
+  function isExtendedDurationStudent(student) {
+    return !!EXTENDED_DURATION_STUDENT_NAMES[normalizeLoose(student && student.nombre)];
+  }
+
+  function isPendingStartStudent(student) {
+    var startDate = normalizeLocalDateKey(student && student.fechaInicio);
+    return !!(startDate && startDate >= getTodayDateKey() && !isStudentExcludedFromDurationExtension(student));
+  }
+
+  function studentUsesExtendedDuration(student) {
+    if (isStudentExcludedFromDurationExtension(student)) {
+      return false;
+    }
+    return isExtendedDurationStudent(student) || isPendingStartStudent(student);
+  }
+
   function getStudentLoginPriority(student) {
     var normalized = normalizeLoose(student && student.estado);
     if (!normalized || normalized === "activa" || normalized === "activo") {
@@ -1187,6 +1231,14 @@
   function getAttendanceSessionCountForCourse(course) {
     var normalizedCourse = normalizeLoose(course);
     if (normalizedCourse === "barberia") {
+      return LEGACY_BARBERIA_SESSION_COUNT;
+    }
+    return DEFAULT_ATTENDANCE_SESSION_COUNT;
+  }
+
+  function getExtendedAttendanceSessionCountForCourse(course) {
+    var normalizedCourse = normalizeLoose(course);
+    if (normalizedCourse === "barberia") {
       return BARBERIA_COURSE_SESSION_COUNT;
     }
     if (normalizedCourse === "unas" || normalizedCourse === "pestanas" || normalizedCourse === "maquillaje") {
@@ -1195,13 +1247,30 @@
     return DEFAULT_ATTENDANCE_SESSION_COUNT;
   }
 
+  function getStudentExpectedSessionCount(student) {
+    return studentUsesExtendedDuration(student)
+      ? getExtendedAttendanceSessionCountForCourse(student && student.curso)
+      : getAttendanceSessionCountForCourse(student && student.curso);
+  }
+
   function courseUsesFifthMonth(course) {
     var normalizedCourse = normalizeLoose(course);
-    return normalizedCourse === "unas" || normalizedCourse === "pestanas" || normalizedCourse === "maquillaje" || normalizedCourse === "barberia";
+    return normalizedCourse === "barberia";
   }
 
   function courseUsesSixthMonth(course) {
     return normalizeLoose(course) === "barberia";
+  }
+
+  function studentUsesFifthMonth(student) {
+    if (courseUsesFifthMonth(student && student.curso)) {
+      return true;
+    }
+    return studentUsesExtendedDuration(student) && getExtendedAttendanceSessionCountForCourse(student && student.curso) >= STANDARD_COURSE_SESSION_COUNT;
+  }
+
+  function studentUsesSixthMonth(student) {
+    return studentUsesExtendedDuration(student) && courseUsesSixthMonth(student && student.curso);
   }
 
   function isPaymentRuleApplicableForStudent(rule, student) {
@@ -1209,7 +1278,10 @@
       return false;
     }
     if (rule.onlySixthMonth) {
-      return courseUsesSixthMonth(student && student.curso);
+      return studentUsesSixthMonth(student);
+    }
+    if (rule.field === "mensualidad5") {
+      return studentUsesFifthMonth(student);
     }
     return true;
   }
@@ -1235,7 +1307,7 @@
 
   function getStudentAttendanceReferenceSessions(student) {
     var baseDate = getStudentAttendanceBaseDate(student);
-    var sessionCount = getAttendanceSessionCountForCourse(student && student.curso);
+    var sessionCount = getStudentExpectedSessionCount(student);
     var dayLabel = normalizeAttendanceDayLabel(getStudentClassDayLabel(student));
     var sessions = [];
     var index;
