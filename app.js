@@ -130,6 +130,7 @@ const PAYMENT_EDITABLE_FIELDS = [
   "mensualidad3",
   "mensualidad4",
   "mensualidad5",
+  "mensualidad6",
   "metodoPago",
   "cantidadPagada",
   "paymentRealDate",
@@ -196,6 +197,8 @@ const TEACHER_ELIGIBLE_POSITION_FRAGMENTS = [
   "coord maestras",
 ];
 const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
+const STANDARD_COURSE_SESSION_COUNT = 20;
+const BARBERIA_COURSE_SESSION_COUNT = 24;
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
@@ -205,6 +208,7 @@ const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "mensualidad3", label: "Mensualidad 3", movementLabel: "Mensualidad 3" },
   { key: "mensualidad4", label: "Mensualidad 4", movementLabel: "Mensualidad 4" },
   { key: "mensualidad5", label: "Mensualidad 5", movementLabel: "Mensualidad 5" },
+  { key: "mensualidad6", label: "Mensualidad 6", movementLabel: "Mensualidad 6" },
 ];
 const PAYMENT_CONCEPT_DETAIL_FIELDS = [
   { key: "mensualidad1", label: "MEN1", movementLabel: "Mensualidad 1" },
@@ -214,6 +218,7 @@ const PAYMENT_CONCEPT_DETAIL_FIELDS = [
   { key: "certificadoP2", label: "C2", movementLabel: "C2" },
   { key: "mensualidad4", label: "MEN4", movementLabel: "Mensualidad 4" },
   { key: "mensualidad5", label: "MEN5", movementLabel: "Mensualidad 5" },
+  { key: "mensualidad6", label: "MEN6", movementLabel: "Mensualidad 6" },
 ];
 const PAYMENT_CONCEPT_FIELD_KEYS = new Set(PAYMENT_CONCEPT_DETAIL_FIELDS.map(({ key }) => key));
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
@@ -249,7 +254,8 @@ const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad3", label: "Men3", sessionIndex: 7 },
   { field: "certificadoP2", label: "C2", sessionIndex: 8 },
   { field: "mensualidad4", label: "Men4", sessionIndex: 11 },
-  { field: "mensualidad5", label: "Men5", sessionIndex: 15, onlyFifthMonth: true },
+  { field: "mensualidad5", label: "Men5", sessionIndex: 15 },
+  { field: "mensualidad6", label: "Men6", sessionIndex: 19, onlySixthMonth: true },
 ];
 const ATTENDANCE_PRIORITY_PAYMENT_REFERENCE_FIELDS = new Set([
   "mensualidad1",
@@ -1327,6 +1333,7 @@ function buildPaymentSupabasePayload(record) {
     third_month_amount: toNullablePaymentNumber(record.mensualidad3),
     fourth_month_amount: toNullablePaymentNumber(record.mensualidad4),
     fifth_month_amount: toNullablePaymentNumber(record.mensualidad5),
+    sixth_month_amount: toNullablePaymentNumber(record.mensualidad6),
     pending_payments: record.pagosPendientes || "",
     payment_method: record.metodoPago || "",
     reports: record.reportes || "",
@@ -1461,6 +1468,7 @@ function summarizePaymentRecordForTrace(record = {}) {
     mensualidad3: record.mensualidad3 || "",
     mensualidad4: record.mensualidad4 || "",
     mensualidad5: record.mensualidad5 || "",
+    mensualidad6: record.mensualidad6 || "",
     reportes: record.reportes || "",
     observaciones: record.observaciones || "",
     nextCourseStartDate: record.nextCourseStartDate || "",
@@ -1480,6 +1488,7 @@ function summarizePaymentSaveDebugRecord(record = {}) {
     certificadoP2: __veneziaGet(record, "certificadoP2") || "",
     mensualidad4: __veneziaGet(record, "mensualidad4") || "",
     mensualidad5: __veneziaGet(record, "mensualidad5") || "",
+    mensualidad6: __veneziaGet(record, "mensualidad6") || "",
     paymentRealDate: __veneziaGet(record, "paymentRealDate") || "",
     payment_method: __veneziaGet(record, "metodoPago") || "",
     amount: __veneziaGet(record, "cantidadPagada") || "",
@@ -1590,6 +1599,7 @@ function getPaymentFieldChanges(currentRecord = {}, nextRecord = {}) {
     "mensualidad3",
     "mensualidad4",
     "mensualidad5",
+    "mensualidad6",
     "metodoPago",
     "cantidadPagada",
     "reportes",
@@ -7302,6 +7312,7 @@ function getPaymentFinanceCategory(record) {
     record.mensualidad3,
     record.mensualidad4,
     record.mensualidad5,
+    record.mensualidad6,
   ].some(isEligiblePaymentStatus)) {
     return "Colegiatura";
   }
@@ -11385,7 +11396,7 @@ function renderAttendanceOptions(selectedValue) {
 function getAttendanceSessionCountForCourse(course) {
   const normalizedCourse = String(course || "").trim().toLowerCase();
   if (normalizedCourse === "barbería" || normalizedCourse === "barberia") {
-    return 20;
+    return BARBERIA_COURSE_SESSION_COUNT;
   }
   if (
     normalizedCourse === "uñas" ||
@@ -11394,7 +11405,7 @@ function getAttendanceSessionCountForCourse(course) {
     normalizedCourse === "pestanas" ||
     normalizedCourse === "maquillaje"
   ) {
-    return 16;
+    return STANDARD_COURSE_SESSION_COUNT;
   }
   return DEFAULT_ATTENDANCE_SESSION_COUNT;
 }
@@ -11914,6 +11925,7 @@ function renderAttendanceTable(options = {}) {
       <th>3ra M</th>
       <th>4ta M</th>
       <th>5ta M</th>
+      <th>6ta M</th>
       <th>TRANS O EFEC</th>
       <th>OBSERVA.</th>
       ${sessionColumns
@@ -11946,7 +11958,8 @@ function renderAttendanceTable(options = {}) {
       const studentReferenceSessions = getStudentAttendanceReferenceSessions(student);
       const metadataRecord = getLatestAttendanceMetadataRecord(student.id);
       const payment = getLatestPaymentRecordForStudent(student.id);
-      const monthlyPayment5 = courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica";
+      const monthlyPayment5 = getPaymentStatusForCourseField("mensualidad5", student, payment) || "-";
+      const monthlyPayment6 = getPaymentStatusForCourseField("mensualidad6", student, payment) || "-";
       const observationsValue = getAttendanceNotesValue(metadataRecord, "Observaciones") || "";
       const isSavingAttendance = attendanceSaveStudentIds.has(student.id);
       const attendanceProgress = getAttendanceProgressSummary(student);
@@ -11969,6 +11982,7 @@ function renderAttendanceTable(options = {}) {
           <td>${escapeHtml(payment.mensualidad3 || "-")}</td>
           <td>${escapeHtml(payment.mensualidad4 || "-")}</td>
           <td>${escapeHtml(monthlyPayment5)}</td>
+          <td>${escapeHtml(monthlyPayment6)}</td>
           <td>${escapeHtml(payment.metodoPago || "-")}</td>
           <td><input type="text" value="${escapeHtml(observationsValue)}" placeholder="Observaciones" data-attendance-field="observaciones" data-student-id="${student.id}" data-attendance-initial-value="${escapeHtml(observationsValue)}" /></td>
           ${sessionColumns
@@ -12358,6 +12372,9 @@ function getCourseMonthlyPaymentFields(student) {
   if (courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
     fields.push("mensualidad5");
   }
+  if (courseUsesSixthMonth(__veneziaGet(student, "curso"))) {
+    fields.push("mensualidad6");
+  }
   return fields;
 }
 
@@ -12372,7 +12389,7 @@ function getStudentPaymentReferenceDateByField(field, student, sessions = getStu
     return "";
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
+  if (!isPaymentReferenceRuleApplicableForStudent(rule, student)) {
     return "";
   }
 
@@ -12385,7 +12402,7 @@ function isMonthlyPaymentCovered(status) {
 }
 
 function hasStudentPendingMonthlyPayments(student, paymentRecord) {
-  return getCourseMonthlyPaymentFields(student).some((field) => !isMonthlyPaymentCovered(__veneziaGet(paymentRecord, field)));
+  return getCourseMonthlyPaymentFields(student).some((field) => !isMonthlyPaymentCovered(getPaymentStatusForCourseField(field, student, paymentRecord)));
 }
 
 function isLastMonthlyPaymentSettled(student, paymentRecord) {
@@ -12395,7 +12412,7 @@ function isLastMonthlyPaymentSettled(student, paymentRecord) {
   }
 
   const finalField = getFinalMonthlyPaymentField(student);
-  return String(__veneziaGet(paymentRecord, finalField) || "").trim() === "Pagado";
+  return getPaymentStatusForCourseField(finalField, student, paymentRecord) === "Pagado";
 }
 
 function getStudentCollectionLifecycle(student, paymentRecord = getPaymentDisplayRecord(__veneziaGet(student, "id")), anchorDate = getCurrentMexicoDateValue()) {
@@ -12482,6 +12499,7 @@ function createEmptyPaymentRecord({ studentId = "", month = "" } = {}) {
     mensualidad3: "",
     mensualidad4: "",
     mensualidad5: "",
+    mensualidad6: "",
     pagosPendientes: "",
     metodoPago: "",
     cantidadPagada: "",
@@ -12510,6 +12528,7 @@ function getPersistentPaymentRecord(studentId) {
     "mensualidad3",
     "mensualidad4",
     "mensualidad5",
+    "mensualidad6",
     "pagosPendientes",
     "lastMonthlyPaymentStatus",
     "continuityStatus",
@@ -12791,7 +12810,50 @@ function syncPreferredPaymentsMonth({ force = false } = {}) {
 }
 
 function courseUsesFifthMonth(course) {
-  return String(course || "").trim().toLowerCase() === "barbería" || String(course || "").trim().toLowerCase() === "barberia";
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  return (
+    normalizedCourse === "uñas" ||
+    normalizedCourse === "unas" ||
+    normalizedCourse === "pestañas" ||
+    normalizedCourse === "pestanas" ||
+    normalizedCourse === "maquillaje" ||
+    normalizedCourse === "barbería" ||
+    normalizedCourse === "barberia"
+  );
+}
+
+function courseUsesSixthMonth(course) {
+  const normalizedCourse = String(course || "").trim().toLowerCase();
+  return normalizedCourse === "barbería" || normalizedCourse === "barberia";
+}
+
+function isPaymentReferenceRuleApplicableForStudent(rule, student) {
+  if (!rule) {
+    return false;
+  }
+  if (rule.onlySixthMonth) {
+    return courseUsesSixthMonth(__veneziaGet(student, "curso"));
+  }
+  return true;
+}
+
+function normalizePaymentStatusForCourseRule(value, rule, student) {
+  const normalizedValue = String(value || "").trim();
+  if (!rule) {
+    return normalizedValue;
+  }
+  if (!isPaymentReferenceRuleApplicableForStudent(rule, student)) {
+    return "No aplica";
+  }
+  return normalizedValue === "No aplica" ? "Pendiente" : normalizedValue;
+}
+
+function getPaymentStatusForCourseField(field, student, paymentRecord = {}) {
+  return normalizePaymentStatusForCourseRule(
+    __veneziaGet(paymentRecord, field),
+    getStudentPaymentReferenceRule(field),
+    student
+  );
 }
 
 function renderPaymentSelectOptions(selectedValue, options, placeholderLabel = "Selecciona") {
@@ -12973,6 +13035,7 @@ function getAttendancePaymentReferenceToneClass(reference) {
   if (shortLabel === "MEN3") return "attendance-payment-tone-men3";
   if (shortLabel === "MEN4") return "attendance-payment-tone-men4";
   if (shortLabel === "MEN5") return "attendance-payment-tone-men5";
+  if (shortLabel === "MEN6") return "attendance-payment-tone-men5";
   if (shortLabel === "C1" || shortLabel === "C2") return "attendance-payment-tone-certificate";
   return "";
 }
@@ -12982,7 +13045,7 @@ function buildAttendancePaymentReferenceEntry(rule, student, sessions = getStude
     return null;
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
+  if (!isPaymentReferenceRuleApplicableForStudent(rule, student)) {
     return null;
   }
 
@@ -13009,7 +13072,7 @@ function buildStudentPaymentReferenceEntry(rule, student, sessions = getStudentA
     return null;
   }
 
-  if (rule.onlyFifthMonth && !courseUsesFifthMonth(__veneziaGet(student, "curso"))) {
+  if (!isPaymentReferenceRuleApplicableForStudent(rule, student)) {
     return {
       ...rule,
       value: "No aplica",
@@ -13031,7 +13094,7 @@ function getStudentPaymentScheduleEntries(student) {
   const sessions = getStudentPortalSessionDates(student);
 
   return STUDENT_PAYMENT_REFERENCE_RULES
-    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso")))
+    .filter((rule) => isPaymentReferenceRuleApplicableForStudent(rule, student))
     .map((rule) => buildStudentPaymentReferenceEntry(rule, student, sessions))
     .filter(Boolean)
     .map((entry) => ({
@@ -13042,10 +13105,12 @@ function getStudentPaymentScheduleEntries(student) {
 
 function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student), conceptDetailsByKey = new Map()) {
   const conceptDetail = conceptDetailsByKey.get(field) || null;
-  const selectedValue = field === "mensualidad5" && !courseUsesFifthMonth(student.curso)
+  const paymentRule = getStudentPaymentReferenceRule(field);
+  const isApplicable = !paymentRule || isPaymentReferenceRuleApplicableForStudent(paymentRule, student);
+  const selectedValue = !isApplicable
     ? "No aplica"
-    : __veneziaGet(conceptDetail, "status") || payment[field] || "";
-  const disabled = field === "mensualidad5" && !courseUsesFifthMonth(student.curso) ? "disabled" : "";
+    : normalizePaymentStatusForCourseRule(__veneziaGet(conceptDetail, "status") || payment[field] || "", paymentRule, student);
+  const disabled = isApplicable ? "" : "disabled";
   const reference = getStudentPaymentReferenceByField(field, student, sessions);
   const referenceLabel = __veneziaGet(reference, "value") || "-";
   const detailTitle = conceptDetail && conceptDetail.source === "concept-finance"
@@ -13567,6 +13632,7 @@ function renderPaymentsTable(options = {}) {
           <td>${renderPaymentStatusSelect("certificadoP2", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
           <td>${renderPaymentStatusSelect("mensualidad4", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
           <td>${renderPaymentStatusSelect("mensualidad5", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
+          <td>${renderPaymentStatusSelect("mensualidad6", student, payment, studentSessions, paymentConceptDetailsByKey)}</td>
           <td><select data-payment-field="metodoPago" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentMethodValue)}">${renderPaymentSelectOptions(paymentMethodValue, PAYMENT_METHOD_OPTIONS)}</select></td>
           <td><input type="text" value="${escapeHtml(paymentAmountValue || "")}" data-payment-field="cantidadPagada" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentAmountValue || "")}" placeholder="$0" /></td>
           <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
@@ -13630,7 +13696,7 @@ function renderPaymentsTable(options = {}) {
 
 function getPaymentReviewConceptRules(student) {
   return STUDENT_PAYMENT_REFERENCE_RULES.filter(
-    (rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso"))
+    (rule) => isPaymentReferenceRuleApplicableForStudent(rule, student)
   );
 }
 
@@ -14329,6 +14395,7 @@ async function savePaymentForStudent(studentId) {
     certificadoP2: formPayload.certificadoP2 || "",
     mensualidad4: formPayload.mensualidad4 || "",
     mensualidad5: formPayload.mensualidad5 || "",
+    mensualidad6: formPayload.mensualidad6 || "",
     method: formPayload.metodoPago || "",
     amount: formPayload.cantidadPagada || "",
     paymentRealDate: formPayload.paymentRealDate || "",
@@ -15538,7 +15605,8 @@ function renderStudentFile(studentId) {
     payment.mensualidad2,
     payment.mensualidad3,
     payment.mensualidad4,
-    courseUsesFifthMonth(student.curso) ? payment.mensualidad5 : "No aplica",
+    getPaymentStatusForCourseField("mensualidad5", student, payment),
+    getPaymentStatusForCourseField("mensualidad6", student, payment),
   ];
   const hasPendingPayments = paymentHighlights.some((value) => value === "Pendiente" || value === "Parcial");
 
@@ -15629,7 +15697,8 @@ function renderStudentFile(studentId) {
     { label: "2da M", value: payment.mensualidad2 || "-", badge: true, tone: getPaymentTone(payment.mensualidad2) },
     { label: "3ra M", value: payment.mensualidad3 || "-", badge: true, tone: getPaymentTone(payment.mensualidad3) },
     { label: "4ta M", value: payment.mensualidad4 || "-", badge: true, tone: getPaymentTone(payment.mensualidad4) },
-    { label: "5ta M", value: courseUsesFifthMonth(student.curso) ? payment.mensualidad5 || "-" : "No aplica", badge: true, tone: getPaymentTone(courseUsesFifthMonth(student.curso) ? payment.mensualidad5 : "No aplica") },
+    { label: "5ta M", value: getPaymentStatusForCourseField("mensualidad5", student, payment) || "-", badge: true, tone: getPaymentTone(getPaymentStatusForCourseField("mensualidad5", student, payment)) },
+    { label: "6ta M", value: getPaymentStatusForCourseField("mensualidad6", student, payment) || "-", badge: true, tone: getPaymentTone(getPaymentStatusForCourseField("mensualidad6", student, payment)) },
     { label: "Método de pago", value: payment.metodoPago || "-", badge: true, tone: "blue" },
     { label: "Cantidad pagada", value: payment.cantidadPagada || "-" },
     { label: "Estado financiero", value: hasPendingPayments ? "Con pendientes" : "Al corriente", badge: true, tone: hasPendingPayments ? "red" : "green" },
@@ -15780,6 +15849,7 @@ function getStudentPaymentEntries(student) {
         record.mensualidad3,
         record.mensualidad4,
         record.mensualidad5,
+        record.mensualidad6,
       ].filter((value) => value && value !== "No aplica");
       const hasPending = statuses.some((value) => value === "Pendiente" || value === "Parcial");
       return {
@@ -15804,6 +15874,7 @@ function countStudentRegisteredPayments(student) {
     payment.mensualidad3,
     payment.mensualidad4,
     payment.mensualidad5,
+    payment.mensualidad6,
   ].filter((value) => value === "Pagado" || value === "Parcial").length;
 }
 
@@ -15836,14 +15907,14 @@ function getMiVeneziaPaymentOverview(
   sessions = getStudentPortalSessionDates(student)
 ) {
   const references = STUDENT_PAYMENT_REFERENCE_RULES
-    .filter((rule) => !rule.onlyFifthMonth || courseUsesFifthMonth(__veneziaGet(student, "curso")))
+    .filter((rule) => isPaymentReferenceRuleApplicableForStudent(rule, student))
     .map((rule) => {
       const reference = buildStudentPaymentReferenceEntry(rule, student, sessions);
       return {
         field: rule.field,
         shortLabel: getPaymentReferenceShortLabel(rule) || String(rule.label || "").trim().toUpperCase(),
         date: __veneziaGet(reference, "value") || "-",
-        status: String(__veneziaGet(payment, rule.field) || "").trim(),
+        status: normalizePaymentStatusForCourseRule(__veneziaGet(payment, rule.field), rule, student),
       };
     });
 

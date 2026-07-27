@@ -14,6 +14,8 @@
   var TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP = OFFICIAL_WHATSAPP_LOCAL_NUMBER;
   var TLAXCALA_WEEKEND_DIRECTOR_WHATSAPP = "2461379504";
   var DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
+  var STANDARD_COURSE_SESSION_COUNT = 20;
+  var BARBERIA_COURSE_SESSION_COUNT = 24;
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [
     { field: "mensualidad1", label: "Mensualidad 1", shortLabel: "Men1", sessionIndex: 0, amountField: "mensualidad1Amount", amountType: "monthly" },
@@ -22,7 +24,8 @@
     { field: "mensualidad3", label: "Mensualidad 3", shortLabel: "Men3", sessionIndex: 7, amountField: "mensualidad3Amount", amountType: "monthly" },
     { field: "certificadoP2", label: "Certificado C2", shortLabel: "C2", sessionIndex: 8, amountField: "certificadoP2Amount", amountType: "certificate" },
     { field: "mensualidad4", label: "Mensualidad 4", shortLabel: "Men4", sessionIndex: 11, amountField: "mensualidad4Amount", amountType: "monthly" },
-    { field: "mensualidad5", label: "Mensualidad 5", shortLabel: "Men5", sessionIndex: 15, amountField: "mensualidad5Amount", amountType: "monthly", onlyFifthMonth: true }
+    { field: "mensualidad5", label: "Mensualidad 5", shortLabel: "Men5", sessionIndex: 15, amountField: "mensualidad5Amount", amountType: "monthly" },
+    { field: "mensualidad6", label: "Mensualidad 6", shortLabel: "Men6", sessionIndex: 19, amountField: "mensualidad6Amount", amountType: "monthly", onlySixthMonth: true }
   ];
   var STUDENT_DOCUMENT_REQUIREMENTS = [
     "Reglamento interno",
@@ -825,6 +828,7 @@
       mensualidad3: text(extractMetadata(notes, "3ra mensualidad") || row.mensualidad3),
       mensualidad4: text(extractMetadata(notes, "4ta mensualidad") || row.mensualidad4),
       mensualidad5: text(extractMetadata(notes, "5ta mensualidad") || row.mensualidad5),
+      mensualidad6: text(extractMetadata(notes, "6ta mensualidad") || row.mensualidad6),
       certificadoP1Amount: text(row.certificate_p1_amount || row.certificadoP1Amount),
       certificadoP2Amount: text(row.certificate_p2_amount || row.certificadoP2Amount),
       mensualidad1Amount: text(row.first_month_amount || row.mensualidad1Amount),
@@ -832,6 +836,7 @@
       mensualidad3Amount: text(row.third_month_amount || row.mensualidad3Amount),
       mensualidad4Amount: text(row.fourth_month_amount || row.mensualidad4Amount),
       mensualidad5Amount: text(row.fifth_month_amount || row.mensualidad5Amount),
+      mensualidad6Amount: text(row.sixth_month_amount || row.mensualidad6Amount),
       pagosPendientes: text(row.pending_payments || row.pagosPendientes),
       metodoPago: text(row.payment_method || row.metodoPago),
       cantidadPagada: text(extractMetadata(notes, "Cantidad pagada") || row.cantidadPagada),
@@ -921,7 +926,7 @@
     }
 
     selectTable("student_payments", {
-      select: "id,student_id,tuition_amount,certificate_p1_amount,certificate_p2_amount,first_month_amount,second_month_amount,third_month_amount,fourth_month_amount,fifth_month_amount,pending_payments,payment_method,reports,notes,updated_at,created_at",
+      select: "id,student_id,tuition_amount,certificate_p1_amount,certificate_p2_amount,first_month_amount,second_month_amount,third_month_amount,fourth_month_amount,fifth_month_amount,sixth_month_amount,pending_payments,payment_method,reports,notes,updated_at,created_at",
       student_id: "eq." + student.id,
       order: "updated_at.desc"
     }, function (error, rows) {
@@ -1182,13 +1187,42 @@
   function getAttendanceSessionCountForCourse(course) {
     var normalizedCourse = normalizeLoose(course);
     if (normalizedCourse === "barberia") {
-      return 20;
+      return BARBERIA_COURSE_SESSION_COUNT;
+    }
+    if (normalizedCourse === "unas" || normalizedCourse === "pestanas" || normalizedCourse === "maquillaje") {
+      return STANDARD_COURSE_SESSION_COUNT;
     }
     return DEFAULT_ATTENDANCE_SESSION_COUNT;
   }
 
   function courseUsesFifthMonth(course) {
+    var normalizedCourse = normalizeLoose(course);
+    return normalizedCourse === "unas" || normalizedCourse === "pestanas" || normalizedCourse === "maquillaje" || normalizedCourse === "barberia";
+  }
+
+  function courseUsesSixthMonth(course) {
     return normalizeLoose(course) === "barberia";
+  }
+
+  function isPaymentRuleApplicableForStudent(rule, student) {
+    if (!rule) {
+      return false;
+    }
+    if (rule.onlySixthMonth) {
+      return courseUsesSixthMonth(student && student.curso);
+    }
+    return true;
+  }
+
+  function normalizePaymentStatusForCourseRule(value, rule, student) {
+    var normalizedValue = text(value);
+    if (!rule) {
+      return normalizedValue;
+    }
+    if (!isPaymentRuleApplicableForStudent(rule, student)) {
+      return "No aplica";
+    }
+    return normalizedValue === "No aplica" ? "Pendiente" : normalizedValue;
   }
 
   function getStudentAttendanceBaseDate(student) {
@@ -1323,6 +1357,7 @@
       mensualidad3: "",
       mensualidad4: "",
       mensualidad5: "",
+      mensualidad6: "",
       certificadoP1Amount: "",
       certificadoP2Amount: "",
       mensualidad1Amount: "",
@@ -1330,6 +1365,7 @@
       mensualidad3Amount: "",
       mensualidad4Amount: "",
       mensualidad5Amount: "",
+      mensualidad6Amount: "",
       pagosPendientes: "",
       metodoPago: "",
       cantidadPagada: "",
@@ -1361,6 +1397,7 @@
       "mensualidad3",
       "mensualidad4",
       "mensualidad5",
+      "mensualidad6",
       "certificadoP1Amount",
       "certificadoP2Amount",
       "mensualidad1Amount",
@@ -1368,6 +1405,7 @@
       "mensualidad3Amount",
       "mensualidad4Amount",
       "mensualidad5Amount",
+      "mensualidad6Amount",
       "pagosPendientes"
     ];
     var paymentIndex;
@@ -1409,10 +1447,10 @@
     }
     for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
       rule = PAYMENT_CALENDAR_RULES[index];
-      if (rule.onlyFifthMonth && !courseUsesFifthMonth(student && student.curso)) {
+      if (!isPaymentRuleApplicableForStudent(rule, student)) {
         status = "No aplica";
       } else {
-        status = normalizePaymentPlanStatus(plan[rule.field]) || "Pendiente";
+        status = normalizePaymentPlanStatus(normalizePaymentStatusForCourseRule(plan[rule.field], rule, student)) || "Pendiente";
       }
       result.push({
         field: rule.field,
@@ -1978,7 +2016,8 @@
       mensualidad2: ["Segunda mensualidad", "2da mensualidad", "Mensualidad dos", "Mens 2"],
       mensualidad3: ["Tercera mensualidad", "3ra mensualidad", "Mensualidad tres", "Mens 3"],
       mensualidad4: ["Cuarta mensualidad", "4ta mensualidad", "Mensualidad cuatro", "Mens 4"],
-      mensualidad5: ["Quinta mensualidad", "5ta mensualidad", "Mensualidad cinco", "Mens 5"]
+      mensualidad5: ["Quinta mensualidad", "5ta mensualidad", "Mensualidad cinco", "Mens 5"],
+      mensualidad6: ["Sexta mensualidad", "6ta mensualidad", "Mensualidad seis", "Mens 6"]
     };
     if (rule.field === "certificadoP1") {
       aliases.push("Certificado P1", "Certificado uno", "Pago C1", "Pago certificado C1", "C1");
@@ -2052,8 +2091,11 @@
     }
     for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
       rule = PAYMENT_CALENDAR_RULES[index];
-      applicable = !rule.onlyFifthMonth || courseUsesFifthMonth(student && student.curso);
-      status = applicable ? getCalendarPaymentStatus(plan[rule.field]) : "No aplica";
+      applicable = isPaymentRuleApplicableForStudent(rule, student);
+      if (!applicable) {
+        continue;
+      }
+      status = getCalendarPaymentStatus(normalizePaymentStatusForCourseRule(plan[rule.field], rule, student));
       session = sessions[rule.sessionIndex] || null;
       entries.push({
         field: rule.field,

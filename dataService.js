@@ -334,6 +334,7 @@
         "third_month_amount",
         "fourth_month_amount",
         "fifth_month_amount",
+        "sixth_month_amount",
       ];
       const noteMetadataFields = [
         "Mes pago",
@@ -346,6 +347,7 @@
         "3ra mensualidad",
         "4ta mensualidad",
         "5ta mensualidad",
+        "6ta mensualidad",
         "Última mensualidad del ciclo",
         "Seguimiento continuidad",
         "Curso siguiente",
@@ -759,6 +761,7 @@
     "mensualidad3",
     "mensualidad4",
     "mensualidad5",
+    "mensualidad6",
   ];
   const PAYMENT_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 
@@ -1227,6 +1230,7 @@
       `3ra mensualidad: ${record.mensualidad3 || ""}`,
       `4ta mensualidad: ${record.mensualidad4 || ""}`,
       `5ta mensualidad: ${record.mensualidad5 || ""}`,
+      `6ta mensualidad: ${record.mensualidad6 || ""}`,
       `Última mensualidad del ciclo: ${record.lastMonthlyPaymentStatus || ""}`,
       `Seguimiento continuidad: ${record.continuityStatus || ""}`,
       `Curso siguiente: ${record.nextCourse || ""}`,
@@ -1507,6 +1511,7 @@
       third_month_amount: toNullableNumberValue(record.mensualidad3),
       fourth_month_amount: toNullableNumberValue(record.mensualidad4),
       fifth_month_amount: toNullableNumberValue(record.mensualidad5),
+      sixth_month_amount: toNullableNumberValue(record.mensualidad6),
       pending_payments: record.pagosPendientes || "",
       payment_method: record.metodoPago || "",
       reports: record.reportes || "",
@@ -1528,6 +1533,7 @@
       mensualidad3: extractAltaMetadata(record.notes, "3ra mensualidad") || record.third_month_amount || "",
       mensualidad4: extractAltaMetadata(record.notes, "4ta mensualidad") || record.fourth_month_amount || "",
       mensualidad5: extractAltaMetadata(record.notes, "5ta mensualidad") || record.fifth_month_amount || "",
+      mensualidad6: extractAltaMetadata(record.notes, "6ta mensualidad") || record.sixth_month_amount || "",
       lastMonthlyPaymentStatus: extractAltaMetadata(record.notes, "Última mensualidad del ciclo"),
       continuityStatus: extractAltaMetadata(record.notes, "Seguimiento continuidad"),
       nextCourse: extractAltaMetadata(record.notes, "Curso siguiente"),
