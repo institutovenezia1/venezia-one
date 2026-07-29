@@ -1581,13 +1581,15 @@ textarea {
   overflow: hidden;
   padding: 2rem;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(216, 189, 123, 0.16), transparent 28%),
-    linear-gradient(135deg, #fffdf8 0%, #f7f1e6 48%, #efe5d6 100%);
-  border: 1px solid rgba(201, 162, 39, 0.2);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(99, 210, 176, 0.18), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(236, 255, 251, 0.48));
+  border: 1px solid rgba(255, 255, 255, 0.8);
   box-shadow:
-    0 28px 54px rgba(110, 84, 38, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 30px 70px rgba(22, 60, 58, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
 }
 
 .access-selector-panel::after {
@@ -1597,17 +1599,18 @@ textarea {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(201, 162, 39, 0.18) 0%, rgba(201, 162, 39, 0) 72%);
+  background: radial-gradient(circle, rgba(72, 199, 165, 0.2) 0%, rgba(72, 199, 165, 0) 72%);
   pointer-events: none;
 }
 
 .access-selector-heading h3 {
   font-size: clamp(2rem, 4vw, 3.1rem);
   line-height: 0.96;
+  color: #1c2b2a;
 }
 
 .access-selector-heading h3 span {
-  color: var(--color-accent);
+  color: #2a9c7f;
   font-family: "Cormorant Garamond", serif;
   font-weight: 700;
 }
@@ -1615,7 +1618,7 @@ textarea {
 .access-selector-copy {
   margin: 0 0 1.5rem;
   max-width: 54rem;
-  color: #50463d;
+  color: #526966;
   font-size: 1.02rem;
   line-height: 1.65;
 }
@@ -1637,32 +1640,37 @@ textarea {
   align-content: start;
   min-height: 210px;
   padding: 1.3rem;
-  border: 1px solid rgba(201, 162, 39, 0.2);
+  border: 1px solid rgba(99, 210, 176, 0.28);
   border-radius: 22px;
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.78), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 244, 236, 0.94) 100%);
-  color: #241d17;
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.86), transparent 38%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.68), rgba(223, 247, 240, 0.52));
+  color: #1c2b2a;
   text-align: left;
   cursor: pointer;
   box-shadow:
-    0 16px 32px rgba(92, 70, 31, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 18px 38px rgba(22, 60, 58, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .access-selector-card:hover,
 .access-selector-card:focus-visible {
   transform: translateY(-3px);
-  border-color: rgba(201, 162, 39, 0.4);
+  border-color: rgba(72, 199, 165, 0.62);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.9), transparent 38%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(99, 210, 176, 0.18));
   box-shadow:
-    0 20px 38px rgba(92, 70, 31, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    0 24px 48px rgba(22, 60, 58, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
   outline: none;
 }
 
 .access-selector-card-eyebrow {
-  color: #907144;
+  color: #2b8a72;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -1676,7 +1684,7 @@ textarea {
 
 .access-selector-card p {
   margin: 0;
-  color: #5a4d42;
+  color: #58706d;
   line-height: 1.55;
 }
 
@@ -7000,6 +7008,19 @@ body.access-selector-mode .app-shell {
   grid-template-columns: 1fr;
 }
 
+body.access-selector-mode {
+  --color-accent: #48c7a5;
+  --color-text: #1c2b2a;
+  --color-muted: #647775;
+  --color-border: rgba(72, 199, 165, 0.28);
+  color: #1c2b2a;
+  background:
+    radial-gradient(circle at 10% 4%, rgba(99, 210, 176, 0.28), transparent 30rem),
+    radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.94), transparent 32rem),
+    linear-gradient(145deg, #dff7f0 0%, #ecfffb 50%, #f7fffd 100%);
+  background-attachment: fixed;
+}
+
 body.access-selector-mode .sidebar,
 body.access-selector-mode .topbar {
   display: none !important;
@@ -7007,13 +7028,13 @@ body.access-selector-mode .topbar {
 
 body.access-selector-mode .main-content {
   min-height: 100vh;
-  padding: 2rem;
+  padding: clamp(1rem, 3vw, 2rem);
   display: grid;
   align-content: center;
   background:
-    radial-gradient(circle at top left, rgba(201, 162, 39, 0.12), transparent 22%),
-    radial-gradient(circle at bottom right, rgba(236, 219, 192, 0.5), transparent 24%),
-    linear-gradient(180deg, #fcf8f1 0%, #f4ecdf 100%);
+    radial-gradient(circle at 8% 6%, rgba(99, 210, 176, 0.24), transparent 28rem),
+    radial-gradient(circle at 92% 12%, rgba(255, 255, 255, 0.92), transparent 30rem),
+    linear-gradient(145deg, #dff7f0 0%, #ecfffb 52%, #f7fffd 100%);
 }
 
 body.access-selector-mode .module-section {
@@ -7022,6 +7043,25 @@ body.access-selector-mode .module-section {
 
 body.access-selector-mode .module-section.active {
   display: block;
+}
+
+body.access-selector-mode .access-selector-actions .secondary-btn {
+  border: 1px solid rgba(72, 199, 165, 0.32);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(223, 247, 240, 0.56));
+  color: #205e50;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 28px rgba(22, 60, 58, 0.09);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+body.access-selector-mode .access-selector-actions .secondary-btn:hover,
+body.access-selector-mode .access-selector-actions .secondary-btn:focus-visible {
+  border-color: rgba(72, 199, 165, 0.58);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(99, 210, 176, 0.2));
+  color: #17483e;
+  outline: none;
 }
 
 @media (max-width: 1120px) {
@@ -12047,6 +12087,343 @@ body.public-mode .web-reference-shell .web-payment-policy {
   body.public-mode .web-reference-shell .web-payment-preview,
   body.public-mode .web-reference-shell .web-school-fields {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Venezia One — Visual Sprint 1: admin shell, mint background and liquid glass. */
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) {
+  --color-bg: #f7fffd;
+  --color-sidebar: #163c3a;
+  --color-accent: #48c7a5;
+  --color-card: rgba(255, 255, 255, 0.62);
+  --color-text: #1c2b2a;
+  --color-muted: #647775;
+  --color-border: rgba(99, 210, 176, 0.28);
+  --color-border-soft: rgba(255, 255, 255, 0.7);
+  --color-accent-soft: rgba(99, 210, 176, 0.16);
+  --shadow-soft: 0 20px 54px rgba(22, 60, 58, 0.1);
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(99, 210, 176, 0.24), transparent 28rem),
+    radial-gradient(circle at 88% 2%, rgba(255, 255, 255, 0.92), transparent 30rem),
+    linear-gradient(145deg, #dff7f0 0%, #ecfffb 48%, #f7fffd 100%);
+  background-attachment: fixed;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .app-shell {
+  grid-template-columns: 276px minmax(0, 1fr);
+  min-height: 100vh;
+  background: transparent;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 100vh;
+  min-height: 0;
+  gap: 1.25rem;
+  overflow-y: auto;
+  padding: 1.35rem 1.1rem;
+  color: #ecfffb;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.13);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(99, 210, 176, 0.2), transparent 18rem),
+    linear-gradient(165deg, #1d4d49 0%, #163c3a 52%, #102f2d 100%);
+  box-shadow: 18px 0 48px rgba(15, 56, 52, 0.14);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 210, 176, 0.45) transparent;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(99, 210, 176, 0.45);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-block {
+  padding: 1.3rem 1.2rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(99, 210, 176, 0.18), transparent 66%),
+    rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 18px 38px rgba(4, 30, 28, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-mark {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.85rem;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-mark svg {
+  filter: drop-shadow(0 10px 22px rgba(72, 199, 165, 0.24));
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-block h1 {
+  color: #f7fffd;
+  font-size: 1.82rem;
+  line-height: 0.98;
+  letter-spacing: 0.09em;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-caption {
+  margin-top: 0.55rem;
+  color: rgba(236, 255, 251, 0.68);
+  font-family: "Manrope", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar-nav {
+  gap: 0.36rem;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item {
+  position: relative;
+  min-height: 44px;
+  padding: 0.72rem 0.85rem 0.72rem 2.2rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: rgba(236, 255, 251, 0.76);
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.95rem;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(236, 255, 251, 0.42);
+  border-radius: 50%;
+  background: transparent;
+  transform: translateY(-50%);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item:hover,
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item.active {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #f7fffd;
+  background: linear-gradient(135deg, rgba(99, 210, 176, 0.22), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 12px 26px rgba(4, 30, 28, 0.13);
+  transform: translateX(2px);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item:hover::before,
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item.active::before {
+  border-color: #63d2b0;
+  background: #63d2b0;
+  box-shadow: 0 0 0 5px rgba(99, 210, 176, 0.12);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .main-content {
+  min-width: 0;
+  padding: 1.5rem clamp(1.25rem, 2.3vw, 2.6rem) 2.5rem;
+  background:
+    radial-gradient(circle at 12% 2%, rgba(99, 210, 176, 0.15), transparent 24rem),
+    radial-gradient(circle at 92% 10%, rgba(255, 255, 255, 0.9), transparent 28rem),
+    linear-gradient(145deg, rgba(223, 247, 240, 0.92), rgba(247, 255, 253, 0.84));
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar {
+  position: sticky;
+  top: 1rem;
+  z-index: 40;
+  margin-bottom: 1.35rem;
+  padding: 0.82rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 20px;
+  background: rgba(247, 255, 253, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 18px 42px rgba(22, 60, 58, 0.09);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar-brandline {
+  color: #1c2b2a;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar-brand-system {
+  border-left-color: rgba(72, 199, 165, 0.45);
+  color: #247661;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar-badge {
+  border-color: rgba(72, 199, 165, 0.26);
+  color: #225f52;
+  background: rgba(99, 210, 176, 0.14);
+  box-shadow: none;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) :is(.panel, .stat-card) {
+  border-color: rgba(255, 255, 255, 0.78) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(247, 255, 253, 0.5)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 20px 50px rgba(22, 60, 58, 0.09) !important;
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) :is(
+  .module-section,
+  .content-grid,
+  .content-grid > *
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) #crmSection .crm-table-toolbar {
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .section-heading h3 {
+  color: #1c2b2a;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .eyebrow {
+  color: #318a73;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) :is(
+  .prospect-form input,
+  .portal-security-form input,
+  .prospect-form select,
+  .prospect-form textarea,
+  .table-toolbar input,
+  .table-toolbar select,
+  .month-filter input,
+  td input,
+  td select
+) {
+  border-color: rgba(45, 112, 99, 0.18);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) :is(
+  .prospect-form input,
+  .portal-security-form input,
+  .prospect-form select,
+  .prospect-form textarea,
+  .table-toolbar input,
+  .table-toolbar select
+):focus {
+  border-color: rgba(72, 199, 165, 0.72);
+  box-shadow: 0 0 0 4px rgba(72, 199, 165, 0.13);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .primary-btn {
+  background: linear-gradient(135deg, #48c7a5, #63d2b0);
+  color: #123b34;
+  box-shadow: 0 12px 26px rgba(72, 199, 165, 0.24);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .secondary-btn {
+  border-color: rgba(72, 199, 165, 0.24);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .table-wrapper {
+  border-color: rgba(72, 199, 165, 0.16);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+@media (max-width: 980px) {
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar {
+    position: relative;
+    height: auto;
+    overflow: visible;
+    padding: 0.9rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+    box-shadow: 0 16px 38px rgba(15, 56, 52, 0.14);
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-block {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 18px;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-mark {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    margin: 0;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-block h1 {
+    font-size: 1.35rem;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-caption {
+    margin: 0 0 0 auto;
+    max-width: 160px;
+    text-align: right;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar-nav {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0.05rem 0 0.2rem;
+    scrollbar-width: thin;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 40px;
+    padding: 0.65rem 0.85rem 0.65rem 2rem;
+    white-space: nowrap;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .main-content {
+    padding: 1rem;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar {
+    position: static;
+  }
+}
+
+@media (max-width: 620px) {
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .brand-caption {
+    display: none;
+  }
+
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .topbar,
+  body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) :is(.panel, .stat-card) {
+    border-radius: 18px;
   }
 }
 
