@@ -26,7 +26,9 @@
     "alison abril hernandez roman": true,
     "liliana sanchez bueno": true,
     "aaron hernandez aguilar": true,
-    "yoselin perez papalotzi": true
+    "yoselin perez papalotzi": true,
+    "denis meneses vasquez": true,
+    "juliet perez rojas": true
   };
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [

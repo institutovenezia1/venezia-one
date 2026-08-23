@@ -210,6 +210,8 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "liliana sanchez bueno",
   "aaron hernandez aguilar",
   "yoselin perez papalotzi",
+  "denis meneses vasquez",
+  "juliet perez rojas",
 ]);
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
