@@ -200,6 +200,7 @@ const DEFAULT_ATTENDANCE_SESSION_COUNT = 16;
 const STANDARD_COURSE_SESSION_COUNT = 20;
 const BARBERIA_COURSE_SESSION_COUNT = 24;
 const LEGACY_BARBERIA_SESSION_COUNT = 20;
+const EXTENDED_DURATION_CUTOFF_DATE = "2026-07-26";
 const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "valeria perez perez",
   "alexandra daniela salazar aguilar",
@@ -5089,11 +5090,16 @@ function isExtendedDurationStudent(student) {
   return EXTENDED_DURATION_STUDENT_NAMES.has(normalizeLooseText(__veneziaGet(student, "nombre")));
 }
 
-function isPendingStartStudent(student, anchorDate = getCurrentMexicoDateValue()) {
+function isPendingStartStudent(student) {
+  // Regla de negocio: cualquier alumna cuyo curso haya iniciado el 26/jul/2026
+  // o después queda de forma permanente con la duración extendida (20/24 clases),
+  // sin importar que esa fecha ya haya pasado. Antes se comparaba contra "hoy"
+  // (fecha móvil), por lo que la alumna perdía la duración extendida en cuanto
+  // arrancaba su curso. Ver docs/CLAUDE_HANDOFF.md.
   const startDate = getStudentCourseStartDateValue(student);
   return Boolean(
     startDate &&
-    startDate >= anchorDate &&
+    startDate >= EXTENDED_DURATION_CUTOFF_DATE &&
     !isStudentExcludedFromDurationExtension(student)
   );
 }

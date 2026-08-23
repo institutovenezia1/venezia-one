@@ -17,6 +17,7 @@
   var STANDARD_COURSE_SESSION_COUNT = 20;
   var BARBERIA_COURSE_SESSION_COUNT = 24;
   var LEGACY_BARBERIA_SESSION_COUNT = 20;
+  var EXTENDED_DURATION_CUTOFF_DATE = "2026-07-26";
   var EXTENDED_DURATION_STUDENT_NAMES = {
     "valeria perez perez": true,
     "alexandra daniela salazar aguilar": true,
@@ -651,8 +652,9 @@
   }
 
   function isPendingStartStudent(student) {
+    // Misma regla que en app.js: fecha de corte fija (26/jul/2026), no "hoy".
     var startDate = normalizeLocalDateKey(student && student.fechaInicio);
-    return !!(startDate && startDate >= getTodayDateKey() && !isStudentExcludedFromDurationExtension(student));
+    return !!(startDate && startDate >= EXTENDED_DURATION_CUTOFF_DATE && !isStudentExcludedFromDurationExtension(student));
   }
 
   function studentUsesExtendedDuration(student) {
