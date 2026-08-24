@@ -12193,8 +12193,11 @@ body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.
 
 body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   min-height: 44px;
-  padding: 0.72rem 0.85rem 0.72rem 2.2rem;
+  padding: 0.72rem 0.85rem;
   border: 1px solid transparent;
   border-radius: 14px;
   color: rgba(236, 255, 251, 0.76);
@@ -12203,18 +12206,21 @@ body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.
   letter-spacing: 0.01em;
 }
 
-body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0.95rem;
-  width: 7px;
-  height: 7px;
-  border: 1px solid rgba(236, 255, 251, 0.42);
-  border-radius: 50%;
-  background: transparent;
-  transform: translateY(-50%);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: rgba(99, 210, 176, 0.85);
+  transition: color 0.2s ease;
+}
+
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item:hover,
@@ -12228,11 +12234,9 @@ body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.
   transform: translateX(2px);
 }
 
-body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item:hover::before,
-body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item.active::before {
-  border-color: #63d2b0;
-  background: #63d2b0;
-  box-shadow: 0 0 0 5px rgba(99, 210, 176, 0.12);
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item:hover .nav-icon,
+body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .sidebar .nav-item.active .nav-icon {
+  color: #8ff0d4;
 }
 
 body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.access-selector-mode) .main-content {
@@ -12403,7 +12407,7 @@ body:not(.public-mode):not(.student-portal-mode):not(.teacher-portal-mode):not(.
     flex: 0 0 auto;
     width: auto;
     min-height: 40px;
-    padding: 0.65rem 0.85rem 0.65rem 2rem;
+    padding: 0.65rem 0.85rem;
     white-space: nowrap;
   }
 
