@@ -5639,6 +5639,20 @@ function isMiVeneziaDirectOpenRequested() {
   );
 }
 
+function isInternalAccessDirectOpenRequested() {
+  // Permite un link directo al sistema (ej. ?portal=interno) que abre el
+  // acceso interno sin pasar primero por la página pública. Ver CLAUDE.md.
+  const portalValue = normalizePortalRouteValue(getUrlParameterValue("portal"));
+  const sectionValue = normalizePortalRouteValue(getUrlParameterValue("section"));
+  const hashValue = normalizePortalRouteValue(String(window.location.hash || "").replace(/^#/, ""));
+  const directValues = ["interno", "sistema", "venezia-one", "admin"];
+  return (
+    directValues.includes(portalValue) ||
+    directValues.includes(sectionValue) ||
+    directValues.includes(hashValue)
+  );
+}
+
 function redirectToMiVeneziaV2(source = "legacy") {
   try {
     if (!window.location || window.location.pathname === MI_VENEZIA_V2_PATH) {
@@ -20405,6 +20419,15 @@ async function initApp() {
   if (currentAccessMode === "student") {
     revealMiVeneziaLoginPanel();
     focusMiVeneziaLoginField();
+  }
+  if (isInternalAccessDirectOpenRequested()) {
+    // Link directo al sistema (ej. ?portal=interno): intenta restaurar la
+    // sesión guardada y, si no hay una, abre el acceso interno de una vez,
+    // sin que el usuario tenga que pasar primero por la página pública.
+    const restoredInternalAccess = await restoreInternalAccessFromSavedSession();
+    if (!restoredInternalAccess) {
+      openPublicAccessPanel();
+    }
   }
   window.__veneziaInitFinished = true;
   window.__VENEZIA_INIT_FINISHED = true;
