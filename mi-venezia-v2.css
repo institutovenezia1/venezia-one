@@ -3,13 +3,14 @@
   --mv2-bg-soft: #fffaf4;
   --mv2-ink: #261a2f;
   --mv2-muted: #776a7f;
-  --mv2-purple: #4b255f;
-  --mv2-purple-soft: #76508a;
+  /* Color de marca unificado con el panel interno de Venezia One (antes morado #4b255f). */
+  --mv2-purple: #163c3a;
+  --mv2-purple-soft: #2f6b64;
   --mv2-gold: #c9a227;
   --mv2-gold-soft: #f5e6b7;
   --mv2-card: #ffffff;
-  --mv2-border: rgba(75, 37, 95, 0.14);
-  --mv2-shadow: 0 22px 52px rgba(49, 28, 62, 0.14);
+  --mv2-border: rgba(16, 60, 58, 0.16);
+  --mv2-shadow: 0 22px 52px rgba(10, 40, 38, 0.16);
   --mv2-radius: 22px;
 }
 
@@ -167,7 +168,7 @@ button {
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: linear-gradient(135deg, var(--mv2-purple) 0%, #331743 100%);
+  background: linear-gradient(135deg, var(--mv2-purple) 0%, #0d2624 100%);
   color: #fff;
   box-shadow: 0 16px 28px rgba(75, 37, 95, 0.22);
 }
@@ -664,7 +665,8 @@ button {
 
 .mv2-timeline-item.is-pending .mv2-timeline-marker,
 .mv2-timeline-item.is-recovery .mv2-timeline-marker {
-  background: linear-gradient(135deg, var(--mv2-purple), #a02a77);
+  /* Morado fijo a propósito: es un color de estado (pendiente/recuperación), no de marca. */
+  background: linear-gradient(135deg, #4b255f, #a02a77);
 }
 
 .mv2-timeline-item.is-pending .mv2-timeline-badge {
@@ -675,7 +677,7 @@ button {
 .mv2-timeline-item.is-recovery .mv2-timeline-badge,
 .mv2-timeline-item.is-permit .mv2-timeline-badge {
   background: #efe7ff;
-  color: var(--mv2-purple);
+  color: #4b255f;
 }
 
 .mv2-timeline-item.is-absence .mv2-timeline-marker {
