@@ -27,6 +27,7 @@ Venezia One es el sistema central de operaciones del Instituto de Belleza Venezi
 8. No reincorpores Puebla. La operación vigente es Tlaxcala.
 9. Antes de commit/push/deploy de cambios sensibles, muestra diagnóstico, alcance y pruebas.
 10. Si código y documentación difieren, `main` es la fuente técnica de verdad; actualiza la documentación.
+11. **Si modificas `app.js`, `style.css`, `mi-venezia-v2.css` o `mi-venezia-v2.js`, actualiza también el parámetro `?v=` con el que ese archivo se carga en `index.html` (o `mi-venezia-v2.html`).** Sin ese cambio, los navegadores que ya visitaron el sitio siguen sirviendo la versión vieja desde caché y el deploy parece "no reflejarse" aunque el código en `main` ya sea el correcto. Usa un valor único y descriptivo, por ejemplo `?v=20260828-horarios-dias-clase`.
 
 ## Validación mínima
 ```bash
