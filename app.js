@@ -214,6 +214,13 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "juliet perez rojas",
   "adelaida azucena jimenez perez",
 ]);
+// Horarios y dias de clase vigentes desde el 28/ago/2026 (regla de negocio de
+// Ismael). Solo aplican a nuevas altas: los registros existentes conservan el
+// horario/dia con el que ya fueron dados de alta. Ver ALTA_DIA_CLASES_OPTIONS,
+// getAltaHorarioOptionsForCurso() y updateAltaHorarioOptions().
+const ALTA_HORARIO_OPTIONS_BARBERIA = ["9am a 12pm", "12pm a 3pm", "4pm a 7pm"];
+const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm"];
+const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo"];
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
@@ -4808,6 +4815,41 @@ function closeAltaConfirmation() {
   altaConfirmCard.hidden = true;
 }
 
+function getAltaHorarioOptionsForCurso(curso) {
+  const normalizedCurso = normalizeLooseText(curso);
+  return normalizedCurso === "barberia" ? ALTA_HORARIO_OPTIONS_BARBERIA : ALTA_HORARIO_OPTIONS_DEFAULT;
+}
+
+function renderSelectOptionsPreservingValue(selectElement, options, preserveValue) {
+  if (!selectElement) {
+    return;
+  }
+  const valueToKeep = preserveValue === undefined ? selectElement.value : preserveValue;
+  const keepsLegacyValue = Boolean(valueToKeep) && !options.includes(valueToKeep);
+  const optionsHtml = options
+    .map((option) => `<option${option === valueToKeep ? " selected" : ""}>${escapeHtml(option)}</option>`)
+    .join("");
+  selectElement.innerHTML =
+    `<option value="">Selecciona una opcion</option>${optionsHtml}` +
+    (keepsLegacyValue ? `<option selected>${escapeHtml(valueToKeep)}</option>` : "");
+}
+
+function updateAltaHorarioOptions(preserveValue) {
+  // El horario disponible depende del curso: Barbería tiene su propia franja
+  // (9-12/12-3/4-7) y el resto (Uñas/Pestañas/Maquillaje) usa 9-1/2-6. Si la
+  // alumna ya tenía un horario anterior a este cambio, se conserva tal cual
+  // aunque ya no se ofrezca para altas nuevas (no es retroactivo).
+  const cursoField = document.getElementById("altaCurso");
+  const horarioField = document.getElementById("altaHorario");
+  renderSelectOptionsPreservingValue(horarioField, getAltaHorarioOptionsForCurso(cursoField ? cursoField.value : ""), preserveValue);
+}
+
+function updateAltaDiaClasesOptions(preserveValue) {
+  // Mismo criterio que el horario: "Entre semana" ya no se ofrece para altas
+  // nuevas, pero una alumna existente con ese valor lo conserva sin cambios.
+  renderSelectOptionsPreservingValue(document.getElementById("altaDiaClases"), ALTA_DIA_CLASES_OPTIONS, preserveValue);
+}
+
 function syncAltaAutoFields() {
   const telefono = normalizePhone(document.getElementById("altaTelefono").value);
   const fechaNacimiento = document.getElementById("altaFechaNacimiento").value;
@@ -6485,6 +6527,8 @@ function resetAltaForm() {
   document.getElementById("altaProspectId").value = "";
   document.getElementById("altaStudentCode").value = generateStudentCode();
   document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
+  updateAltaHorarioOptions("");
+  updateAltaDiaClasesOptions("");
   syncAltaDateDisplay(getCurrentMexicoDateValue());
   renderAltaDocumentChecklist();
   altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
@@ -10070,6 +10114,11 @@ function getAltaPendingFilterLabel(filterValue = activeAltaPendingFilter) {
 }
 
 function classifyAltaScheduleType(student) {
+  if (normalizeLooseText(__veneziaGet(student, "diaClases")) === "jueves") {
+    // Desde el nuevo esquema de horarios, jueves es un dia de clase individual
+    // (igual que viernes/sabado/domingo), no el antiguo bloque "Entre semana".
+    return "weekend";
+  }
   const scheduleText = [
     __veneziaGet(student, "diaClases"),
     __veneziaGet(student, "horario"),
@@ -10905,9 +10954,9 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaSucursal").value = student.sucursal || "";
   document.getElementById("altaCurso").value = student.curso || "";
   document.getElementById("altaAccesoElegido").value = student.accesoElegido || "";
-  document.getElementById("altaHorario").value = student.horario || "";
+  updateAltaHorarioOptions(student.horario || "");
   document.getElementById("altaFechaInicio").value = startDate;
-  document.getElementById("altaDiaClases").value = student.diaClases || "";
+  updateAltaDiaClasesOptions(student.diaClases || "");
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(student.asesoraInscribio || student.usuarioAlta);
   document.getElementById("altaMetodoPago").value = student.metodoPago || "";
   document.getElementById("altaTipoPago").value = student.tipoPago || "";
@@ -10958,12 +11007,24 @@ function populateAttendanceFilters() {
     {
       element: attendanceHorarioFilter,
       defaultLabel: "Todos",
-      options: ["9am a 1pm", "9am a 11am", "12pm a 2pm", "2pm a 6pm", "3pm a 5pm", "1pm a 5pm"],
+      // Incluye los horarios vigentes y los anteriores, para poder filtrar
+      // tanto alumnas nuevas como las que ya tenian un horario distinto.
+      options: [
+        "9am a 1pm",
+        "2pm a 6pm",
+        "9am a 12pm",
+        "12pm a 3pm",
+        "4pm a 7pm",
+        "9am a 11am",
+        "12pm a 2pm",
+        "3pm a 5pm",
+        "1pm a 5pm",
+      ],
     },
     {
       element: attendanceDayFilter,
       defaultLabel: "Todos",
-      options: ["Entre semana", "Viernes", "Sábado", "Domingo"],
+      options: ["Jueves", "Viernes", "Sábado", "Domingo", "Entre semana"],
     },
   ];
 
@@ -11408,6 +11469,7 @@ function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStude
 
 function getAttendanceScheduleDayDisplay(dayLabel) {
   const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  if (normalizedDay === "Jueves") return "Jue";
   if (normalizedDay === "Viernes") return "Vie";
   if (normalizedDay === "Sábado") return "Sáb";
   if (normalizedDay === "Domingo") return "Dom";
@@ -11416,7 +11478,8 @@ function getAttendanceScheduleDayDisplay(dayLabel) {
 
 function getAttendanceScheduleDaySortValue(dayLabel) {
   return __veneziaCoalesce({
-    "Entre semana": 1,
+    "Entre semana": 0,
+    Jueves: 1,
     Viernes: 2,
     Sábado: 3,
     Domingo: 4,
@@ -11526,6 +11589,7 @@ function normalizeAttendanceDayLabel(dayLabel) {
     return "";
   }
 
+  if (normalized === "jueves") return "Jueves";
   if (normalized === "viernes") return "Viernes";
   if (normalized === "sábado" || normalized === "sabado") return "Sábado";
   if (normalized === "domingo") return "Domingo";
@@ -11565,6 +11629,7 @@ function getAttendanceSessionDates(baseDate, sessionCount = DEFAULT_ATTENDANCE_S
 
 function getAttendanceWeekdayIndex(dayLabel) {
   return __veneziaCoalesce({
+    Jueves: 4,
     Viernes: 5,
     Sábado: 6,
     Domingo: 0,
@@ -18671,7 +18736,8 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaCurso").value = prospect.curso;
   document.getElementById("altaClaveElector").value = "";
   document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
-  document.getElementById("altaDiaClases").value = "";
+  updateAltaHorarioOptions("");
+  updateAltaDiaClasesOptions("");
   document.getElementById("altaDocumentos").value = "";
   renderAltaDocumentChecklist();
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
@@ -19591,6 +19657,7 @@ if (altaDocumentChecklist) {
 }
 
 altaForm.addEventListener("input", () => {
+  updateAltaHorarioOptions();
   syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
