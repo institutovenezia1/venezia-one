@@ -29,7 +29,9 @@
     "yoselin perez papalotzi": true,
     "denis meneses vasquez": true,
     "juliet perez rojas": true,
-    "adelaida azucena jimenez perez": true
+    "adelaida azucena jimenez perez": true,
+    "montserrat torres ortega": true,
+    "cynthia jefte nava mazon": true
   };
   // Misma referencia de Pagos: cada concepto vence en la sesión marcada.
   var PAYMENT_CALENDAR_RULES = [

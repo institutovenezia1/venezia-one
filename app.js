@@ -213,6 +213,8 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "denis meneses vasquez",
   "juliet perez rojas",
   "adelaida azucena jimenez perez",
+  "montserrat torres ortega",
+  "cynthia jefte nava mazon",
 ]);
 // Horarios y dias de clase vigentes desde el 28/ago/2026 (regla de negocio de
 // Ismael). Solo aplican a nuevas altas: los registros existentes conservan el
