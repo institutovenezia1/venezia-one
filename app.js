@@ -213,7 +213,12 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "denis meneses vasquez",
   "juliet perez rojas",
   "adelaida azucena jimenez perez",
-  "montserrat torres ortega",
+  // Su registro guarda el nombre como "TORRES ORTEGA MONTSERRAT" (apellidos
+  // primero), no "Montserrat Torres Ortega". normalizeLooseText no reordena
+  // palabras, así que la entrada anterior nunca hacía match contra
+  // EXTENDED_DURATION_STUDENT_NAMES.has(...) y ella seguía con la duración
+  // legacy de Uñas (16 sesiones) en vez de las 20 que le corresponden.
+  "torres ortega montserrat",
   "cynthia jefte nava mazon",
 ]);
 // Horarios y dias de clase vigentes desde el 28/ago/2026 (regla de negocio de
