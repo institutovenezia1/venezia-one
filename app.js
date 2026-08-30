@@ -12781,14 +12781,22 @@ function getPaymentDisplayRecord(studentId) {
 }
 
 function getPaymentStudentIdentityKey(student) {
+  // La identidad de pagos se agrupa por teléfono/usuario de portal, pero SIEMPRE
+  // acotada al curso vigente de cada alumna. Sin el curso en la llave, una alumna
+  // reactivada (mismo teléfono, alta anterior editada en lugar de crear una nueva)
+  // hereda el estatus de pagos ("Pagado"/"Pendiente") de su curso anterior ya
+  // finalizado, y al guardar un pago se puede reutilizar por error el renglón de
+  // student_payments del curso viejo, reescribiéndole el studentId. Ver diagnóstico
+  // del caso Marlen Hernandez Briones (agosto 2026).
+  const cursoKey = String(__veneziaGet(student, "curso") || "").trim().toLowerCase();
   const phoneKey = String(__veneziaGet(student, "telefono") || __veneziaGet(student, "portalUser") || "").trim().toLowerCase();
   if (phoneKey) {
-    return phoneKey;
+    return `${phoneKey}|${cursoKey}`;
   }
 
   return [
     String(__veneziaGet(student, "nombre") || "").trim().toLowerCase(),
-    String(__veneziaGet(student, "curso") || "").trim().toLowerCase(),
+    cursoKey,
     String(__veneziaGet(student, "horario") || "").trim().toLowerCase(),
     String(__veneziaGet(student, "sucursal") || "").trim().toLowerCase(),
   ].join("|");
