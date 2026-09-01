@@ -259,10 +259,25 @@ body.public-mode .web-reference-shell .web-testimonial-card {
   box-shadow: var(--wv-shadow-sm);
 }
 
+/* style.css trae una regla vieja sin scope (@media max-width:720px, línea
+   ~7367) que le pone min-height:220px a .web-testimonial-photo; sin
+   neutralizarla, la foto queda como un óvalo alargado en vez de un círculo. */
 body.public-mode .web-reference-shell .web-testimonial-photo {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  flex-shrink: 0;
+  border-radius: 50% !important;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-photo img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center 30%;
 }
 
 body.public-mode .web-reference-shell .web-testimonial-card > strong {
