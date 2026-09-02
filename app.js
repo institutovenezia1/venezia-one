@@ -4655,6 +4655,7 @@ function getAltaFormData() {
     `Correo: ${String(formData.get("correo") || "").trim() || "-"}`,
     `Dirección: ${String(formData.get("direccion") || "").trim() || "-"}`,
     `Fecha de nacimiento: ${fechaNacimiento || "-"}`,
+    `Género: ${String(formData.get("genero") || "").trim() || "-"}`,
     `Tutor: ${String(formData.get("tutor") || "").trim() || "-"}`,
     `Clave de elector: ${String(formData.get("claveElector") || "").trim() || "-"}`,
     `Escolaridad: ${String(formData.get("escolaridad") || "").trim() || "-"}`,
@@ -4691,6 +4692,7 @@ function getAltaFormData() {
     correo: String(formData.get("correo") || "").trim(),
     direccion: String(formData.get("direccion") || "").trim(),
     fechaNacimiento,
+    genero: String(formData.get("genero") || "").trim(),
     tutor: String(formData.get("tutor") || "").trim(),
     claveElector: String(formData.get("claveElector") || "").trim(),
     escolaridad: String(formData.get("escolaridad") || "").trim(),
@@ -10954,6 +10956,7 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaCorreo").value = student.correo || "";
   document.getElementById("altaDireccion").value = student.direccion || "";
   document.getElementById("altaFechaNacimiento").value = student.fechaNacimiento || "";
+  document.getElementById("altaGenero").value = student.genero || "";
   document.getElementById("altaTutor").value = student.tutor || "";
   document.getElementById("altaClaveElector").value = student.claveElector || "";
   document.getElementById("altaEscolaridad").value = student.escolaridad || "";
@@ -15835,6 +15838,7 @@ function renderStudentFile(studentId) {
     { label: "Correo electrónico", value: student.correo || "-" },
     { label: "Dirección del alumno o tutor", value: student.direccion || "-" },
     { label: "Fecha de nacimiento", value: student.fechaNacimiento || "-" },
+    { label: "Género", value: student.genero || "-" },
     { label: "Tutor", value: student.tutor || "-" },
     { label: "Clave de elector", value: student.claveElector || "-" },
     { label: "Escolaridad", value: student.escolaridad || "-" },

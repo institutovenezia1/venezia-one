@@ -1,17 +1,54 @@
 :root {
-  --mv2-bg: #f7f1ea;
+  --mv2-bg: #f5f5f7;
   --mv2-bg-soft: #fffaf4;
+  --mv2-ink: #1d1d1f;
+  --mv2-muted: #6e6e73;
+  /* Paleta por default (alumnas): gris/fucsia/rosita. Alumnos (mv2-theme-hombre,
+     aplicado por JS según el género del expediente) restauran el verde/dorado original. */
+  --mv2-purple: #c81f74;
+  --mv2-purple-soft: #8c1350;
+  --mv2-gold: #f0a0c4;
+  --mv2-gold-soft: #fdeef4;
+  --mv2-accent-soft: #fbe4ef;
+  --mv2-card: #ffffff;
+  --mv2-border: rgba(140, 19, 80, 0.14);
+  --mv2-shadow: 0 22px 52px rgba(60, 10, 40, 0.16);
+  --mv2-radius: 22px;
+  --mv2-hero-grad: linear-gradient(135deg, rgba(200, 31, 116, 0.96) 0%, rgba(140, 19, 80, 0.94) 58%, rgba(240, 160, 196, 0.88) 100%);
+  --mv2-referral-grad: linear-gradient(135deg, rgba(140, 19, 80, 0.92) 0%, rgba(200, 31, 116, 0.86) 48%, rgba(240, 160, 196, 0.9) 100%);
+  --mv2-referral-grad-discreet: linear-gradient(135deg, rgba(140, 19, 80, 0.84) 0%, rgba(180, 60, 130, 0.78) 55%, rgba(240, 160, 196, 0.72) 100%);
+  --mv2-referral-shadow: 0 24px 58px rgba(140, 19, 80, 0.22);
+  --mv2-focus-ring: rgba(200, 31, 116, 0.16);
+  --mv2-label-accent: #a3216e;
+  --mv2-btn-shadow: rgba(140, 19, 80, 0.22);
+  /* Texto de encabezados/valores: ink neutro en alumnas; en alumnos (abajo) se
+     restaura exactamente el verde de marca que usaban antes estos mismos textos. */
+  --mv2-heading-text: #1d1d1f;
+  --mv2-tab-text: #6e6e73;
+}
+
+/* Alumnos: restaura el diseño verde/dorado original. La clase la agrega
+   mi-venezia-v2.js (applyGenderTheme) cuando el expediente tiene Género = Hombre. */
+body.mv2-theme-hombre {
+  --mv2-bg: #f7f1ea;
   --mv2-ink: #261a2f;
   --mv2-muted: #776a7f;
-  /* Color de marca unificado con el panel interno de Venezia One (antes morado #4b255f). */
   --mv2-purple: #163c3a;
-  --mv2-purple-soft: #2f6b64;
+  --mv2-purple-soft: #0d2624;
   --mv2-gold: #c9a227;
   --mv2-gold-soft: #f5e6b7;
-  --mv2-card: #ffffff;
+  --mv2-accent-soft: #f4ecdf;
   --mv2-border: rgba(16, 60, 58, 0.16);
   --mv2-shadow: 0 22px 52px rgba(10, 40, 38, 0.16);
-  --mv2-radius: 22px;
+  --mv2-hero-grad: linear-gradient(135deg, rgba(75, 37, 95, 0.96) 0%, rgba(48, 23, 63, 0.94) 58%, rgba(201, 162, 39, 0.88) 100%);
+  --mv2-referral-grad: linear-gradient(135deg, rgba(75, 37, 95, 0.92) 0%, rgba(160, 42, 119, 0.86) 48%, rgba(201, 162, 39, 0.9) 100%);
+  --mv2-referral-grad-discreet: linear-gradient(135deg, rgba(75, 37, 95, 0.84) 0%, rgba(108, 55, 121, 0.78) 55%, rgba(201, 162, 39, 0.72) 100%);
+  --mv2-referral-shadow: 0 24px 58px rgba(75, 37, 95, 0.22);
+  --mv2-focus-ring: rgba(201, 162, 39, 0.16);
+  --mv2-label-accent: #c9a227;
+  --mv2-btn-shadow: rgba(75, 37, 95, 0.22);
+  --mv2-heading-text: #163c3a;
+  --mv2-tab-text: #163c3a;
 }
 
 * {
@@ -74,7 +111,7 @@ button {
 .mv2-eyebrow,
 .mv2-card-heading p {
   margin: 0 0 6px;
-  color: var(--mv2-gold);
+  color: var(--mv2-label-accent);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -87,7 +124,7 @@ button {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: clamp(2.35rem, 11vw, 4.4rem);
   line-height: 0.95;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
 }
 
 .mv2-login-brand span,
@@ -119,7 +156,7 @@ button {
 .mv2-card-heading h2,
 .mv2-panel h2 {
   margin: 0;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-size: 1.35rem;
   line-height: 1.15;
 }
@@ -147,8 +184,8 @@ button {
 }
 
 .mv2-field input:focus {
-  border-color: var(--mv2-gold);
-  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.16);
+  border-color: var(--mv2-purple);
+  box-shadow: 0 0 0 4px var(--mv2-focus-ring);
 }
 
 .mv2-primary-btn,
@@ -168,9 +205,9 @@ button {
   align-items: center;
   justify-content: center;
   width: 100%;
-  background: linear-gradient(135deg, var(--mv2-purple) 0%, #0d2624 100%);
+  background: linear-gradient(135deg, var(--mv2-purple) 0%, var(--mv2-purple-soft) 100%);
   color: #fff;
-  box-shadow: 0 16px 28px rgba(75, 37, 95, 0.22);
+  box-shadow: 0 16px 28px var(--mv2-btn-shadow);
 }
 
 .mv2-primary-btn:disabled {
@@ -182,7 +219,7 @@ button {
   padding: 0 16px;
   border: 1px solid rgba(75, 37, 95, 0.18);
   background: #fffaf4;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
 }
 
 .mv2-feedback {
@@ -245,8 +282,7 @@ button {
   gap: 16px;
   padding: 20px;
   border-radius: 26px;
-  background:
-    linear-gradient(135deg, rgba(75, 37, 95, 0.96) 0%, rgba(48, 23, 63, 0.94) 58%, rgba(201, 162, 39, 0.88) 100%);
+  background: var(--mv2-hero-grad);
   color: #fff;
 }
 
@@ -386,9 +422,8 @@ button {
   gap: 16px;
   border: 1px solid rgba(255, 255, 255, 0.48);
   border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(75, 37, 95, 0.92) 0%, rgba(160, 42, 119, 0.86) 48%, rgba(201, 162, 39, 0.9) 100%);
-  box-shadow: 0 24px 58px rgba(75, 37, 95, 0.22);
+  background: var(--mv2-referral-grad);
+  box-shadow: var(--mv2-referral-shadow);
   color: #fff;
   padding: 18px;
 }
@@ -403,8 +438,7 @@ button {
 }
 
 .mv2-referral-card.is-discreet {
-  background:
-    linear-gradient(135deg, rgba(75, 37, 95, 0.84) 0%, rgba(108, 55, 121, 0.78) 55%, rgba(201, 162, 39, 0.72) 100%);
+  background: var(--mv2-referral-grad-discreet);
 }
 
 .mv2-referral-copy,
@@ -486,7 +520,7 @@ button {
 .mv2-document-summary-card strong {
   display: block;
   margin-top: 4px;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-size: 1.05rem;
   line-height: 1.25;
 }
@@ -550,7 +584,7 @@ button {
 .mv2-timeline-metric strong {
   display: block;
   margin-top: 6px;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-size: 1.08rem;
   line-height: 1.22;
 }
@@ -577,7 +611,7 @@ button {
   left: 13px;
   width: 2px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(201, 162, 39, 0.92), rgba(75, 37, 95, 0.14));
+  background: linear-gradient(180deg, var(--mv2-gold), rgba(75, 37, 95, 0.14));
 }
 
 .mv2-timeline-item {
@@ -624,7 +658,7 @@ button {
 .mv2-timeline-badge {
   flex: 0 0 auto;
   border-radius: 999px;
-  background: #f4ecdf;
+  background: var(--mv2-accent-soft);
   color: var(--mv2-purple);
   padding: 6px 9px;
   font-size: 0.74rem;
@@ -648,7 +682,7 @@ button {
 }
 
 .mv2-timeline-meta small span {
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-weight: 900;
 }
 
@@ -756,7 +790,7 @@ button {
 }
 
 .mv2-payment-calendar-meta small span {
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-weight: 900;
 }
 
@@ -804,7 +838,7 @@ button {
 .mv2-stat-card strong {
   display: block;
   margin-top: 8px;
-  color: var(--mv2-purple);
+  color: var(--mv2-heading-text);
   font-size: 1.1rem;
   line-height: 1.2;
 }
@@ -832,7 +866,7 @@ button {
   border: 1px solid rgba(75, 37, 95, 0.14);
   border-radius: 999px;
   background: #fffdf9;
-  color: var(--mv2-purple);
+  color: var(--mv2-tab-text);
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 900;
@@ -931,7 +965,7 @@ button {
 
 .mv2-pill {
   border-radius: 999px;
-  background: #f4ecdf;
+  background: var(--mv2-accent-soft);
   color: var(--mv2-purple);
   padding: 8px 10px;
   font-size: 0.82rem;
@@ -975,7 +1009,8 @@ button {
 
 .mv2-official-doc.is-missing::before {
   content: "!";
-  background: var(--mv2-gold);
+  /* Ámbar fijo a propósito: es un color de estado (documento pendiente), no de marca. */
+  background: #c9a227;
   color: #3b2f05;
 }
 
