@@ -520,6 +520,7 @@
       profilePassword: "",
       correo: text(row.correo || extractMetadata(notes, "Correo")),
       direccion: text(row.direccion || extractMetadata(notes, "Dirección")),
+      genero: text(row.genero || extractMetadata(notes, "Género")),
       tutor: text(row.tutor || extractMetadata(notes, "Tutor")),
       documentos: text(row.documentos || extractMetadata(notes, "Documentación")),
       documentosEntregados: parseDocumentList(row.documentosEntregados || extractMetadata(notes, "Documentos entregados")),
@@ -2323,6 +2324,7 @@
       infoItem("Plantel", student.sucursal) +
       infoItem("Horario", student.horario) +
       infoItem("Inicio", formatDate(student.fechaInicio)) +
+      infoItem("Género", student.genero) +
       infoItem("Tutor", student.tutor) +
       infoItem("Dirección", student.direccion) +
       '</div>';
@@ -2567,8 +2569,14 @@
       '<a class="mv2-whatsapp-btn" href="' + escapeHtml(whatsappUrl(contact.phone, message)) + '" target="_blank" rel="noopener">Abrir WhatsApp</a>';
   }
 
+  function applyGenderTheme(student) {
+    var isHombre = normalizeLoose(student && student.genero) === "hombre";
+    document.body.classList.toggle("mv2-theme-hombre", isHombre);
+  }
+
   function renderDashboard(student, details) {
     try {
+      applyGenderTheme(student);
       renderHeader(student, details);
       renderAllPanels(student, details);
       state.debugInfo.dashboardOpened = true;
