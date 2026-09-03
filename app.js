@@ -225,9 +225,17 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
 // Ismael). Solo aplican a nuevas altas: los registros existentes conservan el
 // horario/dia con el que ya fueron dados de alta. Ver ALTA_DIA_CLASES_OPTIONS,
 // getAltaHorarioOptionsForCurso() y updateAltaHorarioOptions().
+// "Martes y Miércoles" y sus 3 horarios (9-11/12-2/3-5) se agregaron el
+// 03/sep/2026 a petición de Ismael para tenerlos ya disponibles en Altas,
+// aunque el grupo todavía no arranca (uso futuro). Solo aplican al grupo
+// Uñas/Pestañas/Maquillaje, no a Barbería. IMPORTANTE: por ahora esto es
+// únicamente un valor seleccionable en Altas — Asistencias sigue asumiendo
+// una sesión semanal (ver getAttendanceSessionDates/alignDateToSelectedClassDay),
+// así que la generación automática de fechas para un horario de 2 días por
+// semana requiere trabajo adicional cuando el grupo empiece a operar.
 const ALTA_HORARIO_OPTIONS_BARBERIA = ["9am a 12pm", "12pm a 3pm", "4pm a 7pm"];
-const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm"];
-const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo"];
+const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm", "9am a 11am", "12pm a 2pm", "3pm a 5pm"];
+const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo", "Martes y Miércoles"];
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
@@ -11034,7 +11042,7 @@ function populateAttendanceFilters() {
     {
       element: attendanceDayFilter,
       defaultLabel: "Todos",
-      options: ["Jueves", "Viernes", "Sábado", "Domingo", "Entre semana"],
+      options: ["Jueves", "Viernes", "Sábado", "Domingo", "Martes y Miércoles", "Entre semana"],
     },
   ];
 
@@ -11479,6 +11487,7 @@ function getAttendanceCourseSummaryItems(studentsList = getAttendanceScopedStude
 
 function getAttendanceScheduleDayDisplay(dayLabel) {
   const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  if (normalizedDay === "Martes y Miércoles") return "Mar/Mié";
   if (normalizedDay === "Jueves") return "Jue";
   if (normalizedDay === "Viernes") return "Vie";
   if (normalizedDay === "Sábado") return "Sáb";
@@ -11489,10 +11498,11 @@ function getAttendanceScheduleDayDisplay(dayLabel) {
 function getAttendanceScheduleDaySortValue(dayLabel) {
   return __veneziaCoalesce({
     "Entre semana": 0,
-    Jueves: 1,
-    Viernes: 2,
-    Sábado: 3,
-    Domingo: 4,
+    "Martes y Miércoles": 1,
+    Jueves: 2,
+    Viernes: 3,
+    Sábado: 4,
+    Domingo: 5,
   }[normalizeAttendanceDayLabel(dayLabel)], 9);
 }
 
