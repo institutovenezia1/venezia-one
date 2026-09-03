@@ -225,17 +225,22 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
 // Ismael). Solo aplican a nuevas altas: los registros existentes conservan el
 // horario/dia con el que ya fueron dados de alta. Ver ALTA_DIA_CLASES_OPTIONS,
 // getAltaHorarioOptionsForCurso() y updateAltaHorarioOptions().
-// "Martes y Miércoles" y sus 3 horarios (9-11/12-2/3-5) se agregaron el
-// 03/sep/2026 a petición de Ismael para tenerlos ya disponibles en Altas,
+// "Martes y Miércoles" y sus 3 horarios propios (9-11/12-2/3-5) se agregaron
+// el 03/sep/2026 a petición de Ismael para tenerlos ya disponibles en Altas,
 // aunque el grupo todavía no arranca (uso futuro). Solo aplican al grupo
-// Uñas/Pestañas/Maquillaje, no a Barbería. Asistencias genera automáticamente
-// las 2 fechas por semana para este grupo (una "Semana N" con slot de Martes y
-// slot de Miércoles) igual que ya hacía para "Entre semana" con 3 días — ver
-// MULTI_DAY_ATTENDANCE_SCHEDULES, getAttendanceSessionGroups() y
-// alignDateToSelectedClassDay(). Si se agrega otro grupo de varios días por
-// semana en el futuro, solo hace falta sumar su entrada a ese mapa.
+// Uñas/Pestañas/Maquillaje, no a Barbería, y solo se ofrecen en "Horario"
+// cuando "Día de clases" es justo "Martes y Miércoles" (ver
+// ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES y getAltaHorarioOptionsForCurso());
+// para cualquier otro día se sigue usando el horario normal del curso.
+// Asistencias genera automáticamente las 2 fechas por semana para este grupo
+// (una "Semana N" con slot de Martes y slot de Miércoles) igual que ya hacía
+// para "Entre semana" con 3 días — ver MULTI_DAY_ATTENDANCE_SCHEDULES,
+// getAttendanceSessionGroups() y alignDateToSelectedClassDay(). Si se agrega
+// otro grupo de varios días por semana en el futuro, solo hace falta sumar su
+// entrada a ese mapa.
 const ALTA_HORARIO_OPTIONS_BARBERIA = ["9am a 12pm", "12pm a 3pm", "4pm a 7pm"];
-const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm", "9am a 11am", "12pm a 2pm", "3pm a 5pm"];
+const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm"];
+const ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES = ["9am a 11am", "12pm a 2pm", "3pm a 5pm"];
 const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo", "Martes y Miércoles"];
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
@@ -4833,7 +4838,13 @@ function closeAltaConfirmation() {
   altaConfirmCard.hidden = true;
 }
 
-function getAltaHorarioOptionsForCurso(curso) {
+function getAltaHorarioOptionsForCurso(curso, diaClases) {
+  // "Martes y Miércoles" solo tiene sentido con sus propios 3 horarios de 2
+  // horas (9-11/12-2/3-5): si ese es el día elegido, no se ofrecen los
+  // horarios largos de 4hrs (9-1/2-6) aunque el curso sea Uñas/Pestañas/Maquillaje.
+  if (normalizeAttendanceDayLabel(diaClases) === "Martes y Miércoles") {
+    return ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES;
+  }
   const normalizedCurso = normalizeLooseText(curso);
   return normalizedCurso === "barberia" ? ALTA_HORARIO_OPTIONS_BARBERIA : ALTA_HORARIO_OPTIONS_DEFAULT;
 }
@@ -4853,13 +4864,20 @@ function renderSelectOptionsPreservingValue(selectElement, options, preserveValu
 }
 
 function updateAltaHorarioOptions(preserveValue) {
-  // El horario disponible depende del curso: Barbería tiene su propia franja
-  // (9-12/12-3/4-7) y el resto (Uñas/Pestañas/Maquillaje) usa 9-1/2-6. Si la
-  // alumna ya tenía un horario anterior a este cambio, se conserva tal cual
-  // aunque ya no se ofrezca para altas nuevas (no es retroactivo).
+  // El horario disponible depende del curso (Barbería tiene su propia franja
+  // 9-12/12-3/4-7, el resto usa 9-1/2-6) y, si el día de clases elegido es
+  // "Martes y Miércoles", se restringe además a sus 3 horarios propios
+  // (9-11/12-2/3-5) sin importar el curso. Si la alumna ya tenía un horario
+  // anterior a este cambio, se conserva tal cual aunque ya no se ofrezca para
+  // altas nuevas (no es retroactivo).
   const cursoField = document.getElementById("altaCurso");
+  const diaClasesField = document.getElementById("altaDiaClases");
   const horarioField = document.getElementById("altaHorario");
-  renderSelectOptionsPreservingValue(horarioField, getAltaHorarioOptionsForCurso(cursoField ? cursoField.value : ""), preserveValue);
+  const horarioOptions = getAltaHorarioOptionsForCurso(
+    cursoField ? cursoField.value : "",
+    diaClasesField ? diaClasesField.value : ""
+  );
+  renderSelectOptionsPreservingValue(horarioField, horarioOptions, preserveValue);
 }
 
 function updateAltaDiaClasesOptions(preserveValue) {
@@ -10973,9 +10991,12 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaSucursal").value = student.sucursal || "";
   document.getElementById("altaCurso").value = student.curso || "";
   document.getElementById("altaAccesoElegido").value = student.accesoElegido || "";
-  updateAltaHorarioOptions(student.horario || "");
   document.getElementById("altaFechaInicio").value = startDate;
+  // El día de clases se resuelve antes que el horario porque, desde que existe
+  // "Martes y Miércoles", el horario disponible depende del día elegido (ver
+  // getAltaHorarioOptionsForCurso) y no solo del curso.
   updateAltaDiaClasesOptions(student.diaClases || "");
+  updateAltaHorarioOptions(student.horario || "");
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(student.asesoraInscribio || student.usuarioAlta);
   document.getElementById("altaMetodoPago").value = student.metodoPago || "";
   document.getElementById("altaTipoPago").value = student.tipoPago || "";
