@@ -15,9 +15,12 @@
   --mv2-shadow: 0 22px 52px rgba(60, 10, 40, 0.16);
   --mv2-radius: 22px;
   --mv2-hero-grad: linear-gradient(135deg, rgba(200, 31, 116, 0.96) 0%, rgba(140, 19, 80, 0.94) 58%, rgba(240, 160, 196, 0.88) 100%);
-  --mv2-referral-grad: linear-gradient(135deg, rgba(140, 19, 80, 0.92) 0%, rgba(200, 31, 116, 0.86) 48%, rgba(240, 160, 196, 0.9) 100%);
-  --mv2-referral-grad-discreet: linear-gradient(135deg, rgba(140, 19, 80, 0.84) 0%, rgba(180, 60, 130, 0.78) 55%, rgba(240, 160, 196, 0.72) 100%);
-  --mv2-referral-shadow: 0 24px 58px rgba(140, 19, 80, 0.22);
+  /* Recomendación ($200): color anterior (morado/dorado), fijo a propósito y a petición
+     de Ismael — no sigue la paleta fucsia/rosita del resto del portal porque se veía
+     demasiado saturado de rosa. Coincide con el valor que ya usa mv2-theme-hombre. */
+  --mv2-referral-grad: linear-gradient(135deg, rgba(75, 37, 95, 0.92) 0%, rgba(160, 42, 119, 0.86) 48%, rgba(201, 162, 39, 0.9) 100%);
+  --mv2-referral-grad-discreet: linear-gradient(135deg, rgba(75, 37, 95, 0.84) 0%, rgba(108, 55, 121, 0.78) 55%, rgba(201, 162, 39, 0.72) 100%);
+  --mv2-referral-shadow: 0 24px 58px rgba(75, 37, 95, 0.22);
   --mv2-focus-ring: rgba(200, 31, 116, 0.16);
   --mv2-label-accent: #a3216e;
   --mv2-btn-shadow: rgba(140, 19, 80, 0.22);
