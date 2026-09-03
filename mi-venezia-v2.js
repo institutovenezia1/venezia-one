@@ -1157,6 +1157,13 @@
     ) {
       return "Entre semana";
     }
+    if (
+      normalized === "martes y miercoles" ||
+      normalized === "martes-miercoles" ||
+      normalized === "martes miercoles"
+    ) {
+      return "Martes y Miércoles";
+    }
     return text(dayLabel);
   }
 
@@ -1204,7 +1211,9 @@
     if (normalized === "Domingo") {
       return 0;
     }
-    if (normalized === "Entre semana") {
+    if (normalized === "Entre semana" || normalized === "Martes y Miércoles") {
+      // Ambos grupos son de varias clases por semana; se ancla en Martes
+      // (el primer día de cada uno) y alignDateToSelectedClassDay ajusta desde ahí.
       return 2;
     }
     return null;
@@ -1217,6 +1226,7 @@
     var date;
     var currentDay;
     var diff;
+    var maxWeekdayInGroup;
     if (!normalizedDate || weekday === null) {
       return normalizedDate;
     }
@@ -1224,9 +1234,13 @@
     if (!date) {
       return "";
     }
-    if (normalizedDay === "Entre semana") {
+    if (normalizedDay === "Entre semana" || normalizedDay === "Martes y Miércoles") {
+      // "Entre semana" son Martes-Jueves (max 4); "Martes y Miércoles" son
+      // Martes-Miércoles (max 3). Si la fecha cae dentro de ese rango, se
+      // retrocede al Martes de esa misma semana en vez de saltar a la siguiente.
+      maxWeekdayInGroup = normalizedDay === "Entre semana" ? 4 : 3;
       currentDay = date.getDay();
-      if (currentDay >= 2 && currentDay <= 4) {
+      if (currentDay >= 2 && currentDay <= maxWeekdayInGroup) {
         date.setDate(date.getDate() - (currentDay - 2));
         return formatDateKey(date);
       }
@@ -1322,7 +1336,7 @@
     if (!baseDate) {
       return sessions;
     }
-    if (dayLabel === "Entre semana") {
+    if (dayLabel === "Entre semana" || dayLabel === "Martes y Miércoles") {
       for (index = 0; index < sessionCount; index += 1) {
         sessions.push({
           key: "w" + (index + 1),
