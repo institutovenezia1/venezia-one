@@ -228,11 +228,12 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
 // "Martes y Miércoles" y sus 3 horarios (9-11/12-2/3-5) se agregaron el
 // 03/sep/2026 a petición de Ismael para tenerlos ya disponibles en Altas,
 // aunque el grupo todavía no arranca (uso futuro). Solo aplican al grupo
-// Uñas/Pestañas/Maquillaje, no a Barbería. IMPORTANTE: por ahora esto es
-// únicamente un valor seleccionable en Altas — Asistencias sigue asumiendo
-// una sesión semanal (ver getAttendanceSessionDates/alignDateToSelectedClassDay),
-// así que la generación automática de fechas para un horario de 2 días por
-// semana requiere trabajo adicional cuando el grupo empiece a operar.
+// Uñas/Pestañas/Maquillaje, no a Barbería. Asistencias genera automáticamente
+// las 2 fechas por semana para este grupo (una "Semana N" con slot de Martes y
+// slot de Miércoles) igual que ya hacía para "Entre semana" con 3 días — ver
+// MULTI_DAY_ATTENDANCE_SCHEDULES, getAttendanceSessionGroups() y
+// alignDateToSelectedClassDay(). Si se agrega otro grupo de varios días por
+// semana en el futuro, solo hace falta sumar su entrada a ese mapa.
 const ALTA_HORARIO_OPTIONS_BARBERIA = ["9am a 12pm", "12pm a 3pm", "4pm a 7pm"];
 const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm", "9am a 11am", "12pm a 2pm", "3pm a 5pm"];
 const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo", "Martes y Miércoles"];
@@ -11603,6 +11604,25 @@ const WEEKDAY_ATTENDANCE_DAYS = [
   { key: "thu", shortLabel: "Jue", fullLabel: "Jueves", weekdayIndex: 4, dayOffset: 2 },
 ];
 
+// "Martes y Miércoles" (grupo agregado el 03/sep/2026, ver ALTA_DIA_CLASES_OPTIONS)
+// son 2 clases por semana en vez de 1. Reutiliza el mismo mecanismo de "slots por
+// semana" que ya existía para "Entre semana" (3 días), solo que con 2 días.
+const MARTES_MIERCOLES_ATTENDANCE_DAYS = [
+  { key: "tue", shortLabel: "Mar", fullLabel: "Martes", weekdayIndex: 2, dayOffset: 0 },
+  { key: "wed", shortLabel: "Mie", fullLabel: "Miércoles", weekdayIndex: 3, dayOffset: 1 },
+];
+
+// Mapa único de "días de clase" que representan varias sesiones por semana (no un
+// solo día). getAttendanceSessionGroups/isWeekdayAttendanceDay/alignDateToSelectedClassDay
+// usan este mapa para generar automáticamente una columna "Semana N" con un slot
+// (y una fecha) por cada día del grupo. Agregar un nuevo día/horario aquí es lo único
+// que se necesita para que Asistencias, el expediente y Mi Venezia generen bien
+// las fechas de un grupo con más de una clase por semana.
+const MULTI_DAY_ATTENDANCE_SCHEDULES = {
+  "Entre semana": WEEKDAY_ATTENDANCE_DAYS,
+  "Martes y Miércoles": MARTES_MIERCOLES_ATTENDANCE_DAYS,
+};
+
 function normalizeAttendanceDayLabel(dayLabel) {
   const normalized = String(dayLabel || "").trim().toLowerCase();
   if (!normalized) {
@@ -11622,12 +11642,21 @@ function normalizeAttendanceDayLabel(dayLabel) {
   ) {
     return "Entre semana";
   }
+  if (
+    normalized === "martes y miércoles" ||
+    normalized === "martes y miercoles" ||
+    normalized === "martes-miércoles" ||
+    normalized === "martes-miercoles" ||
+    normalized === "martes miercoles"
+  ) {
+    return "Martes y Miércoles";
+  }
 
   return String(dayLabel || "").trim();
 }
 
 function isWeekdayAttendanceDay(dayLabel) {
-  return normalizeAttendanceDayLabel(dayLabel) === "Entre semana";
+  return Object.prototype.hasOwnProperty.call(MULTI_DAY_ATTENDANCE_SCHEDULES, normalizeAttendanceDayLabel(dayLabel));
 }
 
 function isWeekdayStudent(student) {
@@ -11648,13 +11677,19 @@ function getAttendanceSessionDates(baseDate, sessionCount = DEFAULT_ATTENDANCE_S
 }
 
 function getAttendanceWeekdayIndex(dayLabel) {
+  const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  const multiDaySchedule = MULTI_DAY_ATTENDANCE_SCHEDULES[normalizedDay];
+  if (multiDaySchedule) {
+    // Ancla en el primer día del grupo (ej. Martes para "Entre semana" y para
+    // "Martes y Miércoles"); alignDateToSelectedClassDay ajusta desde ahí.
+    return Math.min(...multiDaySchedule.map((day) => day.weekdayIndex));
+  }
   return __veneziaCoalesce({
     Jueves: 4,
     Viernes: 5,
     Sábado: 6,
     Domingo: 0,
-    "Entre semana": 2,
-  }[normalizeAttendanceDayLabel(dayLabel)], null);
+  }[normalizedDay], null);
 }
 
 function alignDateToSelectedClassDay(dateValue, dayLabel) {
@@ -11665,10 +11700,14 @@ function alignDateToSelectedClassDay(dateValue, dayLabel) {
   }
 
   const date = new Date(`${dateValue}T12:00:00`);
-  if (normalizedDay === "Entre semana") {
+  const multiDaySchedule = MULTI_DAY_ATTENDANCE_SCHEDULES[normalizedDay];
+  if (multiDaySchedule) {
+    const weekdayIndexes = multiDaySchedule.map((day) => day.weekdayIndex);
+    const minWeekday = Math.min(...weekdayIndexes);
+    const maxWeekday = Math.max(...weekdayIndexes);
     const currentDay = date.getDay();
-    if (currentDay >= 2 && currentDay <= 4) {
-      date.setDate(date.getDate() - (currentDay - 2));
+    if (currentDay >= minWeekday && currentDay <= maxWeekday) {
+      date.setDate(date.getDate() - (currentDay - minWeekday));
       return formatDateForInput(date);
     }
   }
@@ -11709,14 +11748,15 @@ function getAttendanceColumnDefinitions(studentsList = []) {
 
 function getAttendanceSessionGroups(baseDate, sessionCount = DEFAULT_ATTENDANCE_SESSION_COUNT, dayLabel = "") {
   const normalizedDay = normalizeAttendanceDayLabel(dayLabel);
+  const multiDaySchedule = MULTI_DAY_ATTENDANCE_SCHEDULES[normalizedDay];
 
-  if (isWeekdayAttendanceDay(normalizedDay)) {
+  if (multiDaySchedule) {
     return Array.from({ length: sessionCount }, (_, index) => ({
       key: `w${index + 1}`,
       index,
       label: `Semana ${index + 1}`,
       classLabel: `Semana ${index + 1}`,
-      slots: WEEKDAY_ATTENDANCE_DAYS.map((weekday) => ({
+      slots: multiDaySchedule.map((weekday) => ({
         key: `w${index + 1}-${weekday.key}`,
         date: addDaysToDateValue(baseDate, index * 7 + weekday.dayOffset),
         shortLabel: weekday.shortLabel,
