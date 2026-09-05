@@ -414,6 +414,18 @@ button {
   line-height: 1.45;
 }
 
+.mv2-late-fee-alert.is-active {
+  border-color: #b91c1c;
+  background: linear-gradient(135deg, rgba(254, 202, 202, 0.98), rgba(254, 226, 226, 0.96));
+  box-shadow: 0 14px 32px rgba(185, 28, 28, 0.24);
+}
+
+.mv2-late-fee-alert.is-active .mv2-late-fee-alert-icon {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: none;
+}
+
 .mv2-referral-slot {
   margin: 14px 0;
 }
