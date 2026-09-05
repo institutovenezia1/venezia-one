@@ -300,6 +300,17 @@ const STUDENT_PAYMENT_REFERENCE_RULES = [
   { field: "mensualidad5", label: "Men5", sessionIndex: 15 },
   { field: "mensualidad6", label: "Men6", sessionIndex: 19, onlySixthMonth: true },
 ];
+// Moratorio automático por atraso de pago (regla de negocio de Ismael,
+// 05/sep/2026): si un concepto sigue "Pendiente" después de su fecha de
+// referencia (la misma que ya se usa en Pagos/Asistencias/Mi Venezia, ver
+// STUDENT_PAYMENT_REFERENCE_RULES) y ya pasó del mediodía hora Ciudad de
+// México de ese día sin reflejarse el pago, se cobra $100 y otros $100 por
+// cada día completo adicional que siga sin pagarse. No hay botón ni proceso
+// en segundo plano: se calcula al vuelo cada vez que se abre Pagos, el
+// expediente o Mi Venezia (ver getStudentLateFeeSummary más abajo).
+const LATE_FEE_DAILY_AMOUNT = 100;
+const LATE_FEE_GRACE_CUTOFF_HOUR = 12;
+
 const ATTENDANCE_PRIORITY_PAYMENT_REFERENCE_FIELDS = new Set([
   "mensualidad1",
   "mensualidad2",
@@ -4107,6 +4118,66 @@ function getCurrentMexicoDateValue(date = new Date()) {
   }
 
   return formatDateForInput(date);
+}
+
+function getCurrentMexicoDateTimeParts(date = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    if (byType.year && byType.month && byType.day && byType.hour && byType.minute) {
+      return {
+        dateValue: `${byType.year}-${byType.month}-${byType.day}`,
+        hour: Number(byType.hour),
+        minute: Number(byType.minute),
+        second: Number(byType.second || "0"),
+      };
+    }
+  } catch (error) {
+    console.warn("No se pudo calcular la hora local de Mexico para el moratorio.", error);
+  }
+  return {
+    dateValue: formatDateForInput(date),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+  };
+}
+
+function getLateFeeDaysForDueDate(dueDateValue, now = new Date()) {
+  // "Moratorio": corte a las 12:00pm (hora CDMX) del día de vencimiento. En
+  // cuanto se cruza ese corte sin que el pago se refleje, ya cuenta como 1
+  // día de atraso ($100); cada 24hrs completas después del corte suma otro
+  // día ($100 más), tal como dice el aviso del reglamento en Mi Venezia
+  // ("cargo moratorio de $100 diarios hasta cubrir el pago pendiente").
+  if (!dueDateValue) {
+    return 0;
+  }
+  const cutoff = new Date(`${dueDateValue}T${String(LATE_FEE_GRACE_CUTOFF_HOUR).padStart(2, "0")}:00:00`);
+  if (Number.isNaN(cutoff.getTime())) {
+    return 0;
+  }
+  const nowParts = getCurrentMexicoDateTimeParts(now);
+  const nowAsLocal = new Date(
+    `${nowParts.dateValue}T${String(nowParts.hour).padStart(2, "0")}:${String(nowParts.minute).padStart(2, "0")}:${String(nowParts.second).padStart(2, "0")}`
+  );
+  if (Number.isNaN(nowAsLocal.getTime()) || nowAsLocal < cutoff) {
+    return 0;
+  }
+  const diffDays = Math.floor((nowAsLocal.getTime() - cutoff.getTime()) / (24 * 60 * 60 * 1000));
+  return diffDays + 1;
+}
+
+function getLateFeeAmountForDueDate(dueDateValue, now = new Date()) {
+  return getLateFeeDaysForDueDate(dueDateValue, now) * LATE_FEE_DAILY_AMOUNT;
 }
 
 function getProspectDate(prospect) {
@@ -13352,6 +13423,65 @@ function getStudentPaymentScheduleEntries(student) {
     }));
 }
 
+function getStudentLateFeeSummary(
+  student,
+  payment = {},
+  sessions = getStudentAttendanceReferenceSessions(student),
+  conceptDetailsByKey = new Map(),
+  now = new Date()
+) {
+  // Recorre los mismos conceptos/fechas de referencia de Pagos (STUDENT_PAYMENT_REFERENCE_RULES)
+  // y marca como atrasado cualquiera que siga "Pendiente" después de su corte
+  // de mediodía (ver getLateFeeDaysForDueDate). Si una alumna tiene más de un
+  // concepto atrasado a la vez, se suman: es el escenario conservador (nunca
+  // se le cobra de menos) aunque en la práctica casi siempre es solo uno.
+  const overdueConcepts = STUDENT_PAYMENT_REFERENCE_RULES
+    .filter((rule) => isPaymentReferenceRuleApplicableForStudent(rule, student))
+    .map((rule) => {
+      const conceptDetail = conceptDetailsByKey.get(rule.field) || null;
+      const status = normalizePaymentStatusForCourseRule(
+        __veneziaGet(conceptDetail, "status") || payment[rule.field] || "",
+        rule,
+        student
+      );
+      if (status !== "Pendiente") {
+        return null;
+      }
+      const dueDate = __veneziaGet(sessions[rule.sessionIndex], "date") || "";
+      const days = getLateFeeDaysForDueDate(dueDate, now);
+      if (days <= 0) {
+        return null;
+      }
+      return {
+        field: rule.field,
+        label: rule.label,
+        dueDate,
+        days,
+        amount: days * LATE_FEE_DAILY_AMOUNT,
+      };
+    })
+    .filter(Boolean);
+
+  const totalAmount = overdueConcepts.reduce((sum, item) => sum + item.amount, 0);
+  const maxDays = overdueConcepts.reduce((max, item) => Math.max(max, item.days), 0);
+
+  return {
+    hasLateFee: overdueConcepts.length > 0,
+    totalAmount,
+    maxDays,
+    overdueConcepts,
+  };
+}
+
+function formatLateFeeSummaryTitle(summary) {
+  if (!summary || !summary.hasLateFee) {
+    return "";
+  }
+  return summary.overdueConcepts
+    .map((item) => `${item.label}: ${item.days} día${item.days === 1 ? "" : "s"} de atraso ($${item.amount})`)
+    .join(" | ");
+}
+
 function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student), conceptDetailsByKey = new Map()) {
   const conceptDetail = conceptDetailsByKey.get(field) || null;
   const paymentRule = getStudentPaymentReferenceRule(field);
@@ -13862,6 +13992,7 @@ function renderPaymentsTable(options = {}) {
       const paymentRealDateValue = getPaymentRealDateInputValue(payment);
       const paymentMethodValue = payment.metodoPago || "";
       const paymentAmountValue = payment.cantidadPagada || "";
+      const lateFeeSummary = getStudentLateFeeSummary(student, payment, studentSessions, paymentConceptDetailsByKey);
       return `
         <tr data-payment-student-row="${escapeHtml(student.id)}">
           <td>
@@ -13887,6 +14018,11 @@ function renderPaymentsTable(options = {}) {
           <td><input class="payment-real-date-input" type="date" value="${escapeHtml(paymentRealDateValue)}" data-payment-field="paymentRealDate" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(paymentRealDateValue)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.reportes)}" data-payment-field="reportes" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.reportes)}" /></td>
           <td><input type="text" value="${escapeHtml(payment.observaciones)}" data-payment-field="observaciones" data-student-id="${student.id}" data-payment-initial-value="${escapeHtml(payment.observaciones)}" /></td>
+          <td class="payments-late-fee-cell"${lateFeeSummary.hasLateFee ? ` title="${escapeHtml(formatLateFeeSummaryTitle(lateFeeSummary))}"` : ""}>${
+            lateFeeSummary.hasLateFee
+              ? renderStudentFileBadge(`$${lateFeeSummary.totalAmount} · ${lateFeeSummary.maxDays}d`, "red")
+              : renderStudentFileBadge("Sin atraso", "greige")
+          }</td>
           <td class="payments-student-status-cell">${renderStudentAttendanceStatusBadge(student)}</td>
           <td>
             <div class="actions-cell">

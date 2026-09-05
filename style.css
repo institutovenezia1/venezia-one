@@ -4122,6 +4122,17 @@ td select {
   font-size: 0.74rem;
 }
 
+.payments-late-fee-cell {
+  min-width: 8.25rem;
+  white-space: nowrap;
+}
+
+.payments-late-fee-cell .student-file-badge {
+  min-height: 28px;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.74rem;
+}
+
 .payments-review-action-cell {
   white-space: nowrap;
 }

@@ -44,6 +44,12 @@
     { field: "mensualidad5", label: "Mensualidad 5", shortLabel: "Men5", sessionIndex: 15, amountField: "mensualidad5Amount", amountType: "monthly" },
     { field: "mensualidad6", label: "Mensualidad 6", shortLabel: "Men6", sessionIndex: 19, amountField: "mensualidad6Amount", amountType: "monthly", onlySixthMonth: true }
   ];
+  // Moratorio automático por atraso de pago (misma regla de negocio que
+  // app.js/Pagos): $100 por cada día de atraso, con un margen hasta el
+  // mediodía (hora Ciudad de México) del día de vencimiento. Ver
+  // getStudentLateFeeSummary más abajo.
+  var LATE_FEE_DAILY_AMOUNT = 100;
+  var LATE_FEE_GRACE_CUTOFF_HOUR = 12;
   var STUDENT_DOCUMENT_REQUIREMENTS = [
     "Reglamento interno",
     "Contrato de alumno",
@@ -780,9 +786,31 @@
     return statusInfo && statusInfo.key !== "unavailable";
   }
 
-  function lateFeeNoticeHtml(statusInfo) {
+  function formatLateFeeSummaryDetail(lateFeeSummary) {
+    var parts = [];
+    var index;
+    var item;
+    for (index = 0; index < lateFeeSummary.overdueConcepts.length; index += 1) {
+      item = lateFeeSummary.overdueConcepts[index];
+      parts.push(item.label + ": " + item.days + (item.days === 1 ? " día" : " días") + " de atraso (" + formatMoney(item.amount) + ")");
+    }
+    return parts.join(" · ");
+  }
+
+  function lateFeeNoticeHtml(statusInfo, lateFeeSummary) {
     if (!shouldShowLateFeeNotice(statusInfo)) {
       return "";
+    }
+    if (lateFeeSummary && lateFeeSummary.hasLateFee) {
+      return (
+        '<section class="mv2-late-fee-alert is-active" role="alert" aria-label="Cargo moratorio activo por atraso de pago">' +
+        '<span class="mv2-late-fee-alert-icon" aria-hidden="true">&#9888;</span>' +
+        '<div class="mv2-late-fee-alert-copy">' +
+        '<strong>Tienes un cargo moratorio activo: ' + escapeHtml(formatMoney(lateFeeSummary.totalAmount)) + '</strong>' +
+        '<p>' + escapeHtml(formatLateFeeSummaryDetail(lateFeeSummary)) + '. Se sigue acumulando $100 diarios hasta cubrir el pago pendiente, tal como está estipulado en el reglamento de alumno.</p>' +
+        '</div>' +
+        '</section>'
+      );
     }
     return (
       '<section class="mv2-late-fee-alert" role="note" aria-label="Aviso importante sobre moratorio por atraso de pago">' +
@@ -1354,6 +1382,118 @@
       });
     }
     return sessions;
+  }
+
+  function getCurrentMexicoDateTimeParts(date) {
+    var now = date || new Date();
+    var parts;
+    var byType;
+    var index;
+    try {
+      parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Mexico_City",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(now);
+      byType = {};
+      for (index = 0; index < parts.length; index += 1) {
+        byType[parts[index].type] = parts[index].value;
+      }
+      if (byType.year && byType.month && byType.day && byType.hour && byType.minute) {
+        return {
+          dateValue: byType.year + "-" + byType.month + "-" + byType.day,
+          hour: Number(byType.hour),
+          minute: Number(byType.minute),
+          second: Number(byType.second || "0")
+        };
+      }
+    } catch (error) {
+      /* noop: cae al respaldo de abajo */
+    }
+    return {
+      dateValue: normalizeLocalDateKey(now) || "",
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+      second: now.getSeconds()
+    };
+  }
+
+  function pad2(value) {
+    var stringValue = String(value);
+    return stringValue.length < 2 ? "0" + stringValue : stringValue;
+  }
+
+  function getLateFeeDaysForDueDate(dueDateValue, date) {
+    var cutoff;
+    var nowParts;
+    var nowAsLocal;
+    var diffMs;
+    var diffDays;
+    if (!dueDateValue) {
+      return 0;
+    }
+    cutoff = new Date(dueDateValue + "T" + pad2(LATE_FEE_GRACE_CUTOFF_HOUR) + ":00:00");
+    if (isNaN(cutoff.getTime())) {
+      return 0;
+    }
+    nowParts = getCurrentMexicoDateTimeParts(date);
+    nowAsLocal = new Date(nowParts.dateValue + "T" + pad2(nowParts.hour) + ":" + pad2(nowParts.minute) + ":" + pad2(nowParts.second));
+    if (isNaN(nowAsLocal.getTime()) || nowAsLocal < cutoff) {
+      return 0;
+    }
+    diffMs = nowAsLocal.getTime() - cutoff.getTime();
+    diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    return diffDays + 1;
+  }
+
+  function getStudentLateFeeSummary(student, details) {
+    var plan = getMergedPaymentPlanRecord((details && details.payments) || []);
+    var sessions = getStudentAttendanceReferenceSessions(student);
+    var overdueConcepts = [];
+    var totalAmount = 0;
+    var maxDays = 0;
+    var index;
+    var rule;
+    var status;
+    var dueDate;
+    var days;
+    for (index = 0; index < PAYMENT_CALENDAR_RULES.length; index += 1) {
+      rule = PAYMENT_CALENDAR_RULES[index];
+      if (!isPaymentRuleApplicableForStudent(rule, student)) {
+        continue;
+      }
+      status = normalizePaymentStatusForCourseRule(plan[rule.field], rule, student);
+      if (status !== "Pendiente") {
+        continue;
+      }
+      dueDate = (sessions[rule.sessionIndex] && sessions[rule.sessionIndex].date) || "";
+      days = getLateFeeDaysForDueDate(dueDate, new Date());
+      if (days <= 0) {
+        continue;
+      }
+      overdueConcepts.push({
+        field: rule.field,
+        label: rule.label,
+        dueDate: dueDate,
+        days: days,
+        amount: days * LATE_FEE_DAILY_AMOUNT
+      });
+      totalAmount += days * LATE_FEE_DAILY_AMOUNT;
+      if (days > maxDays) {
+        maxDays = days;
+      }
+    }
+    return {
+      hasLateFee: overdueConcepts.length > 0,
+      totalAmount: totalAmount,
+      maxDays: maxDays,
+      overdueConcepts: overdueConcepts
+    };
   }
 
   function formatMoney(value) {
@@ -2306,10 +2446,11 @@
     var payments = details ? getPaymentsSummary(details, student) : null;
     var attendance = details ? getAttendanceSummary(details.attendance) : null;
     var statusInfo = getStudentStatusInfo(student);
+    var lateFeeSummary = getStudentLateFeeSummary(student, details);
     byId("panelInicio").innerHTML =
       '<div class="mv2-panel-header"><h2>Inicio</h2><p>' + escapeHtml(statusInfo.intro) + '</p></div>' +
       statusNoticeHtml(statusInfo) +
-      lateFeeNoticeHtml(statusInfo) +
+      lateFeeNoticeHtml(statusInfo, lateFeeSummary) +
       renderInicioDocumentsNotice(docState) +
       '<div class="mv2-info-grid">' +
       infoItem(statusInfo.courseLabel, student.curso) +
@@ -2349,6 +2490,7 @@
     var html;
     var index;
     var calendarEntries;
+    var lateFeeSummary;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.payments) {
       byId("panelPagos").innerHTML = '<div class="mv2-panel-header"><h2>Pagos</h2><p>No pudimos cargar tus pagos en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus pagos en este momento.</div>';
@@ -2356,6 +2498,7 @@
     }
     summary = getPaymentsSummary(details, student);
     calendarEntries = buildPaymentCalendarEntries(student, details, summary);
+    lateFeeSummary = getStudentLateFeeSummary(student, details);
     html =
       '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Pagos realizados, mensualidades y pendientes visibles.") + '</p></div>' +
       '<div class="mv2-timeline-summary">' +
@@ -2364,7 +2507,7 @@
       renderTimelineMetric("Próximo pendiente", getNextPendingPayment(summary), "Según registros visibles") +
       renderTimelineMetric("Estado general", summary.status, "Resumen actual") +
       '</div>' +
-      lateFeeNoticeHtml(statusInfo) +
+      lateFeeNoticeHtml(statusInfo, lateFeeSummary) +
       '<div class="mv2-section-block"><h3>Calendario de pagos</h3>';
 
     if (calendarEntries.length) {
