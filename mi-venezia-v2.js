@@ -1467,7 +1467,7 @@
       if (!isPaymentRuleApplicableForStudent(rule, student)) {
         continue;
       }
-      status = normalizePaymentStatusForCourseRule(plan[rule.field], rule, student);
+      status = normalizePaymentStatusForCourseRule(plan[rule.field], rule, student) || "Pendiente";
       if (status !== "Pendiente") {
         continue;
       }

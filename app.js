@@ -13443,7 +13443,7 @@ function getStudentLateFeeSummary(
         __veneziaGet(conceptDetail, "status") || payment[rule.field] || "",
         rule,
         student
-      );
+      ) || "Pendiente";
       if (status !== "Pendiente") {
         return null;
       }
