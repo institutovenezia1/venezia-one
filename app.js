@@ -13498,6 +13498,9 @@ function getPaymentsLateFeeOverview() {
   let studentsWithLateFee = 0;
   let totalAmount = 0;
   getCanonicalStudentsForPayments().forEach((student) => {
+    if (!isStudentActiveForPaymentReview(student)) {
+      return;
+    }
     const summary = getStudentPaymentLateFeeSummary(student);
     if (summary.hasLateFee) {
       studentsWithLateFee += 1;
@@ -13598,7 +13601,7 @@ function getFilteredStudentsForPayments() {
       if (!paymentsLateFeeOnlyFilter) {
         return true;
       }
-      return getStudentPaymentLateFeeSummary(student).hasLateFee;
+      return isStudentActiveForPaymentReview(student) && getStudentPaymentLateFeeSummary(student).hasLateFee;
     })
     .sort((left, right) => {
       const leftSortKey = getLatestPaymentSortKey(left);
