@@ -585,6 +585,9 @@ const paymentsPendingCount = document.getElementById("paymentsPendingCount");
 const paymentsMensualidadesPaid = document.getElementById("paymentsMensualidadesPaid");
 const paymentsSearchInput = document.getElementById("paymentsSearchInput");
 const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
+const paymentsLateFeeOnlyFilterInput = document.getElementById("paymentsLateFeeOnlyFilter");
+const paymentsLateFeeStudentsCount = document.getElementById("paymentsLateFeeStudentsCount");
+const paymentsLateFeeTotalAmount = document.getElementById("paymentsLateFeeTotalAmount");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
 const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
@@ -981,6 +984,7 @@ let selectedAltaDateFilter = "";
 let activeAltaPendingFilter = "all";
 let activePaymentsSearch = "";
 let paymentsTableExpanded = false;
+let paymentsLateFeeOnlyFilter = false;
 let paymentsMonthWasManuallySelected = false;
 let paymentsReviewHighlightTimer = null;
 let paymentLocalAutoSyncPromise = null;
@@ -13482,6 +13486,27 @@ function formatLateFeeSummaryTitle(summary) {
     .join(" | ");
 }
 
+function getStudentPaymentLateFeeSummary(student) {
+  const payment = getPaymentDisplayRecord(student.id);
+  const paymentConceptDetails = getPaymentConceptDetails(payment);
+  const paymentConceptDetailsByKey = getPaymentConceptDetailsByKey(paymentConceptDetails);
+  const sessions = getStudentAttendanceReferenceSessions(student);
+  return getStudentLateFeeSummary(student, payment, sessions, paymentConceptDetailsByKey);
+}
+
+function getPaymentsLateFeeOverview() {
+  let studentsWithLateFee = 0;
+  let totalAmount = 0;
+  getCanonicalStudentsForPayments().forEach((student) => {
+    const summary = getStudentPaymentLateFeeSummary(student);
+    if (summary.hasLateFee) {
+      studentsWithLateFee += 1;
+      totalAmount += summary.totalAmount;
+    }
+  });
+  return { studentsWithLateFee, totalAmount };
+}
+
 function renderPaymentStatusSelect(field, student, payment, sessions = getStudentAttendanceReferenceSessions(student), conceptDetailsByKey = new Map()) {
   const conceptDetail = conceptDetailsByKey.get(field) || null;
   const paymentRule = getStudentPaymentReferenceRule(field);
@@ -13568,6 +13593,12 @@ function getFilteredStudentsForPayments() {
       ].join(" ").toLowerCase();
 
       return searchableText.includes(normalizedSearch);
+    })
+    .filter((student) => {
+      if (!paymentsLateFeeOnlyFilter) {
+        return true;
+      }
+      return getStudentPaymentLateFeeSummary(student).hasLateFee;
     })
     .sort((left, right) => {
       const leftSortKey = getLatestPaymentSortKey(left);
@@ -13971,7 +14002,7 @@ function renderPaymentsTable(options = {}) {
 
   syncPreferredPaymentsMonth();
   const studentsList = getFilteredStudentsForPayments();
-  const visibleStudents = activePaymentsSearch.trim() || paymentsTableExpanded
+  const visibleStudents = activePaymentsSearch.trim() || paymentsTableExpanded || paymentsLateFeeOnlyFilter
     ? studentsList
     : studentsList.slice(0, 3);
   const scopedPaymentRecords = getScopedPaymentRecords();
@@ -14040,9 +14071,19 @@ function renderPaymentsTable(options = {}) {
 
   paymentsEmptyState.hidden = visibleStudents.length > 0;
   if (paymentsToggleButton) {
-    const shouldShowToggle = !activePaymentsSearch.trim() && studentsList.length > 3;
+    const shouldShowToggle = !activePaymentsSearch.trim() && !paymentsLateFeeOnlyFilter && studentsList.length > 3;
     paymentsToggleButton.hidden = !shouldShowToggle;
     paymentsToggleButton.textContent = paymentsTableExpanded ? "Ver menos" : "Ver mas";
+  }
+
+  const lateFeeOverview = getPaymentsLateFeeOverview();
+  if (paymentsLateFeeStudentsCount) {
+    paymentsLateFeeStudentsCount.textContent = String(lateFeeOverview.studentsWithLateFee);
+  }
+  if (paymentsLateFeeTotalAmount) {
+    paymentsLateFeeTotalAmount.textContent = lateFeeOverview.studentsWithLateFee > 0
+      ? formatCurrency(lateFeeOverview.totalAmount) + " en total"
+      : "";
   }
 
   console.log("PAGOS render", {
@@ -20161,6 +20202,13 @@ paymentsSearchInput.addEventListener("input", (event) => {
   activePaymentsSearch = event.target.value;
   renderPaymentsTable();
 });
+
+if (paymentsLateFeeOnlyFilterInput) {
+  paymentsLateFeeOnlyFilterInput.addEventListener("change", (event) => {
+    paymentsLateFeeOnlyFilter = Boolean(event.target.checked);
+    renderPaymentsTable();
+  });
+}
 
 if (paymentsToggleButton) {
   paymentsToggleButton.addEventListener("click", () => {

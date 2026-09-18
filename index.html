@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260905-moratorio-automatico" />
+    <link rel="stylesheet" href="style.css?v=20260906-filtro-moratorio-pagos" />
     <link rel="stylesheet" href="web-venezia.css?v=20260901-fix-foto-testimonios-circular" />
   </head>
   <body>
@@ -1386,6 +1386,11 @@
               <p>Alumnas con curso terminado</p>
               <strong id="paymentsCompletedCourseCount">0</strong>
             </article>
+            <article class="stat-card">
+              <p>Alumnas con moratorio activo</p>
+              <strong id="paymentsLateFeeStudentsCount">0</strong>
+              <small id="paymentsLateFeeTotalAmount"></small>
+            </article>
           </section>
 
           <section class="panel table-panel payments-panel">
@@ -1409,6 +1414,11 @@
                 <label class="payments-month-filter">
                   <span>Mes de pago</span>
                   <input id="paymentsMonthFilter" type="month" />
+                </label>
+
+                <label class="payments-late-fee-filter">
+                  <input id="paymentsLateFeeOnlyFilter" type="checkbox" />
+                  <span>Solo con moratorio</span>
                 </label>
               </div>
             </div>
@@ -3994,6 +4004,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20260902-genero-alumnas-alta"></script>
-    <script src="app.js?v=20260918-nuevo-numero-whatsapp"></script>
+    <script src="app.js?v=20260918-filtro-moratorio-pagos"></script>
   </body>
 </html>

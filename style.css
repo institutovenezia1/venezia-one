@@ -3953,6 +3953,28 @@ td select {
   font-weight: 800;
 }
 
+.payments-late-fee-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e3b2a8;
+  border-radius: 999px;
+  background: #fbecea;
+  color: #8c4e46;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  align-self: center;
+}
+
+.payments-late-fee-filter input {
+  width: 16px;
+  height: 16px;
+  accent-color: #b91c1c;
+  cursor: pointer;
+}
+
 .payments-table-wrapper {
   border-color: #d8d0c5;
   background: linear-gradient(180deg, #fcfaf7 0%, #f9f4ee 100%);
@@ -7151,7 +7173,8 @@ body.access-selector-mode .access-selector-actions .secondary-btn:focus-visible 
 
   .payments-panel-controls,
   .payments-search-field,
-  .payments-month-filter {
+  .payments-month-filter,
+  .payments-late-fee-filter {
     width: 100%;
   }
 
