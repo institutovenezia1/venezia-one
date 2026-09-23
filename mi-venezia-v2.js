@@ -1868,8 +1868,8 @@
       '<article class="mv2-referral-card' + discreetClass + '">' +
       '<div class="mv2-referral-copy">' +
       '<span class="mv2-referral-badge">Bono disponible</span>' +
-      '<h2>GANA $200 RECOMENDANDO</h2>' +
-      '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana $200 de bono o descuento cuando se inscriba.</p>' +
+      '<h2>GANA $500 RECOMENDANDO</h2>' +
+      '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana $500 de bono o descuento cuando se inscriba.</p>' +
       '<small>Dirección asignada: ' + escapeHtml(contact.name || "Soporte Venezia") + '</small>' +
       '</div>' +
       '<a class="mv2-referral-button" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Enviar recomendación por WhatsApp</a>' +
