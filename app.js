@@ -264,6 +264,10 @@ const PAYMENT_CONCEPT_DETAIL_FIELDS = [
   { key: "mensualidad6", label: "MEN6", movementLabel: "Mensualidad 6" },
 ];
 const PAYMENT_CONCEPT_FIELD_KEYS = new Set(PAYMENT_CONCEPT_DETAIL_FIELDS.map(({ key }) => key));
+const CERTIFICATE_PAYMENT_EXPECTED_AMOUNTS = {
+  certificadoP1: "1500",
+  certificadoP2: "1200",
+};
 const PAYMENT_FINANCE_ELIGIBLE_STATUSES = new Set(["Pagado", "Parcial"]);
 const PAYMENT_FINANCE_REFERENCE_PREFIX = "student_payments:";
 const ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX = "alta_inscription:";
@@ -13784,7 +13788,10 @@ function getUpcomingMonthlyPaymentLabel(field) {
   return __veneziaGet(concept, "movementLabel") || __veneziaGet(concept, "label") || field;
 }
 
-function getUpcomingPaymentAmount(student, paymentRecord) {
+function getUpcomingPaymentAmount(field, student, paymentRecord) {
+  if (Object.prototype.hasOwnProperty.call(CERTIFICATE_PAYMENT_EXPECTED_AMOUNTS, field)) {
+    return CERTIFICATE_PAYMENT_EXPECTED_AMOUNTS[field];
+  }
   return String(
     __veneziaGet(paymentRecord, "mensualidadPactada") ||
       __veneziaGet(student, "mensualidad") ||
@@ -13794,18 +13801,21 @@ function getUpcomingPaymentAmount(student, paymentRecord) {
 }
 
 function getNextPendingMonthlyPayment(student, paymentRecord) {
-  const field = getCourseMonthlyPaymentFields(student).find(
-    (monthlyField) => !isMonthlyPaymentCovered(__veneziaGet(paymentRecord, monthlyField))
-  );
-  if (!field) {
+  const rule = STUDENT_PAYMENT_REFERENCE_RULES.find((candidateRule) => {
+    if (!isPaymentReferenceRuleApplicableForStudent(candidateRule, student)) {
+      return false;
+    }
+    return !isMonthlyPaymentCovered(getPaymentStatusForCourseField(candidateRule.field, student, paymentRecord));
+  });
+  if (!rule) {
     return null;
   }
 
   return {
-    field,
-    label: getUpcomingMonthlyPaymentLabel(field),
-    date: getStudentPaymentReferenceDateByField(field, student),
-    amount: getUpcomingPaymentAmount(student, paymentRecord),
+    field: rule.field,
+    label: getUpcomingMonthlyPaymentLabel(rule.field),
+    date: getStudentPaymentReferenceDateByField(rule.field, student),
+    amount: getUpcomingPaymentAmount(rule.field, student, paymentRecord),
   };
 }
 
