@@ -5265,10 +5265,18 @@ function isPendingStartStudent(student) {
 }
 
 function studentUsesExtendedDuration(student) {
+  // Las alumnas en EXTENDED_DURATION_STUDENT_NAMES tienen la duración extendida
+  // otorgada de forma permanente (caso por caso, ver comentario junto a esa
+  // lista). Marcar "Curso finalizado"/baja/eliminada no debe revocar ese
+  // estatus ya otorgado, o desaparecen mensualidades ya pagadas (5ta/6ta) del
+  // expediente aunque las clases vistas sigan mostrando el total correcto.
+  if (isExtendedDurationStudent(student)) {
+    return true;
+  }
   if (isStudentExcludedFromDurationExtension(student)) {
     return false;
   }
-  return isExtendedDurationStudent(student) || isPendingStartStudent(student);
+  return isPendingStartStudent(student);
 }
 
 function getLegacyAttendanceSessionCountForCourse(course) {
