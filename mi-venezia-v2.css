@@ -829,6 +829,16 @@ button {
   color: #57534e;
 }
 
+.mv2-payment-calendar-card.is-partial {
+  border-left-color: #b45309;
+  background: #fffaf0;
+}
+
+.mv2-payment-calendar-card.is-partial .mv2-payment-calendar-badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .mv2-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

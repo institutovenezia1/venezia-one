@@ -1893,7 +1893,10 @@
     if (normalized === "Pagado") {
       return "paid";
     }
-    if (normalized === "Pendiente" || normalized === "Parcial") {
+    if (normalized === "Parcial") {
+      return "partial";
+    }
+    if (normalized === "Pendiente") {
       return "pending";
     }
     if (normalized === "No aplica") {
@@ -2218,8 +2221,8 @@
 
   function getCalendarPaymentStatus(value) {
     var normalized = normalizePaymentPlanStatus(value);
-    if (normalized === "Pagado") {
-      return "Pagado";
+    if (normalized === "Pagado" || normalized === "Parcial") {
+      return normalized;
     }
     if (normalized === "No aplica") {
       return "No aplica";
@@ -2311,6 +2314,15 @@
     return detail && detail.date ? detail.date : "";
   }
 
+  function getPaymentCalendarAmountLabel(status, rule, plan, student, detail) {
+    var expectedAmount = getPaymentRuleAmount(rule, plan, student);
+    var paidAmount = detail && detail.amount ? detail.amount : "";
+    if (status === "Parcial" && Number(String(paidAmount || "").replace(/[$,\s]/g, "")) > 0) {
+      return formatMoney(paidAmount) + " abonado de " + formatMoney(expectedAmount);
+    }
+    return formatMoney(expectedAmount);
+  }
+
   function buildPaymentCalendarEntries(student, details, summary) {
     var entries = [];
     var plan = summary && summary.latest ? summary.latest : getMergedPaymentPlanRecord(details && details.payments);
@@ -2320,6 +2332,7 @@
     var applicable;
     var status;
     var session;
+    var detail;
     if (!details || !details.payments || !details.payments.length) {
       return entries;
     }
@@ -2331,14 +2344,17 @@
       }
       status = getCalendarPaymentStatus(normalizePaymentStatusForCourseRule(plan[rule.field], rule, student));
       session = sessions[rule.sessionIndex] || null;
+      detail = (status === "Pagado" || status === "Parcial")
+        ? resolvePaymentRuleDetail(rule, details.payments || [], summary.finance || [])
+        : null;
       entries.push({
         field: rule.field,
         label: rule.label,
         status: status,
         state: getPaymentStatusKey(status),
         estimatedDate: applicable ? (session && session.date ? session.date : "") : "",
-        amount: applicable ? formatMoney(getPaymentRuleAmount(rule, plan, student)) : "",
-        paidAt: status === "Pagado" ? getPaymentRuleRealDate(rule, details.payments || [], summary.finance || []) : ""
+        amount: applicable ? getPaymentCalendarAmountLabel(status, rule, plan, student, detail) : "",
+        paidAt: (status === "Pagado" || status === "Parcial") ? (detail && detail.date ? detail.date : "") : ""
       });
     }
     return entries;
