@@ -4535,6 +4535,11 @@ async function normalizeLegacyProspects() {
       changed = true;
     }
 
+    if (normalized.asesoraAsignada === "Mari Flores | Coordinadora de maestras") {
+      normalized.asesoraAsignada = "Mari Flores | Coordinadora del IBV";
+      changed = true;
+    }
+
     if (!normalized.fechaContacto) {
       normalized.fechaContacto = getProspectDate(normalized) || formatDateForInput(new Date());
       changed = true;
@@ -6639,7 +6644,10 @@ function resetForm() {
   form.reset();
   document.getElementById("prospectId").value = "";
   document.getElementById("fechaContacto").value = formatDateForInput(new Date());
-  document.getElementById("proximoSeguimiento").value = "";
+  const proximoSeguimientoFieldToReset = document.getElementById("proximoSeguimiento");
+  if (proximoSeguimientoFieldToReset) {
+    proximoSeguimientoFieldToReset.value = "";
+  }
   syncProspectFollowupField();
   submitButton.textContent = "Guardar prospecto";
 }
@@ -18792,7 +18800,10 @@ function editProspect(id) {
   document.getElementById("medio").value = normalizeLeadChannel(prospect.medio, prospect.origen);
   document.getElementById("informacion").value = prospect.informacion;
   document.getElementById("estado").value = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
-  document.getElementById("proximoSeguimiento").value = prospect.proximoSeguimiento || "";
+  const proximoSeguimientoFieldToEdit = document.getElementById("proximoSeguimiento");
+  if (proximoSeguimientoFieldToEdit) {
+    proximoSeguimientoFieldToEdit.value = prospect.proximoSeguimiento || "";
+  }
   document.getElementById("asesoraAsignada").value = prospect.asesoraAsignada || "";
   document.getElementById("temperatura").value = normalizeTemperatureValue(prospect.temperatura);
   document.getElementById("notas").value = prospect.notas;
@@ -20307,7 +20318,7 @@ tableBody.addEventListener("click", async (event) => {
       },
       "Prospecto actualizado a cita agendada."
     );
-    document.getElementById("proximoSeguimiento").focus();
+    document.getElementById("proximoSeguimiento")?.focus();
   }
   if (action === "enroll") {
     await updateProspectQuickState(id, { estado: "Inscrita" }, "Prospecto marcado como inscrita.");
