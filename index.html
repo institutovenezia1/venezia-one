@@ -280,6 +280,7 @@
                     <option>Referido</option>
                     <option>Pagina web</option>
                     <option>Web</option>
+                    <option>Web Venezia</option>
                     <option>Evento</option>
                     <option>Walk-in</option>
                     <option>Presencial</option>
@@ -3120,24 +3121,6 @@
               <div class="web-promo-card web-promo-card-wide" id="webScholarshipCard"></div>
             </section>
 
-            <section class="web-sales-section web-prep-invitation-section web-ref-prep">
-              <div class="web-ref-prep-card web-ref-prep-card-left">
-                <div class="web-ref-prep-icon" aria-hidden="true">🎓</div>
-                <h3>¿Te llegó la invitación en tu prepa?</h3>
-                <p>Esta beca especial es para ti.<br />Aprovecha tu descuento exclusivo para estudiantes.</p>
-                <a class="primary-btn web-link-btn web-whatsapp-link web-prep-invitation-btn" href="https://wa.me/522464663437" target="_blank" rel="noopener noreferrer">WhatsApp para becas</a>
-              </div>
-              <div class="web-ref-prep-card web-ref-prep-card-right">
-                <p class="eyebrow">Regístrate para tu beca</p>
-                <h3>Completa tus datos y asegura tu lugar con beneficios exclusivos por ser estudiante.</h3>
-                <div class="web-ref-prep-benefits">
-                  <span><strong aria-hidden="true">⭐</strong> Beca especial por invitación</span>
-                  <span><strong aria-hidden="true">🟡</strong> Inscripción y mensualidad con descuento</span>
-                  <span><strong aria-hidden="true">👥</strong> Acompañamiento personalizado</span>
-                </div>
-              </div>
-            </section>
-
             <section class="web-sales-section web-ref-form-section" id="leadForm">
               <div class="web-ref-form-heading">
                 <p class="eyebrow">Inscripción en línea</p>
@@ -3199,40 +3182,8 @@
 
                   <label>
                     <span>¿Cómo supiste de la beca?</span>
-                    <select id="webLeadSource" name="conocioBeca" required>
-                      <option value="preparatoria">Me llegó la invitación en mi prepa</option>
-                      <option value="internet">Vi publicidad en internet</option>
-                      <option value="familiar">Me recomendó un familiar</option>
-                      <option value="amigo">Me recomendó un amigo</option>
-                      <option value="otro">Otro</option>
-                      <option value="no_preparatoria">No soy estudiante de preparatoria</option>
-                    </select>
+                    <input id="webLeadSource" name="conocioBeca" type="text" placeholder="Cuéntanos cómo te enteraste" required />
                   </label>
-
-                  <div class="web-school-fields full-width" id="webSchoolFields">
-                    <label>
-                      <span>Preparatoria de procedencia</span>
-                      <select id="webPreparatoria" name="nombrePreparatoria">
-                        <option value="">Selecciona tu preparatoria</option>
-                        <option>Preparatoria invitada</option>
-                        <option>Otra preparatoria</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <span>Semestre</span>
-                      <input id="webSemestre" name="semestre" type="text" inputmode="numeric" />
-                    </label>
-
-                    <label>
-                      <span>Turno</span>
-                      <select id="webTurno" name="turno">
-                        <option value="">Selecciona turno</option>
-                        <option>Matutino</option>
-                        <option>Vespertino</option>
-                      </select>
-                    </label>
-                  </div>
 
                   <input id="webSucursal" name="sucursal" type="hidden" value="Tlaxcala" />
 
@@ -3999,6 +3950,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20260902-genero-alumnas-alta"></script>
-    <script src="app.js?v=20261009-pagos-ventana-martes-domingo"></script>
+    <script src="app.js?v=20261009-web-venezia-form-simplificado"></script>
   </body>
 </html>

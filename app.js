@@ -6258,58 +6258,15 @@ function getWebLeadFormData() {
   const formData = new FormData(webLeadForm);
   const today = formatDateForInput(new Date());
   const leadSource = String(formData.get("conocioBeca") || "").trim();
-  const sourceMap = {
-    preparatoria: {
-      origin: "PREPARATORIA",
-      label: "Me llegó la invitación en mi prepa",
-      requestType: "Beca Venezia preparatoria",
-    },
-    internet: {
-      origin: "INTERNET",
-      label: "Vi publicidad en internet",
-      requestType: "Información general",
-    },
-    familiar: {
-      origin: "FAMILIAR",
-      label: "Me recomendó un familiar",
-      requestType: "Información general",
-    },
-    amigo: {
-      origin: "AMIGO",
-      label: "Me recomendó un amigo",
-      requestType: "Información general",
-    },
-    otro: {
-      origin: "OTRO",
-      label: "Otro",
-      requestType: "Información general",
-    },
-    no_preparatoria: {
-      origin: "NO_PREPARATORIA",
-      label: "No soy estudiante de preparatoria",
-      requestType: "Información general",
-    },
-  };
-  const sourceConfig = sourceMap[leadSource] || sourceMap.otro;
-  const isPreparatoriaSource = leadSource === "preparatoria";
   const edad = String(formData.get("edad") || "").trim();
   const tipoInscripcionWeb = String(formData.get("tipoInscripcionWeb") || "AGENDAR_CITA").trim();
   const tipoInscripcionLabel =
     tipoInscripcionWeb === "INSCRIPCION_EN_LINEA" ? "Inscribirme en línea" : "Agendar cita";
-  const nombrePreparatoria = isPreparatoriaSource
-    ? String(formData.get("nombrePreparatoria") || "").trim()
-    : "";
-  const semestre = isPreparatoriaSource ? String(formData.get("semestre") || "").trim() : "";
-  const turno = isPreparatoriaSource ? String(formData.get("turno") || "").trim() : "";
   const notes = [
     "Lead captado desde Web Venezia.",
-    `Cómo supo de la beca: ${sourceConfig.label}`,
-    `Origen específico: ${sourceConfig.origin}`,
+    leadSource ? `Cómo supo de la beca: ${leadSource}` : "",
     `Objetivo: ${tipoInscripcionLabel}`,
     `Edad: ${edad}`,
-    nombrePreparatoria ? `Nombre de preparatoria: ${nombrePreparatoria}` : "",
-    semestre ? `Semestre: ${semestre}` : "",
-    turno ? `Turno: ${turno}` : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -6321,7 +6278,7 @@ function getWebLeadFormData() {
     fechaContacto: today,
     sucursal: String(formData.get("sucursal") || "").trim(),
     curso: String(formData.get("curso") || "").trim(),
-    origen: sourceConfig.origin,
+    origen: "Web Venezia",
     medio: "WhatsApp",
     informacion: "Pendiente de enviar",
     estado: "Prospecto nuevo",
@@ -6336,10 +6293,6 @@ function getWebLeadFormData() {
     tipoSolicitud: tipoInscripcionLabel,
     tipoInscripcionWeb,
     edad,
-    origenDetalle: sourceConfig.origin,
-    nombrePreparatoria,
-    semestre,
-    turno,
     inscribio: "Pendiente",
     createdAt: new Date().toISOString(),
   };
