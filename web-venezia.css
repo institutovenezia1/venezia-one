@@ -6,7 +6,13 @@
  * No toca clases genéricas del sistema interno (.primary-btn, .secondary-btn
  * sin scope) ni ningún flujo de datos. Ver docs/WEB_VENEZIA_BOUNDARIES.md.
  * Se carga después de style.css: mismas cadenas de selector, gana por orden.
+ *
+ * Capa premium (negro/dorado/Cinzel): agrega tokens --wv-gold* y
+ * --wv-font-display, y usa el sistema de tokens existente sin tocar la
+ * paleta funcional (--wv-accent sigue siendo el verde de botones/CTAs).
  */
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&display=swap");
 
 /* ---------- Tokens ---------- */
 body.public-mode .web-sales-shell {
@@ -19,6 +25,10 @@ body.public-mode .web-sales-shell {
   --wv-accent-dark: #16803f;
   --wv-accent-text: #ffffff;
   --wv-accent-soft: rgba(28, 154, 86, 0.1);
+  --wv-gold: #c68f2e;
+  --wv-gold-dark: #a9741f;
+  --wv-gold-soft: rgba(198, 143, 46, 0.14);
+  --wv-font-display: "Cinzel", Georgia, serif;
   --wv-radius-card: 20px;
   --wv-radius-btn: 980px;
   --wv-radius-field: 14px;
@@ -38,21 +48,35 @@ body.public-mode .web-sales-shell {
 /* ---------- Tipografía base ---------- */
 body.public-mode .web-reference-shell .eyebrow,
 body.public-mode .web-mobile-app-shell .eyebrow {
+  position: relative;
+  display: inline-block;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--wv-accent);
+  color: var(--wv-gold);
+  padding-bottom: 14px;
+}
+
+body.public-mode .web-reference-shell .eyebrow::after,
+body.public-mode .web-mobile-app-shell .eyebrow::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 34px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--wv-gold), transparent);
 }
 
 body.public-mode .web-reference-shell h2,
 body.public-mode .web-reference-shell h3,
 body.public-mode .web-mobile-app-shell h2,
 body.public-mode .web-mobile-app-shell h3 {
-  font-family: inherit;
+  font-family: var(--wv-font-display);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.005em;
   color: var(--wv-text);
   text-wrap: balance;
 }
@@ -122,8 +146,8 @@ body.public-mode .web-reference-shell .web-ref-hero-bg {
 
 body.public-mode .web-reference-shell .web-ref-hero-shade {
   background:
-    radial-gradient(circle at 18% 8%, rgba(28, 154, 86, 0.22), transparent 42%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.14) 38%, rgba(0, 0, 0, 0.8) 100%);
+    radial-gradient(circle at 18% 8%, rgba(198, 143, 46, 0.26), transparent 42%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.14) 38%, rgba(0, 0, 0, 0.82) 100%);
 }
 
 body.public-mode .web-reference-shell .web-ref-hero-content {
@@ -146,10 +170,10 @@ body.public-mode .web-reference-shell .web-ref-pill.web-ref-pill-green {
 }
 
 body.public-mode .web-reference-shell .web-ref-hero h2 {
-  font-family: inherit;
-  font-size: clamp(48px, 7vw, 88px);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
+  font-family: var(--wv-font-display);
+  font-size: clamp(44px, 6.4vw, 80px);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
   margin-bottom: 18px;
   color: #fff;
   font-weight: 700;
@@ -254,6 +278,7 @@ body.public-mode .web-reference-shell .web-testimonial-grid {
 body.public-mode .web-reference-shell .web-testimonial-card {
   background: var(--wv-bg);
   border: 1px solid var(--wv-border);
+  border-top: 3px solid var(--wv-gold);
   border-radius: var(--wv-radius-card);
   padding: 32px;
   box-shadow: var(--wv-shadow-sm);
@@ -291,7 +316,7 @@ body.public-mode .web-reference-shell .web-testimonial-card > span {
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: var(--wv-accent);
+  color: var(--wv-gold-dark);
 }
 
 body.public-mode .web-reference-shell .web-testimonial-card p {
@@ -314,6 +339,7 @@ body.public-mode .web-reference-shell .web-course-grid {
 body.public-mode .web-reference-shell .web-course-card {
   background: var(--wv-bg);
   border: 1px solid var(--wv-border);
+  border-top: 3px solid var(--wv-gold);
   border-radius: var(--wv-radius-card);
   box-shadow: var(--wv-shadow-sm);
   transition: transform 260ms var(--wv-ease), box-shadow 260ms var(--wv-ease);
@@ -351,7 +377,7 @@ body.public-mode .web-reference-shell .web-course-category {
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--wv-accent);
+  color: var(--wv-gold-dark);
   letter-spacing: 0.02em;
 }
 
@@ -439,7 +465,7 @@ body.public-mode .web-reference-shell .web-ref-scholarship-copy .eyebrow {
 }
 
 body.public-mode .web-reference-shell .web-ref-scholarship-copy h3 {
-  font-family: inherit;
+  font-family: var(--wv-font-display);
   color: var(--wv-text);
   font-weight: 700;
   font-size: clamp(28px, 3.4vw, 38px);
@@ -510,6 +536,7 @@ body.public-mode .web-reference-shell .web-ref-scholarship-urgent {
   background: var(--wv-text);
   border-radius: 16px;
   border: none;
+  border-top: 3px solid var(--wv-gold);
 }
 
 body.public-mode .web-reference-shell .web-ref-scholarship-urgent span:not(.web-ref-cap) {
@@ -530,8 +557,29 @@ body.public-mode .web-reference-shell .web-ref-prep-card {
 }
 
 body.public-mode .web-reference-shell .web-ref-prep-card-left {
+  position: relative;
   background: #1d1d1f;
   border: none;
+  border-top: 3px solid var(--wv-gold);
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left::after {
+  content: "V";
+  position: absolute;
+  z-index: 0;
+  right: 18px;
+  bottom: 4px;
+  font-family: var(--wv-font-display);
+  font-size: 5.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(198, 143, 46, 0.14);
+  pointer-events: none;
+}
+
+body.public-mode .web-reference-shell .web-ref-prep-card-left > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.public-mode .web-reference-shell .web-ref-prep-card-left h3 {
@@ -743,14 +791,14 @@ body.public-mode .web-reference-shell .web-alert-error {
   }
 
   body.public-mode .web-mobile-app-shell .eyebrow {
-    color: var(--wv-accent);
+    color: var(--wv-gold);
   }
 
   body.public-mode .web-mobile-app-shell h2,
   body.public-mode .web-mobile-app-shell h3 {
     color: var(--wv-text);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.005em;
   }
 
   body.public-mode .web-mobile-app-shell .web-testimonial-card,
@@ -762,13 +810,18 @@ body.public-mode .web-reference-shell .web-alert-error {
     box-shadow: var(--wv-shadow-sm);
   }
 
+  body.public-mode .web-mobile-app-shell .web-testimonial-card,
+  body.public-mode .web-mobile-app-shell .web-course-card {
+    border-top: 3px solid var(--wv-gold);
+  }
+
   body.public-mode .web-mobile-app-shell .web-course-card::before {
     display: none;
   }
 
   body.public-mode .web-mobile-app-shell .web-course-category,
   body.public-mode .web-mobile-app-shell .web-course-tag {
-    color: var(--wv-accent);
+    color: var(--wv-gold-dark);
   }
 
   body.public-mode .web-mobile-app-shell .web-course-btn {
@@ -790,12 +843,12 @@ body.public-mode .web-reference-shell .web-alert-error {
   }
 
   body.public-mode .web-mobile-app-shell .web-ref-scholarship-copy .eyebrow {
-    color: var(--wv-accent);
+    color: var(--wv-gold);
   }
 
   body.public-mode .web-mobile-app-shell .web-ref-scholarship-copy h3,
   body.public-mode .web-mobile-app-shell .web-scholarship-copy strong {
-    font-family: inherit;
+    font-family: var(--wv-font-display);
     color: var(--wv-text);
   }
 
