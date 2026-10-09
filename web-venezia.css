@@ -12,7 +12,7 @@
  * paleta funcional (--wv-accent sigue siendo el verde de botones/CTAs).
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Playfair+Display:ital,wght@1,500;1,600&display=swap");
 
 /* ---------- Tokens ---------- */
 body.public-mode .web-sales-shell {
@@ -29,6 +29,7 @@ body.public-mode .web-sales-shell {
   --wv-gold-dark: #a9741f;
   --wv-gold-soft: rgba(198, 143, 46, 0.14);
   --wv-font-display: "Cinzel", Georgia, serif;
+  --wv-font-signature: "Playfair Display", Georgia, serif;
   --wv-radius-card: 20px;
   --wv-radius-btn: 980px;
   --wv-radius-field: 14px;
@@ -92,7 +93,7 @@ body.public-mode .web-mobile-app-shell .web-lead {
 body.public-mode .web-reference-shell .web-section-heading,
 body.public-mode .web-mobile-app-shell .web-section-heading {
   max-width: 640px;
-  margin-bottom: 40px;
+  margin-bottom: 52px;
 }
 
 body.public-mode .web-reference-shell .web-section-heading h3 {
@@ -248,9 +249,10 @@ body.public-mode .web-reference-shell .web-ref-hero-bottom .eyebrow {
 }
 
 body.public-mode .web-reference-shell .web-ref-hero-bottom strong {
-  font-family: inherit;
-  font-size: 18px;
+  font-family: var(--wv-font-signature);
+  font-style: italic;
   font-weight: 600;
+  font-size: 20px;
   color: #fff;
 }
 
@@ -261,9 +263,12 @@ body.public-mode .web-reference-shell .web-ref-hero-dots {
   display: none;
 }
 
-/* ---------- Bloques / secciones ---------- */
+/* ---------- Bloques / secciones ----------
+   Ritmo más pausado que la landing (que es venta directa de tráfico
+   pagado): Web Venezia es la casa de marca, con más respiro entre
+   bloques para una lectura exploratoria/editorial. */
 body.public-mode .web-reference-shell .web-sales-section {
-  padding: 88px 8px;
+  padding: 112px 8px;
 }
 
 body.public-mode .web-reference-shell .web-ref-hero {
@@ -276,12 +281,37 @@ body.public-mode .web-reference-shell .web-testimonial-grid {
 }
 
 body.public-mode .web-reference-shell .web-testimonial-card {
+  position: relative;
   background: var(--wv-bg);
   border: 1px solid var(--wv-border);
   border-top: 3px solid var(--wv-gold);
   border-radius: var(--wv-radius-card);
-  padding: 32px;
+  padding: 40px 36px 32px;
   box-shadow: var(--wv-shadow-sm);
+}
+
+/* Comilla ornamental: le da a los testimonios un aire de perfil
+   editorial en vez de "badge de confianza" apretado como en la landing.
+   Sin overflow:hidden en la tarjeta (bug ya conocido: recorta la propia
+   comilla si se le pone un offset negativo), por eso queda dentro del
+   padding, no mordiendo el borde. */
+body.public-mode .web-reference-shell .web-testimonial-card::before {
+  content: "\201C";
+  position: absolute;
+  z-index: 0;
+  top: 6px;
+  left: 20px;
+  font-family: var(--wv-font-signature);
+  font-style: italic;
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--wv-gold-soft);
+  pointer-events: none;
+}
+
+body.public-mode .web-reference-shell .web-testimonial-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* style.css trae una regla vieja sin scope (@media max-width:720px, línea
@@ -321,8 +351,8 @@ body.public-mode .web-reference-shell .web-testimonial-card > span {
 
 body.public-mode .web-reference-shell .web-testimonial-card p {
   font-family: inherit;
-  font-size: 16px;
-  line-height: 1.55;
+  font-size: 16.5px;
+  line-height: 1.65;
   color: var(--wv-text);
 }
 
@@ -351,6 +381,7 @@ body.public-mode .web-reference-shell .web-course-card:hover {
 }
 
 body.public-mode .web-reference-shell .web-course-media {
+  min-height: 220px;
   border-radius: var(--wv-radius-card) var(--wv-radius-card) 0 0;
   background: var(--wv-bg-soft);
 }
