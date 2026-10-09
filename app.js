@@ -13684,6 +13684,21 @@ function getFridayForOperationalWeekend(anchorDate) {
   return addLocalDaysToDateKey(anchorDate, 5 - day);
 }
 
+function getTuesdayForOperationalCollectionWeek(anchorDate) {
+  const day = getLocalWeekdayIndex(anchorDate);
+  if (day === null) {
+    return "";
+  }
+
+  if (day === 1) {
+    return addLocalDaysToDateKey(anchorDate, 1);
+  }
+  if (day === 0) {
+    return addLocalDaysToDateKey(anchorDate, -5);
+  }
+  return addLocalDaysToDateKey(anchorDate, 2 - day);
+}
+
 function getCurrentWeekdayPaymentWindow(today) {
   const day = getLocalWeekdayIndex(today);
   if (day === null || day === 0 || day > 4) {
@@ -13902,17 +13917,20 @@ function getUpcomingPaymentEntries({
 
 function getUpcomingWeekendPaymentWindows(anchorDate = getCurrentMexicoDateValue()) {
   const today = normalizeLocalDateKey(anchorDate) || getCurrentMexicoDateValue();
-  const firstFriday = getFridayForOperationalWeekend(today);
-  if (!firstFriday) {
+  const firstTuesday = getTuesdayForOperationalCollectionWeek(today);
+  if (!firstTuesday) {
     return [];
   }
 
+  // Ventana de martes a domingo (no solo viernes-domingo): así se alcanzan a ver
+  // con anticipación los pagos que caen en días de clase entre semana (p. ej. jueves),
+  // no solo los del fin de semana estricto.
   return [0, 7].map((offset, index) => {
-    const from = addLocalDaysToDateKey(firstFriday, offset);
+    const from = addLocalDaysToDateKey(firstTuesday, offset);
     return {
       index,
       from,
-      to: addLocalDaysToDateKey(from, 2),
+      to: addLocalDaysToDateKey(from, 5),
     };
   });
 }
