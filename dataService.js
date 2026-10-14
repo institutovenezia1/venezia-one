@@ -1247,6 +1247,22 @@
     return extractAltaMetadata(notes, label);
   }
 
+  // El valor de "Asesora asignada" viene como "Nombre | Rol" (ej. "Monserrat
+  // Hernandez | Asesora"), pero " | " es tambien el separador que usa notes
+  // para delimitar metadatos entre si (ver buildProspectNotes/
+  // stripProspectMetadata). Si se guardara tal cual, el propio " | " del rol
+  // partiria el segmento a la mitad: se perdia el rol al leerlo de vuelta y
+  // la palabra suelta ("Asesora", "CEO", etc.) se colaba como texto libre en
+  // las notas. Por eso se codifica solo ese " | " interno antes de guardarlo
+  // y se revierte al leerlo -- no toca el separador general de metadatos.
+  function encodeProspectAdvisorValue(value) {
+    return String(value || "").split(" | ").join(" :: ");
+  }
+
+  function decodeProspectAdvisorValue(value) {
+    return String(value || "").split(" :: ").join(" | ");
+  }
+
   function stripProspectMetadata(notes) {
     const source = String(notes || "");
     if (!source) {
@@ -1280,7 +1296,7 @@
     }
 
     if (record.asesoraAsignada) {
-      segments.push(`Asesora asignada: ${record.asesoraAsignada}`);
+      segments.push(`Asesora asignada: ${encodeProspectAdvisorValue(record.asesoraAsignada)}`);
     }
 
     if (record.temperatura) {
@@ -1812,7 +1828,7 @@
           informacion: record.info_status || "",
           estado: record.prospect_status || "",
           proximoSeguimiento: extractProspectMetadata(record.notes, "Próximo seguimiento"),
-          asesoraAsignada: extractProspectMetadata(record.notes, "Asesora asignada"),
+          asesoraAsignada: decodeProspectAdvisorValue(extractProspectMetadata(record.notes, "Asesora asignada")),
           temperatura: extractProspectMetadata(record.notes, "Temperatura"),
           fechaInscripcion: extractProspectMetadata(record.notes, "Fecha de inscripción"),
           contacto: "",
