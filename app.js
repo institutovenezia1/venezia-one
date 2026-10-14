@@ -4563,6 +4563,11 @@ async function normalizeLegacyProspects() {
       changed = true;
     }
 
+    if (normalized.asesoraAsignada === "Esmeralda Cuamatzi | Asesora") {
+      normalized.asesoraAsignada = "Monserrat Hernandez | Asesora";
+      changed = true;
+    }
+
     if (!normalized.fechaContacto) {
       normalized.fechaContacto = getProspectDate(normalized) || formatDateForInput(new Date());
       changed = true;
