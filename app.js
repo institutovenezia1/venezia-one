@@ -9939,9 +9939,11 @@ async function deleteStaffRecord(id) {
 // de los 2 este activo. getFilteredProspects() es la que si aplica ese filtro
 // rapido y es la que usa renderTable() para pintar las filas.
 function getBaseFilteredProspects() {
-  const base = prospects.filter(
-    (prospect) => isProspectInSelectedMonth(prospect) && matchesCurrentBranch(prospect.sucursal)
-  );
+  const base = prospects.filter((prospect) => {
+    const isEnrolled =
+      normalizeProspectState(prospect.estado, { preserveOperationalState: false }) === "Inscrita";
+    return (isEnrolled || isProspectInSelectedMonth(prospect)) && matchesCurrentBranch(prospect.sucursal);
+  });
   return base
     .filter((prospect) => {
       const matchesAdvisor = !activeAdvisorFilter || prospect.asesoraAsignada === activeAdvisorFilter;
