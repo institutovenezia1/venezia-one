@@ -1818,7 +1818,12 @@
       "soy: " + safe(student.nombre, "-"),
       "curso: " + safe(student.curso, "-"),
       "horario: " + safe(student.horario, "-"),
-      "plantel: " + safe(student.sucursal, "-")
+      "plantel: " + safe(student.sucursal, "-"),
+      "",
+      "Datos de mi recomendada/o:",
+      "Nombre completo: ",
+      "Dia que asistira: ",
+      "Hora: "
     ].join("\n");
   }
 
@@ -1870,6 +1875,12 @@
       '<span class="mv2-referral-badge">Bono disponible</span>' +
       '<h2>GANA $500 RECOMENDANDO</h2>' +
       '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana $500 de bono o descuento cuando se inscriba.</p>' +
+      '<ol class="mv2-referral-steps">' +
+      '<li>Envía por WhatsApp el nombre completo de tu recomendada/o, y el día y hora en que asistirá.</li>' +
+      '<li>Tu recomendada/o debe ir acompañado por ti, o traer una copia de tu identificación.</li>' +
+      '<li>El bono se gana cuando tu recomendada/o quede dada de alta y haya cubierto en su totalidad su inscripción.</li>' +
+      '<li>Tu bono es un descuento que se aplica en tu siguiente mensualidad, una vez que ya esté ganado.</li>' +
+      '</ol>' +
       '<small>Dirección asignada: ' + escapeHtml(contact.name || "Soporte Venezia") + '</small>' +
       '</div>' +
       '<a class="mv2-referral-button" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Enviar recomendación por WhatsApp</a>' +

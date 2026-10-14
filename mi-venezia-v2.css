@@ -490,6 +490,25 @@ button {
   line-height: 1.45;
 }
 
+.mv2-referral-steps {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.mv2-referral-steps li::marker {
+  color: #fff8dc;
+  font-weight: 900;
+}
+
 .mv2-referral-card small {
   display: block;
   margin-top: 10px;
