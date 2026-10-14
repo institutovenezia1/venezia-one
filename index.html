@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20260906-filtro-moratorio-pagos" />
+    <link rel="stylesheet" href="style.css?v=20261014-crm-menu-unico-ver-mas" />
     <link rel="stylesheet" href="web-venezia.css?v=20261009-tono-editorial" />
   </head>
   <body>
@@ -367,29 +367,6 @@
                 <h3>Gestión de prospectos</h3>
               </div>
 
-              <section class="crm-priority-strip" aria-label="Resumen de prioridad CRM">
-                <article class="crm-priority-card">
-                  <span>Prospectos nuevos</span>
-                  <strong id="crmCountNew">0</strong>
-                </article>
-                <article class="crm-priority-card">
-                  <span>Seguimientos de hoy</span>
-                  <strong id="crmCountToday">0</strong>
-                </article>
-                <article class="crm-priority-card">
-                  <span>Seguimientos atrasados</span>
-                  <strong id="crmCountLate">0</strong>
-                </article>
-                <article class="crm-priority-card">
-                  <span>Citas agendadas</span>
-                  <strong id="crmCountScheduled">0</strong>
-                </article>
-                <article class="crm-priority-card">
-                  <span>Inscritas</span>
-                  <strong id="crmCountEnrolled">0</strong>
-                </article>
-              </section>
-
               <div class="table-toolbar crm-table-toolbar">
                 <input
                   id="searchInput"
@@ -397,43 +374,32 @@
                   placeholder="Buscar por nombre, curso o sucursal"
                   aria-label="Buscar prospecto"
                 />
-                <select id="crmBranchFilter" aria-label="Filtrar por sucursal">
-                  <option value="">Todas las sucursales</option>
-                  <option>Tlaxcala</option>
-                </select>
-                <select id="crmTemperatureFilter" aria-label="Filtrar por temperatura">
-                  <option value="">Todas las temperaturas</option>
-                  <option>Caliente</option>
-                  <option>Tibia</option>
-                  <option>Fría</option>
-                </select>
-                <select id="crmStateFilter" aria-label="Filtrar por estado">
-                  <option value="">Todos los estados</option>
-                  <option>Prospecto nuevo</option>
-                  <option>Seguimiento</option>
-                  <option>Cita agendada</option>
-                  <option>Inscrita</option>
-                </select>
-                <select id="crmFollowupFilter" aria-label="Filtrar por seguimiento">
-                  <option value="">Todos los seguimientos</option>
-                  <option value="late">Atrasados</option>
-                  <option value="today">Hoy</option>
-                  <option value="upcoming">Próximos</option>
-                  <option value="neutral">Sin fecha</option>
-                </select>
-                <select id="crmAccessFilter" aria-label="Filtrar por acceso de interes">
-                  <option value="">Todos los accesos</option>
-                  <option>Platinum</option>
-                  <option>Oro</option>
-                  <option>Plata</option>
-                  <option>Beca Venezia</option>
-                </select>
                 <select id="crmAdvisorFilter" aria-label="Filtrar por asesor asignado">
                   <option value="">Todos los asesores</option>
                   <option>Mari Flores | Coordinadora del IBV</option>
                   <option>Ismael Capir | CEO</option>
                   <option>Monserrat Hernandez | Asesora</option>
                 </select>
+                <button
+                  type="button"
+                  class="crm-quick-filter-btn"
+                  id="crmFilterScheduled"
+                  data-quick-filter="Cita agendada"
+                  aria-pressed="false"
+                >
+                  <span>Citas agendadas</span>
+                  <strong id="crmCountScheduled">0</strong>
+                </button>
+                <button
+                  type="button"
+                  class="crm-quick-filter-btn"
+                  id="crmFilterEnrolled"
+                  data-quick-filter="Inscrita"
+                  aria-pressed="false"
+                >
+                  <span>Inscritas</span>
+                  <strong id="crmCountEnrolled">0</strong>
+                </button>
               </div>
 
               <div class="table-wrapper">
@@ -457,6 +423,10 @@
               <p id="emptyState" class="empty-state">
                 No hay prospectos registrados todavia.
               </p>
+
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="crmProspectsToggleButton" hidden>Ver mas</button>
+              </div>
             </section>
           </section>
         </section>
@@ -3942,6 +3912,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20260902-genero-alumnas-alta"></script>
-    <script src="app.js?v=20261014-crm-whatsapp-prospecto-revertir"></script>
+    <script src="app.js?v=20261014-crm-menu-unico-ver-mas"></script>
   </body>
 </html>

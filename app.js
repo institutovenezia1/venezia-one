@@ -464,20 +464,15 @@ const financeForm = document.getElementById("financeForm");
 const financeClearButton = document.getElementById("financeClearButton");
 const financeSubmitButton = document.getElementById("financeSubmitButton");
 const searchInput = document.getElementById("searchInput");
-const crmBranchFilter = document.getElementById("crmBranchFilter");
-const crmTemperatureFilter = document.getElementById("crmTemperatureFilter");
-const crmStateFilter = document.getElementById("crmStateFilter");
-const crmFollowupFilter = document.getElementById("crmFollowupFilter");
-const crmAccessFilter = document.getElementById("crmAccessFilter");
 const crmAdvisorFilter = document.getElementById("crmAdvisorFilter");
+const crmFilterScheduled = document.getElementById("crmFilterScheduled");
+const crmFilterEnrolled = document.getElementById("crmFilterEnrolled");
+const crmProspectsToggleButton = document.getElementById("crmProspectsToggleButton");
 const monthFilter = document.getElementById("monthFilter");
 const dashboardBranchFilter = document.getElementById("dashboardBranchFilter");
 const dashboardMonthFilter = document.getElementById("dashboardMonthFilter");
 const tableBody = document.getElementById("prospectsTableBody");
 const emptyState = document.getElementById("emptyState");
-const crmCountNew = document.getElementById("crmCountNew");
-const crmCountToday = document.getElementById("crmCountToday");
-const crmCountLate = document.getElementById("crmCountLate");
 const crmCountScheduled = document.getElementById("crmCountScheduled");
 const crmCountEnrolled = document.getElementById("crmCountEnrolled");
 const pendingAltasTableBody = document.getElementById("pendingAltasTableBody");
@@ -970,11 +965,8 @@ let webSettings = dataService.entities.webSettings.getAll(() => ({
   availability: "Consulta disponibilidad vigente",
 }));
 let activeSearch = "";
-let activeBranchFilter = "";
-let activeTemperatureFilter = "";
-let activeStateFilter = "";
-let activeFollowupFilter = "";
-let activeAccessFilter = "";
+let activeCrmQuickFilter = "";
+let crmProspectsTableExpanded = false;
 let activeModule = "crm-prospectos";
 let selectedMonth = getCurrentMonthValue();
 let selectedPaymentsMonth = selectedMonth;
@@ -9941,29 +9933,19 @@ async function deleteStaffRecord(id) {
   }
 }
 
-function getFilteredProspects() {
+// getBaseFilteredProspects() aplica mes/sucursal de sesion, busqueda y asesor,
+// pero NO el filtro rapido de estado (Citas agendadas/Inscritas): asi los 2
+// contadores de los botones siempre reflejan el total real, sin importar cual
+// de los 2 este activo. getFilteredProspects() es la que si aplica ese filtro
+// rapido y es la que usa renderTable() para pintar las filas.
+function getBaseFilteredProspects() {
   const base = prospects.filter(
     (prospect) => isProspectInSelectedMonth(prospect) && matchesCurrentBranch(prospect.sucursal)
   );
   return base
     .filter((prospect) => {
-      const normalizedState = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
-      const normalizedTemperature = normalizeTemperatureValue(prospect.temperatura);
-      const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
-      const matchesBranch = !activeBranchFilter || prospect.sucursal === activeBranchFilter;
-      const matchesTemperature = !activeTemperatureFilter || normalizedTemperature === activeTemperatureFilter;
-      const matchesState = !activeStateFilter || normalizedState === activeStateFilter;
-      const matchesFollowup = !activeFollowupFilter || followup.tone === activeFollowupFilter;
-      const matchesAccess = !activeAccessFilter || prospect.accesoInteres === activeAccessFilter;
       const matchesAdvisor = !activeAdvisorFilter || prospect.asesoraAsignada === activeAdvisorFilter;
-      if (
-        !matchesBranch ||
-        !matchesTemperature ||
-        !matchesState ||
-        !matchesFollowup ||
-        !matchesAccess ||
-        !matchesAdvisor
-      ) {
+      if (!matchesAdvisor) {
         return false;
       }
 
@@ -9971,6 +9953,8 @@ function getFilteredProspects() {
         return true;
       }
 
+      const normalizedState = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
+      const normalizedTemperature = normalizeTemperatureValue(prospect.temperatura);
       const query = activeSearch.toLowerCase();
       return [
         prospect.nombre,
@@ -10005,34 +9989,49 @@ function getFilteredProspects() {
     });
 }
 
-function renderCrmPriorityStats(filteredProspects) {
-  const stats = filteredProspects.reduce(
+function getFilteredProspects() {
+  const base = getBaseFilteredProspects();
+  if (!activeCrmQuickFilter) {
+    return base;
+  }
+  return base.filter(
+    (prospect) =>
+      normalizeProspectState(prospect.estado, { preserveOperationalState: false }) === activeCrmQuickFilter
+  );
+}
+
+function renderCrmPriorityStats(baseProspects) {
+  const stats = baseProspects.reduce(
     (accumulator, prospect) => {
       const state = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
-      const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
-
-      if (state === "Prospecto nuevo") accumulator.newCount += 1;
-      if (followup.tone === "today") accumulator.todayCount += 1;
-      if (followup.tone === "late") accumulator.lateCount += 1;
       if (state === "Cita agendada") accumulator.scheduledCount += 1;
       if (state === "Inscrita") accumulator.enrolledCount += 1;
       return accumulator;
     },
-    { newCount: 0, todayCount: 0, lateCount: 0, scheduledCount: 0, enrolledCount: 0 }
+    { scheduledCount: 0, enrolledCount: 0 }
   );
 
-  crmCountNew.textContent = stats.newCount;
-  crmCountToday.textContent = stats.todayCount;
-  crmCountLate.textContent = stats.lateCount;
   crmCountScheduled.textContent = stats.scheduledCount;
   crmCountEnrolled.textContent = stats.enrolledCount;
+
+  if (crmFilterScheduled) {
+    crmFilterScheduled.setAttribute("aria-pressed", String(activeCrmQuickFilter === "Cita agendada"));
+  }
+  if (crmFilterEnrolled) {
+    crmFilterEnrolled.setAttribute("aria-pressed", String(activeCrmQuickFilter === "Inscrita"));
+  }
 }
 
 function renderTable() {
-  const filteredProspects = getFilteredProspects();
-  renderCrmPriorityStats(filteredProspects);
+  renderCrmPriorityStats(getBaseFilteredProspects());
 
-  tableBody.innerHTML = filteredProspects
+  const filteredProspects = getFilteredProspects();
+  // Solo se muestran las primeras 3 por defecto; "Ver mas"/"Ver menos" (abajo)
+  // alterna crmProspectsTableExpanded, igual que ya hacia Asistencias con
+  // attendanceTableExpanded (ver renderAttendanceTable).
+  const visibleProspects = crmProspectsTableExpanded ? filteredProspects : filteredProspects.slice(0, 3);
+
+  tableBody.innerHTML = visibleProspects
     .map((prospect) => {
       const temperature = normalizeTemperatureValue(prospect.temperatura);
       const temperatureMarkup = temperature
@@ -10045,6 +10044,20 @@ function renderTable() {
       const whatsappTitle = whatsappUrl
         ? "Abrir conversación en WhatsApp"
         : "La prospecta no tiene un teléfono válido";
+      // Una prospecto "Inscrita" ya quedo marcada por la asesora y pasa a la
+      // cola de Altas (ver getPendingAltas()): en el CRM ya no tiene mas
+      // funcion, asi que solo se deja "Ver historial".
+      const isEnrolled = stateLabel === "Inscrita";
+      const actionsMarkup = isEnrolled
+        ? `<button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>`
+        : `
+              <button class="table-action action-whatsapp" type="button" data-action="whatsapp" data-id="${prospect.id}" title="${escapeHtml(whatsappTitle)}" ${whatsappDisabled}>WhatsApp</button>
+              <button class="table-action action-schedule" type="button" data-action="schedule" data-id="${prospect.id}">Agendar cita</button>
+              <button class="table-action action-enrolled" type="button" data-action="enroll" data-id="${prospect.id}">Marcar como inscrita</button>
+              <button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>
+              <button class="table-action action-edit" type="button" data-action="edit" data-id="${prospect.id}">Editar</button>
+              <button class="table-action action-delete" type="button" data-action="delete" data-id="${prospect.id}">Eliminar</button>
+            `;
 
       return `
         <tr>
@@ -10078,13 +10091,7 @@ function renderTable() {
           </td>
           <td>
             <div class="actions-cell actions-cell-prospect">
-              <button class="table-action action-whatsapp" type="button" data-action="whatsapp" data-id="${prospect.id}" title="${escapeHtml(whatsappTitle)}" ${whatsappDisabled}>WhatsApp</button>
-              <button class="table-action action-schedule" type="button" data-action="schedule" data-id="${prospect.id}">Agendar cita</button>
-              <button class="table-action action-enrolled" type="button" data-action="enroll" data-id="${prospect.id}">Marcar como inscrita</button>
-              <button class="table-action action-alta" type="button" data-action="alta" data-id="${prospect.id}">Mandar a alta</button>
-              <button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>
-              <button class="table-action action-edit" type="button" data-action="edit" data-id="${prospect.id}">Editar</button>
-              <button class="table-action action-delete" type="button" data-action="delete" data-id="${prospect.id}">Eliminar</button>
+              ${actionsMarkup}
             </div>
           </td>
         </tr>
@@ -10093,6 +10100,10 @@ function renderTable() {
     .join("");
 
   emptyState.hidden = filteredProspects.length > 0;
+  if (crmProspectsToggleButton) {
+    crmProspectsToggleButton.hidden = filteredProspects.length <= 3;
+    crmProspectsToggleButton.textContent = crmProspectsTableExpanded ? "Ver menos" : "Ver mas";
+  }
   updateStats();
 }
 
@@ -19062,6 +19073,10 @@ function setActiveModule(module) {
         : "web-venezia";
 
   activeModule = allowedModule;
+  if (allowedModule === "crm-prospectos" && previousModule !== "crm-prospectos") {
+    crmProspectsTableExpanded = false;
+    renderTable();
+  }
   if (allowedModule === "asistencias" && previousModule !== "asistencias") {
     attendanceTableExpanded = false;
     renderAttendanceTable();
@@ -20045,37 +20060,35 @@ webScrollButtons.forEach((button) => {
 
 searchInput.addEventListener("input", (event) => {
   activeSearch = event.target.value.trim();
-  renderTable();
-});
-
-crmBranchFilter.addEventListener("change", (event) => {
-  activeBranchFilter = event.target.value;
-  renderTable();
-});
-
-crmTemperatureFilter.addEventListener("change", (event) => {
-  activeTemperatureFilter = event.target.value;
-  renderTable();
-});
-
-crmStateFilter.addEventListener("change", (event) => {
-  activeStateFilter = event.target.value;
-  renderTable();
-});
-
-crmFollowupFilter.addEventListener("change", (event) => {
-  activeFollowupFilter = event.target.value;
-  renderTable();
-});
-
-crmAccessFilter.addEventListener("change", (event) => {
-  activeAccessFilter = event.target.value;
+  crmProspectsTableExpanded = false;
   renderTable();
 });
 
 if (crmAdvisorFilter) {
   crmAdvisorFilter.addEventListener("change", (event) => {
     activeAdvisorFilter = event.target.value;
+    crmProspectsTableExpanded = false;
+    renderTable();
+  });
+}
+
+function toggleCrmQuickFilter(value) {
+  activeCrmQuickFilter = activeCrmQuickFilter === value ? "" : value;
+  crmProspectsTableExpanded = false;
+  renderTable();
+}
+
+if (crmFilterScheduled) {
+  crmFilterScheduled.addEventListener("click", () => toggleCrmQuickFilter("Cita agendada"));
+}
+
+if (crmFilterEnrolled) {
+  crmFilterEnrolled.addEventListener("click", () => toggleCrmQuickFilter("Inscrita"));
+}
+
+if (crmProspectsToggleButton) {
+  crmProspectsToggleButton.addEventListener("click", () => {
+    crmProspectsTableExpanded = !crmProspectsTableExpanded;
     renderTable();
   });
 }

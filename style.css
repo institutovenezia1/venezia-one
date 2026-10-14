@@ -2464,7 +2464,7 @@ td select {
 }
 
 #crmSection .crm-table-toolbar {
-  grid-template-columns: minmax(220px, 1.6fr) repeat(6, minmax(140px, 1fr));
+  grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(160px, 1fr));
   padding: 0.9rem;
   border: 1px solid #d8d0c5;
   border-radius: 18px;
@@ -2602,6 +2602,50 @@ td select {
   color: #1a1a1a;
   font-size: 1.5rem;
   line-height: 1;
+}
+
+.crm-quick-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0.72rem 0.82rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.crm-quick-filter-btn:hover {
+  transform: translateY(-1px);
+}
+
+.crm-quick-filter-btn strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  padding: 0.05em 0.5em;
+  border-radius: 999px;
+  background: var(--crm-greige-light, #e7e0d7);
+  font-size: 0.95em;
+}
+
+.crm-quick-filter-btn[aria-pressed="true"] {
+  border-color: rgba(201, 162, 39, 0.65);
+  background: linear-gradient(180deg, #fff7e6 0%, #f3e4bd 100%);
+  box-shadow: 0 10px 22px rgba(201, 162, 39, 0.22);
+}
+
+.crm-quick-filter-btn[aria-pressed="true"] strong {
+  background: var(--crm-gold, #c9a14a);
+  color: #ffffff;
 }
 
 .crm-state-pill {
