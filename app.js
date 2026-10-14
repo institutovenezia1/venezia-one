@@ -9933,16 +9933,37 @@ async function deleteStaffRecord(id) {
   }
 }
 
+// Fecha que cuenta para ubicar a una prospecto Inscrita en el mes del filtro:
+// la fecha en que se le dio de alta (fechaInscripcion), NO la fecha en que se
+// capturo como prospecto (fechaContacto), que puede ser de meses antes. Se
+// llena en 2 momentos (ver updateProspectQuickState "enroll" y
+// finalizeAltaSubmission): cuando la asesora la marca "Inscrita" a mano, o
+// cuando Direccion completa el alta formal en el modulo de Altas. Para
+// registros viejos que quedaron "Inscrita"/"Alta completada" antes de que
+// este campo existiera, cae de regreso a la fecha de contacto para no
+// perderlos de la vista.
+function getProspectEnrollmentDate(prospect) {
+  return prospect.fechaInscripcion || getProspectDate(prospect);
+}
+
 // getBaseFilteredProspects() aplica mes/sucursal de sesion, busqueda y asesor,
 // pero NO el filtro rapido de estado (Citas agendadas/Inscritas): asi los 2
 // contadores de los botones siempre reflejan el total real, sin importar cual
 // de los 2 este activo. getFilteredProspects() es la que si aplica ese filtro
 // rapido y es la que usa renderTable() para pintar las filas.
+//
+// A peticion de Ismael (22/oct/2026): en "Inscritas" solo deben contar las
+// altas DEL MES seleccionado -- por eso una prospecto "Inscrita" (dato crudo
+// "Inscrita" o, ya con el alta formal hecha en Direccion, "Alta completada"
+// -- ver normalizeProspectState con preserveOperationalState:false) se ubica
+// en el mes por su fecha de inscripcion/alta (getProspectEnrollmentDate), no
+// por su fecha de contacto original como el resto de los prospectos.
 function getBaseFilteredProspects() {
   const base = prospects.filter((prospect) => {
     const isEnrolled =
       normalizeProspectState(prospect.estado, { preserveOperationalState: false }) === "Inscrita";
-    return (isEnrolled || isProspectInSelectedMonth(prospect)) && matchesCurrentBranch(prospect.sucursal);
+    const relevantDate = isEnrolled ? getProspectEnrollmentDate(prospect) : getProspectDate(prospect);
+    return isDateInSelectedMonth(relevantDate) && matchesCurrentBranch(prospect.sucursal);
   });
   return base
     .filter((prospect) => {
@@ -19229,7 +19250,13 @@ async function finalizeAltaSubmission(altaData) {
   );
 
   prospects = prospects.map((prospect) =>
-    prospect.id === altaData.prospectId ? { ...prospect, estado: "Alta completada" } : prospect
+    prospect.id === altaData.prospectId
+      ? {
+          ...prospect,
+          estado: "Alta completada",
+          fechaInscripcion: altaData.fechaInscripcion || prospect.fechaInscripcion || formatDateForInput(new Date()),
+        }
+      : prospect
   );
 
   const updatedProspect = prospects.find((prospect) => prospect.id === altaData.prospectId);
@@ -20307,7 +20334,11 @@ tableBody.addEventListener("click", async (event) => {
     document.getElementById("proximoSeguimiento")?.focus();
   }
   if (action === "enroll") {
-    await updateProspectQuickState(id, { estado: "Inscrita" }, "Prospecto marcado como inscrita.");
+    await updateProspectQuickState(
+      id,
+      { estado: "Inscrita", fechaInscripcion: formatDateForInput(new Date()) },
+      "Prospecto marcado como inscrita."
+    );
   }
   if (action === "alta") loadProspectIntoAlta(id);
   if (action === "history") viewProspectHistory(id);
