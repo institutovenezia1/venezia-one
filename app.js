@@ -4439,32 +4439,9 @@ function getProspectFollowupMeta(dateValue) {
   };
 }
 
-function getProspectAdvisorStaffRecord(prospect) {
-  const advisorName = normalizeAdvisorName(prospect.asesoraAsignada);
-  if (!advisorName) {
-    return null;
-  }
-
-  const normalizedTarget = stripDiacritics(advisorName).trim().toLowerCase();
-  return (
-    staffRecords.find(
-      (record) => stripDiacritics(String(record.nombre || "")).trim().toLowerCase() === normalizedTarget
-    ) || null
-  );
-}
-
 function getProspectWhatsAppUrl(prospect) {
-  // El botón de WhatsApp en Acciones contacta a la asesora asignada al
-  // prospecto (su teléfono registrado en Personal), no al prospecto mismo.
-  const advisorStaff = getProspectAdvisorStaffRecord(prospect);
-  const phone = normalizePhone(advisorStaff ? advisorStaff.telefono : "");
-  if (!phone) {
-    return "";
-  }
-
-  const advisorFirstName = normalizeAdvisorName(prospect.asesoraAsignada).split(" ")[0] || "";
-  const message = `Hola${advisorFirstName ? " " + advisorFirstName : ""}, te escribo para dar seguimiento a la prospecto ${prospect.nombre || "(sin nombre)"} que tienes asignada en el CRM.`;
-  return getWhatsAppUrlByPhone(phone, message);
+  const phone = normalizePhone(prospect.telefono);
+  return getWhatsAppUrlByPhone(phone);
 }
 
 function normalizeWhatsAppPhoneNumber(phone) {
@@ -4560,11 +4537,6 @@ async function normalizeLegacyProspects() {
 
     if (normalized.asesoraAsignada === "Mari Flores | Coordinadora de maestras") {
       normalized.asesoraAsignada = "Mari Flores | Coordinadora del IBV";
-      changed = true;
-    }
-
-    if (normalized.asesoraAsignada === "Esmeralda Cuamatzi | Asesora") {
-      normalized.asesoraAsignada = "Monserrat Hernandez | Asesora";
       changed = true;
     }
 
@@ -10071,8 +10043,8 @@ function renderTable() {
       const whatsappUrl = getProspectWhatsAppUrl(prospect);
       const whatsappDisabled = whatsappUrl ? "" : "disabled";
       const whatsappTitle = whatsappUrl
-        ? "Escribir a la asesora asignada por WhatsApp"
-        : "La asesora asignada no tiene un teléfono registrado en Personal";
+        ? "Abrir conversación en WhatsApp"
+        : "La prospecta no tiene un teléfono válido";
 
       return `
         <tr>
