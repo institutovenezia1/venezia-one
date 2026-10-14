@@ -1260,7 +1260,8 @@
           segment &&
           !segment.startsWith("Próximo seguimiento: ") &&
           !segment.startsWith("Asesora asignada: ") &&
-          !segment.startsWith("Temperatura: ")
+          !segment.startsWith("Temperatura: ") &&
+          !segment.startsWith("Fecha de inscripción: ")
       )
       .join(" | ")
       .trim();
@@ -1284,6 +1285,15 @@
 
     if (record.temperatura) {
       segments.push(`Temperatura: ${record.temperatura}`);
+    }
+
+    // La fecha real de alta/inscripcion no tiene columna propia en la tabla
+    // "prospects" de Supabase -- se guarda como metadato en notes, igual que
+    // proximoSeguimiento/asesoraAsignada/temperatura, para que sobreviva el
+    // viaje toDb -> Supabase -> fromDb (antes se perdia porque fromDb no la
+    // reconstruia desde ningun lado).
+    if (record.fechaInscripcion) {
+      segments.push(`Fecha de inscripción: ${record.fechaInscripcion}`);
     }
 
     return segments.join(" | ");
@@ -1804,6 +1814,7 @@
           proximoSeguimiento: extractProspectMetadata(record.notes, "Próximo seguimiento"),
           asesoraAsignada: extractProspectMetadata(record.notes, "Asesora asignada"),
           temperatura: extractProspectMetadata(record.notes, "Temperatura"),
+          fechaInscripcion: extractProspectMetadata(record.notes, "Fecha de inscripción"),
           contacto: "",
           notas: stripProspectMetadata(record.notes || ""),
           accesoInteres: record.access_interest || "",
