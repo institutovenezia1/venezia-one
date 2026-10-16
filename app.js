@@ -13941,7 +13941,53 @@ function formatUpcomingWeekendRange(windowRange) {
     : `Del ${fromWeekday} ${from.getDate()} de ${fromMonth} al ${toWeekday} ${to.getDate()} de ${toMonth}`;
 }
 
-function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCanonicalStudentsForPayments(getActiveStudents())) {
+function getPendingPaymentConceptsUpTo(student, paymentRecord, maxDate, { excludeUpToDate = null } = {}) {
+  // A diferencia de getNextPendingMonthlyPayment (que solo regresa el PRIMER
+  // concepto pendiente), esta función regresa TODOS los conceptos pendientes
+  // cuya fecha de referencia ya llegó (incluyendo atrasados), para que el
+  // panel de cobro los muestre aunque la alumna ya esté en mora. excludeUpToDate
+  // sirve para no duplicar, en la tabla del "siguiente" fin de semana, a
+  // alumnas que ya aparecen en la tabla del fin de semana más próximo.
+  const sessions = getStudentAttendanceReferenceSessions(student);
+  const paymentConceptDetails = getPaymentConceptDetails(paymentRecord);
+  const conceptDetailsByKey = getPaymentConceptDetailsByKey(paymentConceptDetails);
+
+  return STUDENT_PAYMENT_REFERENCE_RULES
+    .filter((rule) => isPaymentReferenceRuleApplicableForStudent(rule, student))
+    .map((rule) => {
+      const status = getPaymentStatusForCourseField(rule.field, student, paymentRecord);
+      if (isMonthlyPaymentCovered(status)) {
+        return null;
+      }
+
+      const date = getStudentPaymentReferenceDateByField(rule.field, student, sessions);
+      if (!date || date > maxDate) {
+        return null;
+      }
+      if (excludeUpToDate && date <= excludeUpToDate) {
+        return null;
+      }
+
+      const conceptDetail = conceptDetailsByKey.get(rule.field) || null;
+      const expectedAmount = parsePaymentAmount(getUpcomingPaymentAmount(rule.field, student, paymentRecord));
+      const paidAmount = status === "Parcial" ? parsePaymentAmount(__veneziaGet(conceptDetail, "amount")) : 0;
+      const remainingAmount = Math.max(expectedAmount - paidAmount, 0);
+
+      return {
+        field: rule.field,
+        label: rule.label,
+        date,
+        status,
+        expectedAmount,
+        paidAmount,
+        remainingAmount,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCanonicalStudentsForPayments(getActiveStudents()), { excludeUpToDate = null } = {}) {
   if (!windowRange) {
     return [];
   }
@@ -13951,26 +13997,26 @@ function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCano
     .map((student) => {
       const paymentRecord = getPersistentPaymentRecord(student.id);
       const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, windowRange.from);
-      const nextPayment = getNextPendingMonthlyPayment(student, paymentRecord);
-      const paymentDate = normalizeLocalDateKey(__veneziaGet(nextPayment, "date"));
 
-      if (
-        !lifecycle.activeForCollection ||
-        lifecycle.archivedNoContinuation ||
-        lifecycle.lastMonthlyPaid ||
-        !nextPayment ||
-        !paymentDate ||
-        paymentDate < windowRange.from ||
-        paymentDate > windowRange.to
-      ) {
+      if (!lifecycle.activeForCollection || lifecycle.archivedNoContinuation || lifecycle.lastMonthlyPaid) {
         return null;
       }
 
+      const concepts = getPendingPaymentConceptsUpTo(student, paymentRecord, windowRange.to, { excludeUpToDate });
+      if (!concepts.length) {
+        return null;
+      }
+
+      const totalExpectedAmount = concepts.reduce((sum, concept) => sum + concept.expectedAmount, 0);
+      const totalPaidAmount = concepts.reduce((sum, concept) => sum + concept.paidAmount, 0);
+
       return {
         student,
-        nextPayment,
-        date: paymentDate,
-        amount: nextPayment.amount,
+        date: concepts[0].date,
+        concepts,
+        amount: totalExpectedAmount,
+        paidAmount: totalPaidAmount,
+        lateFeeSummary: getStudentPaymentLateFeeSummary(student),
       };
     })
     .filter(Boolean)
@@ -14601,12 +14647,44 @@ async function changeStudentAttendanceStatusFromPayments(studentId) {
   });
 }
 
+function renderPaymentsUpcomingEntryRow(entry) {
+  const student = entry.student;
+  const conceptLabels = entry.concepts.map((concept) => concept.label).join(" y ");
+
+  const amountMainText = formatCurrency(entry.amount);
+  const amountDetailText = entry.paidAmount > 0
+    ? `Abonado: ${formatCurrency(entry.paidAmount)} · Resta: ${formatCurrency(Math.max(entry.amount - entry.paidAmount, 0))}`
+    : "";
+
+  const lateFeeSummary = entry.lateFeeSummary;
+  const lateFeeText = lateFeeSummary && lateFeeSummary.hasLateFee ? formatCurrency(lateFeeSummary.totalAmount) : "-";
+  const lateFeeTitle = lateFeeSummary && lateFeeSummary.hasLateFee ? formatLateFeeSummaryTitle(lateFeeSummary) : "";
+
+  return `
+    <tr>
+      <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
+      <td>${escapeHtml(student.curso || "-")}</td>
+      <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
+      <td>${escapeHtml(conceptLabels || "-")}</td>
+      <td>
+        <div>${escapeHtml(amountMainText)}</div>
+        ${amountDetailText ? `<small class="payments-amount-detail">${escapeHtml(amountDetailText)}</small>` : ""}
+      </td>
+      <td class="payments-late-fee-cell" ${lateFeeTitle ? `title="${escapeHtml(lateFeeTitle)}"` : ""}>${escapeHtml(lateFeeText)}</td>
+    </tr>
+  `;
+}
+
 function renderPaymentsLifecyclePanels() {
   const weekendWindows = getUpcomingWeekendPaymentWindows();
   const nextWeekendWindow = weekendWindows[0] || null;
   const followingWeekendWindow = weekendWindows[1] || null;
   const nextWeekendEntries = getUpcomingPaymentsForWeekendWindow(nextWeekendWindow);
-  const followingWeekendEntries = getUpcomingPaymentsForWeekendWindow(followingWeekendWindow);
+  // excludeUpToDate evita duplicar en "siguiente fin de semana" a quienes ya
+  // aparecen en "próximo fin de semana" (p. ej. una alumna atrasada desde antes).
+  const followingWeekendEntries = getUpcomingPaymentsForWeekendWindow(followingWeekendWindow, undefined, {
+    excludeUpToDate: __veneziaGet(nextWeekendWindow, "to") || null,
+  });
   const followupStudents = getStudentsPendingContinuityFollowup()
     .sort((left, right) => String(left.nombre || "").localeCompare(String(right.nombre || ""), "es-MX"));
   const archivedStudents = getArchivedNoContinuationStudents()
@@ -14621,20 +14699,7 @@ function renderPaymentsLifecyclePanels() {
   }
 
   if (paymentsUpcomingTableBody) {
-    paymentsUpcomingTableBody.innerHTML = nextWeekendEntries
-      .map((entry) => {
-        const student = entry.student;
-        return `
-          <tr>
-            <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
-            <td>${escapeHtml(student.curso || "-")}</td>
-            <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
-            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
-            <td>${escapeHtml(entry.amount ? formatCurrency(parsePaymentAmount(entry.amount)) : "-")}</td>
-          </tr>
-        `;
-      })
-      .join("");
+    paymentsUpcomingTableBody.innerHTML = nextWeekendEntries.map(renderPaymentsUpcomingEntryRow).join("");
   }
 
   if (paymentsUpcomingEmptyState) {
@@ -14646,20 +14711,7 @@ function renderPaymentsLifecyclePanels() {
   }
 
   if (paymentsFollowingWeekendTableBody) {
-    paymentsFollowingWeekendTableBody.innerHTML = followingWeekendEntries
-      .map((entry) => {
-        const student = entry.student;
-        return `
-          <tr>
-            <td class="payments-student-name-cell"><strong>${escapeHtml(student.nombre || "-")}</strong></td>
-            <td>${escapeHtml(student.curso || "-")}</td>
-            <td class="payments-date-cell">${escapeHtml(formatDisplayDate(entry.date) || entry.date || "-")}</td>
-            <td>${escapeHtml(entry.nextPayment.label || "-")}</td>
-            <td>${escapeHtml(entry.amount ? formatCurrency(parsePaymentAmount(entry.amount)) : "-")}</td>
-          </tr>
-        `;
-      })
-      .join("");
+    paymentsFollowingWeekendTableBody.innerHTML = followingWeekendEntries.map(renderPaymentsUpcomingEntryRow).join("");
   }
 
   if (paymentsFollowingWeekendEmptyState) {
