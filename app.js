@@ -14009,10 +14009,14 @@ function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCano
 
       const totalExpectedAmount = concepts.reduce((sum, concept) => sum + concept.expectedAmount, 0);
       const totalPaidAmount = concepts.reduce((sum, concept) => sum + concept.paidAmount, 0);
+      // "Fecha esperada" muestra la fecha del ÚLTIMO concepto pendiente (el más
+      // reciente, p. ej. M3), no la del más atrasado (p. ej. C1) — así se ve cuándo
+      // le toca pagar "hoy", aunque además arrastre conceptos de meses anteriores.
+      const latestConceptDate = concepts[concepts.length - 1].date;
 
       return {
         student,
-        date: concepts[0].date,
+        date: latestConceptDate,
         concepts,
         amount: totalExpectedAmount,
         paidAmount: totalPaidAmount,
