@@ -10130,9 +10130,33 @@ function renderTable() {
   updateStats();
 }
 
+function prospectAlreadyHasAlta(prospect) {
+  const prospectPhone = normalizePhone(prospect.telefono);
+  return students.some((student) => {
+    if (isStudentDeleted(student)) {
+      return false;
+    }
+    if (student.prospectId === prospect.id) {
+      return true;
+    }
+    // Altas hechas manualmente (sin pasar por el botón "Preparar alta") no
+    // quedan ligadas por prospectId, así que también se comparan por teléfono:
+    // es como ya se relacionan prospecto/alumna en otras partes del sistema
+    // (ver getAdvisorNameForProspect).
+    return (
+      matchesCurrentBranch(student.sucursal) &&
+      Boolean(prospectPhone) &&
+      normalizePhone(student.telefono) === prospectPhone
+    );
+  });
+}
+
 function getPendingAltas() {
   return prospects.filter(
-    (prospect) => prospect.estado === "Inscrita" && matchesCurrentBranch(prospect.sucursal)
+    (prospect) =>
+      prospect.estado === "Inscrita" &&
+      matchesCurrentBranch(prospect.sucursal) &&
+      !prospectAlreadyHasAlta(prospect)
   );
 }
 
