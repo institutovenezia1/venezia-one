@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="mi-venezia-v2.css?v=20261014-bono-recomendacion-proceso" />
+    <link rel="stylesheet" href="mi-venezia-v2.css?v=20261024-selector-de-curso" />
   </head>
   <body>
     <div class="mv2-app" id="mv2App">
@@ -43,6 +43,26 @@
 
           <div class="mv2-error-box" id="runtimeErrorBox" role="alert" hidden></div>
         </form>
+      </section>
+
+      <section class="mv2-login-view" id="courseSelectView" hidden aria-label="Selecciona tu curso">
+        <div class="mv2-login-brand">
+          <img src="/images/logo-principal-sinfondo.png" alt="Instituto Venezia" class="mv2-logo" />
+          <p>Llevas más de un curso</p>
+          <h1>Elige tu curso</h1>
+          <span>Selecciona el curso que quieres consultar en este momento.</span>
+        </div>
+
+        <div class="mv2-login-card">
+          <div class="mv2-card-heading">
+            <p>Acceso alumnas/os</p>
+            <h2>¿A cuál portal quieres entrar?</h2>
+          </div>
+
+          <div class="mv2-course-select-list" id="courseSelectList"></div>
+
+          <button class="mv2-ghost-btn" id="courseSelectBackButton" type="button">Usar otro usuario</button>
+        </div>
       </section>
 
       <section class="mv2-dashboard-view" id="dashboardView" hidden aria-label="Dashboard Mi Venezia V2">
@@ -99,6 +119,6 @@
       </div>
     </noscript>
 
-    <script src="mi-venezia-v2.js?v=20261014-bono-recomendacion-proceso"></script>
+    <script src="mi-venezia-v2.js?v=20261024-selector-de-curso"></script>
   </body>
 </html>

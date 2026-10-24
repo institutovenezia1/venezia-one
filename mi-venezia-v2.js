@@ -78,6 +78,7 @@
     loginBusy: false,
     lastLoginAt: 0,
     currentStudent: null,
+    courseSelectCandidates: null,
     details: null,
     debugInfo: {
       userAgent: "",
@@ -843,7 +844,12 @@
     updateDebug();
   }
 
-  function findStudentForLogin(identifier, password) {
+  // Regresa TODOS los expedientes que hacen match con el mismo usuario/contraseña,
+  // ordenados por prioridad (ver compareStudentLoginCandidates) — no solo el mejor.
+  // Esto es lo que permite detectar cuando una alumna lleva más de un curso a la vez
+  // (mismas credenciales en dos expedientes) y ofrecerle un selector en vez de
+  // abrirle en automático solo uno y dejar el otro invisible.
+  function findStudentLoginCandidates(identifier, password) {
     var normalizedIdentifier = normalizeIdentifier(identifier);
     var normalizedPassword = normalizePassword(password);
     var index;
@@ -865,7 +871,7 @@
 
     if (!normalizedIdentifier || !normalizedPassword) {
       updateDebug();
-      return null;
+      return [];
     }
 
     for (index = 0; index < state.students.length; index += 1) {
@@ -887,12 +893,15 @@
       student = candidates[0];
       state.debugInfo.matchFound = true;
       state.debugInfo.matchedStudent = isStudentDeleted(student) ? "Acceso no disponible" : (student.nombre || "Sin nombre") + " / " + (student.id || "sin id");
-      updateDebug();
-      return student;
     }
 
     updateDebug();
-    return null;
+    return candidates;
+  }
+
+  function findStudentForLogin(identifier, password) {
+    var candidates = findStudentLoginCandidates(identifier, password);
+    return candidates.length ? candidates[0] : null;
   }
 
   function paymentFromRow(row) {
@@ -2779,6 +2788,9 @@
   function openDashboard(student) {
     state.currentStudent = student;
     byId("loginView").hidden = true;
+    if (byId("courseSelectView")) {
+      byId("courseSelectView").hidden = true;
+    }
     byId("dashboardView").hidden = false;
     setFeedback("");
     renderDashboard(student, null);
@@ -2786,6 +2798,66 @@
       state.details = details;
       renderDashboard(student, details);
     });
+  }
+
+  // Cuando el mismo usuario/contraseña hace match con más de un expediente activo
+  // (una alumna llevando dos cursos a la vez, ej. Uñas y Barbería), se le muestra
+  // este selector en vez de abrirle un curso al azar/por prioridad y dejar el otro
+  // invisible. Para cambiar de curso, cierra sesión y vuelve a entrar.
+  function courseSelectOptionHtml(student, index) {
+    var statusInfo = getStudentStatusInfo(student);
+    var details = [];
+    if (student.horario) {
+      details.push(safe(student.horario, ""));
+    }
+    if (student.diaClases) {
+      details.push(safe(student.diaClases, ""));
+    }
+    return (
+      '<button type="button" class="mv2-course-option-btn" data-course-index="' + index + '">' +
+      '<span class="mv2-course-option-name">' + escapeHtml(safe(student.curso, "Curso")) + '</span>' +
+      (details.length ? '<span class="mv2-course-option-meta">' + escapeHtml(details.join(" · ")) + '</span>' : "") +
+      '<span class="mv2-status-badge mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.badge) + '</span>' +
+      '</button>'
+    );
+  }
+
+  function showCourseSelect(candidates) {
+    var list = byId("courseSelectList");
+    var view = byId("courseSelectView");
+    var index;
+    var html = "";
+    state.courseSelectCandidates = candidates;
+    if (!list || !view) {
+      // Sin la vista en el HTML (ej. versión vieja cacheada), no bloqueamos el
+      // acceso: entra con el primer expediente, igual que el comportamiento previo.
+      saveSession(candidates[0]);
+      openDashboard(candidates[0]);
+      return;
+    }
+    for (index = 0; index < candidates.length; index += 1) {
+      html += courseSelectOptionHtml(candidates[index], index);
+    }
+    list.innerHTML = html;
+    byId("loginView").hidden = true;
+    view.hidden = false;
+    setFeedback("");
+  }
+
+  function handleCourseSelectClick(event) {
+    var button = event.target && event.target.closest ? event.target.closest("[data-course-index]") : null;
+    var candidateIndex;
+    var student;
+    if (!button) {
+      return;
+    }
+    candidateIndex = parseInt(button.getAttribute("data-course-index"), 10);
+    student = state.courseSelectCandidates && state.courseSelectCandidates[candidateIndex];
+    if (!student) {
+      return;
+    }
+    saveSession(student);
+    openDashboard(student);
   }
 
   function handleLogin(event) {
@@ -2810,25 +2882,37 @@
     setFeedback("Validando acceso...");
 
     loadStudents(function (error) {
-      var student;
+      var candidates;
+      var selectable;
+      var index;
       if (error && !state.students.length) {
         setLoginBusy(false);
         showRuntimeError("No pudimos cargar la fuente de datos. Intenta de nuevo en unos segundos.", error);
         return;
       }
-      student = findStudentForLogin(loginUser, password);
-      if (!student) {
+      candidates = findStudentLoginCandidates(loginUser, password);
+      if (!candidates.length) {
         setLoginBusy(false);
         setFeedback("Usuario o contraseña incorrectos", "error");
         return;
       }
-      if (isStudentDeleted(student)) {
+      selectable = [];
+      for (index = 0; index < candidates.length; index += 1) {
+        if (!isStudentDeleted(candidates[index])) {
+          selectable.push(candidates[index]);
+        }
+      }
+      if (!selectable.length) {
         showUnavailableAccessMessage();
         return;
       }
-      saveSession(student);
       setLoginBusy(false);
-      openDashboard(student);
+      if (selectable.length > 1) {
+        showCourseSelect(selectable);
+        return;
+      }
+      saveSession(selectable[0]);
+      openDashboard(selectable[0]);
     });
     return false;
   }
@@ -2852,8 +2936,22 @@
         clearSession();
         state.currentStudent = null;
         byId("dashboardView").hidden = true;
+        if (byId("courseSelectView")) {
+          byId("courseSelectView").hidden = true;
+        }
         byId("loginView").hidden = false;
         setFeedback("Sesión cerrada.");
+      };
+    }
+    if (byId("courseSelectList")) {
+      byId("courseSelectList").addEventListener("click", handleCourseSelectClick);
+    }
+    if (byId("courseSelectBackButton")) {
+      byId("courseSelectBackButton").onclick = function () {
+        state.courseSelectCandidates = null;
+        byId("courseSelectView").hidden = true;
+        byId("loginView").hidden = false;
+        setFeedback("");
       };
     }
     if (tabs) {

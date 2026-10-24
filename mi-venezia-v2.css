@@ -363,6 +363,42 @@ button {
   color: #44403c;
 }
 
+.mv2-course-select-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mv2-course-option-btn {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
+  border: 1px solid rgba(75, 37, 95, 0.18);
+  border-radius: 16px;
+  background: #fffaf4;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mv2-course-option-btn:hover,
+.mv2-course-option-btn:focus-visible {
+  border-color: var(--mv2-purple);
+  box-shadow: 0 0 0 4px var(--mv2-focus-ring);
+}
+
+.mv2-course-option-name {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mv2-heading-text);
+}
+
+.mv2-course-option-meta {
+  color: var(--mv2-muted);
+  font-size: 0.9rem;
+}
+
 .mv2-status-notice {
   margin: 0 0 14px;
   border: 1px solid rgba(75, 37, 95, 0.14);
