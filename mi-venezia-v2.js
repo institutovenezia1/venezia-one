@@ -2665,6 +2665,9 @@
     var html;
     var index;
     var view;
+    var rawRecord;
+    var rawStatus;
+    var rawLabel;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.attendance) {
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
@@ -2691,7 +2694,13 @@
     } else if (view.mode === "raw" && view.entries.length) {
       html += '<div class="mv2-timeline">';
       for (index = 0; index < view.entries.length; index += 1) {
-        html += renderAttendanceTimelineEntry({ date: view.entries[index].fecha, classLabel: null, record: view.entries[index] });
+        // Sin calendario de curso calculable (ej. sin fecha de inicio), se
+        // conserva el rótulo anterior por posición ("Clase 1", "Clase 2"...)
+        // en vez de "Clase adicional" genérico para todo.
+        rawRecord = view.entries[index];
+        rawStatus = normalizeAttendanceStatus(rawRecord.estado);
+        rawLabel = rawStatus === "Recuperación" ? "Recuperación" : "Clase " + (index + 1);
+        html += renderAttendanceTimelineEntry({ date: rawRecord.fecha, classLabel: rawLabel, record: rawRecord });
       }
       html += '</div>';
     } else {
