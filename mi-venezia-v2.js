@@ -2447,6 +2447,32 @@
       "Mantenimiento, relleno y retiro",
       "Servicio integral con modelo real",
       "Examen final y evaluación profesional"
+    ],
+    barberia: [
+      "Introducción a la barbería y bioseguridad",
+      "Herramientas y peines guía y práctica con modelo",
+      "Técnicas básicas con máquina",
+      "Técnicas básicas con tijera",
+      "Práctica de corte clásico tradicional",
+      "Práctica en modelo de casquete",
+      "Práctica en modelo de casquete",
+      "Corte militar, Crew Cut y Buzz Cut",
+      "Introducción al fade y Low Fade",
+      "Mid Fade y técnicas de transición",
+      "High Fade y manejo de sombras",
+      "Taper Fade y perfilado de nuca y patillas",
+      "Comb Over y Side Part moderno",
+      "Crop Top y French Crop",
+      "Mullet moderno y Burst Fade",
+      "Pompadour, Slick Back y texturizado moderno",
+      "Anatomía y diseño de barba",
+      "Perfilado de barba con navaja y toalla caliente",
+      "Ritual profesional de barba",
+      "Ceja masculina y facial básico",
+      "Introducción a grecas",
+      "Líneas básicas y diseños geométricos",
+      "Grecas avanzadas y diseños personalizados",
+      "Evaluación final integral"
     ]
   };
 
