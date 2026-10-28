@@ -805,6 +805,18 @@ button {
   color: #57534e;
 }
 
+/* Clase ya calendarizada (fecha esperada del curso) pero todavía sin asistencia
+   marcada: neutro/gris a propósito, sin dar impresión de alerta o falta. */
+.mv2-timeline-item.is-scheduled .mv2-timeline-marker {
+  background: #d7d3db;
+  box-shadow: 0 10px 18px rgba(38, 26, 47, 0.1);
+}
+
+.mv2-timeline-item.is-scheduled .mv2-timeline-badge {
+  background: #f5f5f4;
+  color: #57534e;
+}
+
 .mv2-payment-calendar {
   display: grid;
   grid-template-columns: 1fr;

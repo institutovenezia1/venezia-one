@@ -2415,24 +2415,125 @@
 
   function getAttendanceStatusLabel(status) {
     if (status === "Asistencia") {
-      return "Asistió";
+      return "Asistencia confirmada";
     }
     return status || "Pendiente";
   }
 
-  function renderAttendanceTimelineItem(record, index) {
-    var status = normalizeAttendanceStatus(record.estado);
-    var state = getAttendanceStatusKey(status);
-    var label = status === "Recuperación" ? "Recuperación" : "Clase " + (index + 1);
+  // Arma la línea de tiempo COMPLETA del curso (todas las clases esperadas,
+  // calculadas con la misma fecha de inicio/día de clases/número de sesiones
+  // que ya usa el panel de Pagos), cruzada contra las asistencias reales ya
+  // registradas. Cada clase esperada se marca con su asistencia real si existe
+  // (match exacto por fecha) o se muestra como "Programada" si aún no se le ha
+  // puesto asistencia. Los registros reales que no coincidan con ninguna fecha
+  // esperada (recuperaciones en otro día, por ejemplo) se agregan aparte, en su
+  // lugar cronológico, para no perder ningún registro real.
+  //
+  // Solo se arma este roadmap completo hasta que la alumna YA tiene al menos
+  // una asistencia confirmada (petición explícita del CEO: antes de eso no se
+  // le muestran clases futuras). Si no se puede calcular el calendario del
+  // curso (sin fecha de inicio, por ejemplo), se regresa al comportamiento
+  // anterior: solo lo ya registrado, más reciente primero.
+  function buildAttendanceTimelineView(student, details) {
+    var records = (details && details.attendance) || [];
+    var sessions = getStudentAttendanceReferenceSessions(student);
+    var recordsByDate;
+    var usedDates;
+    var entries;
+    var index;
+    var record;
+    var session;
+    var hasConfirmedAttendance;
+
+    if (!sessions.length) {
+      return { mode: "raw", entries: records.slice().reverse() };
+    }
+
+    hasConfirmedAttendance = false;
+    for (index = 0; index < records.length; index += 1) {
+      if (normalizeAttendanceStatus(records[index].estado) === "Asistencia") {
+        hasConfirmedAttendance = true;
+        break;
+      }
+    }
+
+    if (!hasConfirmedAttendance) {
+      return { mode: "waiting", entries: [] };
+    }
+
+    recordsByDate = {};
+    usedDates = {};
+    for (index = 0; index < records.length; index += 1) {
+      record = records[index];
+      if (record.fecha) {
+        recordsByDate[record.fecha] = record;
+      }
+    }
+
+    entries = [];
+    for (index = 0; index < sessions.length; index += 1) {
+      session = sessions[index];
+      record = recordsByDate[session.date] || null;
+      if (record) {
+        usedDates[session.date] = true;
+      }
+      entries.push({ date: session.date, classLabel: session.classLabel, record: record });
+    }
+
+    for (index = 0; index < records.length; index += 1) {
+      record = records[index];
+      if (record.fecha && !usedDates[record.fecha]) {
+        entries.push({ date: record.fecha, classLabel: null, record: record });
+      }
+    }
+
+    entries.sort(function (left, right) {
+      if (left.date === right.date) {
+        return 0;
+      }
+      return left.date < right.date ? -1 : 1;
+    });
+
+    return { mode: "roadmap", entries: entries };
+  }
+
+  function renderAttendanceTimelineEntry(entry) {
+    var record = entry.record;
+    var status;
+    var state;
+    var label;
+    var badgeLabel;
+    var dateValue = record ? (record.fecha || entry.date) : entry.date;
+
+    if (!record) {
+      return (
+        '<article class="mv2-timeline-item is-scheduled">' +
+        '<div class="mv2-timeline-marker" aria-hidden="true"></div>' +
+        '<div class="mv2-timeline-card">' +
+        '<div class="mv2-timeline-card-head">' +
+        '<span class="mv2-timeline-type">' + escapeHtml(entry.classLabel || "Clase") + '</span>' +
+        '<span class="mv2-timeline-badge">Programada</span>' +
+        '</div>' +
+        '<strong>' + escapeHtml(formatDate(dateValue)) + '</strong>' +
+        '</div>' +
+        '</article>'
+      );
+    }
+
+    status = normalizeAttendanceStatus(record.estado);
+    state = getAttendanceStatusKey(status);
+    label = entry.classLabel || (status === "Recuperación" ? "Recuperación" : "Clase adicional");
+    badgeLabel = getAttendanceStatusLabel(status);
+
     return (
       '<article class="mv2-timeline-item is-' + escapeHtml(state) + '">' +
       '<div class="mv2-timeline-marker" aria-hidden="true"></div>' +
       '<div class="mv2-timeline-card">' +
       '<div class="mv2-timeline-card-head">' +
       '<span class="mv2-timeline-type">' + escapeHtml(label) + '</span>' +
-      '<span class="mv2-timeline-badge">' + escapeHtml(getAttendanceStatusLabel(status)) + '</span>' +
+      '<span class="mv2-timeline-badge">' + escapeHtml(badgeLabel) + '</span>' +
       '</div>' +
-      '<strong>' + escapeHtml(formatDate(record.fecha)) + '</strong>' +
+      '<strong>' + escapeHtml(formatDate(dateValue)) + '</strong>' +
       '<div class="mv2-timeline-meta">' +
       timelineMeta("Observación", record.observaciones || "Sin observaciones") +
       '</div>' +
@@ -2563,14 +2664,13 @@
     var summary;
     var html;
     var index;
-    var records;
+    var view;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.attendance) {
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
       return;
     }
     summary = getAttendanceSummary(details.attendance);
-    records = (details.attendance || []).slice().reverse();
     html =
       '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>' + escapeHtml(statusInfo.attendanceCopy || "Resumen de asistencias registradas.") + '</p></div>' +
       '<div class="mv2-timeline-summary">' +
@@ -2580,10 +2680,18 @@
       renderTimelineMetric("Asistencia", summary.percentage + "%", "Avance visible") +
       '</div>' +
       '<div class="mv2-section-block"><h3>Línea de tiempo de clases</h3>';
-    if (records.length) {
+
+    view = buildAttendanceTimelineView(student, details);
+    if (view.mode === "roadmap" && view.entries.length) {
       html += '<div class="mv2-timeline">';
-      for (index = 0; index < records.length; index += 1) {
-        html += renderAttendanceTimelineItem(records[index], index);
+      for (index = 0; index < view.entries.length; index += 1) {
+        html += renderAttendanceTimelineEntry(view.entries[index]);
+      }
+      html += '</div>';
+    } else if (view.mode === "raw" && view.entries.length) {
+      html += '<div class="mv2-timeline">';
+      for (index = 0; index < view.entries.length; index += 1) {
+        html += renderAttendanceTimelineEntry({ date: view.entries[index].fecha, classLabel: null, record: view.entries[index] });
       }
       html += '</div>';
     } else {
