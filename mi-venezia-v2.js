@@ -2473,6 +2473,28 @@
       "Líneas básicas y diseños geométricos",
       "Grecas avanzadas y diseños personalizados",
       "Evaluación final integral"
+    ],
+    unas: [
+      "Introducción a la profesión y preparación de la uña natural",
+      "Gelish profesional, nail art básico y primera práctica en modelo real",
+      "Perfeccionamiento de gelish y diseños creativos",
+      "Retroalimentación, perfeccionamiento y evaluación de gelish",
+      "Fundamentos del pedicure, anatomía del pie y primera práctica con modelo",
+      "Herramientas, procedimiento y técnicas de pedicure",
+      "Práctica de pedicure estético y aplicación de gelish",
+      "Práctica integral y evaluación final de pedicure",
+      "Introducción al acrílico y estructuras básicas",
+      "Acrílico básico y diseños de temporada",
+      "Efectos decorativos, relieves e introducción al 3D",
+      "Aplicación integral de acrílico, velocidad y evaluación",
+      "Acrílico profesional en modelo real",
+      "Sistemas de construcción: tips, molde y polygel",
+      "Escultura profesional y construcción con molde",
+      "Retención, mantenimiento y perfeccionamiento profesional",
+      "Aplicaciones integrales y combinación de sistemas",
+      "Diseños avanzados y técnica libre",
+      "Práctica integral en modelo real y preparación para emprender",
+      "Repaso general, examen práctico final y cierre del curso"
     ]
   };
 
