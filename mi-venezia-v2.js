@@ -2420,6 +2420,58 @@
     return status || "Pendiente";
   }
 
+  // Temario por curso: solo el título corto de cada clase (sin teoría/práctica,
+  // sin encabezados de mes), para mostrarlo como subtítulo bajo "Clase N" en la
+  // línea de tiempo de Mi Venezia. Petición explícita del CEO (28/oct/2026):
+  // cuando el temario se actualice, se sube de nuevo aquí mismo vía Claude Code
+  // (no hay pantalla de edición en el admin ni tabla en Supabase para esto).
+  var COURSE_CURRICULUM_TITLES = {
+    pestanas: [
+      "Anatomía y fundamentos del diseño de cejas",
+      "Diseño, colorimetría y coloración de cejas",
+      "Diseño y perfeccionamiento con modelo real",
+      "Cejas con tinte + perfeccionamiento",
+      "Introducción al Lash Lifting + tinte de pestañas",
+      "Lash Lifting con modelo real",
+      "Lash Lifting + diseño de cejas",
+      "Evaluación de diseño de cejas + Lash Lifting",
+      "Anatomía y fundamentos de extensiones",
+      "Técnica clásica 1x1 + técnica híbrida",
+      "Volumen y Mega Volumen",
+      "Diseños y mapeos",
+      "Efectos modernos de pestañas",
+      "Perfeccionamiento de aplicación",
+      "Primera aplicación con modelo real",
+      "Aplicación avanzada con modelo real",
+      "Diseño personalizado con modelo real",
+      "Mantenimiento, relleno y retiro",
+      "Servicio integral con modelo real",
+      "Examen final y evaluación profesional"
+    ]
+  };
+
+  // Devuelve el título corto del temario para una clase puntual ("Clase N"),
+  // según el curso de la alumna. Solo aplica a rótulos exactos "Clase N"
+  // (no a "Recuperación" ni a "Clase adicional"): una recuperación no tiene
+  // un número de clase fijo, así que no se le asigna temario.
+  function getClassTopicTitle(course, classLabel) {
+    var match = classLabel ? /^Clase (\d+)$/.exec(classLabel) : null;
+    var titles;
+    var classNumber;
+    if (!match) {
+      return null;
+    }
+    titles = COURSE_CURRICULUM_TITLES[normalizeLoose(course)];
+    if (!titles) {
+      return null;
+    }
+    classNumber = parseInt(match[1], 10);
+    if (!classNumber || classNumber < 1 || classNumber > titles.length) {
+      return null;
+    }
+    return titles[classNumber - 1];
+  }
+
   // Arma la línea de tiempo COMPLETA del curso (todas las clases esperadas,
   // calculadas con la misma fecha de inicio/día de clases/número de sesiones
   // que ya usa el panel de Pagos), cruzada contra las asistencias reales ya
@@ -2477,13 +2529,18 @@
       if (record) {
         usedDates[session.date] = true;
       }
-      entries.push({ date: session.date, classLabel: session.classLabel, record: record });
+      entries.push({
+        date: session.date,
+        classLabel: session.classLabel,
+        record: record,
+        topic: getClassTopicTitle(student && student.curso, session.classLabel)
+      });
     }
 
     for (index = 0; index < records.length; index += 1) {
       record = records[index];
       if (record.fecha && !usedDates[record.fecha]) {
-        entries.push({ date: record.fecha, classLabel: null, record: record });
+        entries.push({ date: record.fecha, classLabel: null, record: record, topic: null });
       }
     }
 
@@ -2514,6 +2571,7 @@
         '<span class="mv2-timeline-type">' + escapeHtml(entry.classLabel || "Clase") + '</span>' +
         '<span class="mv2-timeline-badge">Programada</span>' +
         '</div>' +
+        (entry.topic ? '<span class="mv2-timeline-topic">' + escapeHtml(entry.topic) + '</span>' : '') +
         '<strong>' + escapeHtml(formatDate(dateValue)) + '</strong>' +
         '</div>' +
         '</article>'
@@ -2533,6 +2591,7 @@
       '<span class="mv2-timeline-type">' + escapeHtml(label) + '</span>' +
       '<span class="mv2-timeline-badge">' + escapeHtml(badgeLabel) + '</span>' +
       '</div>' +
+      (entry.topic ? '<span class="mv2-timeline-topic">' + escapeHtml(entry.topic) + '</span>' : '') +
       '<strong>' + escapeHtml(formatDate(dateValue)) + '</strong>' +
       '<div class="mv2-timeline-meta">' +
       timelineMeta("Observación", record.observaciones || "Sin observaciones") +
@@ -2668,6 +2727,7 @@
     var rawRecord;
     var rawStatus;
     var rawLabel;
+    var rawTopic;
     var statusInfo = getStudentStatusInfo(student);
     if (!details || details.errors.attendance) {
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
@@ -2700,7 +2760,8 @@
         rawRecord = view.entries[index];
         rawStatus = normalizeAttendanceStatus(rawRecord.estado);
         rawLabel = rawStatus === "Recuperación" ? "Recuperación" : "Clase " + (index + 1);
-        html += renderAttendanceTimelineEntry({ date: rawRecord.fecha, classLabel: rawLabel, record: rawRecord });
+        rawTopic = getClassTopicTitle(student && student.curso, rawLabel);
+        html += renderAttendanceTimelineEntry({ date: rawRecord.fecha, classLabel: rawLabel, record: rawRecord, topic: rawTopic });
       }
       html += '</div>';
     } else {

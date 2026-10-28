@@ -718,6 +718,17 @@ button {
   margin-bottom: 9px;
 }
 
+/* Título corto del temario ("qué se ve en esta clase"), chiquito, justo
+   debajo del número de clase. Solo título, sin descripción ni mes. */
+.mv2-timeline-topic {
+  display: block;
+  margin: -4px 0 9px;
+  color: var(--mv2-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.32;
+}
+
 .mv2-timeline-card strong {
   display: block;
   color: var(--mv2-ink);
