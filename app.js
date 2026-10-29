@@ -874,7 +874,7 @@ const DIRECTOR_CONTACT_BOOTSTRAP_RULES = [
 ];
 const WEB_DEFAULT_COURSES = [
   {
-    name: "Uñas Acrílicas Profesionales",
+    name: "Manicura y Uñas Acrílicas Profesionales",
     icon: "💅",
     description: "Domina técnicas profesionales desde cero y empieza a atender clientas con seguridad.",
     statusLabel: "ACTIVO",
@@ -894,7 +894,7 @@ const WEB_DEFAULT_COURSES = [
     enrollmentOpen: true,
   },
   {
-    name: "Lashista Profesional",
+    name: "Diseño de Ceja y Lashista Profesional",
     icon: "👁️",
     description: "",
     statusLabel: "PRÓXIMAMENTE",
@@ -4460,6 +4460,106 @@ function getWhatsAppUrlByPhone(
   }
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
+
+// --- Beca Venezia (aplicación en línea) ------------------------------------
+// Las solicitudes del micro-sitio público "beca-venezia" (proyecto aparte,
+// igual que landing-page-venezia-3) caen directo a esta misma tabla
+// "prospects" via Supabase, con origen fijo BECA_ORIGIN y datos extra
+// (ocupación, edad, dependientes, timestamp de registro, bandera de
+// confirmación) codificados como líneas "Etiqueta: valor" dentro de notas
+// -- ese micro-sitio no pasa por dataService.js, así que esas etiquetas no
+// las conoce stripProspectMetadata y quedan tal cual dentro de
+// prospect.notas. Petición del CEO (28/oct/2026): a los 10 minutos de
+// registrarse, la asesora que le da seguimiento le manda la confirmación por
+// SU PROPIO WhatsApp (no hay automatización ni número de empresa de por
+// medio) con el link de su pase.
+const BECA_ORIGIN = "Beca Venezia — Aplicación en línea";
+const BECA_CONFIRM_WAIT_MINUTES = 10;
+const BECA_SITE_URL = "https://beca-venezia.vercel.app";
+
+function extractBecaNotesField(notas, label) {
+  const source = String(notas || "");
+  const segments = source.split(" | ");
+  const prefix = `${label}: `;
+  for (const segment of segments) {
+    if (segment.indexOf(prefix) === 0) {
+      return segment.slice(prefix.length).trim();
+    }
+  }
+  return "";
+}
+
+function isBecaApplicationProspect(prospect) {
+  return Boolean(prospect) && prospect.origen === BECA_ORIGIN;
+}
+
+function isBecaConfirmationPending(prospect) {
+  if (!isBecaApplicationProspect(prospect)) {
+    return false;
+  }
+  const confirmado = extractBecaNotesField(prospect.notas, "Confirmación beca enviada").toLowerCase();
+  return confirmado !== "sí" && confirmado !== "si";
+}
+
+function getBecaReminderMeta(prospect) {
+  if (!isBecaConfirmationPending(prospect)) {
+    return null;
+  }
+  const registroRaw = extractBecaNotesField(prospect.notas, "Registro beca");
+  const registroDate = registroRaw ? new Date(registroRaw) : null;
+  if (!registroDate || isNaN(registroDate.getTime())) {
+    // Si por algún motivo no se pudo leer el timestamp de registro, se deja
+    // ver el botón directo en vez de bloquear la confirmación.
+    return { ready: true, minutesLeft: 0 };
+  }
+  const elapsedMinutes = (Date.now() - registroDate.getTime()) / 60000;
+  const minutesLeft = Math.max(0, Math.ceil(BECA_CONFIRM_WAIT_MINUTES - elapsedMinutes));
+  return { ready: elapsedMinutes >= BECA_CONFIRM_WAIT_MINUTES, minutesLeft };
+}
+
+function getBecaPaseUrl(prospect) {
+  return `${BECA_SITE_URL}/pase.html?id=${encodeURIComponent(prospect.id)}`;
+}
+
+function buildBecaConfirmationMessage(prospect) {
+  const firstName = String(prospect.nombre || "").trim().split(" ")[0] || "";
+  const curso = prospect.curso || "tu curso";
+  const paseUrl = getBecaPaseUrl(prospect);
+  return (
+    `¡Hola${firstName ? " " + firstName : ""}! 🎉 Tengo buenas noticias: tu solicitud de la ` +
+    `Beca Venezia para ${curso} fue aprobada. Tu inscripción quedaría en $999.99 y tu ` +
+    `mensualidad en $1,599.99, con 80% de apoyo en material. ` +
+    `Descarga tu pase aquí y tráelo al instituto para confirmar tu lugar: ${paseUrl} ` +
+    `Cualquier duda, aquí estoy para ayudarte. 💛`
+  );
+}
+
+function markBecaConfirmationSent(notas) {
+  const source = String(notas || "");
+  if (source.indexOf("Confirmación beca enviada: no") === -1) {
+    return source;
+  }
+  return source.replace("Confirmación beca enviada: no", "Confirmación beca enviada: sí");
+}
+
+async function openBecaConfirmation(id) {
+  const prospect = prospects.find((item) => item.id === id);
+  if (!prospect) {
+    return;
+  }
+
+  const whatsappUrl = getWhatsAppUrlByPhone(prospect.telefono, buildBecaConfirmationMessage(prospect));
+  if (!whatsappUrl) {
+    alert("Esta prospecta no tiene un teléfono válido para enviarle WhatsApp.");
+    return;
+  }
+
+  window.open(whatsappUrl, "_blank", "noopener");
+
+  const updatedNotas = markBecaConfirmationSent(prospect.notas);
+  await updateProspectQuickState(id, { notas: updatedNotas });
+}
+// --- Fin Beca Venezia -------------------------------------------------------
 
 function getProspectPriorityRank(prospect) {
   const normalizedState = normalizeProspectState(prospect.estado, { preserveOperationalState: false });
@@ -10071,6 +10171,12 @@ function renderTable() {
       // cola de Altas (ver getPendingAltas()): en el CRM ya no tiene mas
       // funcion, asi que solo se deja "Ver historial".
       const isEnrolled = stateLabel === "Inscrita";
+      const becaReminder = getBecaReminderMeta(prospect);
+      const becaReminderMarkup = !becaReminder
+        ? ""
+        : becaReminder.ready
+        ? `<button class="table-action action-beca-confirm" type="button" data-action="beca-confirm" data-id="${prospect.id}">Enviar confirmación de beca (WhatsApp)</button>`
+        : `<span class="status-pill followup-pill followup-pill-pending">Beca: confirmar en ${becaReminder.minutesLeft} min</span>`;
       const actionsMarkup = isEnrolled
         ? `<button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>`
         : `
@@ -10110,6 +10216,7 @@ function renderTable() {
               <span class="status-pill followup-pill followup-pill-${escapeHtml(followup.tone)}">${escapeHtml(followup.label)}</span>
               <small>${escapeHtml(followup.detail || "Sin fecha definida.")}</small>
               <small>Asesor: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
+              ${becaReminderMarkup}
             </div>
           </td>
           <td>
@@ -20402,6 +20509,7 @@ tableBody.addEventListener("click", async (event) => {
   if (action === "edit") editProspect(id);
   if (action === "delete") await deleteProspect(id);
   if (action === "whatsapp") openWhatsApp(id);
+  if (action === "beca-confirm") await openBecaConfirmation(id);
   if (action === "schedule") {
     await updateProspectQuickState(
       id,

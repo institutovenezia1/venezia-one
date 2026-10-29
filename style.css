@@ -2414,6 +2414,22 @@ td select {
   border-color: rgba(83, 123, 194, 0.16);
 }
 
+/* Beca Venezia: recordatorio de confirmación de WhatsApp a los 10 min */
+.followup-pill-pending {
+  background: linear-gradient(180deg, #f7ebbc 0%, #f3e0a2 100%);
+  color: #8a6817;
+  border-color: rgba(201, 162, 39, 0.22);
+}
+
+.action-beca-confirm {
+  background: linear-gradient(180deg, #e8c66a 0%, #c9a227 100%);
+  color: #332707;
+  box-shadow: 0 10px 18px rgba(201, 162, 39, 0.25);
+  width: fit-content;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+}
+
 .action-delete {
   background: linear-gradient(180deg, #f6d8d3 0%, #efc7c1 100%);
   color: #8f4338;
