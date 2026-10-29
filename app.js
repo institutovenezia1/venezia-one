@@ -4525,13 +4525,54 @@ function buildBecaConfirmationMessage(prospect) {
   const firstName = String(prospect.nombre || "").trim().split(" ")[0] || "";
   const curso = prospect.curso || "tu curso";
   const paseUrl = getBecaPaseUrl(prospect);
+  // Sin montos aqui a proposito (petición del CEO, 29/oct/2026): el
+  // mensaje solo anuncia la aprobación y manda al pase, que es donde se
+  // revela cómo le quedó la beca -- efecto sorpresa al abrir el link.
+  // Tambien sin emojis: WhatsApp Web a veces los corrompe al prellenar el
+  // texto desde un link wa.me, así que el formato llamativo se logra con
+  // *negritas* nativas de WhatsApp en vez de depender de emojis.
   return (
-    `¡Hola${firstName ? " " + firstName : ""}! 🎉 Tengo buenas noticias: tu solicitud de la ` +
-    `Beca Venezia para ${curso} fue aprobada. Tu inscripción quedaría en $999.99 y tu ` +
-    `mensualidad en $1,599.99, con 80% de apoyo en material. ` +
-    `Descarga tu pase aquí y tráelo al instituto para confirmar tu lugar: ${paseUrl} ` +
-    `Cualquier duda, aquí estoy para ayudarte. 💛`
+    `*¡Hola${firstName ? " " + firstName : ""}!*\n\n` +
+    `Tengo buenas noticias: tu solicitud de la *Beca Venezia* para *${curso}* fue *¡APROBADA!*\n\n` +
+    `Descarga tu pase aquí y entérate de cómo te quedó: ${paseUrl}\n\n` +
+    `Tráelo al instituto (impreso o en tu celular) para confirmar tu lugar. Cualquier duda, aquí estoy para ayudarte.`
   );
+}
+
+// Inserta o reemplaza una línea "Etiqueta: valor" dentro de "notas" (mismo
+// formato "Etiqueta: valor" separado por " | " que ya usa todo este módulo
+// de Beca Venezia). Si la etiqueta ya existe, reemplaza su valor; si no, la
+// agrega al final. Se usa para el timestamp "Confirmada el" que marca el
+// inicio de la ventana de 24 horas del pase (petición del CEO, 29/oct/2026).
+function upsertBecaNotesSegment(notas, label, value) {
+  const source = String(notas || "");
+  const segments = source ? source.split(" | ") : [];
+  const prefix = `${label}: `;
+  let found = false;
+  const updated = segments.map((segment) => {
+    if (segment.indexOf(prefix) === 0) {
+      found = true;
+      return `${prefix}${value}`;
+    }
+    return segment;
+  });
+  if (!found) {
+    updated.push(`${prefix}${value}`);
+  }
+  return updated.filter(Boolean).join(" | ");
+}
+
+// Quita por completo una línea "Etiqueta: valor" de "notas" (si existe).
+function removeBecaNotesSegment(notas, label) {
+  const source = String(notas || "");
+  if (!source) {
+    return source;
+  }
+  const prefix = `${label}: `;
+  return source
+    .split(" | ")
+    .filter((segment) => segment.indexOf(prefix) !== 0)
+    .join(" | ");
 }
 
 function markBecaConfirmationSent(notas) {
@@ -4539,7 +4580,12 @@ function markBecaConfirmationSent(notas) {
   if (source.indexOf("Confirmación beca enviada: no") === -1) {
     return source;
   }
-  return source.replace("Confirmación beca enviada: no", "Confirmación beca enviada: sí");
+  const updated = source.replace("Confirmación beca enviada: no", "Confirmación beca enviada: sí");
+  // Se guarda el momento exacto de la confirmación real (petición del CEO,
+  // 29/oct/2026): el pase usa este timestamp para avisar que es válido solo
+  // por 24 horas, para que no se presenten semanas o meses después
+  // esperando que la beca siga en pie.
+  return upsertBecaNotesSegment(updated, "Confirmada el", new Date().toISOString());
 }
 
 async function openBecaConfirmation(id) {
@@ -4571,9 +4617,15 @@ function reopenBecaConfirmationFlag(notas) {
   if (source.indexOf("Confirmación beca enviada: sí") === -1 && source.indexOf("Confirmación beca enviada: si") === -1) {
     return source;
   }
-  return source
+  const updated = source
     .replace("Confirmación beca enviada: sí", "Confirmación beca enviada: no")
     .replace("Confirmación beca enviada: si", "Confirmación beca enviada: no");
+  // Al reabrir la confirmación (ej. el WhatsApp no se llegó a enviar) se
+  // quita el timestamp "Confirmada el" viejo -- cuando se vuelva a
+  // confirmar de verdad, markBecaConfirmationSent pone uno nuevo, para que
+  // las 24 horas de vigencia del pase empiecen a contar desde la
+  // confirmación real y no desde el intento fallido.
+  return removeBecaNotesSegment(updated, "Confirmada el");
 }
 
 async function reopenBecaConfirmation(id) {
