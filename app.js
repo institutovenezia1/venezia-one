@@ -4650,6 +4650,23 @@ function getProspectPriorityRank(prospect) {
   // incluso de un seguimiento atrasado, para que no se pierda entre
   // prospectos de otros orígenes.
   if (isBecaConfirmationPending(prospect)) return -1;
+  // Una vez enviada la confirmación, el prospecto de Beca Venezia se queda
+  // en un segundo escalón, todavía por encima de TODO lo demás del CRM
+  // (petición del CEO, 29/oct/2026: "no quiero que se mueva" / que se vaya
+  // hasta abajo al confirmar) -- antes caía al rango genérico según su
+  // estado ("Prospecto nuevo" = 3), y como el CRM normalmente tiene varios
+  // leads de otros orígenes en seguimiento atrasado/hoy/caliente, se perdía
+  // de vista justo al terminar de atenderlo. El desempate entre varios
+  // prospectos de Beca Venezia (pendientes o ya confirmados) sigue siendo
+  // "más reciente primero", así que simplemente se van acumulando arriba
+  // en el orden en que llegan, sin que confirmar uno lo mande al fondo.
+  // Esto solo aplica mientras sigue en "Prospecto nuevo" (recién
+  // confirmada, nadie le ha dado seguimiento todavía): en cuanto una
+  // asesora le cambie el estado a mano (Seguimiento, Cita agendada,
+  // Inscrita...) ya está siendo atendida como cualquier otro prospecto, y
+  // vuelve a las reglas normales de prioridad -- si no, los Beca Venezia
+  // de hace meses se quedarían pegados arriba del CRM para siempre.
+  if (isBecaApplicationProspect(prospect) && normalizedState === "Prospecto nuevo") return -0.5;
   if (followup.tone === "late") return 0;
   if (followup.tone === "today") return 1;
   if (temperature === "Caliente") return 2;
