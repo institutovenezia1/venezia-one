@@ -4559,6 +4559,32 @@ async function openBecaConfirmation(id) {
   const updatedNotas = markBecaConfirmationSent(prospect.notas);
   await updateProspectQuickState(id, { notas: updatedNotas });
 }
+
+// Si al abrir WhatsApp algo falla del lado de la asesora (ej. WhatsApp Web
+// cerrado, se equivocó de prospecta, etc.) el sistema ya había marcado la
+// confirmación como enviada y la prospecta perdía su lugar arriba del CRM,
+// sin forma de volver a mandarle el mensaje. Esto regresa la bandera a "no"
+// para que reaparezca el botón de confirmar y la prioridad -1 (petición del
+// CEO, 29/oct/2026, tras un caso real con WhatsApp Web desconectado).
+function reopenBecaConfirmationFlag(notas) {
+  const source = String(notas || "");
+  if (source.indexOf("Confirmación beca enviada: sí") === -1 && source.indexOf("Confirmación beca enviada: si") === -1) {
+    return source;
+  }
+  return source
+    .replace("Confirmación beca enviada: sí", "Confirmación beca enviada: no")
+    .replace("Confirmación beca enviada: si", "Confirmación beca enviada: no");
+}
+
+async function reopenBecaConfirmation(id) {
+  const prospect = prospects.find((item) => item.id === id);
+  if (!prospect) {
+    return;
+  }
+
+  const updatedNotas = reopenBecaConfirmationFlag(prospect.notas);
+  await updateProspectQuickState(id, { notas: updatedNotas });
+}
 // --- Fin Beca Venezia -------------------------------------------------------
 
 function getProspectPriorityRank(prospect) {
@@ -10178,11 +10204,14 @@ function renderTable() {
       // funcion, asi que solo se deja "Ver historial".
       const isEnrolled = stateLabel === "Inscrita";
       const becaReminder = getBecaReminderMeta(prospect);
-      const becaReminderMarkup = !becaReminder
-        ? ""
-        : becaReminder.ready
-        ? `<button class="table-action action-beca-confirm" type="button" data-action="beca-confirm" data-id="${prospect.id}">Enviar confirmación de beca (WhatsApp)</button>`
-        : `<span class="status-pill followup-pill followup-pill-pending">Beca: confirmar en ${becaReminder.minutesLeft} min</span>`;
+      const becaAlreadyConfirmed = isBecaApplicationProspect(prospect) && !isBecaConfirmationPending(prospect);
+      const becaReminderMarkup = becaReminder
+        ? becaReminder.ready
+          ? `<button class="table-action action-beca-confirm" type="button" data-action="beca-confirm" data-id="${prospect.id}">Enviar confirmación de beca (WhatsApp)</button>`
+          : `<span class="status-pill followup-pill followup-pill-pending">Beca: confirmar en ${becaReminder.minutesLeft} min</span>`
+        : becaAlreadyConfirmed
+        ? `<button class="table-action action-beca-reenviar" type="button" data-action="beca-reenviar" data-id="${prospect.id}" title="Usa esto si el WhatsApp no se llegó a enviar">¿No se envió? Reintentar confirmación</button>`
+        : "";
       const actionsMarkup = isEnrolled
         ? `<button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>`
         : `
@@ -20516,6 +20545,7 @@ tableBody.addEventListener("click", async (event) => {
   if (action === "delete") await deleteProspect(id);
   if (action === "whatsapp") openWhatsApp(id);
   if (action === "beca-confirm") await openBecaConfirmation(id);
+  if (action === "beca-reenviar") await reopenBecaConfirmation(id);
   if (action === "schedule") {
     await updateProspectQuickState(
       id,

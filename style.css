@@ -2430,6 +2430,15 @@ td select {
   font-size: 0.8rem;
 }
 
+.action-beca-reenviar {
+  background: transparent;
+  color: #8a6817;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  width: fit-content;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.78rem;
+}
+
 .action-delete {
   background: linear-gradient(180deg, #f6d8d3 0%, #efc7c1 100%);
   color: #8f4338;
