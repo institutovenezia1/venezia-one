@@ -4566,6 +4566,12 @@ function getProspectPriorityRank(prospect) {
   const followup = getProspectFollowupMeta(prospect.proximoSeguimiento);
   const temperature = normalizeTemperatureValue(prospect.temperatura);
 
+  // Beca Venezia: tiene una ventana de 10 minutos para que la asesora
+  // confirme por WhatsApp (petición del CEO, 29/oct/2026) -- mientras esa
+  // confirmación siga pendiente, va arriba de todo lo demás en el CRM,
+  // incluso de un seguimiento atrasado, para que no se pierda entre
+  // prospectos de otros orígenes.
+  if (isBecaConfirmationPending(prospect)) return -1;
   if (followup.tone === "late") return 0;
   if (followup.tone === "today") return 1;
   if (temperature === "Caliente") return 2;
