@@ -5214,6 +5214,340 @@ td select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Portal de Maestros: Misión, Temario, Mis Actividades, Avisos, Asistencia
+   laboral (30/oct/2026). Reutiliza la paleta champagne/dorado que ya existe
+   en el sistema (--web-gold, --web-cream, --web-beige) en vez de crear una
+   paleta nueva -- es la misma que ya usan los temarios en PDF y el resto de
+   la identidad de marca de Venezia. */
+
+.teacher-portal-mision-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid rgba(188, 155, 86, 0.34);
+  background: linear-gradient(135deg, rgba(17, 17, 17, 0.96) 0%, rgba(43, 36, 24, 0.96) 100%);
+  text-align: center;
+}
+
+.teacher-portal-mision-lema {
+  margin: 0 0 0.5rem;
+  color: var(--web-gold, #c9a14a);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.teacher-portal-mision-texto {
+  margin: 0;
+  color: rgba(253, 251, 247, 0.88);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+.teacher-portal-quick-links-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.teacher-portal-link-panel {
+  justify-content: space-between;
+}
+
+.teacher-portal-link-copy {
+  margin: 0 0 1rem;
+  color: #5d5044;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.teacher-portal-actividades-list,
+.teacher-portal-avisos-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.teacher-portal-actividades-list {
+  counter-reset: actividad;
+}
+
+.teacher-portal-actividad-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-border, #e7e2d6);
+  border-radius: var(--radius-sm, 12px);
+  background: var(--web-cream, #fdfbf7);
+}
+
+.teacher-portal-actividad-numero {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--web-gold, #c9a14a);
+  color: #1a1408;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.teacher-portal-actividad-texto strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: #2b2418;
+}
+
+.teacher-portal-actividad-texto span {
+  color: #5d5044;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.teacher-portal-aviso-item {
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--radius-sm, 12px);
+  border: 1px solid rgba(201, 161, 74, 0.3);
+  background: var(--web-beige, #f5efe6);
+}
+
+.teacher-portal-aviso-item h4 {
+  margin: 0 0 0.3rem;
+  color: #2b2418;
+  font-size: 0.95rem;
+}
+
+.teacher-portal-aviso-item p {
+  margin: 0;
+  color: #5d5044;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.teacher-portal-aviso-item time {
+  display: block;
+  margin-top: 0.35rem;
+  color: #8c6a21;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.teacher-portal-quincenas-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.teacher-portal-quincena-card {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm, 12px);
+  border: 1px solid var(--color-border, #e7e2d6);
+  background: var(--web-cream, #fdfbf7);
+}
+
+.teacher-portal-quincena-card h4 {
+  margin: 0 0 0.5rem;
+  color: #2b2418;
+  font-size: 0.9rem;
+}
+
+.teacher-portal-quincena-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.teacher-portal-quincena-dia {
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(201, 161, 74, 0.16);
+  color: #6d4f16;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Vista de Temario protegido */
+
+.teacher-portal-temario-intro-panel {
+  color: #5d5044;
+}
+
+.teacher-portal-temario-intro-panel #teacherPortalTemarioMeta {
+  margin: 0 0 0.4rem;
+  color: #8c6a21;
+  font-weight: 700;
+}
+
+.teacher-portal-temario-protected {
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.teacher-portal-temario-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.14;
+}
+
+.teacher-portal-temario-clases {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.teacher-portal-clase-card {
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md, 18px);
+  border: 1px solid var(--color-border, #e7e2d6);
+  background: #ffffff;
+}
+
+.teacher-portal-clase-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.teacher-portal-clase-numero {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--web-gold, #c9a14a);
+}
+
+.teacher-portal-clase-titulo {
+  margin: 0;
+  font-size: 1rem;
+  color: #2b2418;
+}
+
+.teacher-portal-clase-seccion {
+  margin-top: 0.55rem;
+}
+
+.teacher-portal-clase-seccion-nombre {
+  margin: 0 0 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8c6a21;
+}
+
+.teacher-portal-clase-seccion ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #5d5044;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.teacher-portal-temario-objetivo-panel {
+  margin-top: 1rem;
+  background: var(--web-beige, #f5efe6);
+  border-color: rgba(201, 161, 74, 0.3);
+}
+
+.teacher-portal-temario-objetivo-panel p {
+  margin: 0;
+  color: #5d5044;
+  line-height: 1.6;
+}
+
+.teacher-portal-temario-pendiente {
+  padding: 2rem 1.2rem;
+  text-align: center;
+  color: #7b6c5d;
+}
+
+.teacher-portal-grupos-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.teacher-portal-grupo-card {
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md, 18px);
+  border: 1px solid var(--color-border, #e7e2d6);
+  background: #ffffff;
+}
+
+.teacher-portal-grupo-card h4 {
+  margin: 0 0 0.2rem;
+  color: #2b2418;
+  font-size: 0.95rem;
+}
+
+.teacher-portal-grupo-count {
+  margin: 0 0 0.7rem;
+  font-size: 0.78rem;
+  color: #8c6a21;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.teacher-portal-grupo-alumnas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.teacher-portal-grupo-alumnas li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm, 12px);
+  background: var(--web-cream, #fdfbf7);
+  border: 1px solid rgba(201, 161, 74, 0.18);
+}
+
+.teacher-portal-grupo-alumna-nombre {
+  color: #2b2418;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.teacher-portal-grupo-alumna-clase {
+  color: #8c6a21;
+  font-size: 0.8rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .teacher-portal-quick-links-row {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-portal-grupo-alumnas li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .teacher-portal-grupo-alumna-clase {
+    text-align: left;
+  }
+
+  .teacher-portal-watermark {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .mi-venezia-subsection-heading {
   margin-top: 0.85rem;
   margin-bottom: 0.65rem;
