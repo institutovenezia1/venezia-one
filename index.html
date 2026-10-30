@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20261029-beca-venezia-nombres-oficiales" />
+    <link rel="stylesheet" href="style.css?v=20261030-portal-maestros-grupos-avisos-v2" />
     <link rel="stylesheet" href="web-venezia.css?v=20261009-tono-editorial" />
   </head>
   <body>
@@ -1265,6 +1265,53 @@
                 No hay jornadas válidas para los filtros seleccionados.
               </p>
             </section>
+          </section>
+
+          <section class="panel maestras-capture-panel teacher-portal-avisos-admin-panel" id="teacherAvisosAdminPanel">
+            <div class="section-heading">
+              <p class="eyebrow">Dirección</p>
+              <h3>Avisos para maestras</h3>
+            </div>
+
+            <p class="module-helper-copy">
+              Lo que publiques aquí aparece de inmediato en el Portal de Maestros, en la sección "Avisos".
+            </p>
+
+            <form id="directorAvisoForm" class="prospect-form">
+              <label class="full-width">
+                <span>Título</span>
+                <input id="directorAvisoTitulo" name="titulo" type="text" maxlength="120" required />
+              </label>
+
+              <label class="full-width">
+                <span>Mensaje</span>
+                <textarea id="directorAvisoMensaje" name="mensaje" rows="3" maxlength="600" required></textarea>
+              </label>
+
+              <div class="form-actions full-width">
+                <button class="primary-btn" type="submit" id="directorAvisoSubmitButton">Publicar aviso</button>
+              </div>
+
+              <p class="portal-password-feedback full-width" id="directorAvisoFeedback" hidden aria-live="polite"></p>
+            </form>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Título</th>
+                    <th>Mensaje</th>
+                    <th>Publicó</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="directorAvisosTableBody"></tbody>
+              </table>
+            </div>
+            <p id="directorAvisosEmptyState" class="empty-state">
+              Aún no has publicado avisos para las maestras.
+            </p>
           </section>
 
           <section class="maestras-stack" hidden>
@@ -2878,10 +2925,6 @@
                   <p>Incidencias / permisos</p>
                   <strong id="teacherPortalStatIncidents">0</strong>
                 </article>
-                <article class="stat-card">
-                  <p>Nómina estimada</p>
-                  <strong id="teacherPortalStatPayroll">$0</strong>
-                </article>
               </section>
             </section>
 
@@ -2893,126 +2936,111 @@
                 </div>
                 <div id="teacherPortalProfile" class="info-list"></div>
               </section>
+            </section>
 
-              <section class="panel teacher-portal-equal-panel">
+            <section class="panel teacher-portal-equal-panel teacher-portal-mision-panel">
+              <p class="teacher-portal-mision-lema" id="teacherPortalMisionLema"></p>
+              <p class="teacher-portal-mision-texto" id="teacherPortalMisionTexto"></p>
+            </section>
+
+            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-quick-links-row">
+              <section class="panel teacher-portal-equal-panel teacher-portal-link-panel">
                 <div class="section-heading">
-                  <p class="eyebrow">Nómina</p>
-                  <h3>Mi nómina estimada</h3>
+                  <p class="eyebrow">Material del curso</p>
+                  <h3>Mi temario</h3>
                 </div>
-                <div id="teacherPortalPayrollSummary" class="info-list mi-venezia-payments-summary teacher-portal-payroll-summary"></div>
-                <div class="section-heading mi-venezia-subsection-heading">
-                  <p class="eyebrow">Cálculo</p>
-                  <h3>Cómo se calcula</h3>
+                <p class="teacher-portal-link-copy" id="teacherPortalTemarioSummary">—</p>
+                <div class="form-actions">
+                  <button class="primary-btn" type="button" id="teacherPortalOpenTemarioButton">Ver mi temario</button>
                 </div>
-                <div id="teacherPortalPayrollRules" class="info-list mi-venezia-payment-schedule teacher-portal-payroll-rules"></div>
+              </section>
+
+              <section class="panel teacher-portal-equal-panel teacher-portal-link-panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Mis grupos</p>
+                  <h3>Grupos activos</h3>
+                </div>
+                <p class="teacher-portal-link-copy" id="teacherPortalGruposSummary">—</p>
+                <div class="form-actions">
+                  <button class="primary-btn" type="button" id="teacherPortalOpenGruposButton">Ver mis grupos</button>
+                </div>
               </section>
             </section>
 
-            <section class="panel teacher-portal-equal-panel portal-security-panel">
+            <section class="panel teacher-portal-equal-panel teacher-portal-actividades-panel">
               <div class="section-heading">
-                <p class="eyebrow">Seguridad</p>
-                <h3>Cambiar contraseña</h3>
+                <p class="eyebrow">Reglas del instituto</p>
+                <h3>Mis actividades</h3>
               </div>
+              <ol class="teacher-portal-actividades-list" id="teacherPortalActividadesList"></ol>
+            </section>
 
-              <p class="portal-security-copy">
-                Cambia la contraseña de tu Portal de Maestra sin salir de tu cuenta. El cambio se guarda en tu acceso real.
+            <section class="panel teacher-portal-equal-panel teacher-portal-avisos-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Dirección</p>
+                <h3>Avisos</h3>
+              </div>
+              <div class="teacher-portal-avisos-list" id="teacherPortalAvisosList"></div>
+              <p id="teacherPortalAvisosEmptyState" class="empty-state">
+                Por ahora no hay avisos nuevos de Dirección.
               </p>
-
-              <form id="teacherPortalPasswordForm" class="portal-security-form">
-                <div class="portal-password-fields">
-                  <label>
-                    <span>Contraseña actual</span>
-                    <input
-                      id="teacherPortalCurrentPassword"
-                      name="currentPassword"
-                      type="password"
-                      autocomplete="current-password"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <span>Nueva contraseña</span>
-                    <input
-                      id="teacherPortalNewPassword"
-                      name="newPassword"
-                      type="password"
-                      autocomplete="new-password"
-                      minlength="6"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <span>Confirmar nueva contraseña</span>
-                    <input
-                      id="teacherPortalConfirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      autocomplete="new-password"
-                      minlength="6"
-                      required
-                    />
-                  </label>
-                </div>
-
-                <div class="portal-security-actions">
-                  <button class="primary-btn" type="submit" id="teacherPortalPasswordSubmitButton">Actualizar contraseña</button>
-                  <p class="portal-password-hint">Mínimo 6 caracteres.</p>
-                </div>
-
-                <p class="portal-password-feedback" id="teacherPortalPasswordFeedback" hidden aria-live="polite"></p>
-              </form>
             </section>
 
             <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-tertiary-row">
               <section class="panel teacher-portal-equal-panel teacher-portal-table-panel">
                 <div class="section-heading">
-                  <p class="eyebrow">Jornadas</p>
-                  <h3>Mis jornadas</h3>
+                  <p class="eyebrow">Asistencia laboral</p>
+                  <h3>Mis días trabajados</h3>
                 </div>
-                <div class="table-wrapper mi-venezia-simple-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Turno</th>
-                        <th>Estatus</th>
-                        <th>Observación</th>
-                      </tr>
-                    </thead>
-                    <tbody id="teacherPortalJornadasBody"></tbody>
-                  </table>
-                </div>
+                <div id="teacherPortalQuincenasList" class="teacher-portal-quincenas-list"></div>
                 <p id="teacherPortalJornadasEmptyState" class="empty-state">
                   Aún no hay jornadas laborales registradas para tu perfil.
                 </p>
               </section>
-
-              <section class="panel teacher-portal-equal-panel teacher-portal-table-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Periodo actual</p>
-                  <h3>Turnos válidos considerados</h3>
-                </div>
-                <div id="teacherPortalPeriodInfo" class="info-list"></div>
-                <div class="table-wrapper mi-venezia-simple-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Turno válido</th>
-                        <th>Estatus</th>
-                        <th>Monto estimado</th>
-                      </tr>
-                    </thead>
-                    <tbody id="teacherPortalPayrollBody"></tbody>
-                  </table>
-                </div>
-                <p id="teacherPortalPayrollEmptyState" class="empty-state">
-                  Aún no hay jornadas válidas en el periodo actual.
-                </p>
-              </section>
             </section>
+          </section>
+
+          <section class="module-section-inner teacher-portal-temario-view" id="teacherPortalTemarioView" hidden>
+            <section class="panel teacher-portal-header-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Material del curso</p>
+                <h3 id="teacherPortalTemarioTitle">Temario</h3>
+              </div>
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="teacherPortalCloseTemarioButton">&larr; Volver a mi portal</button>
+              </div>
+            </section>
+
+            <section class="panel teacher-portal-temario-intro-panel">
+              <p id="teacherPortalTemarioMeta" class="subtitle"></p>
+              <p id="teacherPortalTemarioDescripcion"></p>
+            </section>
+
+            <div class="teacher-portal-temario-protected" id="teacherPortalTemarioProtected">
+              <div class="teacher-portal-temario-watermark" id="teacherPortalTemarioWatermark" aria-hidden="true"></div>
+              <div class="teacher-portal-temario-clases" id="teacherPortalTemarioClases"></div>
+              <section class="panel teacher-portal-temario-objetivo-panel" id="teacherPortalTemarioObjetivoPanel" hidden>
+                <p class="eyebrow">Objetivo final</p>
+                <p id="teacherPortalTemarioObjetivo"></p>
+              </section>
+            </div>
+          </section>
+
+          <section class="module-section-inner teacher-portal-grupos-view" id="teacherPortalGruposView" hidden>
+            <section class="panel teacher-portal-header-panel">
+              <div class="section-heading">
+                <p class="eyebrow">Mis grupos</p>
+                <h3>Grupos activos</h3>
+              </div>
+              <div class="form-actions">
+                <button class="secondary-btn" type="button" id="teacherPortalCloseGruposButton">&larr; Volver a mi portal</button>
+              </div>
+            </section>
+
+            <div id="teacherPortalGruposList" class="teacher-portal-grupos-list"></div>
+            <p id="teacherPortalGruposEmptyState" class="empty-state" hidden>
+              Aún no hay alumnas registradas en tu curso.
+            </p>
           </section>
         </section>
 
@@ -3914,6 +3942,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20261022-prospectos-asesora-rol-sin-cortar"></script>
-    <script src="app.js?v=20261029-beca-venezia-no-baja-al-confirmar"></script>
+    <script src="docente-portal-content.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
+    <script src="app.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
   </body>
 </html>

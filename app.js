@@ -50,6 +50,8 @@ function getVeneziaVisibleUiLabel() {
     "miVeneziaDashboard",
     "loginShell",
     "teacherPortalDashboard",
+    "teacherPortalTemarioView",
+    "teacherPortalGruposView",
     "teacherPortalShell",
     "accessSelectorSection",
     "webVeneziaSection",
@@ -406,6 +408,13 @@ const staffEmptyState = document.getElementById("staffEmptyState");
 const staffFechaNacimiento = document.getElementById("staffFechaNacimiento");
 const staffAccessUsername = document.getElementById("staffAccessUsername");
 const staffTemporaryPassword = document.getElementById("staffTemporaryPassword");
+const directorAvisoForm = document.getElementById("directorAvisoForm");
+const directorAvisoTitulo = document.getElementById("directorAvisoTitulo");
+const directorAvisoMensaje = document.getElementById("directorAvisoMensaje");
+const directorAvisoSubmitButton = document.getElementById("directorAvisoSubmitButton");
+const directorAvisoFeedback = document.getElementById("directorAvisoFeedback");
+const directorAvisosTableBody = document.getElementById("directorAvisosTableBody");
+const directorAvisosEmptyState = document.getElementById("directorAvisosEmptyState");
 const altaForm = document.getElementById("altaForm");
 const clearAltaButton = document.getElementById("clearAltaButton");
 const altaValidationAlert = document.getElementById("altaValidationAlert");
@@ -718,12 +727,7 @@ const miVeneziaLoginDebugPanel = document.getElementById("miVeneziaLoginDebugPan
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
 const teacherPortalProfile = document.getElementById("teacherPortalProfile");
-const teacherPortalPayrollSummary = document.getElementById("teacherPortalPayrollSummary");
-const teacherPortalPayrollRules = document.getElementById("teacherPortalPayrollRules");
-const teacherPortalJornadasBody = document.getElementById("teacherPortalJornadasBody");
 const teacherPortalJornadasEmptyState = document.getElementById("teacherPortalJornadasEmptyState");
-const teacherPortalPayrollBody = document.getElementById("teacherPortalPayrollBody");
-const teacherPortalPayrollEmptyState = document.getElementById("teacherPortalPayrollEmptyState");
 const teacherPortalHeroName = document.getElementById("teacherPortalHeroName");
 const teacherPortalHeroMeta = document.getElementById("teacherPortalHeroMeta");
 const teacherPortalHeroSummary = document.getElementById("teacherPortalHeroSummary");
@@ -731,11 +735,30 @@ const teacherPortalContactButton = document.getElementById("teacherPortalContact
 const teacherPortalStatDays = document.getElementById("teacherPortalStatDays");
 const teacherPortalStatShifts = document.getElementById("teacherPortalStatShifts");
 const teacherPortalStatIncidents = document.getElementById("teacherPortalStatIncidents");
-const teacherPortalStatPayroll = document.getElementById("teacherPortalStatPayroll");
-const teacherPortalPeriodInfo = document.getElementById("teacherPortalPeriodInfo");
-const teacherPortalPasswordForm = document.getElementById("teacherPortalPasswordForm");
-const teacherPortalPasswordFeedback = document.getElementById("teacherPortalPasswordFeedback");
-const teacherPortalPasswordSubmitButton = document.getElementById("teacherPortalPasswordSubmitButton");
+const teacherPortalMisionLema = document.getElementById("teacherPortalMisionLema");
+const teacherPortalMisionTexto = document.getElementById("teacherPortalMisionTexto");
+const teacherPortalTemarioSummary = document.getElementById("teacherPortalTemarioSummary");
+const teacherPortalOpenTemarioButton = document.getElementById("teacherPortalOpenTemarioButton");
+const teacherPortalCloseTemarioButton = document.getElementById("teacherPortalCloseTemarioButton");
+const teacherPortalGruposSummary = document.getElementById("teacherPortalGruposSummary");
+const teacherPortalOpenGruposButton = document.getElementById("teacherPortalOpenGruposButton");
+const teacherPortalCloseGruposButton = document.getElementById("teacherPortalCloseGruposButton");
+const teacherPortalGruposView = document.getElementById("teacherPortalGruposView");
+const teacherPortalGruposList = document.getElementById("teacherPortalGruposList");
+const teacherPortalGruposEmptyState = document.getElementById("teacherPortalGruposEmptyState");
+const teacherPortalActividadesList = document.getElementById("teacherPortalActividadesList");
+const teacherPortalAvisosList = document.getElementById("teacherPortalAvisosList");
+const teacherPortalAvisosEmptyState = document.getElementById("teacherPortalAvisosEmptyState");
+const teacherPortalQuincenasList = document.getElementById("teacherPortalQuincenasList");
+const teacherPortalTemarioView = document.getElementById("teacherPortalTemarioView");
+const teacherPortalTemarioTitle = document.getElementById("teacherPortalTemarioTitle");
+const teacherPortalTemarioMeta = document.getElementById("teacherPortalTemarioMeta");
+const teacherPortalTemarioDescripcion = document.getElementById("teacherPortalTemarioDescripcion");
+const teacherPortalTemarioProtected = document.getElementById("teacherPortalTemarioProtected");
+const teacherPortalTemarioWatermark = document.getElementById("teacherPortalTemarioWatermark");
+const teacherPortalTemarioClases = document.getElementById("teacherPortalTemarioClases");
+const teacherPortalTemarioObjetivoPanel = document.getElementById("teacherPortalTemarioObjetivoPanel");
+const teacherPortalTemarioObjetivo = document.getElementById("teacherPortalTemarioObjetivo");
 const webLeadForm = document.getElementById("webLeadForm");
 const webSuccessAlert = document.getElementById("webSuccessAlert");
 const webErrorAlert = document.getElementById("webErrorAlert");
@@ -958,6 +981,7 @@ let financeRecords = dataService.entities.financialMovements.getAll(() => []);
 let studentAccessRecords = dataService.entities.studentPortalAccess.getAll(() => []);
 let internalUsers = dataService.entities.internalUsers.getAll(() => []);
 let staffRecords = dataService.entities.staff.getAll(() => []);
+let directorAvisos = dataService.entities.directorAvisos.getAll(() => []);
 let webSettings = dataService.entities.webSettings.getAll(() => ({
   scholarshipActive: true,
   title: "Beca activa para nuevo ingreso",
@@ -1157,6 +1181,7 @@ async function refreshSharedSupabaseState({
       nextStudentAccessRecords,
       nextStaffRecords,
       nextProspects,
+      nextDirectorAvisos,
     ] = await Promise.all([
       dataService.entities.internalUsers.getAllPrimary(() => []),
       dataService.entities.students.getAllPrimary(() => []),
@@ -1166,6 +1191,7 @@ async function refreshSharedSupabaseState({
       dataService.entities.studentPortalAccess.getAllPrimary(() => []),
       dataService.entities.staff.getAllPrimary(() => []),
       dataService.entities.prospects.getAllPrimary(() => []),
+      dataService.entities.directorAvisos.getAllPrimary(() => []),
     ]);
 
     if (requestId !== sharedDataRefreshRequestSeq) {
@@ -1187,6 +1213,7 @@ async function refreshSharedSupabaseState({
     studentAccessRecords = nextStudentAccessRecords;
     staffRecords = nextStaffRecords;
     prospects = nextProspects;
+    directorAvisos = nextDirectorAvisos;
 
     await normalizeInternalUsers();
     if (syncLocalPayments) {
@@ -2488,6 +2515,123 @@ async function saveStaffRecord(record) {
   }
 
   return result;
+}
+
+async function saveDirectorAvisoRecord(record) {
+  const result = await dataService.entities.directorAvisos.upsertOne(record, { alertOnFailure: false });
+  const nextRecord = result.record;
+  const existingIndex = directorAvisos.findIndex((item) => item.id === nextRecord.id);
+
+  if (existingIndex >= 0) {
+    directorAvisos[existingIndex] = nextRecord;
+  } else {
+    directorAvisos.unshift(nextRecord);
+  }
+
+  if (!result.synced) {
+    console.warn("Aviso de Dirección guardado solo en caché local tras fallo de Supabase.", {
+      id: nextRecord.id,
+    });
+  }
+
+  return result;
+}
+
+async function deleteDirectorAvisoRecord(id) {
+  const result = await dataService.entities.directorAvisos.deleteOne(id, { alertOnFailure: false });
+  directorAvisos = directorAvisos.filter((item) => item.id !== id);
+  return result;
+}
+
+function renderDirectorAvisosAdminTable() {
+  if (!directorAvisosTableBody || !directorAvisosEmptyState) {
+    return;
+  }
+
+  const avisos = [...directorAvisos].sort((left, right) =>
+    String(right.createdAt || right.fecha || "").localeCompare(String(left.createdAt || left.fecha || ""))
+  );
+
+  directorAvisosTableBody.innerHTML = avisos
+    .map(
+      (aviso) => `
+        <tr>
+          <td>${escapeHtml(aviso.fecha || "-")}</td>
+          <td>${escapeHtml(aviso.titulo || "-")}</td>
+          <td>${escapeHtml(aviso.mensaje || "-")}</td>
+          <td>${escapeHtml(aviso.publicadoPor || "-")}</td>
+          <td><button class="secondary-btn" type="button" data-delete-aviso-id="${escapeHtml(aviso.id)}">Eliminar</button></td>
+        </tr>
+      `
+    )
+    .join("");
+  directorAvisosEmptyState.hidden = avisos.length > 0;
+}
+
+async function handleDirectorAvisoSubmit(event) {
+  event.preventDefault();
+
+  const titulo = String(directorAvisoTitulo.value || "").trim();
+  const mensaje = String(directorAvisoMensaje.value || "").trim();
+
+  if (!titulo || !mensaje) {
+    setPortalPasswordFeedback(directorAvisoFeedback, "Escribe un título y un mensaje antes de publicar.", "error");
+    return;
+  }
+
+  const user = getCurrentInternalUser();
+  const originalLabel = directorAvisoSubmitButton.textContent;
+  directorAvisoSubmitButton.disabled = true;
+  directorAvisoSubmitButton.textContent = "Publicando...";
+
+  try {
+    const nowIso = new Date().toISOString();
+    await saveDirectorAvisoRecord({
+      id: createMiVeneziaCompatibleId(),
+      titulo,
+      mensaje,
+      sucursal: "Tlaxcala",
+      publicadoPor: __veneziaGet(user, "fullName") || __veneziaGet(user, "username") || "Dirección",
+      createdAt: nowIso,
+      fecha: nowIso.slice(0, 10),
+    });
+
+    directorAvisoForm.reset();
+    setPortalPasswordFeedback(directorAvisoFeedback, "Aviso publicado. Ya aparece en el Portal de Maestros.", "success");
+    renderDirectorAvisosAdminTable();
+    renderTeacherPortalAvisos();
+  } catch (error) {
+    setPortalPasswordFeedback(
+      directorAvisoFeedback,
+      __veneziaGet(error, "message") || "No se pudo publicar el aviso.",
+      "error"
+    );
+  } finally {
+    directorAvisoSubmitButton.disabled = false;
+    directorAvisoSubmitButton.textContent = originalLabel;
+  }
+}
+
+async function handleDirectorAvisoDeleteClick(event) {
+  const button = event.target.closest("[data-delete-aviso-id]");
+  if (!button) {
+    return;
+  }
+
+  const id = button.getAttribute("data-delete-aviso-id");
+  if (!id || !window.confirm("¿Eliminar este aviso? Las maestras ya no lo verán en su portal.")) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    await deleteDirectorAvisoRecord(id);
+    renderDirectorAvisosAdminTable();
+    renderTeacherPortalAvisos();
+  } catch (error) {
+    console.error("No se pudo eliminar el aviso de Dirección.", error);
+    button.disabled = false;
+  }
 }
 
 function saveTeachersCollection() {
@@ -6287,8 +6431,13 @@ function logoutInternalSession() {
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
   teacherPortalDashboard.hidden = true;
+  if (teacherPortalTemarioView) {
+    teacherPortalTemarioView.hidden = true;
+  }
+  if (teacherPortalGruposView) {
+    teacherPortalGruposView.hidden = true;
+  }
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
-  resetPortalPasswordForm(teacherPortalPasswordForm, teacherPortalPasswordFeedback);
   updateSessionUI();
 }
 
@@ -18671,102 +18820,6 @@ async function handleMiVeneziaPasswordChange(event) {
   }
 }
 
-async function handleTeacherPortalPasswordChange(event) {
-  event.preventDefault();
-
-  const currentUserId = currentInternalUserId;
-  if (!currentUserId || currentAccessMode !== "teacher") {
-    return;
-  }
-
-  const formData = new FormData(teacherPortalPasswordForm);
-  const currentPassword = String(formData.get("currentPassword") || "");
-  const newPassword = String(formData.get("newPassword") || "");
-  const confirmPassword = String(formData.get("confirmPassword") || "");
-  const validationError = getPasswordChangeValidationError({
-    currentPassword,
-    newPassword,
-    confirmPassword,
-  });
-
-  if (validationError) {
-    setPortalPasswordFeedback(teacherPortalPasswordFeedback, validationError, "error");
-    return;
-  }
-
-  const originalButtonLabel = teacherPortalPasswordSubmitButton.textContent;
-  teacherPortalPasswordSubmitButton.disabled = true;
-  teacherPortalPasswordSubmitButton.textContent = "Guardando...";
-  setPortalPasswordFeedback(teacherPortalPasswordFeedback);
-
-  try {
-    await validateSupabasePassword({
-      table: "internal_users",
-      id: currentUserId,
-      passwordField: "password",
-      currentPassword,
-      entityLabel: "la maestra",
-    });
-
-    internalUsers = await dataService.entities.internalUsers.getAllPrimary(() => []);
-    staffRecords = await dataService.entities.staff.getAllPrimary(() => []);
-    await normalizeInternalUsers();
-
-    const latestUser = internalUsers.find((user) => user.id === currentUserId);
-    if (!latestUser) {
-      throw new Error("No se encontró tu registro principal de acceso.");
-    }
-
-    const internalUsersSnapshot = cloneSerializable(internalUsers);
-    const staffSnapshot = cloneSerializable(staffRecords);
-    const internalUserSaveResult = await saveInternalUserRecord({
-      ...latestUser,
-      password: newPassword,
-    });
-
-    if (!internalUserSaveResult.synced) {
-      internalUsers = restoreCollectionFromSnapshot(dataService.keys.internalUsers, internalUsersSnapshot);
-      throw new Error("No se pudo guardar la nueva contraseña en el registro principal de maestras.");
-    }
-
-    let staffWarning = "";
-    const linkedStaffRecord =
-      staffRecords.find((record) => record.linkedUserId === latestUser.id) ||
-      staffRecords.find((record) => record.username && record.username === latestUser.username) ||
-      null;
-
-    if (linkedStaffRecord) {
-      const staffSaveResult = await saveStaffRecord({
-        ...linkedStaffRecord,
-        password: newPassword,
-      });
-
-      if (!staffSaveResult.synced) {
-        staffRecords = restoreCollectionFromSnapshot(dataService.keys.staff, staffSnapshot);
-        staffWarning =
-          " La cuenta principal sí quedó actualizada; no se pudo reflejar el cambio en Personal.";
-      }
-    }
-
-    renderTeacherPortalDashboard();
-    resetPortalPasswordForm(teacherPortalPasswordForm, teacherPortalPasswordFeedback);
-    setPortalPasswordFeedback(
-      teacherPortalPasswordFeedback,
-      `Tu contraseña quedó actualizada.${staffWarning}`,
-      staffWarning ? "warning" : "success"
-    );
-  } catch (error) {
-    setPortalPasswordFeedback(
-      teacherPortalPasswordFeedback,
-      __veneziaGet(error, "message") || "No se pudo actualizar la contraseña.",
-      "error"
-    );
-  } finally {
-    teacherPortalPasswordSubmitButton.disabled = false;
-    teacherPortalPasswordSubmitButton.textContent = originalButtonLabel;
-  }
-}
-
 function getTeacherProfileByInternalUser(user = getCurrentInternalUser()) {
   if (!user) {
     return null;
@@ -18807,55 +18860,51 @@ function getTeacherPortalEntries(profile) {
     .sort((left, right) => String(right.fecha || "").localeCompare(String(left.fecha || "")));
 }
 
-function getTeacherPortalPayrollEntries(profile, range = getTeacherPortalCurrentRange()) {
-  return getTeacherPortalEntries(profile).filter(
-    (entry) => isTeacherDateWithinRange(entry.fecha, range) && entry.estatus === "Asistió"
-  );
+// Portal de Maestros (30/oct/2026, petición del CEO): "días trabajados" ya no
+// muestra nómina ni montos, solo las fechas en que la maestra asistió,
+// agrupadas por quincena nada más como organización visual. Reutiliza la
+// misma partición 1-15 / 16-fin de mes que ya se usaba para calcular pagos,
+// pero sin calcular ningún dinero.
+function getQuincenaRangeForDate(fecha) {
+  const parsed = String(fecha || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!parsed) {
+    return null;
+  }
+  const year = Number(parsed[1]);
+  const month = Number(parsed[2]);
+  const day = Number(parsed[3]);
+  const lastDay = new Date(year, month, 0).getDate();
+  const isFirstHalf = day <= 15;
+
+  return {
+    key: `${year}-${String(month).padStart(2, "0")}-${isFirstHalf ? "01" : "16"}`,
+    from: `${year}-${String(month).padStart(2, "0")}-${isFirstHalf ? "01" : "16"}`,
+    to: `${year}-${String(month).padStart(2, "0")}-${String(isFirstHalf ? 15 : lastDay).padStart(2, "0")}`,
+    label: `${isFirstHalf ? "1 al 15" : `16 al ${lastDay}`} de ${new Date(`${year}-${String(month).padStart(2, "0")}-01T12:00:00`).toLocaleDateString("es-MX", { month: "long" })}`,
+  };
 }
 
-function getTeacherPortalPaymentDates(range = getTeacherPortalCurrentRange()) {
-  if (!__veneziaGet(range, "from") || !__veneziaGet(range, "to")) {
-    return [];
-  }
+function getTeacherPortalQuincenaGroups(profile) {
+  const workedEntries = getTeacherPortalEntries(profile).filter((entry) => entry.estatus === "Asistió");
+  const groups = new Map();
 
-  const [year, month] = range.to.split("-").map(Number);
-  const lastDay = new Date(year, month, 0).getDate();
-  const monthLabel = new Date(`${range.to}T12:00:00`).toLocaleDateString("es-MX", {
-    month: "long",
+  workedEntries.forEach((entry) => {
+    const range = getQuincenaRangeForDate(entry.fecha);
+    if (!range) {
+      return;
+    }
+    if (!groups.has(range.key)) {
+      groups.set(range.key, { label: range.label, dias: [] });
+    }
+    groups.get(range.key).dias.push(entry.fecha);
   });
 
-  return [
-    { label: "Pago quincena 1", value: `15 de ${monthLabel}` },
-    { label: "Pago quincena 2", value: `${lastDay} de ${monthLabel}` },
-  ];
-}
-
-function getTeacherPortalRuleCards(profile) {
-  const specialty = getTeacherOperationalSpecialty(profile);
-  if (specialty === "Barbería") {
-    return [
-      { label: "Matutino", value: "$500 por fecha válida" },
-      { label: "Vespertino", value: "Sin monto automático" },
-      { label: "Ambos", value: "$700 por fecha válida" },
-      { label: "Blindaje", value: "Se consolida una sola vez por fecha" },
-    ];
-  }
-
-  if (specialty === "COORD de maestras") {
-    return [
-      { label: "Tabulador", value: "Sin monto automático asignado" },
-      { label: "Periodo", value: "Se muestran jornadas reales" },
-      { label: "Blindaje", value: "Consolidado por fecha" },
-      { label: "Monto actual", value: "$0 hasta definir tabulador" },
-    ];
-  }
-
-  return [
-    { label: "Matutino", value: "$200 por turno válido" },
-    { label: "Vespertino", value: "$200 por turno válido" },
-    { label: "Ambos", value: "$400 por fecha válida" },
-    { label: "Blindaje", value: "Consolidado por fecha" },
-  ];
+  return Array.from(groups.entries())
+    .sort((left, right) => right[0].localeCompare(left[0]))
+    .map(([, group]) => ({
+      label: group.label,
+      dias: group.dias.sort((left, right) => right.localeCompare(left)),
+    }));
 }
 
 function getTeacherDirectorWhatsappUrl(profile) {
@@ -18869,6 +18918,352 @@ function getTeacherDirectorWhatsappUrl(profile) {
   }
 
   return buildWhatsAppUrlWithMessage(WEB_DEFAULT_WHATSAPP_NUMBER, message);
+}
+
+// Misión del instituto y Mis Actividades son contenido fijo, igual para
+// cualquier maestra/o -- se pintan una sola vez, no dependen del perfil.
+function renderTeacherPortalStaticContent() {
+  const content = window.VeneziaDocenteContent;
+  if (!content) {
+    return;
+  }
+
+  if (teacherPortalMisionLema) {
+    teacherPortalMisionLema.textContent = content.INSTITUTO_LEMA;
+  }
+  if (teacherPortalMisionTexto) {
+    teacherPortalMisionTexto.textContent = content.INSTITUTO_MISION;
+  }
+
+  if (teacherPortalActividadesList) {
+    teacherPortalActividadesList.innerHTML = content.ACTIVIDADES.map(
+      (actividad) => `
+        <li class="teacher-portal-actividad-item">
+          <span class="teacher-portal-actividad-numero">${escapeHtml(String(actividad.numero))}</span>
+          <span class="teacher-portal-actividad-texto">
+            <strong>${escapeHtml(actividad.titulo)}</strong>
+            <span>${escapeHtml(actividad.detalle)}</span>
+          </span>
+        </li>
+      `
+    ).join("");
+  }
+
+  renderTeacherPortalAvisos();
+}
+
+// Avisos de Dirección: tabla propia en Supabase ("director_avisos"), con
+// localStorage como caché/respaldo igual que el resto del modelo híbrido
+// (autorizado por el CEO, 30/oct/2026). Dirección los escribe desde el
+// panel "Avisos para maestras" en el módulo Maestras; aquí solo se leen
+// para mostrarlos en el Portal de Maestros.
+function getDirectorAvisos() {
+  return Array.isArray(directorAvisos) ? directorAvisos : [];
+}
+
+function renderTeacherPortalAvisos() {
+  if (!teacherPortalAvisosList || !teacherPortalAvisosEmptyState) {
+    return;
+  }
+
+  const avisos = getDirectorAvisos().sort((left, right) => String(right.fecha || "").localeCompare(String(left.fecha || "")));
+
+  teacherPortalAvisosList.innerHTML = avisos
+    .map(
+      (aviso) => `
+        <article class="teacher-portal-aviso-item">
+          <h4>${escapeHtml(aviso.titulo || "Aviso")}</h4>
+          <p>${escapeHtml(aviso.mensaje || "")}</p>
+          ${aviso.fecha ? `<time>${escapeHtml(aviso.fecha)}</time>` : ""}
+        </article>
+      `
+    )
+    .join("");
+  teacherPortalAvisosEmptyState.hidden = avisos.length > 0;
+}
+
+function renderTeacherPortalQuincenas(profile) {
+  if (!teacherPortalQuincenasList || !teacherPortalJornadasEmptyState) {
+    return;
+  }
+
+  const groups = profile ? getTeacherPortalQuincenaGroups(profile) : [];
+
+  teacherPortalQuincenasList.innerHTML = groups
+    .map(
+      (group) => `
+        <article class="teacher-portal-quincena-card">
+          <h4>${escapeHtml(group.label)}</h4>
+          <div class="teacher-portal-quincena-dias">
+            ${group.dias.map((fecha) => `<span class="teacher-portal-quincena-dia">${escapeHtml(fecha)}</span>`).join("")}
+          </div>
+        </article>
+      `
+    )
+    .join("");
+  teacherPortalJornadasEmptyState.hidden = groups.length > 0;
+}
+
+// "Mis grupos" se construye por coincidencia de curso: cada maestra ya tiene
+// una especialidad/curso asignado (getTeacherOperationalSpecialty) y cada
+// alumna ya tiene su curso (student.curso) desde Altas -- no se necesita un
+// campo nuevo de "maestra asignada" para relacionarlos (decisión del CEO,
+// 30/oct/2026). Un "grupo" agrupa alumnas del mismo curso que además
+// comparten día de clases y horario, que es lo que realmente las junta en
+// un mismo salón.
+function getTeacherPortalGrupos(profile) {
+  const specialty = profile ? getTeacherOperationalSpecialty(profile) : "";
+  if (!specialty || specialty === "COORD de maestras") {
+    return [];
+  }
+
+  const alumnasActivas = students.filter((student) => {
+    const curso = __veneziaGet(student, "curso") || "";
+    return curso === specialty && !isStudentDropped(student) && !isStudentCourseCompletedForAttendance(student);
+  });
+
+  const groups = new Map();
+  alumnasActivas.forEach((student) => {
+    const diaClases = __veneziaGet(student, "diaClases") || "Día por confirmar";
+    const horario = __veneziaGet(student, "horario") || "Horario por confirmar";
+    const key = `${diaClases}::${horario}`;
+    if (!groups.has(key)) {
+      groups.set(key, { label: `${diaClases} · ${horario}`, alumnas: [] });
+    }
+
+    const attendanceHistory = attendanceRecords
+      .filter((record) => record.studentId === student.id)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const attendanceCalendar = getStudentAttendanceCalendar(student);
+    const overview = getMiVeneziaAttendanceOverview(student, attendanceHistory, attendanceCalendar);
+    const claseActual =
+      __veneziaGet(overview.latestRegistered, "classLabel") ||
+      __veneziaGet(overview.nextClass, "classLabel") ||
+      "Sin información disponible por ahora.";
+
+    groups.get(key).alumnas.push({
+      nombre: student.nombre || "-",
+      claseActual,
+      totalClases: overview.totalClases,
+      clasesTomadas: overview.clasesTomadas,
+    });
+  });
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      alumnas: group.alumnas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+}
+
+function renderTeacherPortalGruposLauncher(profile) {
+  if (!teacherPortalGruposSummary || !teacherPortalOpenGruposButton) {
+    return;
+  }
+
+  const specialty = profile ? getTeacherOperationalSpecialty(profile) : "";
+
+  if (!profile || !specialty) {
+    teacherPortalGruposSummary.textContent = "Se activa en cuanto tengas un perfil docente con especialidad enlazado.";
+    teacherPortalOpenGruposButton.disabled = true;
+    return;
+  }
+
+  if (specialty === "COORD de maestras") {
+    teacherPortalGruposSummary.textContent = "Como coordinadora no tienes un curso asignado directamente.";
+    teacherPortalOpenGruposButton.disabled = true;
+    return;
+  }
+
+  const grupos = getTeacherPortalGrupos(profile);
+  const totalAlumnas = grupos.reduce((sum, group) => sum + group.alumnas.length, 0);
+
+  if (grupos.length === 0) {
+    teacherPortalGruposSummary.textContent = `Por ahora no hay alumnas activas registradas en ${specialty}.`;
+    teacherPortalOpenGruposButton.disabled = true;
+    return;
+  }
+
+  teacherPortalGruposSummary.textContent = `${grupos.length} grupo${grupos.length === 1 ? "" : "s"} activo${
+    grupos.length === 1 ? "" : "s"
+  } · ${totalAlumnas} alumna${totalAlumnas === 1 ? "" : "s"} en ${specialty}`;
+  teacherPortalOpenGruposButton.disabled = false;
+}
+
+function renderTeacherPortalGruposView(profile) {
+  if (!teacherPortalGruposList || !teacherPortalGruposEmptyState) {
+    return;
+  }
+
+  const grupos = profile ? getTeacherPortalGrupos(profile) : [];
+
+  teacherPortalGruposList.innerHTML = grupos
+    .map(
+      (group) => `
+        <article class="teacher-portal-grupo-card">
+          <h4>${escapeHtml(group.label)}</h4>
+          <p class="teacher-portal-grupo-count">${group.alumnas.length} alumna${group.alumnas.length === 1 ? "" : "s"}</p>
+          <ul class="teacher-portal-grupo-alumnas">
+            ${group.alumnas
+              .map(
+                (alumna) => `
+                  <li>
+                    <span class="teacher-portal-grupo-alumna-nombre">${escapeHtml(alumna.nombre)}</span>
+                    <span class="teacher-portal-grupo-alumna-clase">${escapeHtml(alumna.claseActual)}</span>
+                  </li>
+                `
+              )
+              .join("")}
+          </ul>
+        </article>
+      `
+    )
+    .join("");
+
+  teacherPortalGruposEmptyState.hidden = grupos.length > 0;
+}
+
+function openTeacherPortalGrupos() {
+  const profile = getTeacherProfileByInternalUser(getCurrentInternalUser());
+  renderTeacherPortalGruposView(profile);
+  teacherPortalDashboard.hidden = true;
+  if (teacherPortalTemarioView) {
+    teacherPortalTemarioView.hidden = true;
+  }
+  teacherPortalGruposView.hidden = false;
+}
+
+function closeTeacherPortalGrupos() {
+  teacherPortalGruposView.hidden = true;
+  teacherPortalDashboard.hidden = false;
+}
+
+function renderTeacherPortalTemarioLauncher(profile) {
+  if (!teacherPortalTemarioSummary || !teacherPortalOpenTemarioButton) {
+    return;
+  }
+
+  const content = window.VeneziaDocenteContent;
+  const specialty = profile ? getTeacherOperationalSpecialty(profile) : "";
+  const temario = content && specialty ? content.TEMARIOS[specialty] : null;
+
+  if (!profile || !specialty) {
+    teacherPortalTemarioSummary.textContent = "Se activa en cuanto tengas un perfil docente con especialidad enlazado.";
+    teacherPortalOpenTemarioButton.disabled = true;
+    return;
+  }
+
+  if (!temario) {
+    teacherPortalTemarioSummary.textContent = `El temario de ${specialty} todavía no está cargado por Dirección.`;
+    teacherPortalOpenTemarioButton.disabled = true;
+    return;
+  }
+
+  teacherPortalTemarioSummary.textContent = `${temario.curso} · ${temario.duracion} · ${temario.totalClases} clases`;
+  teacherPortalOpenTemarioButton.disabled = false;
+}
+
+function renderTeacherPortalTemarioView(profile) {
+  const content = window.VeneziaDocenteContent;
+  const specialty = profile ? getTeacherOperationalSpecialty(profile) : "";
+  const temario = content && specialty ? content.TEMARIOS[specialty] : null;
+
+  if (!teacherPortalTemarioClases) {
+    return;
+  }
+
+  if (!temario) {
+    teacherPortalTemarioTitle.textContent = "Temario";
+    teacherPortalTemarioMeta.textContent = "";
+    teacherPortalTemarioDescripcion.textContent = "";
+    teacherPortalTemarioClases.innerHTML =
+      '<p class="teacher-portal-temario-pendiente">Este temario todavía no está disponible.</p>';
+    teacherPortalTemarioObjetivoPanel.hidden = true;
+    return;
+  }
+
+  teacherPortalTemarioTitle.textContent = temario.curso;
+  teacherPortalTemarioMeta.textContent = `${temario.duracion} · ${temario.totalClases} clases · Formación teórico-práctica`;
+  teacherPortalTemarioDescripcion.textContent = temario.descripcion;
+
+  teacherPortalTemarioClases.innerHTML = temario.clases
+    .map(
+      (clase) => `
+        <article class="teacher-portal-clase-card">
+          <div class="teacher-portal-clase-header">
+            <span class="teacher-portal-clase-numero">${escapeHtml(String(clase.numero).padStart(2, "0"))}</span>
+            <h4 class="teacher-portal-clase-titulo">Clase ${escapeHtml(String(clase.numero))} · ${escapeHtml(clase.titulo)}</h4>
+          </div>
+          ${clase.secciones
+            .map(
+              (seccion) => `
+                <div class="teacher-portal-clase-seccion">
+                  ${seccion.nombre ? `<p class="teacher-portal-clase-seccion-nombre">${escapeHtml(seccion.nombre)}</p>` : ""}
+                  <ul>${seccion.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+                </div>
+              `
+            )
+            .join("")}
+        </article>
+      `
+    )
+    .join("");
+
+  if (temario.objetivoFinal) {
+    teacherPortalTemarioObjetivo.textContent = temario.objetivoFinal;
+    teacherPortalTemarioObjetivoPanel.hidden = false;
+  } else {
+    teacherPortalTemarioObjetivoPanel.hidden = true;
+  }
+
+  renderTeacherPortalTemarioWatermark(profile);
+}
+
+// Marca de agua disuasiva sobre el temario: texto institucional genérico
+// repetido en diagonal sobre todo el contenido (sin el nombre de la
+// maestra). No puede impedir una captura de pantalla (eso lo controla el
+// sistema operativo del dispositivo, no la página), pero deja claro que el
+// contenido es propiedad del Instituto y no debe compartirse.
+function renderTeacherPortalTemarioWatermark() {
+  if (!teacherPortalTemarioWatermark) {
+    return;
+  }
+  const stamp = "Instituto Venezia";
+
+  // Patrón repetido vía SVG en vez de una cuadrícula de N tiles fijos: un
+  // temario puede medir varios miles de píxeles de alto (24 clases con
+  // varias secciones cada una) y una cuadrícula de tamaño fijo se queda
+  // corta y deja sin marca de agua la parte de abajo. Un background-image
+  // con "repeat" cubre cualquier alto automáticamente.
+  const tileWidth = 340;
+  const tileHeight = 170;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${tileWidth}" height="${tileHeight}">` +
+    `<text x="${tileWidth / 2}" y="${tileHeight / 2}" transform="rotate(-28 ${tileWidth / 2} ${tileHeight / 2})" ` +
+    `text-anchor="middle" dominant-baseline="middle" font-family="Manrope, Arial, sans-serif" ` +
+    `font-size="15" font-weight="700" fill="#2b2418">${escapeHtml(stamp)}</text></svg>`;
+  const dataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+  teacherPortalTemarioWatermark.innerHTML = "";
+  teacherPortalTemarioWatermark.style.backgroundImage = `url("${dataUrl}")`;
+  teacherPortalTemarioWatermark.style.backgroundRepeat = "repeat";
+  teacherPortalTemarioWatermark.style.backgroundSize = `${tileWidth}px ${tileHeight}px`;
+}
+
+function openTeacherPortalTemario() {
+  const profile = getTeacherProfileByInternalUser(getCurrentInternalUser());
+  renderTeacherPortalTemarioView(profile);
+  teacherPortalDashboard.hidden = true;
+  if (teacherPortalGruposView) {
+    teacherPortalGruposView.hidden = true;
+  }
+  teacherPortalTemarioView.hidden = false;
+}
+
+function closeTeacherPortalTemario() {
+  teacherPortalTemarioView.hidden = true;
+  teacherPortalDashboard.hidden = false;
 }
 
 function renderTeacherPortalDashboard() {
@@ -18892,6 +19287,10 @@ function renderTeacherPortalDashboard() {
     return;
   }
 
+  renderTeacherPortalStaticContent();
+  renderTeacherPortalTemarioLauncher(profile);
+  renderTeacherPortalGruposLauncher(profile);
+
   if (!profile) {
     teacherPortalHeroName.textContent = user.fullName || "Mi Portal Docente";
     teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Maestras.";
@@ -18904,25 +19303,10 @@ function renderTeacherPortalDashboard() {
       { label: "Estado", value: "Pendiente de enlace" },
       { label: "Acción", value: "Solicita a Dirección que vincule tu perfil docente." },
     ]);
-    renderInfoList(teacherPortalPayrollSummary, [
-      { label: "Periodo", value: getTeacherPortalCurrentRange().label },
-      { label: "Nómina", value: "$0" },
-      { label: "Estatus", value: "Sin configuración" },
-    ]);
-    renderInfoList(teacherPortalPayrollRules, [
-      { label: "Portal", value: "Pendiente de enlace" },
-    ]);
-    renderInfoList(teacherPortalPeriodInfo, [
-      { label: "Periodo actual", value: getTeacherPortalCurrentRange().label },
-    ]);
-    teacherPortalJornadasBody.innerHTML = "";
-    teacherPortalPayrollBody.innerHTML = "";
-    teacherPortalJornadasEmptyState.hidden = false;
-    teacherPortalPayrollEmptyState.hidden = false;
+    renderTeacherPortalQuincenas(null);
     teacherPortalStatDays.textContent = "0";
     teacherPortalStatShifts.textContent = "0";
     teacherPortalStatIncidents.textContent = "0";
-    teacherPortalStatPayroll.textContent = formatCurrency(0);
     teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl({ nombreCompleto: user.fullName, sucursal: user.branch });
     teacherPortalDashboard.hidden = false;
     return;
@@ -18930,16 +19314,14 @@ function renderTeacherPortalDashboard() {
 
   const allEntries = getTeacherPortalEntries(profile);
   const period = getTeacherPortalCurrentRange();
-  const payrollEntries = getTeacherPortalPayrollEntries(profile, period);
   const periodEntries = allEntries.filter((entry) => isTeacherDateWithinRange(entry.fecha, period));
+  const workedInPeriod = periodEntries.filter((entry) => entry.estatus === "Asistió");
   const incidents = periodEntries.filter((entry) => entry.estatus === "Falta" || entry.estatus === "Permiso");
-  const totalDays = payrollEntries.length;
-  const totalShifts = payrollEntries.reduce((sum, entry) => sum + getTeacherCoveredTurnUnits(entry.turno), 0);
-  const totalPayroll = payrollEntries.reduce((sum, entry) => sum + Number(entry.estimatedPay || 0), 0);
+  const totalDays = workedInPeriod.length;
+  const totalShifts = workedInPeriod.reduce((sum, entry) => sum + getTeacherCoveredTurnUnits(entry.turno), 0);
   const statusLabel = profile.estadoDocente || user.status || "Activo";
   const operationalSpecialty = getTeacherOperationalSpecialty(profile);
   const coverageSpecialty = getTeacherCoverageDisplay(profile);
-  const paymentDates = getTeacherPortalPaymentDates(period);
 
   teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Mi Portal Docente";
   teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.puesto || "-"} · ${getTeacherSpecialtyDisplay(profile)}`;
@@ -18954,7 +19336,6 @@ function renderTeacherPortalDashboard() {
   teacherPortalStatDays.textContent = String(totalDays);
   teacherPortalStatShifts.textContent = String(totalShifts);
   teacherPortalStatIncidents.textContent = String(incidents.length);
-  teacherPortalStatPayroll.textContent = formatCurrency(totalPayroll);
   teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl(profile);
 
   renderInfoList(teacherPortalProfile, [
@@ -18968,49 +19349,7 @@ function renderTeacherPortalDashboard() {
     { label: "Usuario", value: profile.usuario || user.username || "-" },
   ]);
 
-  renderInfoList(teacherPortalPayrollSummary, [
-    { label: "Periodo", value: period.label },
-    { label: "Turnos válidos", value: String(totalShifts) },
-    { label: "Especialidad pagada", value: operationalSpecialty || "-" },
-    { label: "Total estimado", value: formatCurrency(totalPayroll) },
-  ]);
-
-  renderInfoList(teacherPortalPayrollRules, getTeacherPortalRuleCards(profile));
-  renderInfoList(teacherPortalPeriodInfo, [
-    { label: "Desde", value: period.from || "-" },
-    { label: "Hasta", value: period.to || "-" },
-    ...paymentDates,
-    { label: "Días válidos", value: String(totalDays) },
-    { label: "Monto actual", value: formatCurrency(totalPayroll) },
-  ]);
-
-  teacherPortalJornadasBody.innerHTML = allEntries
-    .map(
-      (entry) => `
-        <tr>
-          <td>${escapeHtml(entry.fecha || "-")}</td>
-          <td>${escapeHtml(entry.turno || "-")}</td>
-          <td>${escapeHtml(entry.estatus || "-")}</td>
-          <td>${escapeHtml(entry.observacion || "-")}</td>
-        </tr>
-      `
-    )
-    .join("");
-  teacherPortalJornadasEmptyState.hidden = allEntries.length > 0;
-
-  teacherPortalPayrollBody.innerHTML = payrollEntries
-    .map(
-      (entry) => `
-        <tr>
-          <td>${escapeHtml(entry.fecha || "-")}</td>
-          <td>${escapeHtml(entry.turno || "-")}</td>
-          <td>${escapeHtml(entry.estatus || "-")}</td>
-          <td>${formatCurrency(entry.estimatedPay || 0)}</td>
-        </tr>
-      `
-    )
-    .join("");
-  teacherPortalPayrollEmptyState.hidden = payrollEntries.length > 0;
+  renderTeacherPortalQuincenas(profile);
 
   teacherPortalDashboard.hidden = false;
 }
@@ -19479,6 +19818,7 @@ function renderAll() {
   updateFinanceSummary();
   renderInternalUsersTable();
   renderStaffTable();
+  renderDirectorAvisosAdminTable();
   syncStudentAccessRecords();
   if (activeStudentFileId) {
     renderStudentFile(activeStudentFileId);
@@ -19727,6 +20067,13 @@ staffForm.addEventListener("submit", async (event) => {
   renderAll();
   resetStaffForm();
 });
+
+if (directorAvisoForm) {
+  directorAvisoForm.addEventListener("submit", handleDirectorAvisoSubmit);
+}
+if (directorAvisosTableBody) {
+  directorAvisosTableBody.addEventListener("click", handleDirectorAvisoDeleteClick);
+}
 
 teacherForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -20038,7 +20385,6 @@ if (miVeneziaAttendanceToggle) {
 }
 
 miVeneziaPasswordForm.addEventListener("submit", handleMiVeneziaPasswordChange);
-teacherPortalPasswordForm.addEventListener("submit", handleTeacherPortalPasswordChange);
 
 async function handleWebLeadSubmit(event) {
   console.log("WEB ENVIAR SOLICITUD CLICKED");
@@ -20220,6 +20566,35 @@ financeClearButton.addEventListener("click", resetFinanceForm);
 balanceExpenseClearButton.addEventListener("click", resetBalanceExpenseForm);
 miVeneziaLogoutButton.addEventListener("click", logoutMiVenezia);
 teacherPortalLogoutButton.addEventListener("click", logoutInternalSession);
+if (teacherPortalOpenTemarioButton) {
+  teacherPortalOpenTemarioButton.addEventListener("click", openTeacherPortalTemario);
+}
+if (teacherPortalCloseTemarioButton) {
+  teacherPortalCloseTemarioButton.addEventListener("click", closeTeacherPortalTemario);
+}
+if (teacherPortalOpenGruposButton) {
+  teacherPortalOpenGruposButton.addEventListener("click", openTeacherPortalGrupos);
+}
+if (teacherPortalCloseGruposButton) {
+  teacherPortalCloseGruposButton.addEventListener("click", closeTeacherPortalGrupos);
+}
+if (teacherPortalTemarioProtected) {
+  // Disuasivos de copia/descarga del temario (petición del CEO, 30/oct/2026).
+  // No bloquean una captura de pantalla real -- eso lo controla el sistema
+  // operativo del dispositivo, no la página -- pero sí dificultan copiar,
+  // seleccionar, imprimir o guardar el contenido desde el navegador.
+  teacherPortalTemarioProtected.addEventListener("contextmenu", (event) => event.preventDefault());
+  teacherPortalTemarioProtected.addEventListener("selectstart", (event) => event.preventDefault());
+  teacherPortalTemarioProtected.addEventListener("copy", (event) => event.preventDefault());
+  teacherPortalTemarioProtected.addEventListener("dragstart", (event) => event.preventDefault());
+  teacherPortalTemarioProtected.addEventListener("keydown", (event) => {
+    const key = String(event.key || "").toLowerCase();
+    const blockedWithCtrl = ["p", "s", "c", "u"];
+    if ((event.ctrlKey || event.metaKey) && blockedWithCtrl.includes(key)) {
+      event.preventDefault();
+    }
+  });
+}
 internalLogoutButton.addEventListener("click", logoutInternalSession);
 internalLoginForm.addEventListener("input", () => {
   internalLoginError.hidden = true;
