@@ -596,6 +596,8 @@ const paymentsMonthFilter = document.getElementById("paymentsMonthFilter");
 const paymentsLateFeeOnlyFilterInput = document.getElementById("paymentsLateFeeOnlyFilter");
 const paymentsLateFeeStudentsCount = document.getElementById("paymentsLateFeeStudentsCount");
 const paymentsLateFeeTotalAmount = document.getElementById("paymentsLateFeeTotalAmount");
+const paymentsSyncPendingBanner = document.getElementById("paymentsSyncPendingBanner");
+const paymentsSyncPendingList = document.getElementById("paymentsSyncPendingList");
 const paymentsMonthlyIncome = document.getElementById("paymentsMonthlyIncome");
 const paymentsTlaxcalaCount = document.getElementById("paymentsTlaxcalaCount");
 const paymentsPueblaCount = document.getElementById("paymentsPueblaCount");
@@ -1486,10 +1488,6 @@ function registerPaymentComparisonTrace(trace) {
   });
 }
 
-function isJaquelinPaymentDebugStudent(studentName = "") {
-  return String(studentName || "").trim().toUpperCase().includes("JAQUELIN HUERTA");
-}
-
 function buildVisiblePaymentConsoleTrace({
   stage,
   studentName = "",
@@ -1710,15 +1708,6 @@ async function savePaymentRecord(record) {
     paymentId: record.id || "",
     payload,
   });
-  if (isJaquelinPaymentDebugStudent(studentName)) {
-    console.error("=== JAQUELIN DEBUG ===", {
-      stage: "savePaymentRecord:start",
-      studentName,
-      studentId: record.studentId || "",
-      paymentId: record.id || "",
-      payload,
-    });
-  }
   console.log('Pagos module target table: "student_payments"');
   console.log("PAGO payload", payload);
   console.log("PAGO savePaymentRecord entrada", summarizePaymentRecordForTrace(record));
@@ -1770,13 +1759,6 @@ async function savePaymentRecord(record) {
     console.error("=== PAGO SUPABASE ERROR ===", visibleTrace);
     console.error("=== PAGO SUPABASE ERROR RAW ===", result.error);
     console.error("=== PAGO SUPABASE RESPONSE RAW ===", result.response || null);
-    if (isJaquelinPaymentDebugStudent(studentName)) {
-      console.error("=== JAQUELIN DEBUG ===", {
-        stage: "savePaymentRecord:error",
-        ...visibleTrace,
-        rawError: result.error,
-      });
-    }
     console.error("PAGO error", result.error);
     console.error(
       "PAGO error message",
@@ -13286,6 +13268,19 @@ function getPersistentPaymentRecord(studentId) {
   };
 }
 
+// Igual que getPersistentPaymentRecord, pero ya reconciliado con Finanzas
+// (applyPaymentConceptDetailsToPaymentRecord): un concepto puede quedar
+// "Pagado" en Finanzas sin que el campo crudo del pago (ej. mensualidad4)
+// se haya marcado a mano. Cualquier cálculo de "¿qué le falta pagar a la
+// alumna?" (paneles de cobro, próximo/siguiente fin de semana, pagos
+// vencidos, lifecycle de continuidad) debe partir de este helper y NO de
+// getPersistentPaymentRecord directo, o vuelve a aparecer el bug de
+// alumnas que ya pagaron pero siguen saliendo como pendientes (reportado
+// por el CEO, 02/nov/2026).
+function getReconciledPersistentPaymentRecord(studentId) {
+  return applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(studentId));
+}
+
 function buildPaymentEditableRecord(historyRecord, monthRecord, month, studentId) {
   if (!__veneziaGet(monthRecord, "id")) {
     return {
@@ -13633,6 +13628,27 @@ function hasUnsavedPaymentTableChanges() {
 
   return Array.from(paymentsTableBody.querySelectorAll("[data-payment-field][data-payment-initial-value]"))
     .some((control) => hasPaymentControlChanged(control));
+}
+
+// Valida el texto crudo que la usuaria escribió en "Cantidad pagada" antes de
+// guardar. parsePaymentAmount() es intencionalmente permisivo (convierte
+// basura/negativos silenciosamente a 0 o los acepta tal cual) porque también
+// se usa para LEER montos ya guardados; esta función en cambio es para
+// BLOQUEAR un guardado nuevo con un valor inválido. Cadena vacía es válida
+// (significa "sin monto capturado todavía").
+function getPaymentAmountValidationError(rawValue) {
+  const trimmed = String(rawValue || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  const normalized = trimmed.replace(/[$,\s]/g, "");
+  if (!/^-?\d+(\.\d{1,2})?$/.test(normalized)) {
+    return "La cantidad pagada debe ser un número válido (ej. 1600 o 1600.50).";
+  }
+  if (Number(normalized) < 0) {
+    return "La cantidad pagada no puede ser negativa.";
+  }
+  return "";
 }
 
 function capturePaymentFormSnapshot(studentId, paymentMonth) {
@@ -14245,7 +14261,7 @@ function buildUpcomingPaymentEntry(student, { scope = getUpcomingPaymentSchedule
     return null;
   }
 
-  const paymentRecord = getPersistentPaymentRecord(student.id);
+  const paymentRecord = getReconciledPersistentPaymentRecord(student.id);
   const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, anchorDate);
   if (!lifecycle.activeForCollection || lifecycle.archivedNoContinuation || lifecycle.lastMonthlyPaid) {
     return null;
@@ -14393,7 +14409,7 @@ function getUpcomingPaymentsForWeekendWindow(windowRange, studentsList = getCano
   return studentsList
     .filter(isStudentActiveForPaymentReview)
     .map((student) => {
-      const paymentRecord = getPersistentPaymentRecord(student.id);
+      const paymentRecord = getReconciledPersistentPaymentRecord(student.id);
       const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, windowRange.from);
 
       if (!lifecycle.activeForCollection || lifecycle.archivedNoContinuation || lifecycle.lastMonthlyPaid) {
@@ -14632,7 +14648,7 @@ function buildOverduePaymentReviewEntries(student, anchorDate = getCurrentMexico
     return [];
   }
 
-  const paymentRecord = applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(student.id));
+  const paymentRecord = getReconciledPersistentPaymentRecord(student.id);
   const lifecycle = getStudentCollectionLifecycle(student, paymentRecord, anchorDate);
   if (lifecycle.archivedNoContinuation) {
     return [];
@@ -15174,6 +15190,13 @@ async function savePaymentForStudent(studentId) {
   const targetPaymentMonth = resolvePaymentSaveMonth();
   const formSnapshot = capturePaymentFormSnapshot(studentId, targetPaymentMonth);
   const studentName = formSnapshot.studentName;
+
+  const amountValidationError = getPaymentAmountValidationError(formSnapshot.values.cantidadPagada);
+  if (amountValidationError) {
+    alert(amountValidationError);
+    return;
+  }
+
   paymentSaveStudentIds.add(studentId);
   setPaymentSaveUiState(studentId, true);
 
@@ -15185,15 +15208,6 @@ async function savePaymentForStudent(studentId) {
     paymentId: "",
     targetPaymentMonth,
   });
-  if (isJaquelinPaymentDebugStudent(studentName)) {
-    console.error("=== JAQUELIN DEBUG ===", {
-      stage: "savePaymentForStudent:start",
-      studentName,
-      studentId,
-      paymentId: "",
-      targetPaymentMonth,
-    });
-  }
   console.log("PAGO savePaymentForStudent entrada", {
     studentId,
     selectedPaymentsMonth,
@@ -15217,7 +15231,7 @@ async function savePaymentForStudent(studentId) {
     return;
   }
 
-  const historyRecord = applyPaymentConceptDetailsToPaymentRecord(getPersistentPaymentRecord(studentId));
+  const historyRecord = getReconciledPersistentPaymentRecord(studentId);
   const currentMonthRecord = getCanonicalPaymentRecord(studentId, targetPaymentMonth);
   const editingMonthRecord = applyPaymentConceptDetailsToPaymentRecord(
     buildPaymentEditableRecord(
@@ -15248,18 +15262,6 @@ async function savePaymentForStudent(studentId) {
     paymentId: resolvedPaymentId,
   });
   console.log("=== PERSISTED RECORD BEFORE SAVE ===", summarizePaymentSaveDebugRecord(recordToUpdate || editingMonthRecord || historyRecord));
-  if (isJaquelinPaymentDebugStudent(studentName)) {
-    console.error("=== JAQUELIN DEBUG ===", {
-      stage: "savePaymentForStudent:existing-row-check",
-      studentName,
-      studentId,
-      targetPaymentMonth,
-      existingPaymentRowFound: Boolean(__veneziaGet(recordToUpdate, "id")),
-      existingPaymentRowSource: existingPaymentRow.source,
-      existingPaymentRowId: __veneziaGet(recordToUpdate, "id") || "",
-      reusedPaymentId: resolvedPaymentId,
-    });
-  }
   const baseRecord = {
     ...historyRecord,
     id: resolvedPaymentId,
@@ -15665,7 +15667,41 @@ async function savePaymentForStudent(studentId) {
   }
 }
 
+// Antes, un pago que fallaba al sincronizar con Supabase quedaba marcado
+// internamente (localSyncStatus: "pending") pero sin ningún indicador
+// visible en la interfaz -- solo un aviso flotante de 5 segundos que
+// aparecía una sola vez, en el momento exacto del reintento fallido. Si
+// nadie estaba viendo el módulo Pagos en ese instante, el pago quedaba
+// invisible, guardado solo en ese navegador. Este banner es persistente:
+// se recalcula cada vez que se renderiza Pagos, así que se ve mientras el
+// problema siga existiendo, no solo en el momento en que ocurrió.
+function renderPaymentsSyncPendingBanner() {
+  if (!paymentsSyncPendingBanner || !paymentsSyncPendingList) {
+    return;
+  }
+
+  const pendingRecords = paymentRecords.filter((record) => record.localSyncStatus === "pending");
+
+  if (pendingRecords.length === 0) {
+    paymentsSyncPendingBanner.hidden = true;
+    paymentsSyncPendingList.innerHTML = "";
+    return;
+  }
+
+  paymentsSyncPendingList.innerHTML = pendingRecords
+    .map((record) => {
+      const studentName = getPaymentAutoSyncStudentName(record);
+      const amount = record.cantidadPagada ? formatCurrency(parsePaymentAmount(record.cantidadPagada)) : "";
+      const attemptedAt = record.localSyncAttemptedAt ? formatDisplayDate(String(record.localSyncAttemptedAt).slice(0, 10)) : "";
+      const detailParts = [amount, attemptedAt ? `último intento: ${attemptedAt}` : ""].filter(Boolean);
+      return `<li><strong>${escapeHtml(studentName)}</strong>${detailParts.length ? ` — ${escapeHtml(detailParts.join(" · "))}` : ""}</li>`;
+    })
+    .join("");
+  paymentsSyncPendingBanner.hidden = false;
+}
+
 function updatePaymentsSummary() {
+  renderPaymentsSyncPendingBanner();
   const activeStudentIds = new Set(getActiveStudents().map((student) => student.id));
   const collectionSummary = getPaymentsCollectionLifecycleSummary();
   const today = getCurrentMexicoDateValue();

@@ -2795,6 +2795,34 @@ td select {
   font-weight: 700;
 }
 
+.payments-sync-pending-banner {
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(182, 83, 83, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fcf2ef 0%, #f8e7e2 100%);
+  color: #8b4f43;
+}
+
+.payments-sync-pending-title {
+  margin: 0 0 0.3rem;
+  font-weight: 800;
+}
+
+.payments-sync-pending-copy {
+  margin: 0 0 0.6rem;
+  font-weight: 500;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.payments-sync-pending-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .alta-summary-card {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
