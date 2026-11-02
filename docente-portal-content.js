@@ -38,12 +38,12 @@ window.VeneziaDocenteContent = (function () {
       numero: 2,
       titulo: "Niños fuera del área de trabajo",
       detalle:
-        "Si una modelo llega con niños, el maestro le avisa que ella los cuida y que no pueden estar cerca de químicos, navajas ni máquinas.",
+        "Si una modelo llega con niños, la persona docente le avisa que ella los cuida y que no pueden estar cerca de químicos, navajas ni máquinas.",
     },
     {
       numero: 3,
       titulo: "Pagos",
-      detalle: "El maestro no recibe dinero de nadie; todos los cobros los hace el instituto.",
+      detalle: "La persona docente no recibe dinero de nadie; todos los cobros los hace el instituto.",
     },
     {
       numero: 4,
@@ -382,7 +382,7 @@ window.VeneziaDocenteContent = (function () {
         {
           numero: 5,
           titulo: "Práctica de diseño de ceja en modelo",
-          secciones: [{ nombre: "", items: ["Instrucciones por la maestra"] }],
+          secciones: [{ nombre: "", items: ["Instrucciones por la persona docente"] }],
         },
         {
           numero: 6,
@@ -614,7 +614,7 @@ window.VeneziaDocenteContent = (function () {
                 "Acabado profesional",
                 "Fotografías del trabajo",
                 "Cuidados posteriores",
-                "Retroalimentación de la maestra",
+                "Retroalimentación de la persona docente",
               ],
             },
           ],
@@ -817,7 +817,7 @@ window.VeneziaDocenteContent = (function () {
               items: [
                 "Aplicación básica de gelish en las propias manos de cada alumna",
                 "Si hay dos alumnas, práctica entre ellas; si no, cada alumna trabaja en sus propias manos",
-                "Corrección de errores bajo supervisión de la maestra",
+                "Corrección de errores bajo supervisión de la persona docente",
                 "Revisión de limpieza, uniformidad y acabado",
               ],
             },
@@ -925,7 +925,7 @@ window.VeneziaDocenteContent = (function () {
                 "Recepción y observación inicial de los pies",
                 "Identificación de condiciones visibles y posibles contraindicaciones",
                 "Preparación básica de las uñas de los pies",
-                "Demostración de la maestra y aplicación sencilla de gelish en pies, si el tiempo lo permite",
+                "Demostración de la persona docente y aplicación sencilla de gelish en pies, si el tiempo lo permite",
                 "Revisión del acabado y corrección bajo supervisión",
               ],
             },
@@ -949,7 +949,7 @@ window.VeneziaDocenteContent = (function () {
             },
             {
               nombre: "Práctica supervisada",
-              items: ["Ejecución de la secuencia indicada por la maestra", "Aplicación de gelish con diseño", "Revisión de higiene, técnica y presentación final"],
+              items: ["Ejecución de la secuencia indicada por la persona docente", "Aplicación de gelish con diseño", "Revisión de higiene, técnica y presentación final"],
             },
           ],
         },
@@ -971,7 +971,7 @@ window.VeneziaDocenteContent = (function () {
             },
             {
               nombre: "Práctica integral en modelo real",
-              items: ["Realización del pedicure estético", "Aplicación de gelish", "Revisión de la técnica, higiene y presentación", "Corrección individual por parte de la maestra"],
+              items: ["Realización del pedicure estético", "Aplicación de gelish", "Revisión de la técnica, higiene y presentación", "Corrección individual por parte de la persona docente"],
             },
           ],
         },
@@ -990,7 +990,7 @@ window.VeneziaDocenteContent = (function () {
                 "Recepción y valoración inicial de la clienta",
                 "Identificación de posibles contraindicaciones",
                 "Ejecución completa del pedicure estético",
-                "Aplicación de las técnicas indicadas por la maestra",
+                "Aplicación de las técnicas indicadas por la persona docente",
                 "Aplicación de gelish y diseño sencillo",
                 "Revisión de higiene, técnica y acabado final",
               ],
@@ -1103,7 +1103,7 @@ window.VeneziaDocenteContent = (function () {
             },
             {
               nombre: "Perfeccionamiento desde la primera práctica con modelo",
-              items: ["Corrección de errores durante la aplicación", "Revisión del limado y la estructura", "Corrección de grosor, ápice y simetría", "Identificación de posibles levantamientos y errores de retención", "Perfeccionamiento bajo supervisión directa de la maestra"],
+              items: ["Corrección de errores durante la aplicación", "Revisión del limado y la estructura", "Corrección de grosor, ápice y simetría", "Identificación de posibles levantamientos y errores de retención", "Perfeccionamiento bajo supervisión directa de la persona docente"],
             },
             {
               nombre: "Diseño y acabado",
@@ -1195,7 +1195,7 @@ window.VeneziaDocenteContent = (function () {
             },
             {
               nombre: "Práctica integral",
-              items: ["Aplicación completa del sistema seleccionado", "Elaboración de un diseño", "Revisión de estructura y acabado", "Corrección de errores bajo supervisión de la maestra"],
+              items: ["Aplicación completa del sistema seleccionado", "Elaboración de un diseño", "Revisión de estructura y acabado", "Corrección de errores bajo supervisión de la persona docente"],
             },
           ],
         },

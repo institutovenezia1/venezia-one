@@ -113,7 +113,7 @@
           <button class="nav-item" type="button" data-module="asistencias"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 9.5h16M8 3v3.4M16 3v3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m9 14 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Asistencias</span></button>
           <button class="nav-item" type="button" data-module="pagos"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10.2h18" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="nav-label">Pagos</span></button>
           <button class="nav-item" type="button" data-module="balance"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M7 7l-4 8a4 4 0 0 0 8 0Zm10 0-4 8a4 4 0 0 0 8 0Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M5 21h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9 3h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="nav-label">Balance</span></button>
-          <button class="nav-item" type="button" data-module="maestras"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 2 9l10 5 8-4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 11.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span class="nav-label">Maestras</span></button>
+          <button class="nav-item" type="button" data-module="maestras"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 2 9l10 5 8-4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 11.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span class="nav-label">Docentes</span></button>
           <button class="nav-item" type="button" data-module="finanzas"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V10m6 9V5m6 14v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="nav-label">Finanzas</span></button>
           <button class="nav-item" type="button" data-module="personal"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15.3 20a4.4 4.4 0 0 1 6.2-3.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Personal</span></button>
           <button class="nav-item" type="button" data-module="usuarios-accesos"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8.5" cy="14.5" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11.7 11.6 19 4.3m0 0v3.3m0-3.3h-3.3M16 8l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Usuarios y accesos</span></button>
@@ -1035,7 +1035,7 @@
             <section class="panel maestras-capture-panel" hidden>
               <div class="section-heading">
                 <p class="eyebrow">Configuración</p>
-                <h3>Configurar maestra</h3>
+                <h3>Configurar docente</h3>
               </div>
 
               <form id="teacherForm" class="prospect-form">
@@ -1077,7 +1077,7 @@
                     <option>Pestañas</option>
                     <option>Maquillaje</option>
                     <option>Barbería</option>
-                    <option>COORD de maestras</option>
+                    <option value="COORD de maestras">COORD de docentes</option>
                   </select>
                 </label>
 
@@ -1146,7 +1146,7 @@
                 </label>
 
                 <label>
-                  <span>Maestra</span>
+                  <span>Docente</span>
                   <select id="teacherAttendanceTeacherId" name="maestraId" required>
                     <option value="">Selecciona una opcion</option>
                   </select>
@@ -1183,7 +1183,7 @@
                 </label>
 
                 <p id="teacherAttendanceHelper" class="module-helper-copy">
-                  Si ya existe un registro para la misma maestra y fecha, se actualizará el registro existente.
+                  Si ya existe un registro para el mismo docente y fecha, se actualizará el registro existente.
                 </p>
 
                 <div class="form-actions full-width">
@@ -1213,7 +1213,7 @@
                 </label>
 
                 <label>
-                  <span>Maestra</span>
+                  <span>Docente</span>
                   <select id="teacherSummaryTeacherFilter">
                     <option value="">Todas</option>
                   </select>
@@ -1248,7 +1248,7 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Maestra</th>
+                      <th>Docente</th>
                       <th>Sucursal</th>
                       <th>Especialidad</th>
                       <th>Días laborados</th>
@@ -1267,14 +1267,20 @@
             </section>
           </section>
 
-          <section class="panel maestras-capture-panel teacher-portal-avisos-admin-panel" id="teacherAvisosAdminPanel">
+          <!-- Oculto a petición del CEO (30/oct/2026) hasta que se corra
+               director_avisos.sql en Supabase: sin esa tabla, un aviso
+               publicado solo se guarda en el navegador del admin que lo
+               publicó y no llega a las maestras/maestros en otros
+               dispositivos. Quitar "hidden" en cuanto el SQL ya esté
+               corrido. -->
+          <section class="panel maestras-capture-panel teacher-portal-avisos-admin-panel" id="teacherAvisosAdminPanel" hidden>
             <div class="section-heading">
               <p class="eyebrow">Dirección</p>
-              <h3>Avisos para maestras</h3>
+              <h3>Avisos para docentes</h3>
             </div>
 
             <p class="module-helper-copy">
-              Lo que publiques aquí aparece de inmediato en el Portal de Maestros, en la sección "Avisos".
+              Lo que publiques aquí aparece de inmediato en el Portal Docente, en la sección "Avisos".
             </p>
 
             <form id="directorAvisoForm" class="prospect-form">
@@ -1310,7 +1316,7 @@
               </table>
             </div>
             <p id="directorAvisosEmptyState" class="empty-state">
-              Aún no has publicado avisos para las maestras.
+              Aún no has publicado avisos para el equipo docente.
             </p>
           </section>
 
@@ -1356,7 +1362,7 @@
                   <thead>
                     <tr>
                       <th>Fecha</th>
-                      <th>Maestra</th>
+                      <th>Docente</th>
                       <th>Sucursal</th>
                       <th>Especialidad</th>
                       <th>Turno válido</th>
@@ -2072,7 +2078,7 @@
                     <option>Gerente</option>
                     <option>Director de sucursal</option>
                     <option>Asesora</option>
-                    <option>Maestra</option>
+                    <option value="Maestra">Docente</option>
                   </select>
                 </label>
 
@@ -2101,7 +2107,7 @@
                     <label><input type="checkbox" name="permissions" value="crm-prospectos" /> CRM Prospectos</label>
                     <label><input type="checkbox" name="permissions" value="altas" /> Altas</label>
                     <label><input type="checkbox" name="permissions" value="asistencias" /> Asistencias</label>
-                    <label><input type="checkbox" name="permissions" value="maestras" /> Maestras</label>
+                    <label><input type="checkbox" name="permissions" value="maestras" /> Docentes</label>
                     <label><input type="checkbox" name="permissions" value="pagos" /> Pagos</label>
                     <label><input type="checkbox" name="permissions" value="balance" /> Balance</label>
                     <label><input type="checkbox" name="permissions" value="finanzas" /> Finanzas</label>
@@ -2175,7 +2181,7 @@
                     <option value="">Selecciona una opcion</option>
                     <option>gerente de sucursal</option>
                     <option>director administrativo de sucursal</option>
-                    <option>coordinadora de maestras</option>
+                    <option value="coordinadora de maestras">coordinadora de docentes</option>
                     <option>miss de uñas</option>
                     <option>miss de pestañas</option>
                     <option>miss de barbería</option>
@@ -2890,7 +2896,7 @@
             <section class="panel teacher-portal-header-panel">
               <div class="section-heading">
                 <p class="eyebrow">Cuenta</p>
-                <h3>PORTAL DE MAESTRA</h3>
+                <h3>PORTAL DOCENTE</h3>
               </div>
 
               <div class="form-actions">
@@ -2900,7 +2906,7 @@
 
             <section class="panel mi-venezia-hero-panel teacher-portal-hero-panel">
               <div class="mi-venezia-hero-copy">
-                <p class="teacher-portal-stamp">PORTAL DE MAESTRA</p>
+                <p class="teacher-portal-stamp">PORTAL DOCENTE</p>
                 <p class="eyebrow">Panel principal</p>
                 <h3 id="teacherPortalHeroName">Mi Portal Docente</h3>
                 <p id="teacherPortalHeroMeta" class="subtitle">Consulta tus jornadas laborales y tu nómina estimada en un solo lugar.</p>
@@ -2975,7 +2981,8 @@
               <ol class="teacher-portal-actividades-list" id="teacherPortalActividadesList"></ol>
             </section>
 
-            <section class="panel teacher-portal-equal-panel teacher-portal-avisos-panel">
+            <!-- Oculto junto con el panel admin de avisos (ver nota arriba). -->
+            <section class="panel teacher-portal-equal-panel teacher-portal-avisos-panel" hidden>
               <div class="section-heading">
                 <p class="eyebrow">Dirección</p>
                 <h3>Avisos</h3>
@@ -3943,6 +3950,6 @@
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20261022-prospectos-asesora-rol-sin-cortar"></script>
     <script src="docente-portal-content.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
-    <script src="app.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
+    <script src="app.js?v=20261030-docente-ocultar-avisos"></script>
   </body>
 </html>

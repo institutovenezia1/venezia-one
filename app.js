@@ -2597,7 +2597,7 @@ async function handleDirectorAvisoSubmit(event) {
     });
 
     directorAvisoForm.reset();
-    setPortalPasswordFeedback(directorAvisoFeedback, "Aviso publicado. Ya aparece en el Portal de Maestros.", "success");
+    setPortalPasswordFeedback(directorAvisoFeedback, "Aviso publicado. Ya aparece en el Portal Docente.", "success");
     renderDirectorAvisosAdminTable();
     renderTeacherPortalAvisos();
   } catch (error) {
@@ -2725,6 +2725,20 @@ function getTeacherSpecialtyDisplay(record) {
   return primarySpecialty ? `${primarySpecialty} · Cubre ${coverageSpecialty}` : coverageSpecialty;
 }
 
+// Solo para MOSTRAR valores que en los datos siguen guardando "...maestras..."
+// (role "Maestra", especialidad "COORD de maestras", puesto "coordinadora de
+// maestras") -- esos valores NO se tocan (romperia el acceso de maestras/
+// maestros ya dados de alta y los <select> de edición, que siguen usando el
+// valor original), esto solo cambia lo que se le enseña a la persona en
+// pantalla. Petición del CEO (30/oct/2026): tenemos maestras y maestros, así
+// que en la UI ya no debe decir "maestras".
+function toTeacherFacingLabel(value) {
+  return String(value || "")
+    .replace(/COORD de maestras/g, "COORD de docentes")
+    .replace(/coordinadora de maestras/g, "coordinadora de docentes")
+    .replace(/^Maestra$/, "Docente");
+}
+
 function normalizeTeacherPosition(value) {
   return stripDiacritics(value)
     .trim()
@@ -2759,7 +2773,7 @@ function getDefaultTeacherSpecialtyFromPosition(position) {
 }
 
 function getTeacherDisplayName(record) {
-  return __veneziaGet(record, "nombreCompleto") || __veneziaGet(record, "nombre") || __veneziaGet(record, "teacherName") || __veneziaGet(record, "legacyNombreCompleto") || "Maestra";
+  return __veneziaGet(record, "nombreCompleto") || __veneziaGet(record, "nombre") || __veneziaGet(record, "teacherName") || __veneziaGet(record, "legacyNombreCompleto") || "Docente";
 }
 
 function getTeacherConfigTimestamp(record) {
@@ -3188,7 +3202,7 @@ function buildTeacherStaffOptions(records, selectedValue, defaultLabel = "Selecc
         const profile = buildTeacherProfileFromStaff(record, getTeacherConfigForStaffRecord(record));
         const statusLabel = profile.isConfigured ? "Configurada" : "Pendiente";
         return `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
-          `${record.nombre || "-"} · ${record.puesto || "-"} · ${record.sucursal || "-"} · ${statusLabel}`
+          `${record.nombre || "-"} · ${toTeacherFacingLabel(record.puesto) || "-"} · ${record.sucursal || "-"} · ${statusLabel}`
         )}</option>`;
       })
     )
@@ -3201,7 +3215,7 @@ function buildTeacherSelectOptions(records, selectedValue, defaultLabel = "Selec
       records.map(
         (record) =>
           `<option value="${escapeHtml(record.id)}" ${record.id === selectedValue ? "selected" : ""}>${escapeHtml(
-            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${getTeacherSpecialtyDisplay(record)}${record.source === "legacy" ? " · Legado" : ""}`
+            `${getTeacherDisplayName(record)} · ${record.sucursal || "-"} · ${toTeacherFacingLabel(getTeacherSpecialtyDisplay(record))}${record.source === "legacy" ? " · Legado" : ""}`
           )}</option>`
       )
     )
@@ -3969,11 +3983,11 @@ function renderTeachersTable() {
       (record) => `
         <tr>
           <td>${escapeHtml(getTeacherDisplayName(record))}</td>
-          <td>${escapeHtml(record.puesto || "-")}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(record.puesto) || "-")}</td>
           <td>${escapeHtml(record.sucursal || "-")}</td>
           <td>${escapeHtml(record.usuario || "-")}</td>
-          <td>${escapeHtml(record.especialidad || "-")}</td>
-          <td>${escapeHtml(getTeacherCoverageDisplay(record) || "-")}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(record.especialidad) || "-")}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(getTeacherCoverageDisplay(record)) || "-")}</td>
           <td>${escapeHtml(record.tipoPago || TEACHER_PAYMENT_TYPE)}</td>
           <td><span class="status-pill">${escapeHtml(record.isConfigured ? record.estadoDocente : "Pendiente")}</span></td>
           <td>
@@ -3999,7 +4013,7 @@ function renderTeacherAttendanceTable() {
           <td>${escapeHtml(entry.fecha || "-")}</td>
           <td>${escapeHtml(entry.teacherName || "-")}</td>
           <td>${escapeHtml(entry.sucursal || "-")}</td>
-          <td>${escapeHtml(entry.especialidad || "-")}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(entry.especialidad) || "-")}</td>
           <td>${escapeHtml(entry.turno || "-")}</td>
           <td>${escapeHtml(entry.estatus || "-")}${entry.duplicateCount > 1 ? ` <small>(${entry.duplicateCount} registros)</small>` : ""}</td>
           <td>${formatCurrency(entry.estimatedPay || 0)}</td>
@@ -4065,7 +4079,7 @@ function renderTeacherSummaryTable() {
         <tr>
           <td>${escapeHtml(row.teacherName || "-")}</td>
           <td>${escapeHtml(row.sucursal || "-")}</td>
-          <td>${escapeHtml(row.especialidad || "-")}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(row.especialidad) || "-")}</td>
           <td>${escapeHtml(String(row.diasLaborados))}</td>
           <td>${escapeHtml(String(row.turnosCubiertos))}</td>
           <td>${escapeHtml(
@@ -5985,7 +5999,7 @@ function getPlatformAccessCards(user = getCurrentInternalUser()) {
       eyebrow: "Sistema interno",
     },
     maestras: {
-      title: "Maestras",
+      title: "Docentes",
       description: "Administra configuración docente y asistencias laborales.",
       eyebrow: "Sistema interno",
     },
@@ -6015,7 +6029,7 @@ function getPlatformAccessCards(user = getCurrentInternalUser()) {
       eyebrow: "Sistema interno",
     },
     "portal-maestras": {
-      title: "Portal de Maestra",
+      title: "Portal Docente",
       description: "Entra a tu portal docente para revisar jornadas y nómina estimada.",
       eyebrow: "Portal docente",
     },
@@ -6307,7 +6321,7 @@ function updateSessionUI() {
 
   if (currentAccessMode === "internal" && user) {
     userBadge.hidden = false;
-    userBadge.textContent = `${user.fullName} | ${user.role}${user.branch && user.branch !== "Todas" ? ` | ${user.branch}` : ""}`;
+    userBadge.textContent = `${user.fullName} | ${toTeacherFacingLabel(user.role)}${user.branch && user.branch !== "Todas" ? ` | ${user.branch}` : ""}`;
     internalLogoutButton.hidden = false;
     internalLoginError.hidden = true;
   } else if (currentAccessMode === "student") {
@@ -6317,7 +6331,7 @@ function updateSessionUI() {
     internalLoginError.hidden = true;
   } else if (currentAccessMode === "teacher" && user) {
     userBadge.hidden = false;
-    userBadge.textContent = `Portal Maestras | ${user.fullName || "Maestra"}`;
+    userBadge.textContent = `Portal Docente | ${user.fullName || "Docente"}`;
     internalLogoutButton.hidden = false;
     internalLoginError.hidden = true;
   } else if (selectorMode && user) {
@@ -10137,7 +10151,7 @@ function renderInternalUsersTable() {
         <tr>
           <td>${escapeHtml(user.fullName)}</td>
           <td>${escapeHtml(user.username || user.phone)}</td>
-          <td>${escapeHtml(user.role)}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(user.role))}</td>
           <td>${escapeHtml(user.branch || "-")}</td>
           <td><span class="status-pill">${escapeHtml(user.status || "Activo")}</span></td>
           <td>
@@ -10177,7 +10191,7 @@ function renderStaffTable() {
         <tr>
           <td>${escapeHtml(record.nombre)}</td>
           <td>${escapeHtml(record.telefono)}</td>
-          <td>${escapeHtml(record.puesto)}</td>
+          <td>${escapeHtml(toTeacherFacingLabel(record.puesto))}</td>
           <td>${escapeHtml(record.area)}</td>
           <td>${escapeHtml(record.sucursal)}</td>
           <td>${escapeHtml(getDirectorContactScopeLabel(record.contactScheduleScope))}</td>
@@ -19080,14 +19094,14 @@ function renderTeacherPortalGruposLauncher(profile) {
   const totalAlumnas = grupos.reduce((sum, group) => sum + group.alumnas.length, 0);
 
   if (grupos.length === 0) {
-    teacherPortalGruposSummary.textContent = `Por ahora no hay alumnas activas registradas en ${specialty}.`;
+    teacherPortalGruposSummary.textContent = `Por ahora no hay alumnas activas registradas en ${toTeacherFacingLabel(specialty)}.`;
     teacherPortalOpenGruposButton.disabled = true;
     return;
   }
 
   teacherPortalGruposSummary.textContent = `${grupos.length} grupo${grupos.length === 1 ? "" : "s"} activo${
     grupos.length === 1 ? "" : "s"
-  } · ${totalAlumnas} alumna${totalAlumnas === 1 ? "" : "s"} en ${specialty}`;
+  } · ${totalAlumnas} alumna${totalAlumnas === 1 ? "" : "s"} en ${toTeacherFacingLabel(specialty)}`;
   teacherPortalOpenGruposButton.disabled = false;
 }
 
@@ -19155,7 +19169,7 @@ function renderTeacherPortalTemarioLauncher(profile) {
   }
 
   if (!temario) {
-    teacherPortalTemarioSummary.textContent = `El temario de ${specialty} todavía no está cargado por Dirección.`;
+    teacherPortalTemarioSummary.textContent = `El temario de ${toTeacherFacingLabel(specialty)} todavía no está cargado por Dirección.`;
     teacherPortalOpenTemarioButton.disabled = true;
     return;
   }
@@ -19293,11 +19307,11 @@ function renderTeacherPortalDashboard() {
 
   if (!profile) {
     teacherPortalHeroName.textContent = user.fullName || "Mi Portal Docente";
-    teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Maestras.";
+    teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Docentes.";
     renderInfoList(teacherPortalHeroSummary, [
       { label: "Usuario", value: user.username || "-" },
       { label: "Sucursal", value: user.branch || "-" },
-      { label: "Rol", value: user.role || "-" },
+      { label: "Rol", value: toTeacherFacingLabel(user.role) || "-" },
     ]);
     renderInfoList(teacherPortalProfile, [
       { label: "Estado", value: "Pendiente de enlace" },
@@ -19324,12 +19338,12 @@ function renderTeacherPortalDashboard() {
   const coverageSpecialty = getTeacherCoverageDisplay(profile);
 
   teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Mi Portal Docente";
-  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${profile.puesto || "-"} · ${getTeacherSpecialtyDisplay(profile)}`;
+  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${toTeacherFacingLabel(profile.puesto) || "-"} · ${toTeacherFacingLabel(getTeacherSpecialtyDisplay(profile))}`;
   renderInfoList(teacherPortalHeroSummary, [
     { label: "Sucursal", value: profile.sucursal || "-" },
-    { label: "Especialidad", value: profile.especialidad || "-" },
-    { label: "Cobertura", value: coverageSpecialty || "Sin cobertura adicional" },
-    { label: "Puesto", value: profile.puesto || "-" },
+    { label: "Especialidad", value: toTeacherFacingLabel(profile.especialidad) || "-" },
+    { label: "Cobertura", value: toTeacherFacingLabel(coverageSpecialty) || "Sin cobertura adicional" },
+    { label: "Puesto", value: toTeacherFacingLabel(profile.puesto) || "-" },
     { label: "Periodo", value: period.label },
   ]);
 
@@ -19341,10 +19355,10 @@ function renderTeacherPortalDashboard() {
   renderInfoList(teacherPortalProfile, [
     { label: "Nombre completo", value: profile.nombreCompleto || "-" },
     { label: "Sucursal", value: profile.sucursal || "-" },
-    { label: "Especialidad docente", value: profile.especialidad || "-" },
-    { label: "Cubre especialidad", value: coverageSpecialty || "Sin cobertura adicional" },
-    { label: "Especialidad operativa", value: operationalSpecialty || "-" },
-    { label: "Puesto", value: profile.puesto || "-" },
+    { label: "Especialidad docente", value: toTeacherFacingLabel(profile.especialidad) || "-" },
+    { label: "Cubre especialidad", value: toTeacherFacingLabel(coverageSpecialty) || "Sin cobertura adicional" },
+    { label: "Especialidad operativa", value: toTeacherFacingLabel(operationalSpecialty) || "-" },
+    { label: "Puesto", value: toTeacherFacingLabel(profile.puesto) || "-" },
     { label: "Estatus", value: statusLabel || "-" },
     { label: "Usuario", value: profile.usuario || user.username || "-" },
   ]);
@@ -19762,14 +19776,14 @@ function setActiveModule(module) {
     "crm-prospectos": "CRM Prospectos",
     altas: "Altas",
     asistencias: "Asistencias",
-    maestras: "Maestras",
+    maestras: "Docentes",
     pagos: "Pagos",
     balance: "Balance",
     finanzas: "Finanzas",
     "usuarios-accesos": "Usuarios y accesos",
     personal: "Personal",
     "mi-venezia": "Mi Venezia",
-    "portal-maestras": "Portal Maestras",
+    "portal-maestras": "Portal Docente",
     "access-selector": "Selección de acceso",
     "web-venezia": "Web Venezia",
   };
