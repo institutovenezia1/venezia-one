@@ -522,17 +522,6 @@
                         <option>Tlaxcala</option>
                       </select>
                     </label>
-
-                    <label>
-                      <span>Curso inscrito</span>
-                      <select id="altaCurso" name="curso" required>
-                        <option value="">Selecciona una opcion</option>
-                        <option>Uñas</option>
-                        <option>Pestañas</option>
-                        <option>Barbería</option>
-                        <option>Maquillaje</option>
-                      </select>
-                    </label>
                   </div>
                 </section>
 
@@ -542,10 +531,39 @@
                     <strong>Configuración del arranque</strong>
                   </div>
                   <div class="alta-form-block-grid">
+                    <!-- Orden fijo: curso → día → horario (cada uno depende del anterior).
+                         Las opciones de curso, día, horario y tipo de acceso las pinta app.js
+                         desde el catálogo ALTA_COURSE_CATALOG / ALTA_ACCESO_OPTIONS. -->
                     <label>
-                      <span>Fecha de inicio de clases</span>
+                      <span>Curso inscrito</span>
+                      <select id="altaCurso" name="curso" required>
+                        <option value="">Selecciona una opcion</option>
+                        <option value="Barbería">Corte y Barbería Profesional</option>
+                        <option value="Uñas">Manicura y Uñas Acrílicas Profesionales</option>
+                        <option value="Pestañas">Diseño de Ceja y Lashista Profesional</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Día de clase</span>
+                      <select id="altaDiaClases" name="diaClases">
+                        <option value="">Primero elige el curso</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Horario de clases</span>
+                      <select id="altaHorario" name="horario" required>
+                        <option value="">Primero elige el curso</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>Fecha de inicio</span>
                       <input id="altaFechaInscripcion" name="fechaInscripcion" type="date" />
                     </label>
+
+                    <input id="altaFechaInicio" name="fechaInicio" type="hidden" />
 
                     <label>
                       <span>Tipo de acceso</span>
@@ -553,31 +571,7 @@
                         <option value="">Selecciona una opcion</option>
                         <option>Platinum</option>
                         <option>Oro</option>
-                        <option>Plata</option>
                         <option>Beca Venezia</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <span>Horario</span>
-                      <select id="altaHorario" name="horario" required>
-                        <option value="">Selecciona una opcion</option>
-                        <option>9am a 1pm</option>
-                        <option>2pm a 6pm</option>
-                      </select>
-                    </label>
-
-                    <input id="altaFechaInicio" name="fechaInicio" type="hidden" />
-
-                    <label>
-                      <span>Día de clases</span>
-                      <select id="altaDiaClases" name="diaClases">
-                        <option value="">Selecciona una opcion</option>
-                        <option>Jueves</option>
-                        <option>Viernes</option>
-                        <option>Sábado</option>
-                        <option>Domingo</option>
-                        <option>Martes y Miércoles</option>
                       </select>
                     </label>
 
@@ -3960,6 +3954,6 @@
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20261022-prospectos-asesora-rol-sin-cortar"></script>
     <script src="docente-portal-content.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
-    <script src="app.js?v=20261102-pagos-fin-semana-sync-validacion"></script>
+    <script src="app.js?v=20261111-altas-catalogo-curso-dia-horario"></script>
   </body>
 </html>

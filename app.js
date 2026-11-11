@@ -223,27 +223,61 @@ const EXTENDED_DURATION_STUDENT_NAMES = new Set([
   "torres ortega montserrat",
   "cynthia jefte nava mazon",
 ]);
-// Horarios y dias de clase vigentes desde el 28/ago/2026 (regla de negocio de
-// Ismael). Solo aplican a nuevas altas: los registros existentes conservan el
-// horario/dia con el que ya fueron dados de alta. Ver ALTA_DIA_CLASES_OPTIONS,
-// getAltaHorarioOptionsForCurso() y updateAltaHorarioOptions().
-// "Martes y Miércoles" y sus 3 horarios propios (9-11/12-2/3-5) se agregaron
-// el 03/sep/2026 a petición de Ismael para tenerlos ya disponibles en Altas,
-// aunque el grupo todavía no arranca (uso futuro). Solo aplican al grupo
-// Uñas/Pestañas/Maquillaje, no a Barbería, y solo se ofrecen en "Horario"
-// cuando "Día de clases" es justo "Martes y Miércoles" (ver
-// ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES y getAltaHorarioOptionsForCurso());
-// para cualquier otro día se sigue usando el horario normal del curso.
-// Asistencias genera automáticamente las 2 fechas por semana para este grupo
-// (una "Semana N" con slot de Martes y slot de Miércoles) igual que ya hacía
-// para "Entre semana" con 3 días — ver MULTI_DAY_ATTENDANCE_SCHEDULES,
-// getAttendanceSessionGroups() y alignDateToSelectedClassDay(). Si se agrega
-// otro grupo de varios días por semana en el futuro, solo hace falta sumar su
-// entrada a ese mapa.
+// Catálogo FIJO de cursos, días y horarios para altas nuevas (regla de negocio
+// de Ismael, 11/nov/2026; reemplaza las listas sueltas del 28/ago y 03/sep).
+// Es la única fuente de verdad del formulario de Altas: el día que se ofrece
+// depende del curso, y el horario depende del curso Y del día. Ver
+// ALTA_COURSE_CATALOG, getAltaDiaClasesOptionsForCurso(),
+// getAltaHorarioOptionsForCurso() y handleAltaScheduleFieldChange().
+// - "value" es el nombre corto que se GUARDA en student.curso ("Barbería",
+//   "Uñas", "Pestañas"). No se cambia: de ese valor dependen pagos,
+//   asistencias, el temario del Portal Docente y Mi Venezia.
+// - "label" es el nombre oficial que se MUESTRA en el formulario.
+// - "keywords" sirve para reconocer el curso cuando llega escrito a mano
+//   desde el CRM ("Barberia", "corte", "uñas"...), ver resolveAltaCursoFromText().
+// Solo aplica a altas nuevas: las alumnas existentes conservan el curso, día,
+// horario y tipo de acceso con el que ya fueron dadas de alta (p. ej.
+// "Maquillaje", "Entre semana" o "Plata"), aunque ya no se ofrezcan.
+// "Martes y Miércoles" es un solo grupo que asiste los 2 días: Asistencias
+// genera automáticamente las 2 fechas por semana — ver
+// MULTI_DAY_ATTENDANCE_SCHEDULES, getAttendanceSessionGroups() y
+// alignDateToSelectedClassDay().
 const ALTA_HORARIO_OPTIONS_BARBERIA = ["9am a 12pm", "12pm a 3pm", "4pm a 7pm"];
 const ALTA_HORARIO_OPTIONS_DEFAULT = ["9am a 1pm", "2pm a 6pm"];
 const ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES = ["9am a 11am", "12pm a 2pm", "3pm a 5pm"];
-const ALTA_DIA_CLASES_OPTIONS = ["Jueves", "Viernes", "Sábado", "Domingo", "Martes y Miércoles"];
+const ALTA_SCHEDULE_BARBERIA = [
+  { dia: "Viernes", horarios: ALTA_HORARIO_OPTIONS_BARBERIA },
+  { dia: "Sábado", horarios: ALTA_HORARIO_OPTIONS_BARBERIA },
+  { dia: "Domingo", horarios: ALTA_HORARIO_OPTIONS_BARBERIA },
+];
+const ALTA_SCHEDULE_UNAS_PESTANAS = [
+  { dia: "Martes y Miércoles", horarios: ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES },
+  { dia: "Jueves", horarios: ALTA_HORARIO_OPTIONS_DEFAULT },
+  { dia: "Viernes", horarios: ALTA_HORARIO_OPTIONS_DEFAULT },
+  { dia: "Sábado", horarios: ALTA_HORARIO_OPTIONS_DEFAULT },
+  { dia: "Domingo", horarios: ALTA_HORARIO_OPTIONS_DEFAULT },
+];
+const ALTA_COURSE_CATALOG = [
+  {
+    value: "Barbería",
+    label: "Corte y Barbería Profesional",
+    keywords: ["barber", "corte"],
+    schedule: ALTA_SCHEDULE_BARBERIA,
+  },
+  {
+    value: "Uñas",
+    label: "Manicura y Uñas Acrílicas Profesionales",
+    keywords: ["una", "manicur", "acrilic"],
+    schedule: ALTA_SCHEDULE_UNAS_PESTANAS,
+  },
+  {
+    value: "Pestañas",
+    label: "Diseño de Ceja y Lashista Profesional",
+    keywords: ["pestan", "lash", "ceja"],
+    schedule: ALTA_SCHEDULE_UNAS_PESTANAS,
+  },
+];
+const ALTA_ACCESO_OPTIONS = ["Platinum", "Oro", "Beca Venezia"];
 const DATA_RESET_VERSION = "2026-04-07-clean-reset";
 const BALANCE_PAYMENT_CONCEPT_FIELDS = [
   { key: "certificadoP1", label: "Pago C1", movementLabel: "C1" },
@@ -5156,7 +5190,9 @@ function getAltaSummaryData(altaData) {
   return {
     studentCode: altaData.studentCode || "-",
     nombre: altaData.nombre || "Sin seleccionar",
-    curso: altaData.curso || "-",
+    // Solo para mostrar: el nombre oficial del curso. Lo que se guarda sigue
+    // siendo el nombre corto (altaData.curso).
+    curso: getAltaCursoDisplayName(altaData.curso) || "-",
     sucursal: altaData.sucursal || "-",
     acceso: altaData.accesoElegido || "-",
     horario: altaData.horario || "-",
@@ -5226,7 +5262,21 @@ function getAltaValidationErrors(altaData) {
   }
   if (!altaData.curso) errors.push("Curso");
   if (!altaData.accesoElegido) errors.push("Acceso elegido");
+  // En altas nuevas el día es obligatorio (de él depende el horario) y la
+  // combinación curso + día + horario debe existir en el catálogo fijo. Al
+  // editar una alumna existente no se exige, para no bloquear expedientes
+  // anteriores que conservan su día/horario de antes.
+  if (!existingStudent && !altaData.diaClases) errors.push("Día de clase");
   if (!altaData.horario) errors.push("Horario");
+  if (
+    !existingStudent &&
+    altaData.curso &&
+    altaData.diaClases &&
+    altaData.horario &&
+    !getAltaHorarioOptionsForCurso(altaData.curso, altaData.diaClases).includes(altaData.horario)
+  ) {
+    errors.push("Horario válido para el curso y día elegidos");
+  }
   if (!altaData.fechaInicio) errors.push("Fecha de inicio");
   if (!altaData.fechaNacimiento) errors.push("Fecha de nacimiento");
   if (!altaData.asesoraInscribio) errors.push("Asesor que inscribió");
@@ -5243,7 +5293,7 @@ function openAltaConfirmation(altaData) {
   const actionLabel = document.getElementById("altaStudentId").value ? "actualizar la alta de" : "dar de alta a";
   altaConfirmMessage.textContent =
     `Vas a ${actionLabel} ${altaData.nombre || "esta alumna"} con folio ${altaData.studentCode || "-"} ` +
-    `en ${altaData.curso || "su curso"} ` +
+    `en ${getAltaCursoDisplayName(altaData.curso) || "su curso"} ` +
     `(${altaData.sucursal || "sin sucursal"}) con ${altaData.accesoElegido || "acceso pendiente"}, ` +
     `${altaData.metodoPago || "método de pago pendiente"} y cantidad de pago de inscripción de ${altaData.cantidadPago || "-"}.`;
   renderAltaConfirmation(getAltaSummaryData(altaData));
@@ -5255,52 +5305,156 @@ function closeAltaConfirmation() {
   altaConfirmCard.hidden = true;
 }
 
-function getAltaHorarioOptionsForCurso(curso, diaClases) {
-  // "Martes y Miércoles" solo tiene sentido con sus propios 3 horarios de 2
-  // horas (9-11/12-2/3-5): si ese es el día elegido, no se ofrecen los
-  // horarios largos de 4hrs (9-1/2-6) aunque el curso sea Uñas/Pestañas/Maquillaje.
-  if (normalizeAttendanceDayLabel(diaClases) === "Martes y Miércoles") {
-    return ALTA_HORARIO_OPTIONS_MARTES_MIERCOLES;
-  }
+function getAltaCourseEntry(curso) {
   const normalizedCurso = normalizeLooseText(curso);
-  return normalizedCurso === "barberia" ? ALTA_HORARIO_OPTIONS_BARBERIA : ALTA_HORARIO_OPTIONS_DEFAULT;
+  if (!normalizedCurso) {
+    return null;
+  }
+  return ALTA_COURSE_CATALOG.find((entry) => normalizeLooseText(entry.value) === normalizedCurso) || null;
 }
 
-function renderSelectOptionsPreservingValue(selectElement, options, preserveValue) {
+// Nombre oficial del curso para MOSTRAR en Altas. Si el curso no está en el
+// catálogo (p. ej. "Maquillaje" de una alumna existente) regresa el mismo texto.
+function getAltaCursoDisplayName(curso) {
+  const entry = getAltaCourseEntry(curso);
+  return entry ? entry.label : String(curso || "");
+}
+
+// En el CRM el curso del prospecto es texto libre ("Barberia", "corte",
+// "uñas", "Corte y Barbería Profesional"...). Esta función lo traduce al
+// nombre corto del catálogo para que Altas lo deje ya seleccionado. Si el
+// texto no se reconoce o coincide con más de un curso, regresa "" y la
+// asesora lo elige a mano (nunca se adivina).
+function resolveAltaCursoFromText(text) {
+  const normalizedText = normalizeLooseText(text);
+  if (!normalizedText) {
+    return "";
+  }
+
+  const exactMatch = ALTA_COURSE_CATALOG.find(
+    (entry) => normalizeLooseText(entry.value) === normalizedText || normalizeLooseText(entry.label) === normalizedText
+  );
+  if (exactMatch) {
+    return exactMatch.value;
+  }
+
+  const words = normalizedText.split(/[^a-z0-9]+/).filter(Boolean);
+  const keywordMatches = ALTA_COURSE_CATALOG.filter((entry) =>
+    entry.keywords.some((keyword) => words.some((word) => word.indexOf(keyword) === 0))
+  );
+  return keywordMatches.length === 1 ? keywordMatches[0].value : "";
+}
+
+function getAltaDiaClasesOptionsForCurso(curso) {
+  const entry = getAltaCourseEntry(curso);
+  return entry ? entry.schedule.map((slot) => slot.dia) : [];
+}
+
+function getAltaHorarioOptionsForCurso(curso, diaClases) {
+  // El horario depende del curso Y del día (catálogo fijo, ALTA_COURSE_CATALOG).
+  // Sin curso o sin día todavía no hay horarios que ofrecer.
+  const entry = getAltaCourseEntry(curso);
+  const normalizedDia = normalizeAttendanceDayLabel(diaClases);
+  if (!entry || !normalizedDia) {
+    return [];
+  }
+  const slot = entry.schedule.find((item) => item.dia === normalizedDia);
+  return slot ? slot.horarios.slice() : [];
+}
+
+// Pinta las opciones de un <select> de Altas.
+// - options: lista de textos o de { value, label }.
+// - value: valor que debe quedar seleccionado.
+// - allowLegacy: solo al EDITAR una alumna existente. Si su valor guardado ya
+//   no está en el catálogo (p. ej. "Entre semana", "Plata", "Maquillaje"), se
+//   agrega como opción extra para no perderlo. En altas nuevas va en false: un
+//   valor que no corresponde al curso/día elegido se descarta y el campo queda
+//   en blanco (antes se quedaba "pegado" y mezclaba horarios de otro curso).
+function renderAltaSelectOptions(selectElement, options, { value = "", allowLegacy = false, placeholder = "Selecciona una opcion" } = {}) {
   if (!selectElement) {
     return;
   }
-  const valueToKeep = preserveValue === undefined ? selectElement.value : preserveValue;
-  const keepsLegacyValue = Boolean(valueToKeep) && !options.includes(valueToKeep);
-  const optionsHtml = options
-    .map((option) => `<option${option === valueToKeep ? " selected" : ""}>${escapeHtml(option)}</option>`)
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option
+  );
+  const desiredValue = String(value || "");
+  const isKnownValue = normalizedOptions.some((option) => option.value === desiredValue);
+  const keepsLegacyValue = Boolean(desiredValue) && !isKnownValue && allowLegacy;
+  const optionsHtml = normalizedOptions
+    .map(
+      (option) =>
+        `<option value="${escapeHtml(option.value)}"${option.value === desiredValue ? " selected" : ""}>${escapeHtml(option.label)}</option>`
+    )
     .join("");
   selectElement.innerHTML =
-    `<option value="">Selecciona una opcion</option>${optionsHtml}` +
-    (keepsLegacyValue ? `<option selected>${escapeHtml(valueToKeep)}</option>` : "");
+    `<option value="">${escapeHtml(placeholder)}</option>${optionsHtml}` +
+    (keepsLegacyValue ? `<option value="${escapeHtml(desiredValue)}" selected>${escapeHtml(desiredValue)}</option>` : "");
+  if (!isKnownValue && !keepsLegacyValue) {
+    selectElement.value = "";
+  }
 }
 
-function updateAltaHorarioOptions(preserveValue) {
-  // El horario disponible depende del curso (Barbería tiene su propia franja
-  // 9-12/12-3/4-7, el resto usa 9-1/2-6) y, si el día de clases elegido es
-  // "Martes y Miércoles", se restringe además a sus 3 horarios propios
-  // (9-11/12-2/3-5) sin importar el curso. Si la alumna ya tenía un horario
-  // anterior a este cambio, se conserva tal cual aunque ya no se ofrezca para
-  // altas nuevas (no es retroactivo).
+function updateAltaCursoOptions(value, { allowLegacy = false } = {}) {
+  renderAltaSelectOptions(
+    document.getElementById("altaCurso"),
+    ALTA_COURSE_CATALOG.map((entry) => ({ value: entry.value, label: entry.label })),
+    { value, allowLegacy }
+  );
+}
+
+function updateAltaAccesoOptions(value, { allowLegacy = false } = {}) {
+  renderAltaSelectOptions(document.getElementById("altaAccesoElegido"), ALTA_ACCESO_OPTIONS, { value, allowLegacy });
+}
+
+function updateAltaDiaClasesOptions(preserveValue, { allowLegacy = false } = {}) {
+  // Los días que se ofrecen dependen del curso elegido. preserveValue
+  // undefined = conservar el día que ya está elegido, pero solo si sigue
+  // siendo válido para el curso (o si allowLegacy, al editar una alumna).
+  const cursoField = document.getElementById("altaCurso");
+  const diaClasesField = document.getElementById("altaDiaClases");
+  if (!diaClasesField) {
+    return;
+  }
+  const curso = cursoField ? cursoField.value : "";
+  renderAltaSelectOptions(diaClasesField, getAltaDiaClasesOptionsForCurso(curso), {
+    value: preserveValue === undefined ? diaClasesField.value : preserveValue,
+    allowLegacy,
+    placeholder: curso ? "Selecciona una opcion" : "Primero elige el curso",
+  });
+}
+
+function updateAltaHorarioOptions(preserveValue, { allowLegacy = false } = {}) {
+  // Los horarios dependen del curso y del día. Mismo criterio de
+  // preserveValue/allowLegacy que updateAltaDiaClasesOptions().
   const cursoField = document.getElementById("altaCurso");
   const diaClasesField = document.getElementById("altaDiaClases");
   const horarioField = document.getElementById("altaHorario");
-  const horarioOptions = getAltaHorarioOptionsForCurso(
-    cursoField ? cursoField.value : "",
-    diaClasesField ? diaClasesField.value : ""
-  );
-  renderSelectOptionsPreservingValue(horarioField, horarioOptions, preserveValue);
+  if (!horarioField) {
+    return;
+  }
+  const curso = cursoField ? cursoField.value : "";
+  const diaClases = diaClasesField ? diaClasesField.value : "";
+  renderAltaSelectOptions(horarioField, getAltaHorarioOptionsForCurso(curso, diaClases), {
+    value: preserveValue === undefined ? horarioField.value : preserveValue,
+    allowLegacy,
+    placeholder: !curso ? "Primero elige el curso" : !diaClases ? "Primero elige el día de clase" : "Selecciona una opcion",
+  });
 }
 
-function updateAltaDiaClasesOptions(preserveValue) {
-  // Mismo criterio que el horario: "Entre semana" ya no se ofrece para altas
-  // nuevas, pero una alumna existente con ese valor lo conserva sin cambios.
-  renderSelectOptionsPreservingValue(document.getElementById("altaDiaClases"), ALTA_DIA_CLASES_OPTIONS, preserveValue);
+// Se llama cuando la usuaria cambia a mano el curso o el día en Altas: vuelve
+// a armar los campos que dependen de ese cambio y limpia lo que ya no
+// corresponde (cambiar el curso limpia día y horario si no existen en el curso
+// nuevo; cambiar el día limpia el horario si no existe en ese día). Cualquier
+// otro campo del formulario NO toca estas listas, así una alumna existente
+// conserva su día/horario anterior mientras no se le cambie curso ni día.
+function handleAltaScheduleFieldChange(target) {
+  const fieldId = target && target.id;
+  if (fieldId === "altaCurso") {
+    updateAltaDiaClasesOptions(undefined);
+    updateAltaHorarioOptions(undefined);
+  } else if (fieldId === "altaDiaClases") {
+    updateAltaHorarioOptions(undefined);
+  }
 }
 
 function syncAltaAutoFields() {
@@ -6949,8 +7103,11 @@ function resetAltaForm() {
   document.getElementById("altaProspectId").value = "";
   document.getElementById("altaStudentCode").value = generateStudentCode();
   document.getElementById("altaFechaInscripcion").value = formatDateForInput(new Date());
-  updateAltaHorarioOptions("");
+  // Orden obligado: curso → día → horario (cada uno depende del anterior).
+  updateAltaCursoOptions("");
+  updateAltaAccesoOptions("");
   updateAltaDiaClasesOptions("");
+  updateAltaHorarioOptions("");
   syncAltaDateDisplay(getCurrentMexicoDateValue());
   renderAltaDocumentChecklist();
   altaForm.querySelector('button[type="submit"]').textContent = "Confirmar alta";
@@ -11451,14 +11608,16 @@ function loadStudentIntoAlta(studentId) {
   document.getElementById("altaEscolaridad").value = student.escolaridad || "";
   document.getElementById("altaContactoEmergencia").value = student.contactoEmergencia || "";
   document.getElementById("altaSucursal").value = student.sucursal || "";
-  document.getElementById("altaCurso").value = student.curso || "";
-  document.getElementById("altaAccesoElegido").value = student.accesoElegido || "";
+  // Al editar una alumna existente se conservan sus valores guardados aunque
+  // ya no estén en el catálogo de altas nuevas (allowLegacy): curso
+  // "Maquillaje", acceso "Plata", día "Entre semana", horarios anteriores...
+  updateAltaCursoOptions(student.curso || "", { allowLegacy: true });
+  updateAltaAccesoOptions(student.accesoElegido || "", { allowLegacy: true });
   document.getElementById("altaFechaInicio").value = startDate;
-  // El día de clases se resuelve antes que el horario porque, desde que existe
-  // "Martes y Miércoles", el horario disponible depende del día elegido (ver
-  // getAltaHorarioOptionsForCurso) y no solo del curso.
-  updateAltaDiaClasesOptions(student.diaClases || "");
-  updateAltaHorarioOptions(student.horario || "");
+  // Orden obligado: curso → día → horario (cada uno depende del anterior, ver
+  // getAltaDiaClasesOptionsForCurso y getAltaHorarioOptionsForCurso).
+  updateAltaDiaClasesOptions(student.diaClases || "", { allowLegacy: true });
+  updateAltaHorarioOptions(student.horario || "", { allowLegacy: true });
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(student.asesoraInscribio || student.usuarioAlta);
   document.getElementById("altaMetodoPago").value = student.metodoPago || "";
   document.getElementById("altaTipoPago").value = student.tipoPago || "";
@@ -12087,7 +12246,7 @@ const WEEKDAY_ATTENDANCE_DAYS = [
   { key: "thu", shortLabel: "Jue", fullLabel: "Jueves", weekdayIndex: 4, dayOffset: 2 },
 ];
 
-// "Martes y Miércoles" (grupo agregado el 03/sep/2026, ver ALTA_DIA_CLASES_OPTIONS)
+// "Martes y Miércoles" (grupo agregado el 03/sep/2026, ver ALTA_COURSE_CATALOG)
 // son 2 clases por semana en vez de 1. Reutiliza el mismo mecanismo de "slots por
 // semana" que ya existía para "Entre semana" (3 días), solo que con 2 días.
 const MARTES_MIERCOLES_ATTENDANCE_DAYS = [
@@ -19717,11 +19876,15 @@ function loadProspectIntoAlta(id) {
   document.getElementById("altaNombre").value = prospect.nombre;
   document.getElementById("altaTelefono").value = prospect.telefono;
   document.getElementById("altaSucursal").value = prospect.sucursal;
-  document.getElementById("altaCurso").value = prospect.curso;
+  // El curso del prospecto es texto libre en el CRM: se traduce al curso del
+  // catálogo para que quede ya seleccionado (si no se reconoce queda en blanco
+  // y la asesora lo elige). Día y horario siempre se eligen en Altas.
+  const prospectAltaCurso = resolveAltaCursoFromText(prospect.curso);
+  updateAltaCursoOptions(prospectAltaCurso);
   document.getElementById("altaClaveElector").value = "";
-  document.getElementById("altaAccesoElegido").value = prospect.accesoInteres || "";
-  updateAltaHorarioOptions("");
+  updateAltaAccesoOptions(prospect.accesoInteres || "");
   updateAltaDiaClasesOptions("");
+  updateAltaHorarioOptions("");
   document.getElementById("altaDocumentos").value = "";
   renderAltaDocumentChecklist();
   document.getElementById("altaAsesoraInscribio").value = normalizeAdvisorName(prospect.asesoraAsignada);
@@ -19734,9 +19897,9 @@ function loadProspectIntoAlta(id) {
       studentCode: document.getElementById("altaStudentCode").value,
       fechaInscripcion: document.getElementById("altaFechaInscripcion").value,
       nombre: prospect.nombre,
-      curso: prospect.curso,
+      curso: prospectAltaCurso,
       sucursal: prospect.sucursal,
-      accesoElegido: prospect.accesoInteres || "",
+      accesoElegido: document.getElementById("altaAccesoElegido").value,
       horario: document.getElementById("altaHorario").value,
       fechaInicio: document.getElementById("altaFechaInscripcion").value,
       metodoPago: document.getElementById("altaMetodoPago").value,
@@ -20686,11 +20849,23 @@ if (altaDocumentChecklist) {
   });
 }
 
-altaForm.addEventListener("input", () => {
-  updateAltaHorarioOptions();
+altaForm.addEventListener("input", (event) => {
+  handleAltaScheduleFieldChange(event.target);
   syncAltaAutoFields();
   clearAltaValidation();
   closeAltaConfirmation();
+  renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+});
+
+// Algunos navegadores (Safari y WebViews anteriores) no disparan "input" en un
+// <select>, solo "change". Se repite aquí lo mismo únicamente para curso y
+// día; es seguro ejecutarlo dos veces porque solo conserva valores válidos.
+altaForm.addEventListener("change", (event) => {
+  const fieldId = event.target && event.target.id;
+  if (fieldId !== "altaCurso" && fieldId !== "altaDiaClases") {
+    return;
+  }
+  handleAltaScheduleFieldChange(event.target);
   renderAltaSummary(getAltaSummaryData(getAltaFormData()));
 });
 
