@@ -39,6 +39,6 @@ Sistema operativo integral para Instituto Venezia: dashboard, CRM, altas, asiste
 3. Diagnóstico read-only.
 4. Plan de micro-cambio.
 5. Implementación mínima.
-6. `node --check` y prueba visual.
+6. `node --check`, prueba visual y las pruebas de "Blindaje por módulo" (`check-module-scope` y `regression/run.js`, ver `CLAUDE.md`).
 7. Mostrar diff.
 8. Commit/push/deploy solo con autorización del usuario.

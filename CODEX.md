@@ -1,5 +1,7 @@
 # Codex Project Rules
 
+> Regla general (11/nov/2026): aplica también el "Blindaje por módulo" de `CLAUDE.md` — cambios solo en el módulo pedido, `node scripts/check-module-scope.js --modulo=<modulo>` y `node scripts/regression/run.js` antes de cada commit.
+
 ## Cambios En Mi Venezia V2
 
 Cuando el usuario solicite cambios en Mi Venezia V2, Codex debe modificar solo archivos propios de Mi Venezia V2:
