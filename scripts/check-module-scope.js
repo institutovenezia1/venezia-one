@@ -226,7 +226,7 @@ function changedLineRanges(base, file) {
 function classifyFile(file) {
   if (file === "app.js" || file === "index.html" || file === "style.css") return null;
   if (file === "docente-portal-content.js") return "portal-docente";
-  if (/^mi-venezia-v2/.test(file)) return "mi-venezia";
+  if (/^mi-venezia-v2/.test(file) || /^images\/mi-venezia-v2\//.test(file)) return "mi-venezia";
   if (file === "web-venezia.css") return "web-venezia";
   if (file === "dataService.js" || file === "supabase.js") return "datos-compartidos";
   if (/^(docs\/|scripts\/|CLAUDE\.md$|CODEX\.md$|README)/.test(file)) return "infraestructura";

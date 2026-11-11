@@ -1202,7 +1202,7 @@ button {
   }
 
   .mv2-hero-card {
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: 1fr auto;
     align-items: end;
   }
 
@@ -1270,5 +1270,317 @@ button {
   .mv2-tab {
     min-width: 78px;
     font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   Mi Venezia — entrada limpia (CEO, 11/nov/2026)
+   Tarjeta de la alumna con estado de color, recordatorio de pago, menú de
+   secciones con "Volver al inicio" y lista de material por curso.
+   ========================================================================== */
+
+.mv2-dashboard-header {
+  align-items: center;
+}
+
+.mv2-brand-title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.22em;
+}
+
+.mv2-hero-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.mv2-hero-copy p#heroGreeting {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.mv2-hero-copy h2#heroWelcome {
+  margin: 0 0 6px;
+  font-size: clamp(1.55rem, 7vw, 2.4rem);
+  line-height: 1.08;
+}
+
+.mv2-hero-copy span#heroDetails {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.mv2-hero-start {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.mv2-hero-copy [hidden] {
+  display: none !important;
+}
+
+.mv2-hero-notice {
+  margin-top: 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.mv2-hero-status {
+  justify-self: start;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* Activa: verde */
+.mv2-hero-status.is-active {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+/* Baja temporal: rojo suave */
+.mv2-hero-status.is-paused {
+  background: #fde2e2;
+  border-color: #f5b5b5;
+  color: #9b2c2c;
+}
+
+/* Baja definitiva: rojo intenso */
+.mv2-hero-status.is-withdrawn {
+  background: #e11d48;
+  border-color: #be123c;
+  color: #fff;
+}
+
+/* Curso finalizado: dorado */
+.mv2-hero-status.is-completed {
+  background: linear-gradient(135deg, #f7e7a6 0%, #d4a62a 55%, #b8860b 100%);
+  border-color: #b8860b;
+  color: #3d2a00;
+}
+
+.mv2-hero-status.is-unavailable {
+  background: #f5f5f4;
+  border-color: #d6d3d1;
+  color: #44403c;
+}
+
+.mv2-home[hidden],
+.mv2-panels[hidden] {
+  display: none !important;
+}
+
+/* Recordatorio de pago */
+.mv2-payment-reminder-slot {
+  margin: 14px 0 0;
+}
+
+.mv2-payment-reminder {
+  border-radius: 20px;
+  padding: 16px 16px 14px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.mv2-payment-reminder h2 {
+  margin: 6px 0 8px;
+  font-size: 1.12rem;
+  line-height: 1.3;
+}
+
+.mv2-payment-reminder ul {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.mv2-payment-reminder li {
+  display: grid;
+  gap: 2px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 9px 11px;
+}
+
+.mv2-payment-reminder li strong {
+  font-size: 0.95rem;
+}
+
+.mv2-payment-reminder li span {
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.mv2-payment-reminder p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.mv2-payment-reminder .mv2-payment-reminder-also {
+  margin: 10px 0 6px;
+  font-weight: 800;
+}
+
+.mv2-payment-reminder-tag {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mv2-payment-reminder.is-upcoming {
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: linear-gradient(135deg, #fff8e1 0%, #fdf0c4 100%);
+  color: #5c4300;
+}
+
+.mv2-payment-reminder.is-upcoming .mv2-payment-reminder-tag {
+  background: #c9a227;
+  color: #fff;
+}
+
+.mv2-payment-reminder.is-overdue {
+  border: 1px solid #b91c1c;
+  border-left: 5px solid #dc2626;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #7f1d1d;
+}
+
+.mv2-payment-reminder.is-overdue .mv2-payment-reminder-tag {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* Menú de secciones */
+.mv2-home-menu {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.mv2-menu-btn {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-height: 84px;
+  border: 1px solid var(--mv2-border);
+  border-radius: 18px;
+  background: var(--mv2-card);
+  box-shadow: 0 10px 24px rgba(60, 10, 40, 0.08);
+  padding: 14px;
+  color: var(--mv2-heading-text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.mv2-menu-btn strong {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.mv2-menu-btn span {
+  color: var(--mv2-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mv2-menu-btn:hover,
+.mv2-menu-btn:focus-visible {
+  border-color: var(--mv2-purple);
+  box-shadow: 0 0 0 4px var(--mv2-focus-ring);
+  outline: none;
+}
+
+.mv2-back-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 14px 0 10px;
+  border: 1px solid var(--mv2-border);
+  border-radius: 999px;
+  background: var(--mv2-card);
+  padding: 0 18px;
+  color: var(--mv2-purple);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+/* Moratorio compacto dentro de Pagos */
+.mv2-late-fee-alert.is-compact {
+  gap: 9px;
+  padding: 9px 11px;
+  border-left-width: 4px;
+  box-shadow: none;
+}
+
+.mv2-late-fee-alert.is-compact .mv2-late-fee-alert-icon {
+  width: 26px;
+  height: 26px;
+  font-size: 0.85rem;
+}
+
+.mv2-late-fee-alert.is-compact .mv2-late-fee-alert-copy strong {
+  font-size: 0.88rem;
+}
+
+.mv2-late-fee-alert.is-compact .mv2-late-fee-alert-copy p {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Lista de material */
+.mv2-material-figure {
+  margin: 0;
+}
+
+.mv2-material-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+}
+
+.mv2-material-figure figcaption {
+  margin-top: 8px;
+  color: var(--mv2-muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+@media (min-width: 760px) {
+  .mv2-home-menu {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mv2-material-figure {
+    max-width: 720px;
+    margin: 0 auto;
   }
 }

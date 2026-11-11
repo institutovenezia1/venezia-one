@@ -73,6 +73,41 @@ module.exports = {
     { id: "fi-02", fecha: "2026-11-04", sucursal: "Tlaxcala", tipo: "Egreso", categoria: "Material", concepto: "Material prueba", monto: 420, metodoPago: "Efectivo" },
   ],
 
+  // Mi Venezia V2 (portal de alumna) lee Supabase directo: estas son filas
+  // con el formato de las tablas, para responderle como si fuera Supabase.
+  // Fecha de prueba: 11/nov/2026 12:00.
+  miVenezia: {
+    students: [
+      // Pago vencido (Mensualidad 2, 05/nov) y Certificado C1 próximo (12/nov).
+      { id: "mv-01", full_name: "LUCIA PRUEBA VENCIDA", phone: "2463330001", password: "1111", branch: "Tlaxcala", course: "Uñas", schedule: "9am a 1pm", start_date: "2026-10-15", access_selected: "Oro", status: "Activa", notes: "Día de clases: Jueves | Mensualidad asignada: 1300 | Género: Mujer | Documentos entregados: Reglamento interno, Contrato de alumno", created_at: "2026-10-10T10:00:00Z" },
+      // Al corriente con Certificado C1 próximo (14/nov, en 3 días).
+      { id: "mv-02", full_name: "PAOLA PRUEBA PROXIMO", phone: "2463330002", password: "2222", branch: "Tlaxcala", course: "Pestañas", schedule: "2pm a 6pm", start_date: "2026-10-17", access_selected: "Platinum", status: "Activa", notes: "Día de clases: Sábado | Mensualidad asignada: 1500 | Género: Mujer | Documentos entregados: Reglamento interno, Contrato de alumno, Acta de nacimiento, CURP, INE, Comprobante de domicilio, Comprobante de último grado de estudios", created_at: "2026-10-12T10:00:00Z" },
+      // Alumno hombre al corriente; siguiente pago (Mensualidad 3, 04/dic) lejano.
+      { id: "mv-03", full_name: "RAUL PRUEBA BARBERO", phone: "2463330003", password: "3333", branch: "Tlaxcala", course: "Barbería", schedule: "12pm a 3pm", start_date: "2026-10-16", access_selected: "Platinum", status: "Activa", notes: "Día de clases: Viernes | Mensualidad asignada: 1600 | Género: Hombre", created_at: "2026-10-11T10:00:00Z" },
+      { id: "mv-04", full_name: "SARA PRUEBA PAUSA", phone: "2463330004", password: "4444", branch: "Tlaxcala", course: "Uñas", schedule: "9am a 11am", start_date: "2026-10-20", access_selected: "Oro", status: "Baja temporal", notes: "Día de clases: Martes y Miércoles | Mensualidad asignada: 1300 | Género: Mujer", created_at: "2026-10-13T10:00:00Z" },
+      { id: "mv-05", full_name: "TANIA PRUEBA BAJA", phone: "2463330005", password: "5555", branch: "Tlaxcala", course: "Uñas", schedule: "9am a 1pm", start_date: "2026-08-02", access_selected: "Oro", status: "Baja definitiva", notes: "Día de clases: Domingo | Mensualidad asignada: 1300 | Género: Mujer", created_at: "2026-08-01T10:00:00Z" },
+      { id: "mv-06", full_name: "URSULA PRUEBA FINALIZADA", phone: "2463330006", password: "6666", branch: "Tlaxcala", course: "Pestañas", schedule: "9am a 1pm", start_date: "2026-03-07", access_selected: "Platinum", status: "Curso finalizado", notes: "Día de clases: Sábado | Mensualidad asignada: 1500 | Género: Mujer", created_at: "2026-03-01T10:00:00Z" },
+    ],
+    student_portal_profiles: [],
+    student_payments: [
+      { id: "mvp-01", student_id: "mv-01", tuition_amount: "1300", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pendiente | Certificado P1: Pendiente | Fecha real pago: 2026-10-15 | Mes pago: 2026-10 | Cantidad pagada: 1300", updated_at: "2026-10-15T12:00:00Z", created_at: "2026-10-15T12:00:00Z" },
+      { id: "mvp-02", student_id: "mv-02", tuition_amount: "1500", payment_method: "Transferencia", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pendiente | Fecha real pago: 2026-11-07 | Mes pago: 2026-11 | Cantidad pagada: 1500", updated_at: "2026-11-07T12:00:00Z", created_at: "2026-10-17T12:00:00Z" },
+      { id: "mvp-03", student_id: "mv-03", tuition_amount: "1600", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pagado | Fecha real pago: 2026-11-06 | Mes pago: 2026-11 | Cantidad pagada: 1600", updated_at: "2026-11-06T12:00:00Z", created_at: "2026-10-16T12:00:00Z" },
+      { id: "mvp-04", student_id: "mv-04", tuition_amount: "1300", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | Fecha real pago: 2026-10-20", updated_at: "2026-10-20T12:00:00Z", created_at: "2026-10-20T12:00:00Z" },
+      { id: "mvp-06", student_id: "mv-06", tuition_amount: "1500", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pagado | 3ra mensualidad: Pagado | Certificado P2: Pagado | 4ta mensualidad: Pagado | 5ta mensualidad: Pagado", updated_at: "2026-07-01T12:00:00Z", created_at: "2026-03-07T12:00:00Z" },
+    ],
+    attendance_records: [
+      { id: "mva-01", student_id: "mv-01", attendance_date: "2026-10-15", status: "Asistió", notes: "", created_at: "2026-10-15T12:00:00Z" },
+      { id: "mva-02", student_id: "mv-01", attendance_date: "2026-10-22", status: "Asistió", notes: "", created_at: "2026-10-22T12:00:00Z" },
+      { id: "mva-03", student_id: "mv-01", attendance_date: "2026-10-29", status: "Falta", notes: "Avisó", created_at: "2026-10-29T12:00:00Z" },
+      { id: "mva-04", student_id: "mv-02", attendance_date: "2026-10-17", status: "Asistió", notes: "", created_at: "2026-10-17T12:00:00Z" },
+      { id: "mva-05", student_id: "mv-03", attendance_date: "2026-10-16", status: "Asistió", notes: "", created_at: "2026-10-16T12:00:00Z" },
+    ],
+    finance_records: [],
+    internal_users: [],
+    staff: [],
+  },
+
   balanceExpenses: [
     { id: "ba-01", fecha: "2026-11-05", sucursal: "Tlaxcala", concepto: "Papelería prueba", monto: 150, responsable: "DIRECCION PRUEBA" },
   ],
