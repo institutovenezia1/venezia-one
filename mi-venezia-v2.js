@@ -767,20 +767,9 @@
       notice: "",
       intro: "Resumen real de tu expediente en Venezia.",
       courseLabel: "Curso actual",
-      paymentCopy: "Pagos realizados, mensualidades y pendientes visibles.",
-      attendanceCopy: "Resumen de asistencias registradas."
+      paymentCopy: "Tu calendario de pagos: lo que ya cubriste y lo que sigue.",
+      attendanceCopy: "Tus clases programadas y las asistencias registradas."
     };
-  }
-
-  function statusBadgeHtml(statusInfo) {
-    return '<span class="mv2-status-badge mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.badge) + '</span>';
-  }
-
-  function statusNoticeHtml(statusInfo) {
-    if (!statusInfo.notice || statusInfo.key === "active") {
-      return "";
-    }
-    return '<div class="mv2-status-notice mv2-status-' + escapeHtml(statusInfo.key) + '">' + escapeHtml(statusInfo.notice) + '</div>';
   }
 
   function shouldShowLateFeeNotice(statusInfo) {
@@ -798,13 +787,14 @@
     return parts.join(" · ");
   }
 
-  function lateFeeNoticeHtml(statusInfo, lateFeeSummary) {
+  function lateFeeNoticeHtml(statusInfo, lateFeeSummary, options) {
+    var compactClass = options && options.compact ? " is-compact" : "";
     if (!shouldShowLateFeeNotice(statusInfo)) {
       return "";
     }
     if (lateFeeSummary && lateFeeSummary.hasLateFee) {
       return (
-        '<section class="mv2-late-fee-alert is-active" role="alert" aria-label="Cargo moratorio activo por atraso de pago">' +
+        '<section class="mv2-late-fee-alert is-active' + compactClass + '" role="alert" aria-label="Cargo moratorio activo por atraso de pago">' +
         '<span class="mv2-late-fee-alert-icon" aria-hidden="true">&#9888;</span>' +
         '<div class="mv2-late-fee-alert-copy">' +
         '<strong>Tienes un cargo moratorio activo: ' + escapeHtml(formatMoney(lateFeeSummary.totalAmount)) + '</strong>' +
@@ -814,7 +804,7 @@
       );
     }
     return (
-      '<section class="mv2-late-fee-alert" role="note" aria-label="Aviso importante sobre moratorio por atraso de pago">' +
+      '<section class="mv2-late-fee-alert' + compactClass + '" role="note" aria-label="Aviso importante sobre moratorio por atraso de pago">' +
       '<span class="mv2-late-fee-alert-icon" aria-hidden="true">&#9888;</span>' +
       '<div class="mv2-late-fee-alert-copy">' +
       '<strong>Moratorio por atraso de pago</strong>' +
@@ -1757,64 +1747,207 @@
     return text(value) || "Sin estado";
   }
 
-  function getAttendanceSummary(records) {
-    var total = records ? records.length : 0;
-    var asistencias = 0;
-    var faltas = 0;
-    var permisos = 0;
-    var recuperaciones = 0;
-    var index;
-    var status;
-    for (index = 0; records && index < records.length; index += 1) {
-      status = normalizeAttendanceStatus(records[index].estado);
-      if (status === "Asistencia") {
-        asistencias += 1;
-      } else if (status === "Falta") {
-        faltas += 1;
-      } else if (status === "Permiso") {
-        permisos += 1;
-      } else if (status === "Recuperación") {
-        recuperaciones += 1;
-      }
-    }
-    return {
-      total: total,
-      asistencias: asistencias,
-      faltas: faltas,
-      permisos: permisos,
-      recuperaciones: recuperaciones,
-      percentage: total > 0 ? Math.round(((asistencias + recuperaciones) / total) * 100) : 0
-    };
-  }
-
   function infoItem(label, value) {
     return '<article class="mv2-info-item"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(safe(value, "-")) + '</strong></article>';
   }
 
-  function renderHeader(student, details) {
-    var docState = getDocumentsState(student);
-    var paymentSummary = details ? getPaymentsSummary(details, student) : null;
-    var attendanceSummary = details ? getAttendanceSummary(details.attendance) : null;
-    var statusInfo = getStudentStatusInfo(student);
-    byId("studentName").textContent = student.nombre || "Estudiante";
-    byId("studentMeta").textContent = "Estado: " + statusInfo.label + " | " + safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar");
-    byId("heroGreeting").textContent = statusInfo.key === "completed" ? "¡Felicidades!" : "Hola, " + (student.nombre || "estudiante");
-    byId("heroCourse").textContent = statusInfo.key === "active" ? safe(student.curso, "Tu curso Venezia") : statusInfo.heroTitle;
-    byId("heroDetails").textContent = statusInfo.key === "active"
-      ? safe(student.sucursal, "Plantel por confirmar") + " | " + safe(student.horario, "Horario por confirmar")
-      : statusInfo.notice + " " + safe(student.curso, "Curso por confirmar") + " | " + safe(student.sucursal, "Plantel por confirmar");
-    byId("heroDocStatus").className = "mv2-doc-badge mv2-status-badge mv2-status-" + statusInfo.key;
-    byId("heroDocStatus").textContent = statusInfo.badge;
-    renderReferralCard(student, details, statusInfo);
-    byId("quickStats").innerHTML =
-      statCard(statusInfo.courseLabel, safe(student.curso, "-"), statusInfo.label + " | " + safe(student.horario, "Horario pendiente")) +
-      statCard("Pagos", paymentSummary ? paymentSummary.status : "Cargando...", "Mensualidad: " + safe(student.mensualidad || student.colegiatura, "-")) +
-      statCard("Asistencia", attendanceSummary ? attendanceSummary.percentage + "%" : "Cargando...", attendanceSummary ? attendanceSummary.asistencias + " asistencias registradas" : "Leyendo clases") +
-      statCard("Documentos", docState.label, docState.raw);
+  // Tarjeta de la alumna (CEO, 11/nov/2026): todo va dentro de la tarjeta rosa.
+  // "Hola, NOMBRE" / "Bienvenida a Mi Venezia" / plantel · curso · día · horario /
+  // inicio de curso / estado con color (verde activa, rojo suave baja temporal,
+  // rojo intenso baja definitiva, dorado curso finalizado).
+  function getWelcomeWord(student) {
+    return normalizeLoose(student && student.genero) === "hombre" ? "Bienvenido" : "Bienvenida";
   }
 
-  function statCard(label, value, meta) {
-    return '<article class="mv2-stat-card"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong><small>' + escapeHtml(meta || "") + '</small></article>';
+  function getHeroDetailsLine(student) {
+    var parts = [];
+    var classDay = getStudentClassDayLabel(student);
+    if (text(student && student.sucursal)) {
+      parts.push(text(student.sucursal));
+    }
+    if (text(student && student.curso)) {
+      parts.push(text(student.curso));
+    }
+    if (text(classDay)) {
+      parts.push(text(classDay));
+    }
+    if (text(student && student.horario)) {
+      parts.push(text(student.horario));
+    }
+    return parts.length ? parts.join(" · ") : "Datos de tu curso por confirmar";
+  }
+
+  function renderHeader(student, details) {
+    var statusInfo = getStudentStatusInfo(student);
+    var startDate = normalizeLocalDateKey(student && student.fechaInicio);
+    var startNode = byId("heroStartDate");
+    var noticeNode = byId("heroNotice");
+    var statusNode = byId("heroStatus");
+    byId("heroGreeting").textContent = "Hola, " + (student.nombre || "estudiante");
+    byId("heroWelcome").textContent = getWelcomeWord(student) + " a Mi Venezia";
+    byId("heroDetails").textContent = getHeroDetailsLine(student);
+    if (startNode) {
+      startNode.hidden = !startDate;
+      startNode.textContent = startDate ? "Inicio de curso: " + formatDate(startDate) : "";
+    }
+    if (noticeNode) {
+      noticeNode.hidden = !(statusInfo.notice && statusInfo.key !== "active");
+      noticeNode.textContent = statusInfo.key !== "active" ? statusInfo.notice : "";
+    }
+    if (statusNode) {
+      statusNode.className = "mv2-hero-status is-" + statusInfo.key;
+      statusNode.textContent = statusInfo.key === "unavailable" ? statusInfo.badge : "Estado: " + statusInfo.label;
+    }
+    renderPaymentReminder(student, details, statusInfo);
+    renderReferralCard(student, details, statusInfo);
+  }
+
+  // ---------- Recordatorio de pago (CEO, 11/nov/2026) ----------
+  // Aparece en la entrada solo 7 días antes de cada pago pendiente (mensualidad o
+  // certificado) y desaparece cuando ya está pagado. Si la fecha ya pasó y no se
+  // ha pagado, se queda en rojo como "pago vencido" (usa la misma regla del
+  // moratorio: vence a las 12:00 del día de pago, hora de Tlaxcala).
+  var PAYMENT_REMINDER_DAYS_BEFORE = 7;
+
+  function getDaysBetweenDateKeys(fromKey, toKey) {
+    var from = parseLocalDateKey(fromKey);
+    var to = parseLocalDateKey(toKey);
+    if (!from || !to) {
+      return null;
+    }
+    return Math.round((Date.UTC(to.getFullYear(), to.getMonth(), to.getDate()) - Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())) / 86400000);
+  }
+
+  function getPaymentReminderState(student, details, statusInfo) {
+    var summary;
+    var entries;
+    var lateFee;
+    var overdueFields = {};
+    var upcoming = [];
+    var today;
+    var days;
+    var index;
+    var entry;
+    if (!statusInfo || statusInfo.key !== "active" || !details || details.errors.payments) {
+      return null;
+    }
+    summary = getPaymentsSummary(details, student);
+    entries = buildPaymentCalendarEntries(student, details, summary);
+    lateFee = getStudentLateFeeSummary(student, details);
+    for (index = 0; index < lateFee.overdueConcepts.length; index += 1) {
+      overdueFields[lateFee.overdueConcepts[index].field] = true;
+    }
+    today = getCurrentMexicoDateTimeParts().dateValue;
+    for (index = 0; index < entries.length; index += 1) {
+      entry = entries[index];
+      if (overdueFields[entry.field] || !entry.estimatedDate) {
+        continue;
+      }
+      if (entry.status !== "Pendiente" && entry.status !== "Parcial") {
+        continue;
+      }
+      days = getDaysBetweenDateKeys(today, entry.estimatedDate);
+      if (days === null) {
+        continue;
+      }
+      // Pendiente: de 7 días antes hasta el día de pago. Parcial: también si ya pasó.
+      if (days <= PAYMENT_REMINDER_DAYS_BEFORE && (days >= 0 || entry.status === "Parcial")) {
+        upcoming.push({ entry: entry, days: days });
+      }
+    }
+    upcoming.sort(function (left, right) {
+      return left.days - right.days;
+    });
+    if (!lateFee.hasLateFee && !upcoming.length) {
+      return null;
+    }
+    return { lateFee: lateFee, upcoming: upcoming };
+  }
+
+  function describeDaysLeft(days) {
+    if (days < 0) {
+      return "Fecha de pago ya pasó";
+    }
+    if (days === 0) {
+      return "Vence hoy antes de las 12:00 pm";
+    }
+    if (days === 1) {
+      return "Vence mañana";
+    }
+    return "Faltan " + days + " días";
+  }
+
+  function renderUpcomingReminderLine(item) {
+    var entry = item.entry;
+    var isPartial = entry.status === "Parcial";
+    return (
+      '<li>' +
+      '<strong>' + escapeHtml(entry.label) + (isPartial ? " (pago incompleto)" : "") + '</strong>' +
+      '<span>' + escapeHtml("Fecha de pago: " + formatDate(entry.estimatedDate) + " · " + describeDaysLeft(item.days)) + '</span>' +
+      (entry.amount && entry.amount !== "-" ? '<span>' + escapeHtml("Monto: " + entry.amount) + '</span>' : '') +
+      '</li>'
+    );
+  }
+
+  function renderPaymentReminder(student, details, statusInfo) {
+    var container = byId("paymentReminder");
+    var reminder;
+    var html;
+    var index;
+    var overdue;
+    var earliest;
+    if (!container) {
+      return;
+    }
+    reminder = getPaymentReminderState(student, details, statusInfo);
+    if (!reminder) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+    if (reminder.lateFee.hasLateFee) {
+      overdue = reminder.lateFee.overdueConcepts.slice().sort(function (left, right) {
+        return String(left.dueDate).localeCompare(String(right.dueDate));
+      });
+      earliest = overdue[0];
+      html =
+        '<article class="mv2-payment-reminder is-overdue" role="alert">' +
+        '<span class="mv2-payment-reminder-tag">Pago vencido</span>' +
+        '<h2>' + escapeHtml((overdue.length === 1 ? "Tienes un pago vencido" : "Tienes " + overdue.length + " pagos vencidos") + " desde el " + formatDate(earliest.dueDate)) + '</h2>' +
+        '<ul>';
+      for (index = 0; index < overdue.length; index += 1) {
+        html +=
+          '<li><strong>' + escapeHtml(overdue[index].label) + '</strong>' +
+          '<span>' + escapeHtml("Venció el " + formatDate(overdue[index].dueDate) + " · " + overdue[index].days + (overdue[index].days === 1 ? " día" : " días") + " de atraso") + '</span></li>';
+      }
+      html +=
+        '</ul>' +
+        '<p>' + escapeHtml("Moratorio acumulado: " + formatMoney(reminder.lateFee.totalAmount) + ". Se suman $100 diarios hasta cubrir el pago, según el reglamento de alumno. Cúbrelo en Dirección lo antes posible.") + '</p>';
+      if (reminder.upcoming.length) {
+        html += '<p class="mv2-payment-reminder-also">Además, tienes un pago próximo:</p><ul>';
+        for (index = 0; index < reminder.upcoming.length; index += 1) {
+          html += renderUpcomingReminderLine(reminder.upcoming[index]);
+        }
+        html += '</ul>';
+      }
+      html += '</article>';
+    } else {
+      earliest = reminder.upcoming[0];
+      html =
+        '<article class="mv2-payment-reminder is-upcoming" role="status">' +
+        '<span class="mv2-payment-reminder-tag">Recordatorio de pago</span>' +
+        '<h2>' + escapeHtml("Tu " + earliest.entry.label + (earliest.days < 0 ? " está incompleto" : " vence el " + formatDate(earliest.entry.estimatedDate))) + '</h2>' +
+        '<ul>';
+      for (index = 0; index < reminder.upcoming.length; index += 1) {
+        html += renderUpcomingReminderLine(reminder.upcoming[index]);
+      }
+      html +=
+        '</ul>' +
+        '<p>Cúbrelo antes de las 12:00 pm del día de pago para evitar el moratorio de $100 diarios.</p>' +
+        '</article>';
+    }
+    container.hidden = false;
+    container.innerHTML = html;
   }
 
   function shouldShowReferralCard(statusInfo) {
@@ -1882,8 +2015,8 @@
       '<article class="mv2-referral-card' + discreetClass + '">' +
       '<div class="mv2-referral-copy">' +
       '<span class="mv2-referral-badge">Bono disponible</span>' +
-      '<h2>GANA $500 RECOMENDANDO</h2>' +
-      '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana $500 de bono o descuento cuando se inscriba.</p>' +
+      '<h2>GANA UN BONO RECOMENDANDO</h2>' +
+      '<p>Invita a una amiga o amigo a estudiar en Instituto Venezia y gana un bono o descuento cuando se inscriba.</p>' +
       '<ol class="mv2-referral-steps">' +
       '<li>Envía por WhatsApp el nombre completo de tu recomendada/o, y el día y hora en que asistirá.</li>' +
       '<li>Tu recomendada/o debe ir acompañado por ti, o traer una copia de tu identificación.</li>' +
@@ -1902,10 +2035,6 @@
       return "";
     }
     return '<small><span>' + escapeHtml(label) + '</span>' + escapeHtml(resolved) + '</small>';
-  }
-
-  function renderTimelineMetric(label, value, meta) {
-    return '<article class="mv2-timeline-metric"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong><small>' + escapeHtml(meta || "") + '</small></article>';
   }
 
   function getPaymentStatusKey(status) {
@@ -2227,18 +2356,6 @@
     return items;
   }
 
-  function getNextPendingPayment(summary) {
-    var index;
-    var status;
-    for (index = 0; index < summary.references.length; index += 1) {
-      status = normalizePaymentStatus(summary.references[index].status);
-      if (status === "Pendiente" || status === "Parcial") {
-        return summary.references[index].label;
-      }
-    }
-    return "Sin pendiente visible";
-  }
-
   function getCalendarPaymentStatus(value) {
     var normalized = normalizePaymentPlanStatus(value);
     if (normalized === "Pagado" || normalized === "Parcial") {
@@ -2381,7 +2498,8 @@
   }
 
   function renderPaymentCalendarItem(item) {
-    var dateLabel = item.status === "No aplica" ? "No aplica" : (item.estimatedDate || "Sin fecha calculable");
+    // Fechas en día/mes/año (CEO, 11/nov/2026): antes salían como 2026-11-15.
+    var dateLabel = item.status === "No aplica" ? "No aplica" : (item.estimatedDate ? formatDate(item.estimatedDate) : "Sin fecha calculable");
     return (
       '<article class="mv2-payment-calendar-card is-' + escapeHtml(item.state) + '">' +
       '<div class="mv2-payment-calendar-head">' +
@@ -2391,7 +2509,7 @@
       '<div class="mv2-payment-calendar-meta">' +
       timelineMeta("Fecha de pago", dateLabel) +
       timelineMeta("Monto", item.amount) +
-      timelineMeta("Pagado el", item.paidAt) +
+      timelineMeta("Pagado el", item.paidAt ? formatDate(item.paidAt) : "") +
       '</div>' +
       '</article>'
     );
@@ -2660,73 +2778,11 @@
     return "incomplete";
   }
 
-  function renderInicioDocumentsNotice(docState) {
-    if (docState.complete) {
-      return (
-        '<section class="mv2-document-alert is-complete">' +
-        '<div><span>Documentación completa</span><strong>Tu expediente está completo.</strong><p>No tienes documentos pendientes registrados.</p></div>' +
-        '</section>'
-      );
-    }
-    return (
-      '<section class="mv2-document-alert is-pending">' +
-      '<div><span>Documentos pendientes por entregar</span><strong>' + escapeHtml(docState.summary) + '</strong><p>Tienes documentos pendientes. Entrégalos en dirección para completar tu expediente.</p></div>' +
-      '<button class="mv2-inline-action" type="button" data-documents-action="open">Ver documentos pendientes</button>' +
-      '</section>'
-    );
-  }
-
   function renderAllPanels(student, details) {
-    renderInicio(student, details);
-    renderPerfil(student);
     renderPagos(student, details);
     renderAsistencias(student, details);
     renderDocumentos(student);
-    renderContacto(student, details);
-  }
-
-  function renderInicio(student, details) {
-    var docState = getDocumentsState(student);
-    var payments = details ? getPaymentsSummary(details, student) : null;
-    var attendance = details ? getAttendanceSummary(details.attendance) : null;
-    var statusInfo = getStudentStatusInfo(student);
-    var lateFeeSummary = getStudentLateFeeSummary(student, details);
-    byId("panelInicio").innerHTML =
-      '<div class="mv2-panel-header"><h2>Inicio</h2><p>' + escapeHtml(statusInfo.intro) + '</p></div>' +
-      statusNoticeHtml(statusInfo) +
-      lateFeeNoticeHtml(statusInfo, lateFeeSummary) +
-      renderInicioDocumentsNotice(docState) +
-      '<div class="mv2-info-grid">' +
-      infoItem(statusInfo.courseLabel, student.curso) +
-      infoItem("Plantel", student.sucursal) +
-      infoItem("Horario", student.horario) +
-      infoItem("Documentación", docState.label) +
-      infoItem("Pagos", payments ? payments.status : "Cargando pagos...") +
-      infoItem("Asistencia", attendance ? attendance.percentage + "% visible" : "Cargando asistencias...") +
-      '</div>' +
-      '<div class="mv2-pill-row">' +
-      statusBadgeHtml(statusInfo) +
-      '<span class="mv2-pill">' + escapeHtml(safe(student.accesoElegido, "Acceso por confirmar")) + '</span>' +
-      '<span class="mv2-pill">' + escapeHtml(formatDate(student.fechaInicio)) + '</span>' +
-      '</div>';
-  }
-
-  function renderPerfil(student) {
-    byId("panelPerfil").innerHTML =
-      '<div class="mv2-panel-header"><h2>Perfil</h2><p>Datos registrados en tu alta.</p></div>' +
-      '<div class="mv2-info-grid">' +
-      infoItem("Nombre", student.nombre) +
-      infoItem("Teléfono", student.telefono) +
-      infoItem("Usuario Mi Venezia", student.portalUser) +
-      infoItem("Correo", student.correo) +
-      infoItem("Curso", student.curso) +
-      infoItem("Plantel", student.sucursal) +
-      infoItem("Horario", student.horario) +
-      infoItem("Inicio", formatDate(student.fechaInicio)) +
-      infoItem("Género", student.genero) +
-      infoItem("Tutor", student.tutor) +
-      infoItem("Dirección", student.direccion) +
-      '</div>';
+    renderMaterial(student);
   }
 
   function renderPagos(student, details) {
@@ -2744,14 +2800,8 @@
     calendarEntries = buildPaymentCalendarEntries(student, details, summary);
     lateFeeSummary = getStudentLateFeeSummary(student, details);
     html =
-      '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Pagos realizados, mensualidades y pendientes visibles.") + '</p></div>' +
-      '<div class="mv2-timeline-summary">' +
-      renderTimelineMetric("Pagos completados", String(summary.paid || summary.finance.length), "Movimientos visibles") +
-      renderTimelineMetric("Pagos pendientes", String(summary.pending), "Plan de pagos") +
-      renderTimelineMetric("Próximo pendiente", getNextPendingPayment(summary), "Según registros visibles") +
-      renderTimelineMetric("Estado general", summary.status, "Resumen actual") +
-      '</div>' +
-      lateFeeNoticeHtml(statusInfo, lateFeeSummary) +
+      '<div class="mv2-panel-header"><h2>Pagos</h2><p>' + escapeHtml(statusInfo.paymentCopy || "Tu calendario de pagos.") + '</p></div>' +
+      lateFeeNoticeHtml(statusInfo, lateFeeSummary, { compact: true }) +
       '<div class="mv2-section-block"><h3>Calendario de pagos</h3>';
 
     if (calendarEntries.length) {
@@ -2768,7 +2818,6 @@
   }
 
   function renderAsistencias(student, details) {
-    var summary;
     var html;
     var index;
     var view;
@@ -2781,15 +2830,8 @@
       byId("panelAsistencias").innerHTML = '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>No pudimos cargar tus asistencias en este momento.</p></div><div class="mv2-empty">No pudimos cargar tus asistencias en este momento.</div>';
       return;
     }
-    summary = getAttendanceSummary(details.attendance);
     html =
-      '<div class="mv2-panel-header"><h2>Clases / Asistencias</h2><p>' + escapeHtml(statusInfo.attendanceCopy || "Resumen de asistencias registradas.") + '</p></div>' +
-      '<div class="mv2-timeline-summary">' +
-      renderTimelineMetric("Clases tomadas", String(summary.asistencias), "Asistencias registradas") +
-      renderTimelineMetric("Faltas", String(summary.faltas), "Registros visibles") +
-      renderTimelineMetric("Recuperaciones", String(summary.recuperaciones), "Clases recuperadas") +
-      renderTimelineMetric("Asistencia", summary.percentage + "%", "Avance visible") +
-      '</div>' +
+      '<div class="mv2-panel-header"><h2>Clases</h2><p>' + escapeHtml(statusInfo.attendanceCopy || "Tus clases programadas y las asistencias registradas.") + '</p></div>' +
       '<div class="mv2-section-block"><h3>Línea de tiempo de clases</h3>';
 
     view = buildAttendanceTimelineView(student, details);
@@ -2974,18 +3016,43 @@
     return "https://wa.me/" + normalized + "?text=" + encodeURIComponent(message);
   }
 
-  function renderContacto(student, details) {
-    var contact = resolveContact(student, details || {});
-    var message = "Hola, soy " + (student.nombre || "estudiante") + " y necesito apoyo con mi cuenta de Mi Venezia V2.";
-    byId("panelContacto").innerHTML =
-      '<div class="mv2-panel-header"><h2>Contacto</h2><p>Soporte directo para pagos, clases, documentos o acceso.</p></div>' +
-      '<div class="mv2-info-grid">' +
-      infoItem("Contacto asignado", contact.name) +
-      infoItem("Plantel", student.sucursal) +
-      infoItem("Horario", student.horario) +
-      infoItem("Cobertura", contact.coverage || "Soporte") +
-      '</div>' +
-      '<a class="mv2-whatsapp-btn" href="' + escapeHtml(whatsappUrl(contact.phone, message)) + '" target="_blank" rel="noopener">Abrir WhatsApp</a>';
+  // ---------- Lista de material de higiene personal (CEO, 11/nov/2026) ----------
+  // Cada alumna ve solo la lista de su curso.
+  var MATERIAL_LISTS = {
+    barberia: { src: "/images/mi-venezia-v2/lista-material-barberia.jpg", title: "Curso de Barbería" },
+    unas: { src: "/images/mi-venezia-v2/lista-material-unas.jpg", title: "Curso de Uñas Acrílicas Profesionales" },
+    pestanas: { src: "/images/mi-venezia-v2/lista-material-pestanas.jpg", title: "Curso de Cejas y Pestañas Profesionales" }
+  };
+
+  function getMaterialListForCourse(course) {
+    var normalized = normalizeLoose(course);
+    if (normalized.indexOf("barber") !== -1) {
+      return MATERIAL_LISTS.barberia;
+    }
+    if (normalized.indexOf("pesta") !== -1 || normalized.indexOf("ceja") !== -1 || normalized.indexOf("lash") !== -1) {
+      return MATERIAL_LISTS.pestanas;
+    }
+    if (normalized.indexOf("una") !== -1 || normalized.indexOf("manicur") !== -1 || normalized.indexOf("acril") !== -1) {
+      return MATERIAL_LISTS.unas;
+    }
+    return null;
+  }
+
+  function renderMaterial(student) {
+    var list = getMaterialListForCourse(student && student.curso);
+    var html = '<div class="mv2-panel-header"><h2>Lista de material</h2><p>Material de higiene y uso personal. Trae tu material completo según la clase.</p></div>';
+    if (!list) {
+      html += '<div class="mv2-empty">Tu lista de material te la entrega Dirección.</div>';
+    } else {
+      html +=
+        '<figure class="mv2-material-figure">' +
+        '<a href="' + escapeHtml(list.src) + '" target="_blank" rel="noopener">' +
+        '<img src="' + escapeHtml(list.src) + '" alt="' + escapeHtml("Lista de material de higiene personal - " + list.title) + '" loading="lazy" />' +
+        '</a>' +
+        '<figcaption>Toca la imagen para verla en tamaño completo.</figcaption>' +
+        '</figure>';
+    }
+    byId("panelMaterial").innerHTML = html;
   }
 
   function applyGenderTheme(student) {
@@ -3001,14 +3068,20 @@
       state.debugInfo.dashboardOpened = true;
       updateDebug();
     } catch (error) {
-      showRuntimeError("Mi Venezia V2 abrió, pero un bloque del dashboard no se pudo pintar completo.", error);
+      showRuntimeError("Mi Venezia abrió, pero un bloque del portal no se pudo pintar completo.", error);
       renderSafeFallback(student);
     }
   }
 
   function renderSafeFallback(student) {
-    byId("panelInicio").innerHTML = '<div class="mv2-panel-header"><h2>Inicio</h2><p>Tu portal abrió en modo compatible.</p></div><div class="mv2-empty">No pudimos cargar todos los bloques, pero tu acceso es correcto. Intenta actualizar o contacta soporte.</div>';
-    byId("studentName").textContent = student && student.nombre ? student.nombre : "Estudiante";
+    var reminder = byId("paymentReminder");
+    if (byId("heroGreeting")) {
+      byId("heroGreeting").textContent = "Hola, " + (student && student.nombre ? student.nombre : "estudiante");
+    }
+    if (reminder) {
+      reminder.hidden = false;
+      reminder.innerHTML = '<div class="mv2-empty">No pudimos cargar todos los bloques, pero tu acceso es correcto. Intenta actualizar o contacta soporte.</div>';
+    }
   }
 
   function openDashboard(student) {
@@ -3019,6 +3092,7 @@
     }
     byId("dashboardView").hidden = false;
     setFeedback("");
+    activateTab("inicio");
     renderDashboard(student, null);
     loadStudentDetails(student, function (details) {
       state.details = details;
@@ -3182,43 +3256,58 @@
     }
     if (tabs) {
       tabs.onclick = function (event) {
-        var target = event.target || event.srcElement;
-        var tab = target && target.getAttribute ? target.getAttribute("data-tab") : "";
-        if (tab) {
-          activateTab(tab);
+        var trigger = findAncestorWithAttribute(event.target || event.srcElement, "data-tab");
+        if (trigger) {
+          activateTab(trigger.getAttribute("data-tab"));
         }
       };
     }
     if (byId("dashboardView")) {
       byId("dashboardView").addEventListener("click", function (event) {
         var target = event.target || event.srcElement;
-        var trigger = target && target.closest ? target.closest('[data-documents-action="open"]') : null;
-        if (!trigger) {
+        if (findAncestorWithAttribute(target, "data-home-action")) {
+          event.preventDefault();
+          activateTab("inicio");
           return;
         }
-        event.preventDefault();
-        activateTab("documentos");
+        if (findAncestorWithAttribute(target, "data-documents-action")) {
+          event.preventDefault();
+          activateTab("documentos");
+        }
       });
     }
   }
 
-  function activateTab(tab) {
-    var tabs = document.querySelectorAll ? document.querySelectorAll(".mv2-tab") : [];
-    var panels = document.querySelectorAll ? document.querySelectorAll(".mv2-panel") : [];
-    var index;
-    for (index = 0; index < tabs.length; index += 1) {
-      if (tabs[index].getAttribute("data-tab") === tab) {
-        tabs[index].className = "mv2-tab is-active";
-      } else {
-        tabs[index].className = "mv2-tab";
+  // Sin compatibilidad garantizada de Element.closest en WebViews viejos.
+  function findAncestorWithAttribute(node, attribute) {
+    var current = node;
+    while (current && current !== document) {
+      if (current.getAttribute && current.getAttribute(attribute) !== null) {
+        return current;
       }
+      current = current.parentNode;
+    }
+    return null;
+  }
+
+  // "inicio" = pantalla de entrada (recordatorio, bono y menú). Cualquier otra
+  // sección esconde la entrada y deja arriba solo la tarjeta de la alumna, con
+  // "Volver al inicio" para regresar al menú (CEO, 11/nov/2026).
+  function activateTab(tab) {
+    var panels = document.querySelectorAll ? document.querySelectorAll(".mv2-panel") : [];
+    var home = byId("homeView");
+    var panelsView = byId("panelsView");
+    var showHome = !tab || tab === "inicio";
+    var index;
+    state.activeTab = showHome ? "inicio" : tab;
+    if (home) {
+      home.hidden = !showHome;
+    }
+    if (panelsView) {
+      panelsView.hidden = showHome;
     }
     for (index = 0; index < panels.length; index += 1) {
-      if (panels[index].getAttribute("data-panel") === tab) {
-        panels[index].className = "mv2-panel is-active";
-      } else {
-        panels[index].className = "mv2-panel";
-      }
+      panels[index].className = !showHome && panels[index].getAttribute("data-panel") === tab ? "mv2-panel is-active" : "mv2-panel";
     }
     try {
       window.scrollTo(0, 0);
@@ -3257,13 +3346,13 @@
 
   function installGlobalErrors() {
     window.onerror = function (message, source, line, column, error) {
-      showRuntimeError("Mi Venezia V2 detectó un error, pero no se cerró.", error || message);
+      showRuntimeError("Mi Venezia detectó un error, pero no se cerró.", error || message);
       addDebugError("window.onerror " + source + ":" + line + " " + message);
       return false;
     };
     window.onunhandledrejection = function (event) {
       var reason = event && event.reason ? event.reason : event;
-      showRuntimeError("Mi Venezia V2 detectó un error de carga, pero sigue visible.", reason);
+      showRuntimeError("Mi Venezia detectó un error de carga, pero sigue visible.", reason);
     };
   }
 

@@ -61,8 +61,17 @@ function isIgnored(filePath) {
   return ignoredPatterns.some((pattern) => pattern.test(filePath));
 }
 
+// Imágenes propias del portal (por ejemplo, listas de material por curso).
+const allowedPatterns = [
+  /^images\/mi-venezia-v2\/[^/]+\.(jpe?g|png|webp|svg)$/i,
+  // Blindaje por módulo: pruebas y mapa (cada cambio actualiza su foto base).
+  /^scripts\/regression\//,
+  /^scripts\/check-module-scope\.js$/,
+  /^docs\/MODULE_MAP\.md$/,
+];
+
 function isAllowed(filePath) {
-  return allowedFiles.has(filePath);
+  return allowedFiles.has(filePath) || allowedPatterns.some((pattern) => pattern.test(filePath));
 }
 
 function isProtected(filePath) {

@@ -205,6 +205,78 @@ async function collectSnapshots(browser, baseUrl) {
   return snapshots;
 }
 
+// ---------- Mi Venezia V2 (portal de alumna) ----------
+// Lee Supabase directo desde el navegador; aquí se le responde con las filas
+// ficticias de fixtures.miVenezia. Se entra con usuario/contraseña reales del
+// formulario y se recorre la pantalla de entrada y cada sección.
+function answerSupabase(route, tables) {
+  const url = new URL(route.request().url());
+  const match = url.pathname.match(/\/rest\/v1\/([^/?]+)/);
+  const table = match ? match[1] : "";
+  let rows = (tables[table] || []).slice();
+  for (const [key, value] of url.searchParams.entries()) {
+    if (value.startsWith("eq.")) {
+      rows = rows.filter((row) => String(row[key]) === value.slice(3));
+    }
+  }
+  return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(rows) });
+}
+
+async function collectMiVeneziaSnapshots(browser, baseUrl) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: "es-MX",
+    timezoneId: "America/Mexico_City",
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(String(error && error.message ? error.message : error)));
+  await page.clock.setFixedTime(new Date(fixtures.fixedNow));
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
+    if (/supabase\.co\/rest\/v1\//.test(route.request().url())) {
+      return answerSupabase(route, fixtures.miVenezia);
+    }
+    return route.abort();
+  });
+  await page.goto(`${baseUrl}/mi-venezia-v2.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => /Listo/.test((document.getElementById("loginFeedback") || {}).textContent || ""), null, { timeout: 20000 });
+
+  const snapshots = {};
+  let secondsAfterNoon = 0;
+  for (const row of fixtures.miVenezia.students) {
+    // El portal ignora dos intentos de entrada seguidos (< 650 ms); con el
+    // reloj congelado se avanza un segundo por alumna (sigue siendo 11/nov 12:00).
+    secondsAfterNoon += 1;
+    await page.clock.setFixedTime(new Date(new Date(fixtures.fixedNow).getTime() + secondsAfterNoon * 1000));
+    await page.fill("#loginUser", row.phone);
+    await page.fill("#loginPassword", row.password);
+    await page.click("#loginButton");
+    await page.waitForFunction(() => !document.getElementById("dashboardView").hidden, null, { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const views = await page.evaluate(() => {
+      const visibleText = () => document.getElementById("dashboardView").innerText;
+      const result = { entrada: visibleText() };
+      const buttons = Array.from(document.querySelectorAll("#tabsNav [data-tab]"));
+      for (const button of buttons) {
+        const tab = button.getAttribute("data-tab");
+        button.click();
+        result[tab] = visibleText();
+        const back = document.querySelector("[data-home-action]");
+        if (back) back.click();
+      }
+      return result;
+    });
+    for (const [view, value] of Object.entries(views)) {
+      snapshots[`mi-venezia-${row.id}-${view}`] = normalizeText(value);
+    }
+    await page.click("#logoutButton");
+    await page.waitForTimeout(150);
+  }
+  snapshots["mi-venezia-errores-de-pagina"] = errors.map((error) => error.split("\n")[0]);
+  await context.close();
+  return snapshots;
+}
+
 function diffLines(before = [], after = []) {
   const removed = before.filter((line) => !after.includes(line));
   const added = after.filter((line) => !before.includes(line));
@@ -226,6 +298,7 @@ async function main() {
   let current;
   try {
     current = await collectSnapshots(browser, baseUrl);
+    Object.assign(current, await collectMiVeneziaSnapshots(browser, baseUrl));
   } finally {
     await browser.close();
     server.close();
@@ -245,18 +318,32 @@ async function main() {
     }
   }
 
-  if (current["errores-de-pagina"].length > 0) {
+  const pageErrors = current["errores-de-pagina"].concat(current["mi-venezia-errores-de-pagina"] || []);
+  if (pageErrors.length > 0) {
     console.log("\n❌ ERRORES DE JAVASCRIPT EN LA PÁGINA:");
-    current["errores-de-pagina"].forEach((error) => console.log("   - " + error));
+    pageErrors.forEach((error) => console.log("   - " + error));
   }
 
   if (toUpdate.size > 0) {
     const next = { ...baseline };
     const accepted = [];
+    // "mi-venezia" (portal de alumna V2) no incluye "mi-venezia-legacy" (portal dentro del sistema interno).
+    const isAuthorized = (name) =>
+      toUpdate.has("todos") ||
+      [...toUpdate].some(
+        (module) => name === module || (name.startsWith(module + "-") && !(module === "mi-venezia" && name.startsWith("mi-venezia-legacy")))
+      );
     for (const name of Object.keys(current)) {
-      const matches = toUpdate.has("todos") || [...toUpdate].some((module) => name === module || name.startsWith(module + "-"));
-      if (matches) {
+      if (isAuthorized(name)) {
         next[name] = current[name];
+        accepted.push(name);
+      }
+    }
+    // Vistas que ya no existen (una sección que se quitó) también se dan de
+    // baja de la foto base, pero solo dentro del módulo autorizado.
+    for (const name of Object.keys(baseline)) {
+      if (!(name in current) && isAuthorized(name)) {
+        delete next[name];
         accepted.push(name);
       }
     }
@@ -268,11 +355,12 @@ async function main() {
       console.log("   No se actualizó su foto base. Revisa el cambio o pide autorización al CEO.");
       process.exit(1);
     }
-    process.exit(current["errores-de-pagina"].length > 0 ? 1 : 0);
+    process.exit(pageErrors.length > 0 ? 1 : 0);
   }
 
-  if (changed.length === 0 && current["errores-de-pagina"].length === 0) {
-    console.log(`✅ Todo igual que la foto base (${Object.keys(current).length} revisiones: ${Object.keys(current).join(", ")}).`);
+  if (changed.length === 0 && pageErrors.length === 0) {
+    const groups = [...new Set(Object.keys(current).map((name) => (name.startsWith("mi-venezia-") && name !== "mi-venezia-legacy" ? "mi-venezia" : name)))];
+    console.log(`✅ Todo igual que la foto base (${Object.keys(current).length} revisiones: ${groups.join(", ")}).`);
     process.exit(0);
   }
 
