@@ -6581,12 +6581,7 @@ function logoutInternalSession() {
   miVeneziaLoginPanel.hidden = false;
   miVeneziaDashboard.hidden = true;
   teacherPortalDashboard.hidden = true;
-  if (teacherPortalTemarioView) {
-    teacherPortalTemarioView.hidden = true;
-  }
-  if (teacherPortalGruposView) {
-    teacherPortalGruposView.hidden = true;
-  }
+  closeTeacherPortalModals();
   resetPortalPasswordForm(miVeneziaPasswordForm, miVeneziaPasswordFeedback);
   updateSessionUI();
 }
@@ -7093,6 +7088,9 @@ function resetForm() {
   if (proximoSeguimientoFieldToReset) {
     proximoSeguimientoFieldToReset.value = "";
   }
+  // Re-render sin valor: quita el "Plata" heredado de una edición previa y el
+  // atributo selected que dejó editProspect (form.reset() lo respetaría).
+  renderAltaSelectOptions(document.getElementById("accesoInteres"), ALTA_ACCESO_OPTIONS, { value: "" });
   syncProspectFollowupField();
   submitButton.textContent = "Guardar prospecto";
 }
@@ -19228,7 +19226,14 @@ function getTeacherPortalGrupos(profile) {
 
   const alumnasActivas = students.filter((student) => {
     const curso = __veneziaGet(student, "curso") || "";
-    return curso === specialty && !isStudentDropped(student) && !isStudentCourseCompletedForAttendance(student);
+    // Alumnas "Eliminada" no forman grupo: sin este filtro se colaban en
+    // Barbería y Uñas y armaban grupos que no existen (CEO, 11/nov/2026).
+    return (
+      curso === specialty &&
+      !isStudentDeleted(student) &&
+      !isStudentDropped(student) &&
+      !isStudentCourseCompletedForAttendance(student)
+    );
   });
 
   const groups = new Map();
@@ -19333,19 +19338,71 @@ function renderTeacherPortalGruposView(profile) {
   teacherPortalGruposEmptyState.hidden = grupos.length > 0;
 }
 
-function openTeacherPortalGrupos() {
-  const profile = getTeacherProfileByInternalUser(getCurrentInternalUser());
-  renderTeacherPortalGruposView(profile);
-  teacherPortalDashboard.hidden = true;
+// "Ver mi temario" y "Ver mis grupos" se abren como ventana encima del
+// portal (pantalla completa en celular, centrada en computadora) con
+// "Volver a mi portal" fijo arriba. El portal se queda debajo sin ocultarse,
+// así el refresco automático (renderAll -> renderTeacherPortalDashboard,
+// cada 15 s) ya no la tapa ni la cierra (CEO, 11/nov/2026).
+let teacherPortalModalReturnFocus = null;
+
+function isTeacherPortalModalOpen(view) {
+  return Boolean(view && !view.hidden);
+}
+
+function openTeacherPortalModal(view, opener) {
+  if (!view) {
+    return;
+  }
+  [teacherPortalTemarioView, teacherPortalGruposView].forEach((otherView) => {
+    if (otherView && otherView !== view) {
+      otherView.hidden = true;
+    }
+  });
+  teacherPortalModalReturnFocus = opener || document.activeElement || null;
+  view.hidden = false;
+  document.body.classList.add("teacher-portal-modal-open");
+  const dialog = view.querySelector(".teacher-portal-modal-dialog");
+  if (dialog) {
+    dialog.scrollTop = 0;
+  }
+  const closeButton = view.querySelector(".teacher-portal-modal-close");
+  if (closeButton) {
+    try {
+      closeButton.focus({ preventScroll: true });
+    } catch (error) {
+      closeButton.focus();
+    }
+  }
+}
+
+function closeTeacherPortalModals({ restoreFocus = false } = {}) {
+  const wasOpen = isTeacherPortalModalOpen(teacherPortalTemarioView) || isTeacherPortalModalOpen(teacherPortalGruposView);
   if (teacherPortalTemarioView) {
     teacherPortalTemarioView.hidden = true;
   }
-  teacherPortalGruposView.hidden = false;
+  if (teacherPortalGruposView) {
+    teacherPortalGruposView.hidden = true;
+  }
+  document.body.classList.remove("teacher-portal-modal-open");
+  const returnFocus = teacherPortalModalReturnFocus;
+  teacherPortalModalReturnFocus = null;
+  if (wasOpen && restoreFocus && returnFocus && typeof returnFocus.focus === "function") {
+    try {
+      returnFocus.focus({ preventScroll: true });
+    } catch (error) {
+      returnFocus.focus();
+    }
+  }
+}
+
+function openTeacherPortalGrupos() {
+  const profile = getTeacherProfileByInternalUser(getCurrentInternalUser());
+  renderTeacherPortalGruposView(profile);
+  openTeacherPortalModal(teacherPortalGruposView, teacherPortalOpenGruposButton);
 }
 
 function closeTeacherPortalGrupos() {
-  teacherPortalGruposView.hidden = true;
-  teacherPortalDashboard.hidden = false;
+  closeTeacherPortalModals({ restoreFocus: true });
 }
 
 function renderTeacherPortalTemarioLauncher(profile) {
@@ -19463,16 +19520,11 @@ function renderTeacherPortalTemarioWatermark() {
 function openTeacherPortalTemario() {
   const profile = getTeacherProfileByInternalUser(getCurrentInternalUser());
   renderTeacherPortalTemarioView(profile);
-  teacherPortalDashboard.hidden = true;
-  if (teacherPortalGruposView) {
-    teacherPortalGruposView.hidden = true;
-  }
-  teacherPortalTemarioView.hidden = false;
+  openTeacherPortalModal(teacherPortalTemarioView, teacherPortalOpenTemarioButton);
 }
 
 function closeTeacherPortalTemario() {
-  teacherPortalTemarioView.hidden = true;
-  teacherPortalDashboard.hidden = false;
+  closeTeacherPortalModals({ restoreFocus: true });
 }
 
 function renderTeacherPortalDashboard() {
@@ -19493,6 +19545,7 @@ function renderTeacherPortalDashboard() {
 
   if (!user || currentAccessMode !== "teacher") {
     teacherPortalDashboard.hidden = true;
+    closeTeacherPortalModals();
     return;
   }
 
@@ -19561,6 +19614,12 @@ function renderTeacherPortalDashboard() {
   renderTeacherPortalQuincenas(profile);
 
   teacherPortalDashboard.hidden = false;
+
+  // Si "Mis grupos" está abierta, el refresco solo actualiza su lista;
+  // la ventana sigue abierta y en la misma posición de scroll.
+  if (isTeacherPortalModalOpen(teacherPortalGruposView)) {
+    renderTeacherPortalGruposView(profile);
+  }
 }
 
 function editFinanceRecord(id) {
@@ -19651,7 +19710,12 @@ function editProspect(id) {
   document.getElementById("asesoraAsignada").value = prospect.asesoraAsignada || "";
   document.getElementById("temperatura").value = normalizeTemperatureValue(prospect.temperatura);
   document.getElementById("notas").value = prospect.notas;
-  document.getElementById("accesoInteres").value = prospect.accesoInteres || "";
+  // "Plata" ya no se ofrece (CEO, 11/nov/2026), pero un prospecto viejo que
+  // lo tenga lo conserva al editarse para no borrarle el dato.
+  renderAltaSelectOptions(document.getElementById("accesoInteres"), ALTA_ACCESO_OPTIONS, {
+    value: prospect.accesoInteres || "",
+    allowLegacy: true,
+  });
   syncProspectFollowupField();
   submitButton.textContent = "Actualizar prospecto";
   setActiveModule("crm-prospectos");
@@ -20791,6 +20855,15 @@ if (teacherPortalOpenGruposButton) {
 if (teacherPortalCloseGruposButton) {
   teacherPortalCloseGruposButton.addEventListener("click", closeTeacherPortalGrupos);
 }
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" && event.key !== "Esc") {
+    return;
+  }
+  if (isTeacherPortalModalOpen(teacherPortalTemarioView) || isTeacherPortalModalOpen(teacherPortalGruposView)) {
+    event.preventDefault();
+    closeTeacherPortalModals({ restoreFocus: true });
+  }
+});
 if (teacherPortalTemarioProtected) {
   // Disuasivos de copia/descarga del temario (petición del CEO, 30/oct/2026).
   // No bloquean una captura de pantalla real -- eso lo controla el sistema

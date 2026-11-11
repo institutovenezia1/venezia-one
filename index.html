@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20261102-pagos-fin-semana-sync-validacion" />
+    <link rel="stylesheet" href="style.css?v=20261111-portal-maestros-ventanas-grupos" />
     <link rel="stylesheet" href="web-venezia.css?v=20261009-tono-editorial" />
   </head>
   <body>
@@ -345,7 +345,6 @@
                     <option value="">Selecciona una opcion</option>
                     <option>Platinum</option>
                     <option>Oro</option>
-                    <option>Plata</option>
                     <option>Beca Venezia</option>
                   </select>
                 </label>
@@ -3011,14 +3010,15 @@
             </section>
           </section>
 
-          <section class="module-section-inner teacher-portal-temario-view" id="teacherPortalTemarioView" hidden>
-            <section class="panel teacher-portal-header-panel">
+          <section class="module-section-inner teacher-portal-temario-view teacher-portal-modal" id="teacherPortalTemarioView" hidden>
+            <div class="teacher-portal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="teacherPortalTemarioTitle">
+            <section class="panel teacher-portal-header-panel teacher-portal-modal-header">
               <div class="section-heading">
                 <p class="eyebrow">Material del curso</p>
                 <h3 id="teacherPortalTemarioTitle">Temario</h3>
               </div>
               <div class="form-actions">
-                <button class="secondary-btn" type="button" id="teacherPortalCloseTemarioButton">&larr; Volver a mi portal</button>
+                <button class="secondary-btn teacher-portal-modal-close" type="button" id="teacherPortalCloseTemarioButton">&larr; Volver a mi portal</button>
               </div>
             </section>
 
@@ -3035,16 +3035,18 @@
                 <p id="teacherPortalTemarioObjetivo"></p>
               </section>
             </div>
+            </div>
           </section>
 
-          <section class="module-section-inner teacher-portal-grupos-view" id="teacherPortalGruposView" hidden>
-            <section class="panel teacher-portal-header-panel">
+          <section class="module-section-inner teacher-portal-grupos-view teacher-portal-modal" id="teacherPortalGruposView" hidden>
+            <div class="teacher-portal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="teacherPortalGruposTitle">
+            <section class="panel teacher-portal-header-panel teacher-portal-modal-header">
               <div class="section-heading">
                 <p class="eyebrow">Mis grupos</p>
-                <h3>Grupos activos</h3>
+                <h3 id="teacherPortalGruposTitle">Grupos activos</h3>
               </div>
               <div class="form-actions">
-                <button class="secondary-btn" type="button" id="teacherPortalCloseGruposButton">&larr; Volver a mi portal</button>
+                <button class="secondary-btn teacher-portal-modal-close" type="button" id="teacherPortalCloseGruposButton">&larr; Volver a mi portal</button>
               </div>
             </section>
 
@@ -3052,6 +3054,7 @@
             <p id="teacherPortalGruposEmptyState" class="empty-state" hidden>
               Aún no hay alumnas registradas en tu curso.
             </p>
+            </div>
           </section>
         </section>
 
@@ -3953,7 +3956,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20261022-prospectos-asesora-rol-sin-cortar"></script>
-    <script src="docente-portal-content.js?v=20261030-portal-maestros-grupos-avisos-v2"></script>
-    <script src="app.js?v=20261111-altas-catalogo-curso-dia-horario"></script>
+    <script src="docente-portal-content.js?v=20261111-portal-maestros-ventanas-grupos"></script>
+    <script src="app.js?v=20261111-portal-maestros-ventanas-grupos"></script>
   </body>
 </html>

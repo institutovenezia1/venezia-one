@@ -126,15 +126,18 @@ window.VeneziaDocenteContent = (function () {
           titulo: "Introducción a la barbería y bioseguridad",
           secciones: [
             {
-              nombre: "Contenido",
+              nombre: "Teoría",
               items: [
                 "Presentación del curso",
                 "Higiene y bioseguridad",
                 "Desinfección de herramientas",
                 "Ergonomía y postura correcta",
                 "Conocimiento del área de trabajo",
-                "Práctica con globos",
               ],
+            },
+            {
+              nombre: "Práctica",
+              items: ["Práctica con globos y cabezote de unicel"],
             },
           ],
         },
