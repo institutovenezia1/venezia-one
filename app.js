@@ -19267,7 +19267,7 @@ function getTeacherPortalGrupos(profile) {
     const horario = __veneziaGet(student, "horario") || "Horario por confirmar";
     const key = `${diaClases}::${horario}`;
     if (!groups.has(key)) {
-      groups.set(key, { label: `${diaClases} · ${horario}`, alumnas: [] });
+      groups.set(key, { label: `${diaClases} · ${horario}`, diaClases, horario, alumnas: [] });
     }
 
     const attendanceHistory = attendanceRecords
@@ -19293,7 +19293,59 @@ function getTeacherPortalGrupos(profile) {
       ...group,
       alumnas: group.alumnas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     }))
-    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+    .sort(compareTeacherPortalGrupos);
+}
+
+// Orden de "Mis grupos" (CEO, 11/nov/2026): por día de la semana empezando en
+// martes (Martes y Miércoles → Jueves → Viernes → Sábado → Domingo) y, dentro
+// del mismo día, del horario más temprano al más tarde. Antes salía en orden
+// alfabético (Domingo, Sábado, Viernes…), que se veía al revés.
+const TEACHER_PORTAL_DAY_ORDER = [
+  ["lunes", 0],
+  ["martes", 1],
+  ["miercoles", 2],
+  ["entre semana", 2.5],
+  ["jueves", 3],
+  ["viernes", 4],
+  ["sabado", 5],
+  ["fin de semana", 5.5],
+  ["domingo", 6],
+];
+
+function getTeacherPortalDayRank(diaClases) {
+  const normalized = normalizeInternalLookupValue(diaClases);
+  const match = TEACHER_PORTAL_DAY_ORDER.find(([day]) => normalized.startsWith(day));
+  return match ? match[1] : 99;
+}
+
+// "9am a 11am", "12pm a 2pm", "9:00 am - 12:00 pm" -> minutos desde las 0:00.
+function getTeacherPortalHorarioStartMinutes(horario) {
+  const match = String(horario || "").match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.\s*m\.|p\.\s*m\.)?/i);
+  if (!match) {
+    return 9999;
+  }
+  let hours = Number(match[1]) % 12;
+  const minutes = Number(match[2] || 0);
+  const meridiem = String(match[3] || "").toLowerCase().replace(/[^ap]/g, "");
+  if (meridiem === "p") {
+    hours += 12;
+  } else if (!meridiem && hours >= 1 && hours <= 7) {
+    // Sin am/pm, 1-7 se toma como tarde (no hay clases de madrugada).
+    hours += 12;
+  }
+  return hours * 60 + minutes;
+}
+
+function compareTeacherPortalGrupos(a, b) {
+  const dayDifference = getTeacherPortalDayRank(a.diaClases) - getTeacherPortalDayRank(b.diaClases);
+  if (dayDifference !== 0) {
+    return dayDifference;
+  }
+  const timeDifference = getTeacherPortalHorarioStartMinutes(a.horario) - getTeacherPortalHorarioStartMinutes(b.horario);
+  if (timeDifference !== 0) {
+    return timeDifference;
+  }
+  return a.label.localeCompare(b.label, "es");
 }
 
 function renderTeacherPortalGruposLauncher(profile) {

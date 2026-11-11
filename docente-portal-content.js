@@ -19,7 +19,7 @@ window.VeneziaDocenteContent = (function () {
   "use strict";
 
   const INSTITUTO_LEMA =
-    "SOMOS MÁS QUE UN INSTITUTO. IMPULSAMOS A MUJERES A EMPRENDER SU PROPIO NEGOCIO EN LA BELLEZA.";
+    "SOMOS MÁS QUE UN INSTITUTO. IMPULSAMOS A MUJERES Y HOMBRES A EMPRENDER SU PROPIO NEGOCIO EN EL GIRO DE LA BELLEZA.";
 
   const INSTITUTO_MISION =
     "Impulsar a mujeres a transformar su vida mediante la educación en belleza, con conocimientos, " +
