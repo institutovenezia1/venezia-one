@@ -52,6 +52,7 @@ function getVeneziaVisibleUiLabel() {
     "teacherPortalDashboard",
     "teacherPortalTemarioView",
     "teacherPortalGruposView",
+    "teacherPortalActividadesView",
     "teacherPortalShell",
     "accessSelectorSection",
     "webVeneziaSection",
@@ -180,7 +181,14 @@ const DIRECTOR_CONTACT_SCOPE_OPTIONS = [
 const TEACHER_ATTENDANCE_STATUS_OPTIONS = ["Asistió", "Falta", "Permiso"];
 const TEACHER_OPERATIONAL_STATUS_OPTIONS = ["Activo", "Inactivo"];
 const TEACHER_PAYMENT_TYPE = "Por turnos trabajados";
+// "miss de …" se cambió a "docente de …" (CEO, 11/nov/2026). Los valores
+// "miss" se siguen reconociendo por si queda algún registro sin actualizar.
 const TEACHER_ELIGIBLE_POSITIONS = new Set([
+  "docente de uñas",
+  "docente de pestañas",
+  "docente de maquillaje",
+  "docente de barbería",
+  "docente de barberia",
   "miss de uñas",
   "miss de pestañas",
   "miss de maquillaje",
@@ -389,6 +397,11 @@ const INTERNAL_PLATFORM_MODULE_ORDER = [
 ];
 const TEACHER_ACCESS_ROLE_LABELS = new Set([
   "maestra",
+  "docente",
+  "docente de unas",
+  "docente de pestanas",
+  "docente de maquillaje",
+  "docente de barberia",
   "miss de unas",
   "miss de pestanas",
   "miss de maquillaje",
@@ -762,15 +775,10 @@ const miVeneziaLoginFeedback = document.getElementById("miVeneziaLoginFeedback")
 const miVeneziaLoginDebugPanel = document.getElementById("miVeneziaLoginDebugPanel");
 const teacherPortalDashboard = document.getElementById("teacherPortalDashboard");
 const teacherPortalLogoutButton = document.getElementById("teacherPortalLogoutButton");
-const teacherPortalProfile = document.getElementById("teacherPortalProfile");
 const teacherPortalJornadasEmptyState = document.getElementById("teacherPortalJornadasEmptyState");
 const teacherPortalHeroName = document.getElementById("teacherPortalHeroName");
 const teacherPortalHeroMeta = document.getElementById("teacherPortalHeroMeta");
 const teacherPortalHeroSummary = document.getElementById("teacherPortalHeroSummary");
-const teacherPortalContactButton = document.getElementById("teacherPortalContactButton");
-const teacherPortalStatDays = document.getElementById("teacherPortalStatDays");
-const teacherPortalStatShifts = document.getElementById("teacherPortalStatShifts");
-const teacherPortalStatIncidents = document.getElementById("teacherPortalStatIncidents");
 const teacherPortalMisionLema = document.getElementById("teacherPortalMisionLema");
 const teacherPortalMisionTexto = document.getElementById("teacherPortalMisionTexto");
 const teacherPortalTemarioSummary = document.getElementById("teacherPortalTemarioSummary");
@@ -783,6 +791,10 @@ const teacherPortalGruposView = document.getElementById("teacherPortalGruposView
 const teacherPortalGruposList = document.getElementById("teacherPortalGruposList");
 const teacherPortalGruposEmptyState = document.getElementById("teacherPortalGruposEmptyState");
 const teacherPortalActividadesList = document.getElementById("teacherPortalActividadesList");
+const teacherPortalActividadesSummary = document.getElementById("teacherPortalActividadesSummary");
+const teacherPortalOpenActividadesButton = document.getElementById("teacherPortalOpenActividadesButton");
+const teacherPortalCloseActividadesButton = document.getElementById("teacherPortalCloseActividadesButton");
+const teacherPortalActividadesView = document.getElementById("teacherPortalActividadesView");
 const teacherPortalAvisosList = document.getElementById("teacherPortalAvisosList");
 const teacherPortalAvisosEmptyState = document.getElementById("teacherPortalAvisosEmptyState");
 const teacherPortalQuincenasList = document.getElementById("teacherPortalQuincenasList");
@@ -2750,6 +2762,7 @@ function getTeacherSpecialtyDisplay(record) {
 // que en la UI ya no debe decir "maestras".
 function toTeacherFacingLabel(value) {
   return String(value || "")
+    .replace(/^\s*miss(?=\s+de\s)/i, "docente")
     .replace(/COORD de maestras/g, "COORD de docentes")
     .replace(/coordinadora de maestras/g, "coordinadora de docentes")
     .replace(/^Maestra$/, "Docente");
@@ -3844,7 +3857,7 @@ function syncTeacherConfigFields() {
   document.getElementById("teacherId").value = __veneziaGet(existingConfig, "id") || "";
   document.getElementById("teacherLinkedUserId").value = selectedStaff.linkedUserId || __veneziaGet(existingConfig, "linkedUserId") || "";
   document.getElementById("teacherFullName").value = selectedStaff.nombre || "";
-  teacherPosition.value = selectedStaff.puesto || "";
+  teacherPosition.value = toTeacherFacingLabel(selectedStaff.puesto) || "";
   document.getElementById("teacherBranch").value = selectedStaff.sucursal || "";
   document.getElementById("teacherUsername").value = getTeacherStaffAccessUsername(selectedStaff);
   document.getElementById("teacherSpecialty").value =
@@ -10405,7 +10418,9 @@ function editStaffRecord(id) {
   document.getElementById("staffId").value = record.id;
   document.getElementById("staffNombre").value = record.nombre;
   document.getElementById("staffTelefono").value = record.telefono;
-  document.getElementById("staffPuesto").value = record.puesto;
+  // Un registro viejo con "miss de …" se muestra ya como "docente de …" para
+  // que coincida con la lista y quede actualizado al guardar (CEO, 11/nov/2026).
+  document.getElementById("staffPuesto").value = toTeacherFacingLabel(record.puesto);
   document.getElementById("staffArea").value = record.area;
   document.getElementById("staffSucursal").value = record.sucursal;
   document.getElementById("staffFechaIngreso").value = record.fechaIngreso;
@@ -19142,7 +19157,17 @@ function renderTeacherPortalStaticContent() {
     teacherPortalMisionTexto.textContent = content.INSTITUTO_MISION;
   }
 
-  if (teacherPortalActividadesList) {
+  if (teacherPortalActividadesSummary) {
+    const totalActividades = content.ACTIVIDADES.length;
+    teacherPortalActividadesSummary.textContent = `${totalActividades} ${
+      totalActividades === 1 ? "actividad" : "actividades"
+    } que todo docente cumple en cada clase.`;
+  }
+
+  // Se pinta una sola vez: si la ventana está abierta, el refresco de 15 s
+  // no reemplaza la lista ni mueve la posición de lectura.
+  if (teacherPortalActividadesList && !teacherPortalActividadesList.dataset.rendered) {
+    teacherPortalActividadesList.dataset.rendered = "1";
     teacherPortalActividadesList.innerHTML = content.ACTIVIDADES.map(
       (actividad) => `
         <li class="teacher-portal-actividad-item">
@@ -19349,11 +19374,19 @@ function isTeacherPortalModalOpen(view) {
   return Boolean(view && !view.hidden);
 }
 
+function getTeacherPortalModalViews() {
+  return [teacherPortalTemarioView, teacherPortalGruposView, teacherPortalActividadesView].filter(Boolean);
+}
+
+function isAnyTeacherPortalModalOpen() {
+  return getTeacherPortalModalViews().some((view) => isTeacherPortalModalOpen(view));
+}
+
 function openTeacherPortalModal(view, opener) {
   if (!view) {
     return;
   }
-  [teacherPortalTemarioView, teacherPortalGruposView].forEach((otherView) => {
+  getTeacherPortalModalViews().forEach((otherView) => {
     if (otherView && otherView !== view) {
       otherView.hidden = true;
     }
@@ -19376,13 +19409,10 @@ function openTeacherPortalModal(view, opener) {
 }
 
 function closeTeacherPortalModals({ restoreFocus = false } = {}) {
-  const wasOpen = isTeacherPortalModalOpen(teacherPortalTemarioView) || isTeacherPortalModalOpen(teacherPortalGruposView);
-  if (teacherPortalTemarioView) {
-    teacherPortalTemarioView.hidden = true;
-  }
-  if (teacherPortalGruposView) {
-    teacherPortalGruposView.hidden = true;
-  }
+  const wasOpen = isAnyTeacherPortalModalOpen();
+  getTeacherPortalModalViews().forEach((view) => {
+    view.hidden = true;
+  });
   document.body.classList.remove("teacher-portal-modal-open");
   const returnFocus = teacherPortalModalReturnFocus;
   teacherPortalModalReturnFocus = null;
@@ -19402,6 +19432,17 @@ function openTeacherPortalGrupos() {
 }
 
 function closeTeacherPortalGrupos() {
+  closeTeacherPortalModals({ restoreFocus: true });
+}
+
+// "Mis actividades" ya no se muestra como lista abierta en el portal: se abre
+// con su botón en la misma ventana que el temario y los grupos (CEO, 11/nov/2026).
+function openTeacherPortalActividades() {
+  renderTeacherPortalStaticContent();
+  openTeacherPortalModal(teacherPortalActividadesView, teacherPortalOpenActividadesButton);
+}
+
+function closeTeacherPortalActividades() {
   closeTeacherPortalModals({ restoreFocus: true });
 }
 
@@ -19527,6 +19568,25 @@ function closeTeacherPortalTemario() {
   closeTeacherPortalModals({ restoreFocus: true });
 }
 
+function capitalizeFirstLetter(value) {
+  const text = String(value || "").trim();
+  return text ? text.charAt(0).toLocaleUpperCase("es-MX") + text.slice(1) : "";
+}
+
+// "ALAN CARREON PEREZ" -> "Docente Alan Carreon Perez". Las partículas
+// (de, del, la, las, los, y) quedan en minúscula.
+function formatTeacherPortalHeroName(fullName) {
+  const particles = new Set(["de", "del", "la", "las", "los", "y"]);
+  const name = String(fullName || "")
+    .trim()
+    .toLocaleLowerCase("es-MX")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => (index > 0 && particles.has(word) ? word : capitalizeFirstLetter(word)))
+    .join(" ");
+  return name ? `Docente ${name}` : "Mi Portal Docente";
+}
+
 function renderTeacherPortalDashboard() {
   const user = getCurrentInternalUser();
   const linkedStaff = getLinkedTeacherStaffRecordForUser(user);
@@ -19554,64 +19614,27 @@ function renderTeacherPortalDashboard() {
   renderTeacherPortalGruposLauncher(profile);
 
   if (!profile) {
-    teacherPortalHeroName.textContent = user.fullName || "Mi Portal Docente";
+    teacherPortalHeroName.textContent = formatTeacherPortalHeroName(user.fullName);
     teacherPortalHeroMeta.textContent = "Tu usuario está activo, pero aún no tiene un perfil docente enlazado en Personal/Docentes.";
     renderInfoList(teacherPortalHeroSummary, [
       { label: "Usuario", value: user.username || "-" },
       { label: "Sucursal", value: user.branch || "-" },
       { label: "Rol", value: toTeacherFacingLabel(user.role) || "-" },
     ]);
-    renderInfoList(teacherPortalProfile, [
-      { label: "Estado", value: "Pendiente de enlace" },
-      { label: "Acción", value: "Solicita a Dirección que vincule tu perfil docente." },
-    ]);
-    renderTeacherPortalQuincenas(null);
-    teacherPortalStatDays.textContent = "0";
-    teacherPortalStatShifts.textContent = "0";
-    teacherPortalStatIncidents.textContent = "0";
-    teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl({ nombreCompleto: user.fullName, sucursal: user.branch });
     teacherPortalDashboard.hidden = false;
     return;
   }
 
-  const allEntries = getTeacherPortalEntries(profile);
-  const period = getTeacherPortalCurrentRange();
-  const periodEntries = allEntries.filter((entry) => isTeacherDateWithinRange(entry.fecha, period));
-  const workedInPeriod = periodEntries.filter((entry) => entry.estatus === "Asistió");
-  const incidents = periodEntries.filter((entry) => entry.estatus === "Falta" || entry.estatus === "Permiso");
-  const totalDays = workedInPeriod.length;
-  const totalShifts = workedInPeriod.reduce((sum, entry) => sum + getTeacherCoveredTurnUnits(entry.turno), 0);
-  const statusLabel = profile.estadoDocente || user.status || "Activo";
-  const operationalSpecialty = getTeacherOperationalSpecialty(profile);
-  const coverageSpecialty = getTeacherCoverageDisplay(profile);
-
-  teacherPortalHeroName.textContent = profile.nombreCompleto || user.fullName || "Mi Portal Docente";
-  teacherPortalHeroMeta.textContent = `${profile.sucursal || "-"} · ${toTeacherFacingLabel(profile.puesto) || "-"} · ${toTeacherFacingLabel(getTeacherSpecialtyDisplay(profile))}`;
+  // Encabezado limpio (CEO, 11/nov/2026): "Docente + nombre", "Plantel …" y
+  // solo Sucursal y Puesto. Se quitaron especialidad, cobertura, periodo,
+  // el botón de WhatsApp, los contadores de nómina, "Mi información docente"
+  // y "Mis días trabajados" (la nómina se revisa en su propio módulo).
+  teacherPortalHeroName.textContent = formatTeacherPortalHeroName(profile.nombreCompleto || user.fullName);
+  teacherPortalHeroMeta.textContent = profile.sucursal ? `Plantel ${profile.sucursal}` : "";
   renderInfoList(teacherPortalHeroSummary, [
     { label: "Sucursal", value: profile.sucursal || "-" },
-    { label: "Especialidad", value: toTeacherFacingLabel(profile.especialidad) || "-" },
-    { label: "Cobertura", value: toTeacherFacingLabel(coverageSpecialty) || "Sin cobertura adicional" },
-    { label: "Puesto", value: toTeacherFacingLabel(profile.puesto) || "-" },
-    { label: "Periodo", value: period.label },
+    { label: "Puesto", value: capitalizeFirstLetter(toTeacherFacingLabel(profile.puesto)) || "-" },
   ]);
-
-  teacherPortalStatDays.textContent = String(totalDays);
-  teacherPortalStatShifts.textContent = String(totalShifts);
-  teacherPortalStatIncidents.textContent = String(incidents.length);
-  teacherPortalContactButton.href = getTeacherDirectorWhatsappUrl(profile);
-
-  renderInfoList(teacherPortalProfile, [
-    { label: "Nombre completo", value: profile.nombreCompleto || "-" },
-    { label: "Sucursal", value: profile.sucursal || "-" },
-    { label: "Especialidad docente", value: toTeacherFacingLabel(profile.especialidad) || "-" },
-    { label: "Cubre especialidad", value: toTeacherFacingLabel(coverageSpecialty) || "Sin cobertura adicional" },
-    { label: "Especialidad operativa", value: toTeacherFacingLabel(operationalSpecialty) || "-" },
-    { label: "Puesto", value: toTeacherFacingLabel(profile.puesto) || "-" },
-    { label: "Estatus", value: statusLabel || "-" },
-    { label: "Usuario", value: profile.usuario || user.username || "-" },
-  ]);
-
-  renderTeacherPortalQuincenas(profile);
 
   teacherPortalDashboard.hidden = false;
 
@@ -20855,11 +20878,17 @@ if (teacherPortalOpenGruposButton) {
 if (teacherPortalCloseGruposButton) {
   teacherPortalCloseGruposButton.addEventListener("click", closeTeacherPortalGrupos);
 }
+if (teacherPortalOpenActividadesButton) {
+  teacherPortalOpenActividadesButton.addEventListener("click", openTeacherPortalActividades);
+}
+if (teacherPortalCloseActividadesButton) {
+  teacherPortalCloseActividadesButton.addEventListener("click", closeTeacherPortalActividades);
+}
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape" && event.key !== "Esc") {
     return;
   }
-  if (isTeacherPortalModalOpen(teacherPortalTemarioView) || isTeacherPortalModalOpen(teacherPortalGruposView)) {
+  if (isAnyTeacherPortalModalOpen()) {
     event.preventDefault();
     closeTeacherPortalModals({ restoreFocus: true });
   }

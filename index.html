@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=20261111-portal-maestros-ventanas-grupos" />
+    <link rel="stylesheet" href="style.css?v=20261111-portal-docente-mision-arriba" />
     <link rel="stylesheet" href="web-venezia.css?v=20261009-tono-editorial" />
   </head>
   <body>
@@ -2185,10 +2185,10 @@
                     <option>gerente de sucursal</option>
                     <option>director administrativo de sucursal</option>
                     <option value="coordinadora de maestras">coordinadora de docentes</option>
-                    <option>miss de uñas</option>
-                    <option>miss de pestañas</option>
-                    <option>miss de barbería</option>
-                    <option>miss de maquillaje</option>
+                    <option>docente de uñas</option>
+                    <option>docente de pestañas</option>
+                    <option>docente de barbería</option>
+                    <option>docente de maquillaje</option>
                     <option>gerente de ventas</option>
                     <option>asesor de ventas</option>
                   </select>
@@ -2907,6 +2907,12 @@
               </div>
             </section>
 
+            <!-- La misión va primero, debajo de la barra fija de "Cerrar sesión" (CEO, 11/nov/2026). -->
+            <section class="panel teacher-portal-equal-panel teacher-portal-mision-panel">
+              <p class="teacher-portal-mision-lema" id="teacherPortalMisionLema"></p>
+              <p class="teacher-portal-mision-texto" id="teacherPortalMisionTexto"></p>
+            </section>
+
             <section class="panel mi-venezia-hero-panel teacher-portal-hero-panel">
               <div class="mi-venezia-hero-copy">
                 <p class="teacher-portal-stamp">PORTAL DOCENTE</p>
@@ -2916,40 +2922,6 @@
               </div>
 
               <div class="info-list mi-venezia-hero-summary" id="teacherPortalHeroSummary"></div>
-
-              <div class="form-actions">
-                <a class="primary-btn whatsapp-director-btn" id="teacherPortalContactButton" href="#" target="_blank" rel="noopener">Dudas con Dirección</a>
-              </div>
-
-              <section class="stats-grid mi-venezia-stats-grid teacher-portal-stats-grid" aria-label="Resumen de maestra">
-                <article class="stat-card">
-                  <p>Días laborados</p>
-                  <strong id="teacherPortalStatDays">0</strong>
-                </article>
-                <article class="stat-card">
-                  <p>Turnos cubiertos</p>
-                  <strong id="teacherPortalStatShifts">0</strong>
-                </article>
-                <article class="stat-card">
-                  <p>Incidencias / permisos</p>
-                  <strong id="teacherPortalStatIncidents">0</strong>
-                </article>
-              </section>
-            </section>
-
-            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-secondary-row">
-              <section class="panel teacher-portal-equal-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Perfil</p>
-                  <h3>Mi información docente</h3>
-                </div>
-                <div id="teacherPortalProfile" class="info-list"></div>
-              </section>
-            </section>
-
-            <section class="panel teacher-portal-equal-panel teacher-portal-mision-panel">
-              <p class="teacher-portal-mision-lema" id="teacherPortalMisionLema"></p>
-              <p class="teacher-portal-mision-texto" id="teacherPortalMisionTexto"></p>
             </section>
 
             <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-quick-links-row">
@@ -2974,14 +2946,17 @@
                   <button class="primary-btn" type="button" id="teacherPortalOpenGruposButton">Ver mis grupos</button>
                 </div>
               </section>
-            </section>
 
-            <section class="panel teacher-portal-equal-panel teacher-portal-actividades-panel">
-              <div class="section-heading">
-                <p class="eyebrow">Reglas del instituto</p>
-                <h3>Mis actividades</h3>
-              </div>
-              <ol class="teacher-portal-actividades-list" id="teacherPortalActividadesList"></ol>
+              <section class="panel teacher-portal-equal-panel teacher-portal-link-panel">
+                <div class="section-heading">
+                  <p class="eyebrow">Reglas del instituto</p>
+                  <h3>Mis actividades</h3>
+                </div>
+                <p class="teacher-portal-link-copy" id="teacherPortalActividadesSummary">—</p>
+                <div class="form-actions">
+                  <button class="primary-btn" type="button" id="teacherPortalOpenActividadesButton">Ver mis actividades</button>
+                </div>
+              </section>
             </section>
 
             <!-- Oculto junto con el panel admin de avisos (ver nota arriba). -->
@@ -2996,18 +2971,6 @@
               </p>
             </section>
 
-            <section class="content-grid mi-venezia-content-grid teacher-portal-content-grid teacher-portal-tertiary-row">
-              <section class="panel teacher-portal-equal-panel teacher-portal-table-panel">
-                <div class="section-heading">
-                  <p class="eyebrow">Asistencia laboral</p>
-                  <h3>Mis días trabajados</h3>
-                </div>
-                <div id="teacherPortalQuincenasList" class="teacher-portal-quincenas-list"></div>
-                <p id="teacherPortalJornadasEmptyState" class="empty-state">
-                  Aún no hay jornadas laborales registradas para tu perfil.
-                </p>
-              </section>
-            </section>
           </section>
 
           <section class="module-section-inner teacher-portal-temario-view teacher-portal-modal" id="teacherPortalTemarioView" hidden>
@@ -3054,6 +3017,24 @@
             <p id="teacherPortalGruposEmptyState" class="empty-state" hidden>
               Aún no hay alumnas registradas en tu curso.
             </p>
+            </div>
+          </section>
+
+          <section class="module-section-inner teacher-portal-actividades-view teacher-portal-modal" id="teacherPortalActividadesView" hidden>
+            <div class="teacher-portal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="teacherPortalActividadesTitle">
+            <section class="panel teacher-portal-header-panel teacher-portal-modal-header">
+              <div class="section-heading">
+                <p class="eyebrow">Reglas del instituto</p>
+                <h3 id="teacherPortalActividadesTitle">Mis actividades</h3>
+              </div>
+              <div class="form-actions">
+                <button class="secondary-btn teacher-portal-modal-close" type="button" id="teacherPortalCloseActividadesButton">&larr; Volver a mi portal</button>
+              </div>
+            </section>
+
+            <section class="panel teacher-portal-actividades-panel">
+              <ol class="teacher-portal-actividades-list" id="teacherPortalActividadesList"></ol>
+            </section>
             </div>
           </section>
         </section>
@@ -3957,6 +3938,6 @@
     <script src="supabase.js?v=20260324c"></script>
     <script src="dataService.js?v=20261022-prospectos-asesora-rol-sin-cortar"></script>
     <script src="docente-portal-content.js?v=20261111-portal-maestros-ventanas-grupos"></script>
-    <script src="app.js?v=20261111-portal-maestros-ventanas-grupos"></script>
+    <script src="app.js?v=20261111-portal-docente-mision-arriba"></script>
   </body>
 </html>
