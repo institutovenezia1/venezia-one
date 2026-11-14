@@ -39,6 +39,8 @@ module.exports = {
     { id: "al-06", nombre: "FERNANDA PRUEBA ELIMINADA", telefono: "2461110006", sucursal: "Tlaxcala", curso: "Uñas", diaClases: "Domingo", horario: "9am a 1pm", fechaInscripcion: "2026-10-18", fechaInicio: "2026-10-18", accesoElegido: "Oro", estado: "Eliminada", mensualidad: "1300" },
     { id: "al-07", nombre: "GABY PRUEBA BAJA", telefono: "2461110007", sucursal: "Tlaxcala", curso: "Maquillaje", diaClases: "Sábado", horario: "9am a 1pm", fechaInscripcion: "2026-05-02", fechaInicio: "2026-05-02", accesoElegido: "Plata", estado: "Baja definitiva", mensualidad: "1200" },
     { id: "al-09", nombre: "IRMA PRUEBA ENTRE SEMANA", telefono: "2461110009", sucursal: "Tlaxcala", curso: "Uñas", diaClases: "Entre semana", horario: "9am a 1pm", fechaInscripcion: "2026-08-04", fechaInicio: "2026-08-04", accesoElegido: "Oro", estado: "Activa", mensualidad: "1300", inscripcionPagada: "Sí", documentosEntregados: docs("Reglamento interno", "Contrato de alumno") },
+    // Cambio de grupo a mitad del curso: viernes (clases 1-12) → sábado desde la clase 13.
+    { id: "al-10", nombre: "JAZMIN PRUEBA CAMBIO GRUPO", telefono: "2461110010", sucursal: "Tlaxcala", curso: "Barbería", diaClases: "Sábado", horario: "12pm a 3pm", fechaInscripcion: "2026-08-28", fechaInicio: "2026-08-28", accesoElegido: "Oro", estado: "Activa", mensualidad: "1600", inscripcionPagada: "Sí", cambiosGrupo: "Clase 13 desde 2026-11-14: Viernes, 4pm a 7pm → Sábado, 12pm a 3pm" },
     { id: "al-08", nombre: "HILDA PRUEBA VIERNES TARDE", telefono: "2461110008", sucursal: "Tlaxcala", curso: "Pestañas", diaClases: "Viernes", horario: "2pm a 6pm", fechaInscripcion: "2026-10-16", fechaInicio: "2026-10-16", accesoElegido: "Platinum", estado: "Activa", mensualidad: "1500", inscripcionPagada: "No" },
   ],
 
@@ -59,6 +61,8 @@ module.exports = {
     { id: "as-07", studentId: "al-05", fecha: "2026-07-05", estado: "Asistió" },
     { id: "as-08", studentId: "al-05", fecha: "2026-07-12", estado: "Asistió" },
     { id: "as-09", studentId: "al-09", fecha: "2026-08-04", estado: "Asistió" },
+    { id: "as-11", studentId: "al-10", fecha: "2026-10-30", estado: "Asistencia" },
+    { id: "as-12", studentId: "al-10", fecha: "2026-11-06", estado: "Asistencia" },
     { id: "as-10", studentId: "al-09", fecha: "2026-08-05", estado: "Asistió" },
   ],
 
@@ -86,6 +90,8 @@ module.exports = {
       { id: "mv-03", full_name: "RAUL PRUEBA BARBERO", phone: "2463330003", password: "3333", branch: "Tlaxcala", course: "Barbería", schedule: "12pm a 3pm", start_date: "2026-10-16", access_selected: "Platinum", status: "Activa", notes: "Día de clases: Viernes | Mensualidad asignada: 1600 | Género: Hombre", created_at: "2026-10-11T10:00:00Z" },
       { id: "mv-04", full_name: "SARA PRUEBA PAUSA", phone: "2463330004", password: "4444", branch: "Tlaxcala", course: "Uñas", schedule: "9am a 11am", start_date: "2026-10-20", access_selected: "Oro", status: "Baja temporal", notes: "Día de clases: Martes y Miércoles | Mensualidad asignada: 1300 | Género: Mujer", created_at: "2026-10-13T10:00:00Z" },
       { id: "mv-05", full_name: "TANIA PRUEBA BAJA", phone: "2463330005", password: "5555", branch: "Tlaxcala", course: "Uñas", schedule: "9am a 1pm", start_date: "2026-08-02", access_selected: "Oro", status: "Baja definitiva", notes: "Día de clases: Domingo | Mensualidad asignada: 1300 | Género: Mujer", created_at: "2026-08-01T10:00:00Z" },
+      // Cambio de grupo: viernes (clases 1-12) → sábado desde la clase 13 (14/nov).
+      { id: "mv-07", full_name: "VANIA PRUEBA CAMBIO GRUPO", phone: "2463330007", password: "7777", branch: "Tlaxcala", course: "Barbería", schedule: "12pm a 3pm", start_date: "2026-08-28", access_selected: "Oro", status: "Activa", notes: "Día de clases: Sábado | Mensualidad asignada: 1600 | Género: Mujer | Cambios de grupo: Clase 13 desde 2026-11-14: Viernes, 4pm a 7pm → Sábado, 12pm a 3pm", created_at: "2026-08-20T10:00:00Z" },
       { id: "mv-06", full_name: "URSULA PRUEBA FINALIZADA", phone: "2463330006", password: "6666", branch: "Tlaxcala", course: "Pestañas", schedule: "9am a 1pm", start_date: "2026-03-07", access_selected: "Platinum", status: "Curso finalizado", notes: "Día de clases: Sábado | Mensualidad asignada: 1500 | Género: Mujer", created_at: "2026-03-01T10:00:00Z" },
     ],
     student_portal_profiles: [],
@@ -94,6 +100,7 @@ module.exports = {
       { id: "mvp-02", student_id: "mv-02", tuition_amount: "1500", payment_method: "Transferencia", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pendiente | Fecha real pago: 2026-11-07 | Mes pago: 2026-11 | Cantidad pagada: 1500", updated_at: "2026-11-07T12:00:00Z", created_at: "2026-10-17T12:00:00Z" },
       { id: "mvp-03", student_id: "mv-03", tuition_amount: "1600", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pagado | Fecha real pago: 2026-11-06 | Mes pago: 2026-11 | Cantidad pagada: 1600", updated_at: "2026-11-06T12:00:00Z", created_at: "2026-10-16T12:00:00Z" },
       { id: "mvp-04", student_id: "mv-04", tuition_amount: "1300", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | Fecha real pago: 2026-10-20", updated_at: "2026-10-20T12:00:00Z", created_at: "2026-10-20T12:00:00Z" },
+      { id: "mvp-07", student_id: "mv-07", tuition_amount: "1600", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pagado | 3ra mensualidad: Pagado | Certificado P2: Pagado | 4ta mensualidad: Pagado", updated_at: "2026-11-13T12:00:00Z", created_at: "2026-08-28T12:00:00Z" },
       { id: "mvp-06", student_id: "mv-06", tuition_amount: "1500", payment_method: "Efectivo", notes: "1ra mensualidad: Pagado | 2da mensualidad: Pagado | Certificado P1: Pagado | 3ra mensualidad: Pagado | Certificado P2: Pagado | 4ta mensualidad: Pagado | 5ta mensualidad: Pagado", updated_at: "2026-07-01T12:00:00Z", created_at: "2026-03-07T12:00:00Z" },
     ],
     attendance_records: [
@@ -101,6 +108,8 @@ module.exports = {
       { id: "mva-02", student_id: "mv-01", attendance_date: "2026-10-22", status: "Asistió", notes: "", created_at: "2026-10-22T12:00:00Z" },
       { id: "mva-03", student_id: "mv-01", attendance_date: "2026-10-29", status: "Falta", notes: "Avisó", created_at: "2026-10-29T12:00:00Z" },
       { id: "mva-04", student_id: "mv-02", attendance_date: "2026-10-17", status: "Asistió", notes: "", created_at: "2026-10-17T12:00:00Z" },
+      { id: "mva-06", student_id: "mv-07", attendance_date: "2026-11-06", status: "Asistió", notes: "", created_at: "2026-11-06T12:00:00Z" },
+      { id: "mva-07", student_id: "mv-07", attendance_date: "2026-11-13", status: "Asistió", notes: "", created_at: "2026-11-13T12:00:00Z" },
       { id: "mva-05", student_id: "mv-03", attendance_date: "2026-10-16", status: "Asistió", notes: "", created_at: "2026-10-16T12:00:00Z" },
     ],
     finance_records: [],

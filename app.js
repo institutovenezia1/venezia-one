@@ -5190,6 +5190,8 @@ function getAltaFormData() {
     observaciones: [rawObservaciones, ...metadataSegments].filter(Boolean).join(" | "),
     portalUser,
     portalPassword,
+    // El historial de cambios de grupo no está en el formulario: se conserva.
+    cambiosGrupo: __veneziaGet(existingStudent, "cambiosGrupo") || "",
     lecturaReglamento: __veneziaGet(existingStudent, "lecturaReglamento") || false,
     fechaLecturaReglamento: __veneziaGet(existingStudent, "fechaLecturaReglamento") || "",
     lecturaContrato: __veneziaGet(existingStudent, "lecturaContrato") || false,
@@ -7126,6 +7128,7 @@ function resetAltaForm() {
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData({}));
+  renderAltaGroupChangeBox(null);
 }
 
 function resetFinanceForm() {
@@ -11650,6 +11653,7 @@ function loadStudentIntoAlta(studentId) {
   clearAltaValidation();
   closeAltaConfirmation();
   renderAltaSummary(getAltaSummaryData(getAltaFormData()));
+  renderAltaGroupChangeBox(student);
   setActiveModule("altas");
   scrollWindowToTopCompat();
 }
@@ -12440,6 +12444,79 @@ function getAttendanceSessionGroups(baseDate, sessionCount = DEFAULT_ATTENDANCE_
   }));
 }
 
+// ---------- Cambio de grupo (CEO, 14/nov/2026) ----------
+// Cuando una alumna cambia de día a mitad del curso, sus clases ANTERIORES se
+// quedan en el día viejo (con sus asistencias reales) y las SIGUIENTES se arman
+// en el día nuevo, sin perder la numeración. El historial vive en las notas de
+// la alumna ("Cambios de grupo"), varios cambios separados por " ; ":
+//   "Clase 13 desde 2026-11-14: Viernes, 4pm a 7pm → Sábado, 12pm a 3pm"
+// Sin historial, el cálculo es exactamente el de siempre.
+const GROUP_CHANGE_SEPARATOR = " ; ";
+const GROUP_CHANGE_PATTERN = /^Clase (\d+) desde (\d{4}-\d{2}-\d{2}): (.+?), (.+?) → (.+?), (.+)$/;
+
+function parseStudentGroupChanges(value) {
+  return String(value || "")
+    .split(GROUP_CHANGE_SEPARATOR)
+    .map((entry) => entry.trim())
+    .map((entry) => {
+      const match = entry.match(GROUP_CHANGE_PATTERN);
+      if (!match) {
+        return null;
+      }
+      return {
+        fromClass: Number(match[1]),
+        startDate: match[2],
+        previousDay: match[3].trim(),
+        previousSchedule: match[4].trim(),
+        day: match[5].trim(),
+        schedule: match[6].trim(),
+      };
+    })
+    .filter((change) => change && change.fromClass >= 2)
+    .sort((left, right) => left.fromClass - right.fromClass);
+}
+
+function formatStudentGroupChange(change) {
+  return `Clase ${change.fromClass} desde ${change.startDate}: ${change.previousDay}, ${change.previousSchedule} → ${change.day}, ${change.schedule}`;
+}
+
+function serializeStudentGroupChanges(changes) {
+  return changes.map(formatStudentGroupChange).join(GROUP_CHANGE_SEPARATOR);
+}
+
+function getStudentGroupChanges(student) {
+  return parseStudentGroupChanges(__veneziaGet(student, "cambiosGrupo"));
+}
+
+// Arma las clases por tramos. Cada tramo se genera con el mecanismo de siempre
+// (getAttendanceSessionGroups) desde una fecha base "virtual" corrida hacia atrás,
+// para que la clase N del tramo caiga justo en la fecha del cambio y conserve su
+// número, sus llaves (s13 / w13) y sus etiquetas.
+function getGroupChangeSessionGroups(student, sourceDate, sessionCount, changes) {
+  const segments = [
+    { fromClass: 1, day: changes[0].previousDay, startDate: alignDateToSelectedClassDay(sourceDate, changes[0].previousDay) },
+    ...changes.map((change) => ({
+      fromClass: change.fromClass,
+      day: change.day,
+      startDate: alignDateToSelectedClassDay(change.startDate, change.day),
+    })),
+  ];
+  const groups = [];
+  segments.forEach((segment, segmentIndex) => {
+    const nextFromClass = segmentIndex + 1 < segments.length ? segments[segmentIndex + 1].fromClass : sessionCount + 1;
+    const lastClass = Math.min(nextFromClass - 1, sessionCount);
+    const offset = segment.fromClass - 1;
+    if (lastClass < segment.fromClass) {
+      return;
+    }
+    const virtualBaseDate = addDaysToDateValue(segment.startDate, -7 * offset);
+    getAttendanceSessionGroups(virtualBaseDate, lastClass, segment.day)
+      .slice(offset, lastClass)
+      .forEach((group) => groups.push(group));
+  });
+  return groups;
+}
+
 function getStudentAttendanceSessionGroups(student) {
   if (!student) {
     return [];
@@ -12448,13 +12525,25 @@ function getStudentAttendanceSessionGroups(student) {
   const history = attendanceRecords
     .filter((record) => record.studentId === student.id)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const sessionCount = getStudentExpectedSessionCount(student);
+  const changes = getStudentGroupChanges(student);
+  if (changes.length) {
+    const sourceDate =
+      getStudentStartDateValue(student) ||
+      history.map((record) => String(record.fecha || "").trim()).filter(Boolean).sort()[0] ||
+      "";
+    if (sourceDate) {
+      return getGroupChangeSessionGroups(student, sourceDate, sessionCount, changes);
+    }
+  }
+
   const baseDate = getStudentAttendanceBaseDate(student, history);
 
   if (!baseDate) {
     return [];
   }
 
-  return getAttendanceSessionGroups(baseDate, getStudentExpectedSessionCount(student), __veneziaGet(student, "diaClases") || "");
+  return getAttendanceSessionGroups(baseDate, sessionCount, __veneziaGet(student, "diaClases") || "");
 }
 
 function getStudentAttendanceReferenceSessions(student) {
@@ -20201,6 +20290,295 @@ form.addEventListener("submit", async (event) => {
   resetForm();
 });
 
+// ---------- Altas: ventana "Cambiar de grupo" (CEO, 14/nov/2026) ----------
+const GROUP_CHANGE_DAY_OPTIONS = ["Martes y Miércoles", "Jueves", "Viernes", "Sábado", "Domingo", "Entre semana"];
+const WEEKDAY_NAMES_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+let groupChangeStudentId = "";
+
+function formatGroupChangeDate(dateValue) {
+  const match = String(dateValue || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : String(dateValue || "-");
+}
+
+function getWeekdayNameForDate(dateValue) {
+  const date = new Date(`${dateValue}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? "" : WEEKDAY_NAMES_ES[date.getDay()];
+}
+
+function getAllAltaScheduleOptions() {
+  return [...new Set(ALTA_COURSE_CATALOG.flatMap((course) => course.schedule.flatMap((day) => day.horarios)))];
+}
+
+function getGroupChangeNewDayOptions(student) {
+  const entry = getAltaCourseEntry(__veneziaGet(student, "curso"));
+  return entry ? entry.schedule.map((day) => day.dia) : GROUP_CHANGE_DAY_OPTIONS;
+}
+
+function getGroupChangeScheduleOptions(student, day) {
+  const entry = getAltaCourseEntry(__veneziaGet(student, "curso"));
+  const dayEntry = entry ? entry.schedule.find((item) => item.dia === day) : null;
+  return dayEntry ? dayEntry.horarios : getAllAltaScheduleOptions();
+}
+
+function fillGroupChangeSelect(select, values, value) {
+  if (!select) {
+    return;
+  }
+  const options = [...new Set([...(values || []), value].filter(Boolean))];
+  select.innerHTML = ['<option value="">Selecciona una opcion</option>']
+    .concat(options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`))
+    .join("");
+  select.value = value && options.includes(value) ? value : "";
+}
+
+function countVisibleAttendances(calendar) {
+  return calendar.filter((session) => session.record).length;
+}
+
+// Asistencias guardadas cuya fecha ya no coincide con ninguna clase del
+// calendario (por ejemplo, alguien cambió el día directo en Altas).
+function getStudentOrphanAttendanceRecords(student) {
+  const calendarDates = new Set(getStudentAttendanceCalendar(student).map((session) => session.date));
+  return attendanceRecords.filter((record) => record.studentId === student.id && record.fecha && !calendarDates.has(record.fecha));
+}
+
+function getMostCommonWeekday(records) {
+  const counts = new Map();
+  records.forEach((record) => {
+    const name = getWeekdayNameForDate(record.fecha);
+    if (name) {
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+  });
+  return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] || "";
+}
+
+function getDefaultGroupChangeFromClass(student) {
+  const today = getCurrentMexicoDateValue();
+  const pastSessions = getStudentAttendanceReferenceSessions(student).filter((session) => session.date && session.date < today).length;
+  return Math.max(2, pastSessions + 1);
+}
+
+function getGroupChangeCandidate() {
+  const student = students.find((item) => item.id === groupChangeStudentId);
+  const errors = [];
+  if (!student) {
+    return { errors: ["No se encontró a la alumna."] };
+  }
+  const value = (id) => String((document.getElementById(id) || {}).value || "").trim();
+  const change = {
+    fromClass: Number(value("groupChangeFromClass")),
+    startDate: value("groupChangeStartDate"),
+    previousDay: value("groupChangePrevDay"),
+    previousSchedule: value("groupChangePrevSchedule"),
+    day: value("groupChangeNewDay"),
+    schedule: value("groupChangeNewSchedule"),
+  };
+  const existingChanges = getStudentGroupChanges(student);
+  const totalClasses = getStudentExpectedSessionCount(student);
+  const lastExisting = existingChanges[existingChanges.length - 1];
+
+  if (!change.previousDay || !change.previousSchedule) errors.push("Elige el día y horario del grupo anterior.");
+  if (!change.day || !change.schedule) errors.push("Elige el día y horario del nuevo grupo.");
+  if (change.previousDay === change.day && change.previousSchedule === change.schedule) errors.push("El nuevo grupo es igual al anterior.");
+  if (!Number.isInteger(change.fromClass) || change.fromClass < 2 || change.fromClass > totalClasses) {
+    errors.push(`La clase desde la que cambia debe ser entre 2 y ${totalClasses}.`);
+  } else if (lastExisting && change.fromClass <= lastExisting.fromClass) {
+    errors.push(`Ya tiene un cambio desde la clase ${lastExisting.fromClass}; el nuevo debe ser después.`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(change.startDate)) {
+    errors.push("Elige la fecha de su primera clase en el nuevo grupo.");
+  } else if (change.day && alignDateToSelectedClassDay(change.startDate, change.day) !== change.startDate) {
+    errors.push(`La fecha ${formatGroupChangeDate(change.startDate)} no cae en ${change.day}.`);
+  }
+
+  const candidate = {
+    ...student,
+    diaClases: change.day || student.diaClases,
+    horario: change.schedule || student.horario,
+    cambiosGrupo: serializeStudentGroupChanges([...existingChanges, change]),
+  };
+  const candidateCalendar = errors.length ? [] : getStudentAttendanceCalendar(candidate);
+  if (!errors.length) {
+    const previousClass = candidateCalendar[change.fromClass - 2];
+    if (previousClass && previousClass.date >= change.startDate) {
+      errors.push(
+        `La fecha del nuevo grupo debe ser después de su clase ${change.fromClass - 1} (${formatGroupChangeDate(previousClass.date)}).`
+      );
+    }
+  }
+  return { student, change, candidate, candidateCalendar, errors };
+}
+
+function renderGroupChangePreview() {
+  const preview = document.getElementById("groupChangePreview");
+  const feedback = document.getElementById("groupChangeFeedback");
+  if (!preview) {
+    return;
+  }
+  const { student, change, candidateCalendar, errors } = getGroupChangeCandidate();
+  if (feedback) {
+    feedback.textContent = "";
+    feedback.className = "alta-group-change-feedback";
+  }
+  if (!student) {
+    preview.innerHTML = "";
+    return;
+  }
+  if (errors.length) {
+    preview.innerHTML = `<ul class="alta-group-change-errors">${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>`;
+    return;
+  }
+  const currentVisible = countVisibleAttendances(getStudentAttendanceCalendar(student));
+  const nextVisible = countVisibleAttendances(candidateCalendar);
+  const firstRow = Math.max(0, change.fromClass - 4);
+  const rows = candidateCalendar.slice(firstRow, change.fromClass + 2);
+  preview.innerHTML = `
+    <p class="alta-group-change-summary">Así quedarían sus clases. Asistencias que se ven: <strong>${currentVisible}</strong> hoy → <strong>${nextVisible}</strong> con el cambio.</p>
+    <table class="alta-group-change-table">
+      <tbody>
+        ${rows
+          .map((session, index) => {
+            const isNew = firstRow + index + 1 >= change.fromClass;
+            return `<tr class="${isNew ? "is-new" : "is-old"}">
+              <td>${escapeHtml(session.classLabel)}</td>
+              <td>${escapeHtml(getWeekdayNameForDate(session.date))} ${escapeHtml(formatGroupChangeDate(session.date))}</td>
+              <td>${escapeHtml(session.record ? session.record.estado || session.resultLabel : "Pendiente")}</td>
+              <td>${isNew ? escapeHtml(`${change.day} · ${change.schedule}`) : escapeHtml(`${change.previousDay} · ${change.previousSchedule}`)}</td>
+            </tr>`;
+          })
+          .join("")}
+      </tbody>
+    </table>`;
+}
+
+function renderAltaGroupChangeBox(student) {
+  const box = document.getElementById("altaGroupChangeBox");
+  if (!box) {
+    return;
+  }
+  closeGroupChangePanel();
+  groupChangeStudentId = student ? student.id : "";
+  box.hidden = !student;
+  if (!student) {
+    return;
+  }
+  const current = document.getElementById("altaGroupChangeCurrent");
+  if (current) {
+    current.textContent = `Grupo actual: ${student.diaClases || "sin día"} · ${student.horario || "sin horario"}`;
+  }
+  const history = document.getElementById("altaGroupChangeHistory");
+  const changes = getStudentGroupChanges(student);
+  if (history) {
+    history.hidden = changes.length === 0;
+    history.innerHTML = changes
+      .map(
+        (change) =>
+          `<li>Desde la clase ${change.fromClass} (${escapeHtml(formatGroupChangeDate(change.startDate))}): ${escapeHtml(
+            `${change.previousDay} ${change.previousSchedule}`
+          )} → ${escapeHtml(`${change.day} ${change.schedule}`)}</li>`
+      )
+      .join("");
+  }
+  const warning = document.getElementById("altaGroupChangeWarning");
+  const orphans = getStudentOrphanAttendanceRecords(student);
+  if (warning) {
+    warning.hidden = orphans.length === 0;
+    warning.textContent = orphans.length
+      ? `Ojo: tiene ${orphans.length} asistencia(s) en ${getMostCommonWeekday(orphans).toLowerCase() || "otro día"} que no cuadran con su día actual. Si ya se le cambió el día antes, regístralo con "Cambiar de grupo" eligiendo ese día como grupo anterior.`
+      : "";
+  }
+}
+
+function openGroupChangePanel() {
+  const student = students.find((item) => item.id === groupChangeStudentId);
+  const panel = document.getElementById("altaGroupChangePanel");
+  if (!student || !panel) {
+    return;
+  }
+  const changes = getStudentGroupChanges(student);
+  const orphans = getStudentOrphanAttendanceRecords(student);
+  const orphanWeekday = changes.length ? "" : getMostCommonWeekday(orphans);
+  const previousDay = orphanWeekday || student.diaClases || "";
+  fillGroupChangeSelect(document.getElementById("groupChangePrevDay"), GROUP_CHANGE_DAY_OPTIONS, previousDay);
+  // Con asistencias en otro día no sabemos su horario anterior: se deja para elegirlo.
+  fillGroupChangeSelect(document.getElementById("groupChangePrevSchedule"), getAllAltaScheduleOptions(), orphanWeekday ? "" : student.horario || "");
+  const newDay = orphanWeekday ? student.diaClases || "" : "";
+  fillGroupChangeSelect(document.getElementById("groupChangeNewDay"), getGroupChangeNewDayOptions(student), newDay);
+  fillGroupChangeSelect(
+    document.getElementById("groupChangeNewSchedule"),
+    getGroupChangeScheduleOptions(student, newDay),
+    orphanWeekday ? student.horario || "" : ""
+  );
+  // Si sus asistencias quedaron en otro día (cambio hecho directo en Altas),
+  // el nuevo grupo empieza después de su última asistencia registrada.
+  document.getElementById("groupChangeFromClass").value = String(
+    orphanWeekday ? Math.max(2, orphans.length + 1) : getDefaultGroupChangeFromClass(student)
+  );
+  document.getElementById("groupChangeStartDate").value = newDay ? alignDateToSelectedClassDay(getCurrentMexicoDateValue(), newDay) : "";
+  panel.hidden = false;
+  renderGroupChangePreview();
+}
+
+function closeGroupChangePanel() {
+  const panel = document.getElementById("altaGroupChangePanel");
+  if (panel) {
+    panel.hidden = true;
+  }
+}
+
+function handleGroupChangeNewDay() {
+  const student = students.find((item) => item.id === groupChangeStudentId);
+  const day = String((document.getElementById("groupChangeNewDay") || {}).value || "");
+  fillGroupChangeSelect(document.getElementById("groupChangeNewSchedule"), getGroupChangeScheduleOptions(student, day), "");
+  document.getElementById("groupChangeStartDate").value = day ? alignDateToSelectedClassDay(getCurrentMexicoDateValue(), day) : "";
+  renderGroupChangePreview();
+}
+
+async function saveGroupChange() {
+  const feedback = document.getElementById("groupChangeFeedback");
+  const saveButton = document.getElementById("groupChangeSaveButton");
+  const { student, candidate, errors } = getGroupChangeCandidate();
+  if (errors.length || !candidate) {
+    renderGroupChangePreview();
+    return;
+  }
+  if (saveButton) saveButton.disabled = true;
+  if (feedback) feedback.textContent = "Guardando cambio de grupo...";
+  const result = await saveStudentRecord(candidate);
+  if (saveButton) saveButton.disabled = false;
+  if (!result.synced) {
+    if (feedback) {
+      feedback.textContent = "No se pudo guardar el cambio de grupo. No se aplicó nada; intenta de nuevo.";
+      feedback.className = "alta-group-change-feedback is-error";
+    }
+    return;
+  }
+  await refreshSharedSupabaseState({ force: true, render: false });
+  renderAll();
+  loadStudentIntoAlta(student.id);
+  const refreshedFeedback = document.getElementById("altaGroupChangeCurrent");
+  if (refreshedFeedback) {
+    refreshedFeedback.textContent += " · Cambio de grupo guardado ✓";
+  }
+}
+
+// Cambiar el día directo en Altas a una alumna que ya tiene asistencias
+// desacomoda todo su calendario (le pasó a Brayan Arturo). Se pide usar
+// "Cambiar de grupo". Corregir el horario dentro del mismo día sí se permite.
+function getBlockedAltaDayChangeMessage(altaData) {
+  const existing = students.find((student) => student.id === altaData.id);
+  if (!existing || !String(document.getElementById("altaStudentId").value || "").trim()) {
+    return "";
+  }
+  const sameDay = normalizeLooseText(existing.diaClases) === normalizeLooseText(altaData.diaClases);
+  const hasAttendance = attendanceRecords.some((record) => record.studentId === existing.id);
+  if (sameDay || !hasAttendance) {
+    return "";
+  }
+  return 'Esta alumna ya tiene clases registradas. Para cambiarla de día usa el botón "Cambiar de grupo" (más abajo), así conserva sus asistencias y sus fechas de pago.';
+}
+
 async function finalizeAltaSubmission(altaData) {
   const isEditingExistingStudent = Boolean(document.getElementById("altaStudentId").value);
   const previousStudentRecord = students.find((student) => student.id === altaData.id) || null;
@@ -20275,6 +20653,12 @@ altaForm.addEventListener("submit", async (event) => {
   await refreshSharedSupabaseState({ force: true, render: false });
   const altaData = getAltaFormData();
   const validationErrors = getAltaValidationErrors(altaData);
+  const blockedDayChangeMessage = getBlockedAltaDayChangeMessage(altaData);
+  if (blockedDayChangeMessage) {
+    showAltaValidation(blockedDayChangeMessage);
+    closeAltaConfirmation();
+    return;
+  }
 
   renderAltaSummary(getAltaSummaryData(altaData));
 
@@ -20287,6 +20671,19 @@ altaForm.addEventListener("submit", async (event) => {
   clearAltaValidation();
   openAltaConfirmation(altaData);
 });
+
+if (document.getElementById("altaGroupChangeOpenButton")) {
+  document.getElementById("altaGroupChangeOpenButton").addEventListener("click", openGroupChangePanel);
+  document.getElementById("groupChangeCancelButton").addEventListener("click", closeGroupChangePanel);
+  document.getElementById("groupChangeSaveButton").addEventListener("click", () => {
+    void saveGroupChange();
+  });
+  document.getElementById("groupChangeNewDay").addEventListener("change", handleGroupChangeNewDay);
+  ["groupChangePrevDay", "groupChangePrevSchedule", "groupChangeNewSchedule", "groupChangeFromClass", "groupChangeStartDate"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", renderGroupChangePreview);
+    document.getElementById(id).addEventListener("change", renderGroupChangePreview);
+  });
+}
 
 internalLoginForm.addEventListener("submit", async (event) => {
   event.preventDefault();

@@ -542,6 +542,7 @@
       continuityStatus: text(row.continuityStatus || extractMetadata(notes, "Seguimiento continuidad")),
       nextCourse: text(row.nextCourse || extractMetadata(notes, "Curso siguiente")),
       lastMonthlyPaymentStatus: text(row.lastMonthlyPaymentStatus || extractMetadata(notes, "Última mensualidad del ciclo")),
+      cambiosGrupo: text(row.cambiosGrupo || extractMetadata(notes, "Cambios de grupo")),
       createdAt: text(row.created_at || row.createdAt),
       notes: notes
     };
@@ -1354,31 +1355,82 @@
     return alignDateToSelectedClassDay(startDate, getStudentClassDayLabel(student));
   }
 
-  function getStudentAttendanceReferenceSessions(student) {
-    var baseDate = getStudentAttendanceBaseDate(student);
-    var sessionCount = getStudentExpectedSessionCount(student);
-    var dayLabel = normalizeAttendanceDayLabel(getStudentClassDayLabel(student));
+  // Clases de un tramo con el mismo formato de siempre ("Clase N" o "Semana N").
+  function buildReferenceSessionsForDay(baseDate, firstIndex, lastIndex, dayLabel) {
     var sessions = [];
+    var isMultiDay = dayLabel === "Entre semana" || dayLabel === "Martes y Miércoles";
     var index;
-    if (!baseDate) {
-      return sessions;
+    for (index = firstIndex; index < lastIndex; index += 1) {
+      sessions.push({
+        key: (isMultiDay ? "w" : "s") + (index + 1),
+        date: addDaysToDateKey(baseDate, (index - firstIndex) * 7),
+        classLabel: (isMultiDay ? "Semana " : "Clase ") + (index + 1)
+      });
     }
-    if (dayLabel === "Entre semana" || dayLabel === "Martes y Miércoles") {
-      for (index = 0; index < sessionCount; index += 1) {
-        sessions.push({
-          key: "w" + (index + 1),
-          date: addDaysToDateKey(baseDate, index * 7),
-          classLabel: "Semana " + (index + 1)
+    return sessions;
+  }
+
+  // ---------- Cambio de grupo (CEO, 14/nov/2026) ----------
+  // Misma regla que app.js: las clases antes del cambio se quedan en el día
+  // anterior y las siguientes se arman en el día nuevo, con la misma numeración.
+  // Historial en las notas: "Cambios de grupo: Clase 13 desde 2026-11-14: Viernes, 4pm a 7pm → Sábado, 12pm a 3pm"
+  var GROUP_CHANGE_PATTERN = /^Clase (\d+) desde (\d{4}-\d{2}-\d{2}): (.+?), (.+?) → (.+?), (.+)$/;
+
+  function parseStudentGroupChanges(value) {
+    var parts = text(value).split(" ; ");
+    var changes = [];
+    var index;
+    var match;
+    for (index = 0; index < parts.length; index += 1) {
+      match = text(parts[index]).match(GROUP_CHANGE_PATTERN);
+      if (match && Number(match[1]) >= 2) {
+        changes.push({
+          fromClass: Number(match[1]),
+          startDate: match[2],
+          previousDay: match[3],
+          previousSchedule: match[4],
+          day: match[5],
+          schedule: match[6]
         });
       }
+    }
+    changes.sort(function (left, right) {
+      return left.fromClass - right.fromClass;
+    });
+    return changes;
+  }
+
+  function getStudentAttendanceReferenceSessions(student) {
+    var startDate = normalizeLocalDateKey(student && student.fechaInicio);
+    var sessionCount = getStudentExpectedSessionCount(student);
+    var changes = parseStudentGroupChanges(student && student.cambiosGrupo);
+    var segments;
+    var sessions = [];
+    var index;
+    var segment;
+    var lastClass;
+    var dayLabel;
+    if (!startDate) {
       return sessions;
     }
-    for (index = 0; index < sessionCount; index += 1) {
-      sessions.push({
-        key: "s" + (index + 1),
-        date: addDaysToDateKey(baseDate, index * 7),
-        classLabel: "Clase " + (index + 1)
-      });
+    if (!changes.length) {
+      dayLabel = normalizeAttendanceDayLabel(getStudentClassDayLabel(student));
+      return buildReferenceSessionsForDay(getStudentAttendanceBaseDate(student), 0, sessionCount, dayLabel);
+    }
+    segments = [{ fromClass: 1, day: changes[0].previousDay, schedule: changes[0].previousSchedule, startDate: startDate }];
+    for (index = 0; index < changes.length; index += 1) {
+      segments.push({ fromClass: changes[index].fromClass, day: changes[index].day, schedule: changes[index].schedule, startDate: changes[index].startDate });
+    }
+    for (index = 0; index < segments.length; index += 1) {
+      segment = segments[index];
+      lastClass = Math.min(index + 1 < segments.length ? segments[index + 1].fromClass - 1 : sessionCount, sessionCount);
+      if (lastClass < segment.fromClass) {
+        continue;
+      }
+      dayLabel = normalizeAttendanceDayLabel(getStudentClassDayLabel({ diaClases: segment.day, horario: segment.schedule }));
+      sessions = sessions.concat(
+        buildReferenceSessionsForDay(alignDateToSelectedClassDay(segment.startDate, dayLabel), segment.fromClass - 1, lastClass, dayLabel)
+      );
     }
     return sessions;
   }

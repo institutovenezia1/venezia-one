@@ -31,6 +31,7 @@ Venezia One es el sistema central de operaciones del Instituto de Belleza Venezi
 
 12. **Blindaje por módulo (petición del CEO, 11/nov/2026): cada cambio se hace SOLO en el módulo que se pidió.** Si para resolverlo hay que tocar otro módulo o algo compartido, DETENTE antes de programar y pregunta al CEO explicando qué se afecta y por qué. Sigue el procedimiento de la sección "Blindaje por módulo".
 13. **No subas nada con las pruebas en rojo.** Ver "Blindaje por módulo".
+14. **Palabra clave "luz verde" (decisión del CEO, 14/nov/2026).** Ningún cambio llega a producción sin que el CEO escriba exactamente **"luz verde"**. Eso incluye: push o merge a `main`, cambios de datos reales (Supabase, Venezia One) y cualquier cosa que vean alumnas o personal. Antes se hacen pruebas o una previsualización (rama `claude/...` con link de Vercel) y se le pregunta: "¿Tengo luz verde?". Otras palabras ("ok", "sí", "dale", "mergea") NO cuentan: vuelve a preguntar. Si el prompt del CEO ya dice "luz verde" para un paso concreto, ese paso está autorizado; los demás no.
 
 ## Blindaje por módulo
 
@@ -58,8 +59,8 @@ node scripts/regression/run.js
 - Después de un cambio grande en `app.js`, regenera el mapa: `node scripts/check-module-scope.js --mapa`.
 
 **Capa 3: link de prueba solo en cambios grandes (decisión del CEO, 11/nov/2026)**
-- **Cambios chicos** (textos, estilos, botones, ajustes dentro de un solo módulo con las capas 1 y 2 en verde): directo a `main`.
-- **Cambios grandes**: NO van directo a `main`. Súbelos a una rama `claude/...`, pásale al CEO el link de prueba (Preview) de Vercel y espera a que diga "mergea" antes de pasar a `main`. Es cambio grande si cumple cualquiera de estos:
+- **Cambios chicos** (textos, estilos, botones, ajustes dentro de un solo módulo con las capas 1 y 2 en verde): directo a `main`, pero solo con la **"luz verde"** del CEO (regla 14).
+- **Cambios grandes**: NO van directo a `main`. Súbelos a una rama `claude/...`, pásale al CEO el link de prueba (Preview) de Vercel y espera su **"luz verde"** (regla 14) antes de pasar a `main`. Es cambio grande si cumple cualquiera de estos:
   - Toca la lógica de **Altas, Pagos o Asistencias** (dinero, fechas de clase, estados de alumnas).
   - Toca `dataService.js`, `supabase.js`, tablas o columnas de Supabase.
   - Rediseña un portal o módulo completo (por ejemplo Mi Venezia).

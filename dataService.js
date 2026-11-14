@@ -1119,6 +1119,7 @@
       "Fecha lectura reglamento",
       "Lectura contrato",
       "Fecha lectura contrato",
+      "Cambios de grupo",
     ]);
 
     return String(notes || "")
@@ -1179,6 +1180,8 @@
       record.fechaLecturaContrato
         ? `Fecha lectura contrato: ${record.fechaLecturaContrato}`
         : "",
+      // Historial de cambios de grupo (solo si existe; ver app.js "Cambio de grupo").
+      String(record.cambiosGrupo || "").trim() ? `Cambios de grupo: ${String(record.cambiosGrupo).trim()}` : "",
     ]
       .filter(Boolean)
       .join(" | ");
@@ -1490,6 +1493,7 @@
       nextCourse: extractAltaMetadata(record.notes, "Curso siguiente"),
       nextCourseStartDate: extractAltaMetadata(record.notes, "Fecha inicio sig. curso"),
       lastMonthlyPaymentStatus: extractAltaMetadata(record.notes, "Última mensualidad del ciclo"),
+      cambiosGrupo: extractAltaMetadata(record.notes, "Cambios de grupo"),
       prospectId: record.source_prospect_id || "",
       observaciones: stripAltaMetadata(record.notes),
       usuarioAlta: extractAltaMetadata(record.notes, "Usuario alta"),

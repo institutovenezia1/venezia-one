@@ -34,9 +34,9 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 
 `BECA_SITE_URL`, `buildBecaConfirmationMessage`, `deleteProspect`, `editProspect`, `getBecaPaseUrl`, `getFormData`, `getProspectHistorySummary`, `markBecaConfirmationSent`, `normalizeLeadChannel`, `normalizeLeadOrigin`, `openBecaConfirmation`, `openWhatsApp`, `removeBecaNotesSegment`, `reopenBecaConfirmation`, `reopenBecaConfirmationFlag`, `resetForm`, `shouldAutoAssignFollowup`, `syncProspectFollowupField`, `toggleCrmQuickFilter`, `updateProspectQuickState`, `upsertBecaNotesSegment`, `viewProspectHistory`
 
-### Altas (`altas`) — 21
+### Altas (`altas`) — 36
 
-`buildAltaInscriptionFinanceRecord`, `buildAltaInscriptionFinanceReference`, `deleteStudentRecord`, `finalizeAltaSubmission`, `getAltaInscriptionLinkedRecords`, `getAltaValidationErrors`, `getDefaultStudentPassword`, `getPendingAltas`, `handleAltaScheduleFieldChange`, `invalidateAltaInscriptionRecordsForStudent`, `openAltaConfirmation`, `prospectAlreadyHasAlta`, `renderAltaConfirmation`, `renderPendingAltas`, `resetAltaForm`, `saveStudentAccessRecords`, `showAltaValidation`, `syncAltaChecklistFromDocumentationStatus`, `syncAltaDocumentStatusFromChecklist`, `syncAltaInscriptionFinanceDelta`, `syncStudentAccessRecords`
+`GROUP_CHANGE_DAY_OPTIONS`, `buildAltaInscriptionFinanceRecord`, `buildAltaInscriptionFinanceReference`, `countVisibleAttendances`, `deleteStudentRecord`, `fillGroupChangeSelect`, `finalizeAltaSubmission`, `formatStudentGroupChange`, `getAllAltaScheduleOptions`, `getAltaInscriptionLinkedRecords`, `getAltaValidationErrors`, `getBlockedAltaDayChangeMessage`, `getDefaultGroupChangeFromClass`, `getDefaultStudentPassword`, `getGroupChangeCandidate`, `getGroupChangeNewDayOptions`, `getGroupChangeScheduleOptions`, `getPendingAltas`, `handleAltaScheduleFieldChange`, `handleGroupChangeNewDay`, `invalidateAltaInscriptionRecordsForStudent`, `openAltaConfirmation`, `openGroupChangePanel`, `prospectAlreadyHasAlta`, `renderAltaConfirmation`, `renderGroupChangePreview`, `renderPendingAltas`, `resetAltaForm`, `saveGroupChange`, `saveStudentAccessRecords`, `serializeStudentGroupChanges`, `showAltaValidation`, `syncAltaChecklistFromDocumentationStatus`, `syncAltaDocumentStatusFromChecklist`, `syncAltaInscriptionFinanceDelta`, `syncStudentAccessRecords`
 
 ### Asistencias (`asistencias`) — 24
 
@@ -78,7 +78,7 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 
 `WEB_DEFAULT_COURSES`, `copyStudentFileValue`, `getWebCourseCatalog`, `getWebOpenCourseCatalog`, `getWebWhatsAppUrl`, `renderWebCourseAvailability`, `renderWebCourses`, `renderWebScholarshipSection`, `renderWebWhatsappLinks`
 
-## Funciones compartidas — 582 (tocar = pedir autorización)
+## Funciones compartidas — 595 (tocar = pedir autorización)
 
 | Función | Módulos que la usan |
 |---|---|
@@ -131,13 +131,17 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `getCurrentMexicoDateValue` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, mi-venezia-legacy, pagos, shell, web-venezia |
 | `getCurrentMonthValue` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, mi-venezia-legacy, pagos, shell, web-venezia |
 | `getExtendedAttendanceSessionCountForCourse` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
+| `getGroupChangeSessionGroups` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getLegacyAttendanceSessionCountForCourse` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentAttendanceBaseDate` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentAttendanceSessionGroups` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentCourseStartDateValue` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentExpectedSessionCount` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
+| `getStudentGroupChanges` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentStartDateValue` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `getStudentStatus` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
+| `GROUP_CHANGE_PATTERN` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
+| `GROUP_CHANGE_SEPARATOR` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `isAllBranchesScope` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, pagos, personal, shell, usuarios |
 | `isExtendedDurationStudent` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `isPendingStartStudent` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
@@ -155,6 +159,7 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `normalizeLifecycleStatus` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `normalizeLocalDateKey` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, mi-venezia-legacy, pagos, shell, web-venezia |
 | `parseLocalDateKey` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, mi-venezia-legacy, pagos, shell, web-venezia |
+| `parseStudentGroupChanges` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
 | `prospects` | altas, asistencias, balance, crm, docentes-admin, finanzas, pagos, personal, shell, usuarios, web-venezia |
 | `selectedMonth` | altas, asistencias, balance, crm, dashboard, docentes-admin, finanzas, mi-venezia-legacy, pagos, shell, web-venezia |
 | `STANDARD_COURSE_SESSION_COUNT` | altas, asistencias, balance, crm, dashboard, finanzas, mi-venezia-legacy, pagos, portal-docente, shell, web-venezia |
@@ -246,7 +251,10 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `ALTA_FINANCE_SOURCE` | altas, balance, dashboard, finanzas, pagos, shell |
 | `ALTA_INSCRIPTION_CONCEPT_KEY` | altas, balance, dashboard, finanzas, pagos, shell |
 | `ALTA_INSCRIPTION_FINANCE_REFERENCE_PREFIX` | altas, balance, dashboard, finanzas, pagos, shell |
+| `ATTENDANCE_STATUS_LABELS` | altas, asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
 | `formatMonthLabelEs` | altas, balance, dashboard, finanzas, pagos, shell |
+| `getStudentAttendanceCalendar` | altas, asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
+| `getStudentAttendanceSessionDates` | altas, asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
 | `getStudentDeliveredDocuments` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `getStudentDocumentAliasMap` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `getStudentDocumentationState` | altas, asistencias, balance, crm, pagos, web-venezia |
@@ -254,6 +262,8 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `getStudentDocumentKey` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `isAltaInscriptionFinanceRecord` | altas, balance, dashboard, finanzas, pagos, shell |
 | `isAltaInscriptionRecordCancelled` | altas, balance, dashboard, finanzas, pagos, shell |
+| `isWeekdayAttendanceDay` | altas, asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
+| `isWeekdayStudent` | altas, asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
 | `normalizeStudentDocumentationStatus` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `parseStudentDocumentList` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `publicAccessPanelOpen` | mi-venezia-legacy, portal-docente, selector-accesos, shell, usuarios, web-venezia |
@@ -263,7 +273,6 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `STUDENT_DOCUMENT_REQUIREMENTS` | altas, asistencias, balance, crm, pagos, web-venezia |
 | `activeModule` | asistencias, mi-venezia-legacy, pagos, shell, web-venezia |
 | `activeStudentFileId` | altas, asistencias, balance, pagos, web-venezia |
-| `ATTENDANCE_STATUS_LABELS` | asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
 | `BALANCE_EXPENSE_CONCEPT_KEY` | balance, dashboard, finanzas, pagos, shell |
 | `BALANCE_EXPENSE_FINANCE_REFERENCE_PREFIX` | balance, dashboard, finanzas, pagos, shell |
 | `BALANCE_FINANCE_SOURCE` | balance, dashboard, finanzas, pagos, shell |
@@ -311,8 +320,6 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `isPaymentEligibleForFinanceRecord` | balance, dashboard, finanzas, pagos, shell |
 | `isRealPaidPaymentRecord` | balance, dashboard, finanzas, pagos, shell |
 | `isTeacherPortalModalOpen` | mi-venezia-legacy, portal-docente, selector-accesos, shell, usuarios |
-| `isWeekdayAttendanceDay` | asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
-| `isWeekdayStudent` | asistencias, crm, mi-venezia-legacy, pagos, portal-docente |
 | `logoutInternalSession` | mi-venezia-legacy, portal-docente, selector-accesos, shell, usuarios |
 | `mapAltaInscriptionFinanceRecord` | balance, dashboard, finanzas, pagos, shell |
 | `mapBalanceExpenseFinanceRecord` | balance, dashboard, finanzas, pagos, shell |
@@ -353,7 +360,6 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `getBirthYear` | altas, asistencias, crm, pagos |
 | `getInternalUserPermissionOverrides` | personal, shell, usuarios, web-venezia |
 | `getPaymentReferenceShortLabel` | asistencias, crm, mi-venezia-legacy, pagos |
-| `getStudentAttendanceSessionDates` | asistencias, crm, mi-venezia-legacy, portal-docente |
 | `getVeneziaVisibleUiLabel` | mi-venezia-legacy, portal-docente, shell, web-venezia |
 | `hasInternalAccess` | selector-accesos, shell, usuarios, web-venezia |
 | `hasModuleAccessForUser` | selector-accesos, shell, usuarios, web-venezia |
@@ -387,7 +393,9 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `balanceDateWasManuallySelected` | balance, finanzas, pagos |
 | `BASE_ROLE_PERMISSIONS` | personal, shell, web-venezia |
 | `buildStudentPaymentReferenceEntry` | crm, mi-venezia-legacy, pagos |
+| `closeGroupChangePanel` | altas, asistencias, pagos |
 | `compareAttendanceScheduleSummaryItems` | asistencias, pagos, shell |
+| `formatGroupChangeDate` | altas, asistencias, pagos |
 | `getAltaFormData` | altas, asistencias, pagos |
 | `getAttendanceBaseStudentsForActiveFilter` | asistencias, pagos, shell |
 | `getAttendanceBranchesByCourse` | asistencias, pagos, shell |
@@ -411,12 +419,15 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `getFilteredFinanceRecords` | balance, finanzas, pagos |
 | `getFilteredStudentsForAttendance` | asistencias, pagos, shell |
 | `getMiVeneziaAttendanceOverview` | crm, mi-venezia-legacy, portal-docente |
+| `getMostCommonWeekday` | altas, asistencias, pagos |
 | `getPaymentRecord` | crm, mi-venezia-legacy, pagos |
 | `getPlatformAccessCards` | selector-accesos, shell, web-venezia |
-| `getStudentAttendanceCalendar` | crm, mi-venezia-legacy, portal-docente |
 | `getStudentDocumentationSaveState` | altas, asistencias, pagos |
+| `getStudentOrphanAttendanceRecords` | altas, asistencias, pagos |
 | `getStudentReglamentoStatus` | asistencias, crm, mi-venezia-legacy |
 | `getUserInternalPlatformModules` | selector-accesos, shell, web-venezia |
+| `getWeekdayNameForDate` | altas, asistencias, pagos |
+| `groupChangeStudentId` | altas, asistencias, pagos |
 | `hasStudentAttendanceClassRecord` | asistencias, pagos, shell |
 | `INTERNAL_PLATFORM_MODULE_ORDER` | selector-accesos, shell, web-venezia |
 | `isAttendancePendingStartQuickFilterActive` | asistencias, pagos, shell |
@@ -431,6 +442,7 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `populateBalanceExpenseResponsibleOptions` | balance, finanzas, pagos |
 | `populateFinanceBranchFilter` | balance, finanzas, pagos |
 | `populateFinanceVisibleMonthFilter` | balance, finanzas, pagos |
+| `renderAltaGroupChangeBox` | altas, asistencias, pagos |
 | `renderBalanceExpensesTable` | balance, finanzas, pagos |
 | `renderBalanceIncomeTable` | balance, finanzas, pagos |
 | `renderBalanceModule` | balance, finanzas, pagos |
@@ -443,6 +455,7 @@ Una función **compartida** afecta a varios módulos: tocarla requiere autorizac
 | `updateAttendanceSummary` | asistencias, pagos, shell |
 | `updateBalanceSummary` | balance, finanzas, pagos |
 | `updateFinanceSummary` | balance, finanzas, pagos |
+| `WEEKDAY_NAMES_ES` | altas, asistencias, pagos |
 | `activeAdvisorFilter` | crm, shell |
 | `activeAltaPendingFilter` | altas, shell |
 | `activeCrmQuickFilter` | crm, shell |

@@ -13069,3 +13069,113 @@ body.teacher-portal-modal-open {
   background: linear-gradient(135deg, rgba(17, 17, 17, 0.96) 0%, rgba(43, 36, 24, 0.96) 100%);
   border-color: rgba(188, 155, 86, 0.34);
 }
+
+/* Altas: "Cambiar de grupo" (CEO, 14/nov/2026) */
+.alta-group-change {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid rgba(31, 107, 92, 0.22);
+  border-radius: 18px;
+  background: rgba(240, 249, 246, 0.85);
+  padding: 1rem 1.1rem;
+}
+
+.alta-group-change[hidden],
+.alta-group-change-panel[hidden],
+.alta-group-change-history[hidden],
+.alta-group-change-warning[hidden] {
+  display: none !important;
+}
+
+.alta-group-change-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.alta-group-change-head p {
+  margin: 0.2rem 0 0;
+  color: #4b5b57;
+  font-size: 0.9rem;
+}
+
+.alta-group-change-warning {
+  margin: 0;
+  border-radius: 12px;
+  background: #fff4d6;
+  border: 1px solid #f0d58a;
+  padding: 0.6rem 0.8rem;
+  color: #6b4e00;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.alta-group-change-history {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #2f4a44;
+  font-size: 0.88rem;
+}
+
+.alta-group-change-help {
+  margin: 0;
+  color: #4b5b57;
+  font-size: 0.88rem;
+}
+
+.alta-group-change-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.alta-group-change-grid label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.alta-group-change-summary {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.alta-group-change-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.alta-group-change-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(31, 107, 92, 0.12);
+}
+
+.alta-group-change-table tr.is-new td {
+  background: rgba(31, 107, 92, 0.08);
+  font-weight: 700;
+}
+
+.alta-group-change-errors {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #9b2c2c;
+  font-size: 0.88rem;
+}
+
+.alta-group-change-feedback {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #1f6b5c;
+}
+
+.alta-group-change-feedback.is-error {
+  color: #9b2c2c;
+}
+
+@media (max-width: 760px) {
+  .alta-group-change-grid {
+    grid-template-columns: 1fr;
+  }
+}
