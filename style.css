@@ -13179,3 +13179,34 @@ body.teacher-portal-modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+/* Confirmación de beca ya enviada: visible para todo el equipo con quién y
+   cuándo (petición del CEO, 19/nov/2026). */
+.beca-sent-note {
+  display: inline-block;
+  width: fit-content;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(46, 140, 87, 0.12);
+  color: #1f6b43;
+  border: 1px solid rgba(46, 140, 87, 0.3);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* Cupo de 12 becas (petición del CEO, 19/nov/2026). */
+.crm-beca-cupo {
+  margin: 0.6rem 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8a6817;
+}
+.crm-beca-cupo.is-full {
+  color: #a0472f;
+}
+.beca-cupo-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #8a6817;
+  font-weight: 600;
+}

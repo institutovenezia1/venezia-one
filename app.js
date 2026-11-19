@@ -4708,10 +4708,57 @@ function getBecaPaseUrl(prospect) {
   return `${BECA_SITE_URL}/pase.html?id=${encodeURIComponent(prospect.id)}`;
 }
 
-function buildBecaConfirmationMessage(prospect) {
+// --- Cupo de becas (petición del CEO, 19/nov/2026) --------------------------
+// A partir de BECA_CUPO_INICIO solo hay BECA_CUPO_TOTAL becas. Cuentan las
+// solicitudes a las que YA se les mandó la confirmación ("Apoyo aprobado:
+// Beca" + "Confirmada el" desde el inicio). De la 13 en adelante, la
+// confirmación es de DESCUENTO (otro precio en el pase). Las confirmadas
+// antes del inicio no cuentan y su pase sigue siendo de beca.
+const BECA_CUPO_TOTAL = 12;
+const BECA_CUPO_INICIO = "2026-11-19T21:20:00Z"; // 19/nov/2026 3:20 pm (Tlaxcala)
+const BECA_APOYO_BECA = "Beca";
+const BECA_APOYO_DESCUENTO = "Descuento";
+
+function getBecaApprovedSupport(prospect) {
+  const value = normalizeLooseText(extractBecaNotesField(__veneziaGet(prospect, "notas"), "Apoyo aprobado"));
+  if (value === normalizeLooseText(BECA_APOYO_DESCUENTO)) return BECA_APOYO_DESCUENTO;
+  if (value === normalizeLooseText(BECA_APOYO_BECA)) return BECA_APOYO_BECA;
+  return "";
+}
+
+function countBecaCupoUsed(excludeId = "") {
+  const start = new Date(BECA_CUPO_INICIO).getTime();
+  return prospects.filter((prospect) => {
+    if (!prospect || prospect.id === excludeId || !isBecaApplicationProspect(prospect)) return false;
+    if (isBecaConfirmationPending(prospect)) return false;
+    if (getBecaApprovedSupport(prospect) !== BECA_APOYO_BECA) return false;
+    const confirmedAt = new Date(extractBecaNotesField(prospect.notas, "Confirmada el")).getTime();
+    return Number.isFinite(confirmedAt) && confirmedAt >= start;
+  }).length;
+}
+
+// Qué apoyo le toca a esta prospecta si se le confirma ahorita. Si ya tenía
+// uno asignado (p. ej. se reabrió para reenviar), se respeta el mismo.
+function resolveBecaSupportForConfirmation(prospect) {
+  const existing = getBecaApprovedSupport(prospect);
+  if (existing) return existing;
+  return countBecaCupoUsed(prospect.id) < BECA_CUPO_TOTAL ? BECA_APOYO_BECA : BECA_APOYO_DESCUENTO;
+}
+
+function buildBecaConfirmationMessage(prospect, support = BECA_APOYO_BECA) {
   const firstName = String(prospect.nombre || "").trim().split(" ")[0] || "";
   const curso = prospect.curso || "tu curso";
   const paseUrl = getBecaPaseUrl(prospect);
+  if (support === BECA_APOYO_DESCUENTO) {
+    // Se acabaron las becas del periodo: se le aprueba un descuento. Igual
+    // que con la beca, sin montos en el mensaje -- se ven al abrir el pase.
+    return (
+      `*¡Hola${firstName ? " " + firstName : ""}!*\n\n` +
+      `Ya revisamos tu solicitud de la *Beca Venezia* para *${curso}*. Las becas de este periodo ya se asignaron, pero tengo buenas noticias: te aprobamos un *DESCUENTO ESPECIAL* para que puedas empezar tu curso.\n\n` +
+      `Descarga tu pase aquí y entérate de cómo te quedó: ${paseUrl}\n\n` +
+      `Tráelo al instituto (impreso o en tu celular) para confirmar tu lugar. Cualquier duda, aquí estoy para ayudarte.`
+    );
+  }
   // Sin montos aqui a proposito (petición del CEO, 29/oct/2026): el
   // mensaje solo anuncia la aprobación y manda al pase, que es donde se
   // revela cómo le quedó la beca -- efecto sorpresa al abrir el link.
@@ -4775,22 +4822,124 @@ function markBecaConfirmationSent(notas) {
   return upsertBecaNotesSegment(updated, "Confirmada el", new Date().toISOString());
 }
 
+// Asesora que la solicitante eligió en el formulario de Beca Venezia
+// ("Monserrat Hernandez :: Asesora" -> "Monserrat Hernandez | Asesora", el
+// mismo formato que "Asesora asignada" en el CRM). Vacío si no eligió o si
+// eligió "No lo sé" (opción que ya no existe desde el 19/nov/2026).
+function getBecaDeclaredAdvisor(prospect) {
+  const declared = extractBecaNotesField(__veneziaGet(prospect, "notas"), "Asesora que te atendió (según la solicitante)")
+    .split(" :: ")
+    .join(" | ")
+    .trim();
+  if (!declared || declared.indexOf("No lo sé") === 0) {
+    return "";
+  }
+  return declared;
+}
+
+// Quién y cuándo mandó la confirmación de beca, para que TODO el que entra
+// al CRM lo vea y nadie la vuelva a mandar (petición del CEO, 19/nov/2026).
+function getBecaConfirmationSentInfo(prospect) {
+  const notas = __veneziaGet(prospect, "notas");
+  return {
+    by: extractBecaNotesField(notas, "Confirmada por"),
+    at: extractBecaNotesField(notas, "Confirmada el"),
+  };
+}
+
 async function openBecaConfirmation(id) {
   const prospect = prospects.find((item) => item.id === id);
   if (!prospect) {
     return;
   }
 
-  const whatsappUrl = getWhatsAppUrlByPhone(prospect.telefono, buildBecaConfirmationMessage(prospect));
-  if (!whatsappUrl) {
+  if (!getWhatsAppUrlByPhone(prospect.telefono, "x")) {
     alert("Esta prospecta no tiene un teléfono válido para enviarle WhatsApp.");
     return;
   }
 
-  window.open(whatsappUrl, "_blank", "noopener");
+  // Orden corregido (petición del CEO, 19/nov/2026): PRIMERO se guarda en
+  // Supabase que la confirmación ya se envió y DESPUÉS se abre WhatsApp.
+  // Antes era al revés y, desde el celular, al abrirse WhatsApp el navegador
+  // se iba a segundo plano y cortaba el guardado: el mensaje sí salía pero
+  // el CRM seguía marcándola como pendiente para todos (y el pase no se
+  // activaba). La pestaña se abre en blanco aquí mismo, dentro del clic,
+  // para que el navegador no la bloquee como ventana emergente; ya que el
+  // guardado se confirma, se le pone el link de WhatsApp.
+  let whatsappWindow = null;
+  try {
+    whatsappWindow = window.open("", "_blank");
+  } catch (error) {
+    whatsappWindow = null;
+  }
 
-  const updatedNotas = markBecaConfirmationSent(prospect.notas);
-  await updateProspectQuickState(id, { notas: updatedNotas });
+  // Antes de decidir si va beca o descuento se trae lo último de Supabase,
+  // para contar también lo que confirmaron las demás asesoras.
+  try {
+    await refreshSharedSupabaseState({ force: true, render: false });
+  } catch (error) {
+    console.warn("No se pudo actualizar el CRM antes de confirmar la beca.", error);
+  }
+  const freshProspect = prospects.find((item) => item.id === id) || prospect;
+  if (!isBecaConfirmationPending(freshProspect)) {
+    // Otra asesora la confirmó mientras tanto: no se manda dos veces.
+    if (whatsappWindow && !whatsappWindow.closed) {
+      whatsappWindow.close();
+    }
+    renderAll();
+    const sentInfo = getBecaConfirmationSentInfo(freshProspect);
+    alert(`Esta prospecta ya fue confirmada${sentInfo.by ? " por " + sentInfo.by : ""}. No se volvió a enviar.`);
+    return;
+  }
+  const support = resolveBecaSupportForConfirmation(freshProspect);
+  const whatsappUrl = getWhatsAppUrlByPhone(freshProspect.telefono, buildBecaConfirmationMessage(freshProspect, support));
+
+  const currentUser = getCurrentInternalUser();
+  const senderName = __veneziaGet(currentUser, "fullName") || __veneziaGet(currentUser, "username") || "";
+  let updatedNotas = upsertBecaNotesSegment(markBecaConfirmationSent(freshProspect.notas), "Apoyo aprobado", support);
+  if (senderName) {
+    updatedNotas = upsertBecaNotesSegment(updatedNotas, "Confirmada por", senderName);
+  }
+  const updates = { notas: updatedNotas };
+  // Si nadie la tenía asignada, queda con la asesora que ella eligió en el
+  // formulario (o, si no hay, con quien manda la confirmación).
+  if (!freshProspect.asesoraAsignada) {
+    const declaredAdvisor = getBecaDeclaredAdvisor(freshProspect);
+    if (declaredAdvisor) {
+      updates.asesoraAsignada = declaredAdvisor;
+    }
+  }
+
+  const originalIndex = prospects.findIndex((item) => item.id === id);
+  const saveResult = await saveProspectRecord({ ...freshProspect, ...updates });
+
+  if (!saveResult.synced) {
+    // No se abre WhatsApp si no quedó registrado: así nunca sale un mensaje
+    // que el resto del equipo no vea.
+    if (originalIndex >= 0) {
+      prospects[originalIndex] = freshProspect;
+    }
+    renderAll();
+    if (whatsappWindow && !whatsappWindow.closed) {
+      whatsappWindow.close();
+    }
+    alert(
+      "No se pudo registrar la confirmación (revisa tu internet). No se abrió WhatsApp para que no se envíe sin quedar registrado. Intenta de nuevo."
+    );
+    return;
+  }
+
+  renderAll();
+  if (whatsappWindow && !whatsappWindow.closed) {
+    try {
+      whatsappWindow.opener = null;
+    } catch (error) {
+      // sin acción
+    }
+    whatsappWindow.location.href = whatsappUrl;
+  } else {
+    window.location.href = whatsappUrl;
+  }
 }
 
 // Si al abrir WhatsApp algo falla del lado de la asesora (ej. WhatsApp Web
@@ -4812,12 +4961,30 @@ function reopenBecaConfirmationFlag(notas) {
   // confirmar de verdad, markBecaConfirmationSent pone uno nuevo, para que
   // las 24 horas de vigencia del pase empiecen a contar desde la
   // confirmación real y no desde el intento fallido.
-  return removeBecaNotesSegment(updated, "Confirmada el");
+  return removeBecaNotesSegment(removeBecaNotesSegment(updated, "Confirmada el"), "Confirmada por");
 }
 
 async function reopenBecaConfirmation(id) {
   const prospect = prospects.find((item) => item.id === id);
   if (!prospect) {
+    return;
+  }
+
+  // Candado contra duplicados (petición del CEO, 19/nov/2026): antes de
+  // reabrir se avisa quién y cuándo ya la confirmó.
+  const sentInfo = getBecaConfirmationSentInfo(prospect);
+  const sentDetail = [
+    sentInfo.by ? `por ${sentInfo.by}` : "",
+    sentInfo.at ? `el ${formatDisplayDateTime(sentInfo.at)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const confirmed = window.confirm(
+    `Esta confirmación de beca ya se envió${sentDetail ? " " + sentDetail : ""}\n\n` +
+      "Úsalo SOLO si el WhatsApp no le llegó a la prospecta. Si ya le llegó, mandarlo otra vez se ve poco profesional.\n\n" +
+      "¿Reabrir la confirmación para volver a enviarla?"
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -10554,6 +10721,15 @@ function renderCrmPriorityStats(baseProspects) {
   );
 
   crmCountScheduled.textContent = stats.scheduledCount;
+  const becaCupoLine = document.getElementById("crmBecaCupo");
+  if (becaCupoLine) {
+    const used = countBecaCupoUsed();
+    becaCupoLine.textContent =
+      used >= BECA_CUPO_TOTAL
+        ? `Becas Venezia: las ${BECA_CUPO_TOTAL} becas ya se asignaron. Las siguientes aprobaciones van con descuento.`
+        : `Becas Venezia: ${used} de ${BECA_CUPO_TOTAL} asignadas · quedan ${BECA_CUPO_TOTAL - used}.`;
+    becaCupoLine.classList.toggle("is-full", used >= BECA_CUPO_TOTAL);
+  }
   crmCountEnrolled.textContent = stats.enrolledCount;
 
   if (crmFilterScheduled) {
@@ -10594,11 +10770,41 @@ function renderTable() {
       const becaAlreadyConfirmed = isBecaApplicationProspect(prospect) && !isBecaConfirmationPending(prospect);
       const becaReminderMarkup = becaReminder
         ? becaReminder.ready
-          ? `<button class="table-action action-beca-confirm" type="button" data-action="beca-confirm" data-id="${prospect.id}">Enviar confirmación de beca (WhatsApp)</button>`
+          ? (() => {
+              const nextSupport = resolveBecaSupportForConfirmation(prospect);
+              const label =
+                nextSupport === BECA_APOYO_DESCUENTO
+                  ? "Enviar aprobación con DESCUENTO (WhatsApp)"
+                  : "Enviar confirmación de beca (WhatsApp)";
+              const hint =
+                nextSupport === BECA_APOYO_DESCUENTO
+                  ? `<small class="beca-cupo-hint">Las ${BECA_CUPO_TOTAL} becas ya se asignaron: a ella le toca descuento.</small>`
+                  : `<small class="beca-cupo-hint">Quedan ${Math.max(0, BECA_CUPO_TOTAL - countBecaCupoUsed())} de ${BECA_CUPO_TOTAL} becas.</small>`;
+              return `<button class="table-action action-beca-confirm" type="button" data-action="beca-confirm" data-id="${prospect.id}">${label}</button>${hint}`;
+            })()
           : `<span class="status-pill followup-pill followup-pill-pending">Beca: confirmar en ${becaReminder.minutesLeft} min</span>`
         : becaAlreadyConfirmed
-        ? `<button class="table-action action-beca-reenviar" type="button" data-action="beca-reenviar" data-id="${prospect.id}" title="Usa esto si el WhatsApp no se llegó a enviar">¿No se envió? Reintentar confirmación</button>`
+        ? (() => {
+            const sentInfo = getBecaConfirmationSentInfo(prospect);
+            const sentLine = [
+              getBecaApprovedSupport(prospect) === BECA_APOYO_DESCUENTO
+                ? "✅ Aprobación con descuento enviada"
+                : "✅ Confirmación de beca enviada",
+              sentInfo.by ? `por ${sentInfo.by}` : "",
+              sentInfo.at ? `· ${formatDisplayDateTime(sentInfo.at)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return `<span class="beca-sent-note">${escapeHtml(sentLine)}</span>
+              <button class="table-action action-beca-reenviar" type="button" data-action="beca-reenviar" data-id="${prospect.id}" title="Usa esto solo si el WhatsApp no se llegó a enviar">¿No le llegó? Reintentar confirmación</button>`;
+          })()
         : "";
+      const becaDeclaredAdvisor = isBecaApplicationProspect(prospect) ? getBecaDeclaredAdvisor(prospect) : "";
+      const advisorLabel = prospect.asesoraAsignada
+        ? prospect.asesoraAsignada
+        : becaDeclaredAdvisor
+        ? `${becaDeclaredAdvisor} (según la solicitante)`
+        : "-";
       const actionsMarkup = isEnrolled
         ? `<button class="table-action action-history" type="button" data-action="history" data-id="${prospect.id}">Ver historial</button>`
         : `
@@ -10637,7 +10843,7 @@ function renderTable() {
             <div class="prospect-followup-cell">
               <span class="status-pill followup-pill followup-pill-${escapeHtml(followup.tone)}">${escapeHtml(followup.label)}</span>
               <small>${escapeHtml(followup.detail || "Sin fecha definida.")}</small>
-              <small>Asesor: ${escapeHtml(prospect.asesoraAsignada || "-")}</small>
+              <small>Asesor: ${escapeHtml(advisorLabel)}</small>
               ${becaReminderMarkup}
             </div>
           </td>
