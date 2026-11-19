@@ -61,9 +61,10 @@ function isIgnored(filePath) {
   return ignoredPatterns.some((pattern) => pattern.test(filePath));
 }
 
-// Imágenes propias del portal (por ejemplo, listas de material por curso).
+// Imágenes y documentos PDF propios del portal (listas de material por curso,
+// reglamento y carta compromiso que descarga la alumna).
 const allowedPatterns = [
-  /^images\/mi-venezia-v2\/[^/]+\.(jpe?g|png|webp|svg)$/i,
+  /^images\/mi-venezia-v2\/[^/]+\.(jpe?g|png|webp|svg|pdf)$/i,
   // Blindaje por módulo: pruebas y mapa (cada cambio actualiza su foto base).
   /^scripts\/regression\//,
   /^scripts\/check-module-scope\.js$/,

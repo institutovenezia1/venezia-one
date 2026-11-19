@@ -33,8 +33,8 @@
   };
 
   const STUDENT_DOCUMENT_REQUIREMENTS = [
-    "Reglamento interno",
-    "Contrato de alumno",
+    "Reglamento Oficial 2027",
+    "Carta Compromiso de Inscripción",
     "Acta de nacimiento",
     "CURP",
     "INE",
@@ -1003,10 +1003,13 @@
     const aliasesByKey = new Map([
       [normalizeAltaDocumentKey("INE / identificación oficial"), ["INE"]],
       [normalizeAltaDocumentKey("Comprobante de estudios"), ["Comprobante de último grado de estudios"]],
-      [normalizeAltaDocumentKey("Reglamento / contrato firmado"), ["Reglamento interno", "Contrato de alumno"]],
-      [normalizeAltaDocumentKey("Reglamento firmado"), ["Reglamento interno"]],
-      [normalizeAltaDocumentKey("Contrato firmado"), ["Contrato de alumno"]],
-      [normalizeAltaDocumentKey("Contrato de inscripción"), ["Contrato de alumno"]],
+      [normalizeAltaDocumentKey("Reglamento / contrato firmado"), ["Reglamento Oficial 2027", "Carta Compromiso de Inscripción"]],
+      [normalizeAltaDocumentKey("Reglamento firmado"), ["Reglamento Oficial 2027"]],
+      [normalizeAltaDocumentKey("Contrato firmado"), ["Carta Compromiso de Inscripción"]],
+      [normalizeAltaDocumentKey("Contrato de inscripción"), ["Carta Compromiso de Inscripción"]],
+      // Nombres anteriores (antes del 19/nov/2026).
+      [normalizeAltaDocumentKey("Reglamento interno"), ["Reglamento Oficial 2027"]],
+      [normalizeAltaDocumentKey("Contrato de alumno"), ["Carta Compromiso de Inscripción"]],
     ]);
     const seen = new Set();
     const resolveDocumentNames = (item) => {

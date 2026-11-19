@@ -214,8 +214,8 @@
     "Incompleta",
     "Parcial",
     "Documentos entregados",
-    "Reglamento interno",
-    "Contrato de alumno",
+    "Reglamento Oficial 2027",
+    "Carta Compromiso de Inscripción",
     "Acta de nacimiento",
     "CURP",
     "INE",
@@ -2064,9 +2064,9 @@
     "Te faltan 5 documentos. Revisa la lista de pendientes.",
     "Documentos entregados",
     "ENTREGADO",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "ENTREGADO",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "Documentos pendientes por entregar",
     "PENDIENTE",
     "Acta de nacimiento",
@@ -2079,8 +2079,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-02-entrada": [
     "MI VENEZIA",
@@ -2278,9 +2278,9 @@
     "Tu documentación está completa.",
     "Documentos entregados",
     "ENTREGADO",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "ENTREGADO",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "ENTREGADO",
     "Acta de nacimiento",
     "ENTREGADO",
@@ -2294,8 +2294,8 @@
     "Documentos pendientes por entregar",
     "Tu documentación está completa.",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-03-entrada": [
     "MI VENEZIA",
@@ -2512,9 +2512,9 @@
     "Aún no hay documentos entregados registrados.",
     "Documentos pendientes por entregar",
     "PENDIENTE",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "PENDIENTE",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "PENDIENTE",
     "Acta de nacimiento",
     "PENDIENTE",
@@ -2526,8 +2526,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-04-entrada": [
     "MI VENEZIA",
@@ -2641,9 +2641,9 @@
     "Aún no hay documentos entregados registrados.",
     "Documentos pendientes por entregar",
     "PENDIENTE",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "PENDIENTE",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "PENDIENTE",
     "Acta de nacimiento",
     "PENDIENTE",
@@ -2655,8 +2655,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-05-entrada": [
     "MI VENEZIA",
@@ -2737,9 +2737,9 @@
     "Aún no hay documentos entregados registrados.",
     "Documentos pendientes por entregar",
     "PENDIENTE",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "PENDIENTE",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "PENDIENTE",
     "Acta de nacimiento",
     "PENDIENTE",
@@ -2751,8 +2751,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-06-entrada": [
     "MI VENEZIA",
@@ -2864,9 +2864,9 @@
     "Aún no hay documentos entregados registrados.",
     "Documentos pendientes por entregar",
     "PENDIENTE",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "PENDIENTE",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "PENDIENTE",
     "Acta de nacimiento",
     "PENDIENTE",
@@ -2878,8 +2878,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-errores-de-pagina": [],
   "mi-venezia-mv-01-material": [
@@ -3180,9 +3180,9 @@
     "Aún no hay documentos entregados registrados.",
     "Documentos pendientes por entregar",
     "PENDIENTE",
-    "Reglamento interno",
+    "Reglamento Oficial 2027",
     "PENDIENTE",
-    "Contrato de alumno",
+    "Carta Compromiso de Inscripción",
     "PENDIENTE",
     "Acta de nacimiento",
     "PENDIENTE",
@@ -3194,8 +3194,8 @@
     "PENDIENTE",
     "Comprobante de último grado de estudios",
     "Formatos descargables",
-    "Descargar reglamento interno",
-    "Descargar contrato de alumno"
+    "Descargar Reglamento Oficial 2027",
+    "Descargar Carta Compromiso de Inscripción"
   ],
   "mi-venezia-mv-07-material": [
     "MI VENEZIA",

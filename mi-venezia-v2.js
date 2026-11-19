@@ -51,8 +51,8 @@
   var LATE_FEE_DAILY_AMOUNT = 100;
   var LATE_FEE_GRACE_CUTOFF_HOUR = 12;
   var STUDENT_DOCUMENT_REQUIREMENTS = [
-    "Reglamento interno",
-    "Contrato de alumno",
+    "Reglamento Oficial 2027",
+    "Carta Compromiso de Inscripción",
     "Acta de nacimiento",
     "CURP",
     "INE",
@@ -60,8 +60,8 @@
     "Comprobante de último grado de estudios"
   ];
   var DOCUMENT_DOWNLOADS = [
-    { label: "Descargar reglamento interno", href: "/images/reglamentooficial-venezia.pdf" },
-    { label: "Descargar contrato de alumno", href: "/images/CONTRATO-ALUMNO.pdf" }
+    { label: "Descargar Reglamento Oficial 2027", href: "/images/mi-venezia-v2/REGLAMENTO_OFICIAL_2027.pdf" },
+    { label: "Descargar Carta Compromiso de Inscripción", href: "/images/mi-venezia-v2/Carta_Compromiso_de_Inscripcion_-_Instituto_Venezia.pdf" }
   ];
   var BOOTSTRAP_DIRECTORS = [
     { branch: "Tlaxcala", scheduleType: "weekday", phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP },
@@ -457,10 +457,13 @@
 
     aliases[getDocumentKey("INE / identificación oficial")] = ["INE"];
     aliases[getDocumentKey("Comprobante de estudios")] = ["Comprobante de último grado de estudios"];
-    aliases[getDocumentKey("Reglamento / contrato firmado")] = ["Reglamento interno", "Contrato de alumno"];
-    aliases[getDocumentKey("Reglamento firmado")] = ["Reglamento interno"];
-    aliases[getDocumentKey("Contrato firmado")] = ["Contrato de alumno"];
-    aliases[getDocumentKey("Contrato de inscripción")] = ["Contrato de alumno"];
+    aliases[getDocumentKey("Reglamento / contrato firmado")] = ["Reglamento Oficial 2027", "Carta Compromiso de Inscripción"];
+    aliases[getDocumentKey("Reglamento firmado")] = ["Reglamento Oficial 2027"];
+    aliases[getDocumentKey("Contrato firmado")] = ["Carta Compromiso de Inscripción"];
+    aliases[getDocumentKey("Contrato de inscripción")] = ["Carta Compromiso de Inscripción"];
+    // Nombres anteriores (antes del 19/nov/2026).
+    aliases[getDocumentKey("Reglamento interno")] = ["Reglamento Oficial 2027"];
+    aliases[getDocumentKey("Contrato de alumno")] = ["Carta Compromiso de Inscripción"];
 
     for (index = 0; index < rawItems.length; index += 1) {
       item = text(rawItems[index]);

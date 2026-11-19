@@ -162,8 +162,8 @@ const ATTENDANCE_COURSE_COMPLETED_STATUS = "Curso finalizado";
 const ATTENDANCE_DROPPED_STATUSES = ["Baja temporal", "Baja definitiva"];
 const ATTENDANCE_STATUS_OPTIONS = ["", "Asistencia", "Permiso", "Falta"];
 const STUDENT_DOCUMENT_REQUIREMENTS = [
-  "Reglamento interno",
-  "Contrato de alumno",
+  "Reglamento Oficial 2027",
+  "Carta Compromiso de Inscripción",
   "Acta de nacimiento",
   "CURP",
   "INE",
@@ -11306,10 +11306,14 @@ function getStudentDocumentAliasMap() {
   return new Map([
     [getStudentDocumentKey("INE / identificación oficial"), ["INE"]],
     [getStudentDocumentKey("Comprobante de estudios"), ["Comprobante de último grado de estudios"]],
-    [getStudentDocumentKey("Reglamento / contrato firmado"), ["Reglamento interno", "Contrato de alumno"]],
-    [getStudentDocumentKey("Reglamento firmado"), ["Reglamento interno"]],
-    [getStudentDocumentKey("Contrato firmado"), ["Contrato de alumno"]],
-    [getStudentDocumentKey("Contrato de inscripción"), ["Contrato de alumno"]],
+    [getStudentDocumentKey("Reglamento / contrato firmado"), ["Reglamento Oficial 2027", "Carta Compromiso de Inscripción"]],
+    [getStudentDocumentKey("Reglamento firmado"), ["Reglamento Oficial 2027"]],
+    [getStudentDocumentKey("Contrato firmado"), ["Carta Compromiso de Inscripción"]],
+    [getStudentDocumentKey("Contrato de inscripción"), ["Carta Compromiso de Inscripción"]],
+    // Nombres anteriores (antes del 19/nov/2026): las alumnas que ya los
+    // tenían entregados siguen apareciendo con su documento entregado.
+    [getStudentDocumentKey("Reglamento interno"), ["Reglamento Oficial 2027"]],
+    [getStudentDocumentKey("Contrato de alumno"), ["Carta Compromiso de Inscripción"]],
   ]);
 }
 
