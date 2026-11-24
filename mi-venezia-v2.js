@@ -60,8 +60,8 @@
     "Comprobante de último grado de estudios"
   ];
   var DOCUMENT_DOWNLOADS = [
-    { label: "Descargar Reglamento Oficial 2027", href: "/images/mi-venezia-v2/REGLAMENTO_OFICIAL_2027.pdf" },
-    { label: "Descargar Carta Compromiso de Inscripción", href: "/images/mi-venezia-v2/Carta_Compromiso_de_Inscripcion_-_Instituto_Venezia.pdf" }
+    { label: "Descargar Reglamento Oficial 2027", href: "/images/mi-venezia-v2/REGLAMENTO_OFICIAL_2027.pdf?v=20261120" },
+    { label: "Descargar Carta Compromiso de Inscripción", href: "/images/mi-venezia-v2/Carta_Compromiso_de_Inscripcion_-_Instituto_Venezia.pdf?v=20261120" }
   ];
   var BOOTSTRAP_DIRECTORS = [
     { branch: "Tlaxcala", scheduleType: "weekday", phone: TLAXCALA_WEEKDAY_DIRECTOR_WHATSAPP },
